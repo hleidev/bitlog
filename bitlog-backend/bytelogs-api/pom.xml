@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <packaging>pom</packaging>
+
+    <parent>
+        <groupId>top.harrylei.community</groupId>
+        <artifactId>bytelogs-cloud</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>bytelogs-api</artifactId>
+    <name>bytelogs-api</name>
+    <description>跨服务 API 定义聚合模块（DTO、VO、Feign 接口）</description>
+
+    <modules>
+        <!-- 用户服务 API：DTO/VO/Feign + 公共响应模型 -->
+        <module>bytelogs-user-api</module>
+    </modules>
+
+</project>
