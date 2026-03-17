@@ -10,7 +10,7 @@ import top.harrylei.community.api.model.user.vo.UserInfoVO;
 import java.util.List;
 
 /**
- * 用户服务 Feign 客户端接口
+ * 用户服务远程调用接口
  * <p>
  * 供其他微服务调用，用于获取用户基础信息。
  * 调用方引入 bytelogs-user-api 依赖后即可注入使用。
@@ -20,7 +20,7 @@ import java.util.List;
  * @since 0.0.1
  */
 @FeignClient(name = "bytelogs-user-service", path = "/api/v1/internal/user")
-public interface UserFeignClient {
+public interface UserClient {
 
     /**
      * 根据用户ID查询用户基础信息
