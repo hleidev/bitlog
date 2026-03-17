@@ -1,0 +1,19 @@
+# Maven
+target/
+*.jar
+*.war
+*.ear
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# 环境配置（含敏感信息，不入库）
+**/resources-env/dev/application-dal.yml
+**/resources-env/dev/application-mq.yml
+**/resources-env/dev/application-ai.yml
+**/resources-env/prod/application-dal.yml
+**/resources-env/prod/application-mq.yml
+**/resources-env/prod/application-ai.yml
