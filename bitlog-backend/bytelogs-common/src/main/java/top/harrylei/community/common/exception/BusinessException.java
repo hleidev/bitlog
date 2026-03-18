@@ -1,4 +1,4 @@
-package top.harrylei.community.api.exception;
+package top.harrylei.community.common.exception;
 
 import lombok.Getter;
 
@@ -21,12 +21,6 @@ public class BusinessException extends RuntimeException {
      */
     private final String message;
 
-    /**
-     * 构造方法
-     *
-     * @param code    错误码
-     * @param message 错误消息
-     */
     public BusinessException(int code, String message) {
         super(message);
         this.code = code;

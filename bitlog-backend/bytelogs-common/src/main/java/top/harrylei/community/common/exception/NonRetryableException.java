@@ -1,8 +1,7 @@
-package top.harrylei.community.api.exception;
+package top.harrylei.community.common.exception;
 
 /**
  * 不可重试异常
- * 用于标识不应该重试的异常类型
  *
  * @author harry
  * @since 0.0.1

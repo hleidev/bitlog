@@ -1,7 +1,7 @@
 package top.harrylei.community.api.enums.response;
 
 import lombok.Getter;
-import top.harrylei.community.api.exception.BusinessException;
+import top.harrylei.community.common.exception.BusinessException;
 
 /**
  * 错误码枚举
