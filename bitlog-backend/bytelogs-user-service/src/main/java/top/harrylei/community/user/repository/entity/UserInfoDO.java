@@ -69,9 +69,4 @@ public class UserInfoDO extends BaseDO {
      * 用户角色：0-普通用户，1-超级管理员
      */
     private UserRoleEnum userRole;
-
-    /**
-     * 邮箱
-     */
-    private String email;
 }
