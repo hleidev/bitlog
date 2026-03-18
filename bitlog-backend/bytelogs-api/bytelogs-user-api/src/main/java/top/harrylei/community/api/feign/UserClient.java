@@ -23,20 +23,20 @@ import java.util.List;
 public interface UserClient {
 
     /**
-     * 根据用户ID查询用户基础信息
+     * 根据用户 ID 查询用户基础信息
      *
-     * @param userId 用户ID
+     * @param userId 用户 ID
      * @return 用户信息
      */
     @GetMapping("/{userId}")
-    Result<UserInfoVO> getUserInfo(@PathVariable("userId") Long userId);
+    Result<UserInfoVO> getUserInfo(@PathVariable Long userId);
 
     /**
      * 批量查询用户基础信息
      *
-     * @param userIds 用户ID列表
+     * @param userIds 用户 ID 列表
      * @return 用户信息列表
      */
     @GetMapping("/batch")
-    Result<List<UserInfoVO>> getUserInfoBatch(@RequestParam("userIds") List<Long> userIds);
+    Result<List<UserInfoVO>> getUserInfoBatch(@RequestParam List<Long> userIds);
 }
