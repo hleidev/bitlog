@@ -4,7 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import top.harrylei.community.api.enums.common.DeleteStatusEnum;
 import top.harrylei.community.api.enums.user.UserFollowStatusEnum;
-import top.harrylei.community.api.model.base.BaseDTO;
+import top.harrylei.community.common.model.BaseDTO;
 
 /**
  * 用户关注 DTO

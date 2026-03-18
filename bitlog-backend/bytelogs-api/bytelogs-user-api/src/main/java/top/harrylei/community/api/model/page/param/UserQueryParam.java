@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.springframework.format.annotation.DateTimeFormat;
 import top.harrylei.community.api.enums.common.DeleteStatusEnum;
-import top.harrylei.community.api.model.base.BasePage;
+import top.harrylei.community.common.model.BasePage;
 
 import java.time.LocalDateTime;
 import java.util.Map;

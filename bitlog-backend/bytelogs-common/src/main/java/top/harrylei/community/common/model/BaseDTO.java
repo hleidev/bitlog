@@ -1,6 +1,5 @@
-package top.harrylei.community.api.model.base;
+package top.harrylei.community.common.model;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -17,12 +16,9 @@ import java.time.LocalDateTime;
 @Accessors(chain = true)
 public class BaseDTO implements Serializable {
 
-    @Schema(description = "业务主键")
     private Long id;
 
-    @Schema(description = "创建时间")
     private LocalDateTime createTime;
 
-    @Schema(description = "最后编辑时间")
     private LocalDateTime updateTime;
 }

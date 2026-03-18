@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import top.harrylei.community.api.enums.common.DeleteStatusEnum;
 import top.harrylei.community.api.enums.user.UserRoleEnum;
-import top.harrylei.community.api.model.base.BaseDTO;
+import top.harrylei.community.common.model.BaseDTO;
 
 /**
  * 用户完整信息 DTO

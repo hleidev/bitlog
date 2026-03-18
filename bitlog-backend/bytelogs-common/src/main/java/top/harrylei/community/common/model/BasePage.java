@@ -1,6 +1,5 @@
-package top.harrylei.community.api.model.base;
+package top.harrylei.community.common.model;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -17,7 +16,6 @@ import java.util.Map;
  * @since 0.0.1
  */
 @Data
-@Schema(description = "分页请求参数")
 public class BasePage implements Serializable {
 
     @Serial
@@ -31,18 +29,15 @@ public class BasePage implements Serializable {
             "createTime", "create_time"
     );
 
-    @Schema(description = "页码，从1开始", defaultValue = "1", example = "1")
     @NotNull(message = "页码不能为空")
     @Min(value = 1, message = "页码最小为1")
     private Integer pageNum = DEFAULT_PAGE_NUM;
 
-    @Schema(description = "每页大小", defaultValue = "10", example = "10")
     @NotNull(message = "每页大小不能为空")
     @Min(value = 1, message = "每页大小最小为1")
     @Max(value = MAX_PAGE_SIZE, message = "每页大小最大为100")
     private Integer pageSize = DEFAULT_PAGE_SIZE;
 
-    @Schema(description = "排序字符串，格式：field,direction;field,direction", example = "createTime,desc;userId,asc")
     private String sortField;
 
     /**

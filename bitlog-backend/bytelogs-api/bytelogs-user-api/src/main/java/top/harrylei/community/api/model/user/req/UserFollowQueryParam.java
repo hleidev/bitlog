@@ -3,7 +3,7 @@ package top.harrylei.community.api.model.user.req;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import top.harrylei.community.api.model.base.BasePage;
+import top.harrylei.community.common.model.BasePage;
 
 import java.util.Map;
 

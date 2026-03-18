@@ -1,6 +1,7 @@
 package top.harrylei.community.api.enums.response;
 
 import lombok.Getter;
+import top.harrylei.community.common.enums.IResultCode;
 import top.harrylei.community.common.exception.BusinessException;
 
 /**
@@ -10,7 +11,7 @@ import top.harrylei.community.common.exception.BusinessException;
  * @since 0.0.1
  */
 @Getter
-public enum ResultCode {
+public enum ResultCode implements IResultCode {
     // ========== 成功状态 ==========
     SUCCESS(0, "success"),
 
