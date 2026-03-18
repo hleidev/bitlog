@@ -21,6 +21,7 @@
         <!-- 已创建的模块，随开发进度逐步追加 -->
         <module>bytelogs-common</module>
         <module>bytelogs-api</module>
+        <module>bytelogs-user-service</module>
     </modules>
 
     <properties>
