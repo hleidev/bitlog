@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import top.harrylei.community.api.enums.common.DeleteStatusEnum;
+import top.harrylei.community.api.enums.user.LoginTypeEnum;
 import top.harrylei.community.api.enums.user.UserStatusEnum;
 import top.harrylei.community.common.model.BaseDO;
 
@@ -31,9 +32,9 @@ public class UserDO extends BaseDO {
     private String thirdAccountId;
 
     /**
-     * 登录类型：0-密码登录，1-邮箱验证码登录
+     * 登录类型
      */
-    private Integer loginType;
+    private LoginTypeEnum loginType;
 
     /**
      * 删除标记
