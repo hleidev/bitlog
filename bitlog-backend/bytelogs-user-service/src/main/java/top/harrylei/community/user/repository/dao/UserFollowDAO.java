@@ -22,7 +22,9 @@ import java.util.List;
 public class UserFollowDAO extends ServiceImpl<UserFollowMapper, UserFollowDO> {
 
     public UserFollowDO getFollowRelation(Long userId, Long followUserId) {
-        if (userId == null || followUserId == null) return null;
+        if (userId == null || followUserId == null) {
+            return null;
+        }
         return lambdaQuery()
                 .eq(UserFollowDO::getUserId, userId)
                 .eq(UserFollowDO::getFollowUserId, followUserId)
@@ -31,7 +33,9 @@ public class UserFollowDAO extends ServiceImpl<UserFollowMapper, UserFollowDO> {
     }
 
     public boolean updateFollowStatus(Long userId, Long followUserId, UserFollowStatusEnum status) {
-        if (userId == null || followUserId == null || status == null) return false;
+        if (userId == null || followUserId == null || status == null) {
+            return false;
+        }
         return lambdaUpdate()
                 .eq(UserFollowDO::getUserId, userId)
                 .eq(UserFollowDO::getFollowUserId, followUserId)
@@ -41,7 +45,9 @@ public class UserFollowDAO extends ServiceImpl<UserFollowMapper, UserFollowDO> {
     }
 
     public List<Long> listFollowerIds(Long userId) {
-        if (userId == null) return List.of();
+        if (userId == null) {
+            return List.of();
+        }
         return lambdaQuery()
                 .select(UserFollowDO::getUserId)
                 .eq(UserFollowDO::getFollowUserId, userId)

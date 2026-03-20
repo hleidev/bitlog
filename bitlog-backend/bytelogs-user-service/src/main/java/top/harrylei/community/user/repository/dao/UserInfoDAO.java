@@ -18,7 +18,9 @@ import java.util.List;
 public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {
 
     public UserInfoDO getByUserId(Long userId) {
-        if (userId == null) return null;
+        if (userId == null) {
+            return null;
+        }
         return lambdaQuery()
                 .eq(UserInfoDO::getUserId, userId)
                 .eq(UserInfoDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
@@ -26,7 +28,9 @@ public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {
     }
 
     public List<UserInfoDO> listByUserIds(List<Long> userIds) {
-        if (userIds == null || userIds.isEmpty()) return List.of();
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
         return lambdaQuery()
                 .in(UserInfoDO::getUserId, userIds)
                 .eq(UserInfoDO::getDeleted, DeleteStatusEnum.NOT_DELETED)

@@ -19,7 +19,9 @@ import top.harrylei.community.user.repository.mapper.UserMapper;
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
 
     public UserDO getByUsername(String username) {
-        if (username == null) return null;
+        if (username == null) {
+            return null;
+        }
         return lambdaQuery()
                 .eq(UserDO::getUserName, username)
                 .eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
@@ -27,7 +29,9 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
     }
 
     public UserDO getById(Long userId) {
-        if (userId == null) return null;
+        if (userId == null) {
+            return null;
+        }
         return lambdaQuery()
                 .eq(UserDO::getId, userId)
                 .eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
