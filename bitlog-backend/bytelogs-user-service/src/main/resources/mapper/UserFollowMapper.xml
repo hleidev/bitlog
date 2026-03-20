@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.harrylei.community.user.repository.mapper.UserFollowMapper">
+
+    <resultMap id="UserFollowVOMap" type="top.harrylei.community.api.model.user.vo.UserFollowVO">
+        <result column="user_id" property="userId"/>
+        <result column="user_name" property="userName"/>
+        <result column="avatar" property="avatar"/>
+        <result column="profile" property="profile"/>
+        <result column="followed" property="followed"/>
+        <result column="fan_count" property="fanCount"/>
+        <result column="follow_count" property="followCount"/>
+        <result column="follow_time" property="followTime"/>
+    </resultMap>
+
+    <!-- 分页查询关注列表（当前用户关注了哪些人） -->
+    <select id="pageFollowingList" resultMap="UserFollowVOMap">
+        select
+            ui.user_id, ua.user_name, ui.avatar, ui.profile,
+            true as followed,
+            COALESCE(fan_stats.fan_count, 0) as fan_count,
+            COALESCE(follow_stats.follow_count, 0) as follow_count,
+            ur.create_time as follow_time
+        from user_relation ur
+        left join user_info ui on ur.follow_user_id = ui.user_id
+        left join user_account ua on ui.user_id = ua.id
+        left join (
+            select follow_user_id, count(*) as fan_count
+            from user_relation
+            where follow_state = 1 and deleted = 0
+            group by follow_user_id
+        ) fan_stats on ui.user_id = fan_stats.follow_user_id
+        left join (
+            select user_id, count(*) as follow_count
+            from user_relation
+            where follow_state = 1 and deleted = 0
+            group by user_id
+        ) follow_stats on ui.user_id = follow_stats.user_id
+        <where>
+            ur.user_id = #{queryParam.userId}
+            and ur.follow_state = 1 and ur.deleted = 0 and ua.deleted = 0
+            <if test="queryParam.userName != null and queryParam.userName != ''">
+                and ua.user_name like concat('%', #{queryParam.userName}, '%')
+            </if>
+        </where>
+        order by ur.create_time desc
+    </select>
+
+    <!-- 分页查询粉丝列表（哪些人关注了当前用户） -->
+    <select id="pageFollowersList" resultMap="UserFollowVOMap">
+        select
+            ui.user_id, ua.user_name, ui.avatar, ui.profile,
+            IF(mutual.follow_user_id IS NOT NULL, true, false) as followed,
+            COALESCE(fan_stats.fan_count, 0) as fan_count,
+            COALESCE(follow_stats.follow_count, 0) as follow_count,
+            ur.create_time as follow_time
+        from user_relation ur
+        left join user_info ui on ur.user_id = ui.user_id
+        left join user_account ua on ui.user_id = ua.id
+        left join (
+            select follow_user_id
+            from user_relation
+            where user_id = #{queryParam.followUserId}
+            and follow_state = 1 and deleted = 0
+        ) mutual on mutual.follow_user_id = ui.user_id
+        left join (
+            select follow_user_id, count(*) as fan_count
+            from user_relation
+            where follow_state = 1 and deleted = 0
+            group by follow_user_id
+        ) fan_stats on ui.user_id = fan_stats.follow_user_id
+        left join (
+            select user_id, count(*) as follow_count
+            from user_relation
+            where follow_state = 1 and deleted = 0
+            group by user_id
+        ) follow_stats on ui.user_id = follow_stats.user_id
+        <where>
+            ur.follow_user_id = #{queryParam.followUserId}
+            and ur.follow_state = 1 and ur.deleted = 0 and ua.deleted = 0
+            <if test="queryParam.userName != null and queryParam.userName != ''">
+                and ua.user_name like concat('%', #{queryParam.userName}, '%')
+            </if>
+        </where>
+        order by ur.create_time desc
+    </select>
+
+</mapper>
