@@ -15,9 +15,9 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "用户详情展示对象")
-public class UserDetailVO extends UserListItemVO {
+public class UserDetailVO extends UserListVO {
 
-    @Schema(description = "职位", example = "Java开发工程师")
+    @Schema(description = "职位", example = "Java 开发工程师")
     private String position;
 
     @Schema(description = "公司", example = "Bytelogs Inc.")

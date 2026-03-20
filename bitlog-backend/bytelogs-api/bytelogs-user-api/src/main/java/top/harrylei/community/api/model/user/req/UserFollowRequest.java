@@ -12,7 +12,7 @@ import lombok.Data;
  */
 @Data
 @Schema(description = "用户关注请求")
-public class UserFollowReq {
+public class UserFollowRequest {
 
     @NotNull(message = "用户ID不能为空")
     @Schema(description = "要关注的用户ID", requiredMode = Schema.RequiredMode.REQUIRED, example = "123")

@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @Data
 @Schema(description = "用户列表项展示对象")
 @Accessors(chain = true)
-public class UserListItemVO {
+public class UserListVO {
 
     @Schema(description = "用户ID", example = "123")
     private Long userId;

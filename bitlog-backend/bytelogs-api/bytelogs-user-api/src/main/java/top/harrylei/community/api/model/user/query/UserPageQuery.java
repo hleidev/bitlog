@@ -1,4 +1,4 @@
-package top.harrylei.community.api.model.page.param;
+package top.harrylei.community.api.model.user.query;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -21,7 +21,7 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "用户列表查询参数")
 @Accessors(chain = true)
-public class UserQueryParam extends BasePage {
+public class UserPageQuery extends BasePage {
 
     private static final Map<String, String> FIELD_MAPPING = Map.of(
             "userId", "id",

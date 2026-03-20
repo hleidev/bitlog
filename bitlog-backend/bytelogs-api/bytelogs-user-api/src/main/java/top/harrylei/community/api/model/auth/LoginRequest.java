@@ -11,7 +11,7 @@ import lombok.Data;
  * @since 0.0.1
  */
 @Data
-public class AuthReq {
+public class LoginRequest {
 
     @NotBlank(message = "用户名不能为空")
     @Pattern(regexp = "^[a-zA-Z0-9_-]{4,16}$", message = "用户名只能包含字母、数字、下划线和连字符，长度为4-16位")

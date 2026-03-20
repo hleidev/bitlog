@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import top.harrylei.community.common.model.Result;
-import top.harrylei.community.api.model.user.vo.UserInfoVO;
+import top.harrylei.community.api.model.user.vo.UserVO;
 
 import java.util.List;
 
@@ -29,7 +29,7 @@ public interface UserClient {
      * @return 用户信息
      */
     @GetMapping("/{userId}")
-    Result<UserInfoVO> getUserInfo(@PathVariable Long userId);
+    Result<UserVO> getUserInfo(@PathVariable Long userId);
 
     /**
      * 批量查询用户基础信息
@@ -38,5 +38,5 @@ public interface UserClient {
      * @return 用户信息列表
      */
     @GetMapping("/batch")
-    Result<List<UserInfoVO>> getUserInfoBatch(@RequestParam List<Long> userIds);
+    Result<List<UserVO>> getUserInfoBatch(@RequestParam List<Long> userIds);
 }

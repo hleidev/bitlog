@@ -11,7 +11,7 @@ import lombok.Data;
  * @since 0.0.1
  */
 @Data
-public class PasswordUpdateReq {
+public class PasswordUpdateRequest {
 
     @NotBlank(message = "旧密码不能为空")
     private String oldPassword;

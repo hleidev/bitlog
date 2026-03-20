@@ -12,7 +12,7 @@ import top.harrylei.community.api.enums.user.UserRoleEnum;
  */
 @Data
 @Schema(description = "用户信息展示对象")
-public class UserInfoVO {
+public class UserVO {
 
     @Schema(description = "用户 ID", example = "123")
     private Long userId;

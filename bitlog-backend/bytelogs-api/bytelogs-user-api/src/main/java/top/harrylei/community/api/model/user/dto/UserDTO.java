@@ -18,7 +18,7 @@ import top.harrylei.community.common.model.BaseDTO;
 @Data
 @Schema(description = "用户基础实体对象")
 @Accessors(chain = true)
-public class UserInfoDTO extends BaseDTO {
+public class UserDTO extends BaseDTO {
 
     @Schema(description = "用户id", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long userId;

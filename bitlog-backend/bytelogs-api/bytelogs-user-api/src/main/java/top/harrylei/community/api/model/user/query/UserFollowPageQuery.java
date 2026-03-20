@@ -1,4 +1,4 @@
-package top.harrylei.community.api.model.user.req;
+package top.harrylei.community.api.model.user.query;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -16,7 +16,7 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Schema(description = "用户关注查询参数")
-public class UserFollowQueryParam extends BasePage {
+public class UserFollowPageQuery extends BasePage {
 
     @Schema(description = "关注者用户ID", example = "1")
     private Long userId;
