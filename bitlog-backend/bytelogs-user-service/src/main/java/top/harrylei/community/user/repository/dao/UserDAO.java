@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import top.harrylei.community.api.enums.common.DeleteStatusEnum;
-import top.harrylei.community.api.model.page.param.UserQueryParam;
+import top.harrylei.community.api.model.user.query.UserPageQuery;
 import top.harrylei.community.api.model.user.dto.UserDetailDTO;
 import top.harrylei.community.user.repository.entity.UserDO;
 import top.harrylei.community.user.repository.mapper.UserMapper;
@@ -38,7 +38,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
                 .one();
     }
 
-    public IPage<UserDetailDTO> pageUsers(UserQueryParam queryParam, IPage<UserDetailDTO> page) {
+    public IPage<UserDetailDTO> pageUsers(UserPageQuery queryParam, IPage<UserDetailDTO> page) {
         return getBaseMapper().pageUsers(page, queryParam);
     }
 

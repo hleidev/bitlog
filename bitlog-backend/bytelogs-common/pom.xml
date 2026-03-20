@@ -64,6 +64,12 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
+        <!-- Bean Validation（BasePage 分页参数校验注解） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
         <!-- Lombok（编译期代码生成，provided 不打入 jar） -->
         <dependency>
             <groupId>org.projectlombok</groupId>

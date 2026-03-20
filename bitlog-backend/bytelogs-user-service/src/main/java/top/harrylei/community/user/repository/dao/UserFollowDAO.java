@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import top.harrylei.community.api.enums.common.DeleteStatusEnum;
 import top.harrylei.community.api.enums.user.UserFollowStatusEnum;
-import top.harrylei.community.api.model.user.req.UserFollowQueryParam;
+import top.harrylei.community.api.model.user.query.UserFollowPageQuery;
 import top.harrylei.community.api.model.user.vo.UserFollowVO;
 import top.harrylei.community.user.repository.entity.UserFollowDO;
 import top.harrylei.community.user.repository.mapper.UserFollowMapper;
@@ -59,11 +59,11 @@ public class UserFollowDAO extends ServiceImpl<UserFollowMapper, UserFollowDO> {
                 .toList();
     }
 
-    public IPage<UserFollowVO> pageFollowingList(UserFollowQueryParam queryParam, IPage<UserFollowVO> page) {
+    public IPage<UserFollowVO> pageFollowingList(UserFollowPageQuery queryParam, IPage<UserFollowVO> page) {
         return getBaseMapper().pageFollowingList(queryParam, page);
     }
 
-    public IPage<UserFollowVO> pageFollowersList(UserFollowQueryParam queryParam, IPage<UserFollowVO> page) {
+    public IPage<UserFollowVO> pageFollowersList(UserFollowPageQuery queryParam, IPage<UserFollowVO> page) {
         return getBaseMapper().pageFollowersList(queryParam, page);
     }
 }
