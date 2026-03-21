@@ -1,7 +1,5 @@
 server:
   port: 8001
-  servlet:
-    context-path: /api
 
 spring:
   application:
@@ -14,9 +12,14 @@ spring:
         server-addr: 127.0.0.1:8848
 
 mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
     default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+
+logging:
+  level:
+    top.harrylei.community: debug
 
 database:
   name: byte_logs
