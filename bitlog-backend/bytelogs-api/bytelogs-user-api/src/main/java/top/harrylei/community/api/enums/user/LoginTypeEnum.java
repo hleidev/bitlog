@@ -1,5 +1,6 @@
 package top.harrylei.community.api.enums.user;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -16,5 +17,6 @@ public enum LoginTypeEnum {
     USERNAME_PASSWORD(0),
     EMAIL_PASSWORD(1);
 
+    @EnumValue
     private final int code;
 }
