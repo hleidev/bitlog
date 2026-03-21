@@ -1,8 +1,11 @@
 package top.harrylei.community.user.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -11,6 +14,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import top.harrylei.community.common.enums.ResultCode;
+import top.harrylei.community.common.model.Result;
 import top.harrylei.community.user.filter.JwtAuthenticationFilter;
 
 /**
@@ -25,29 +30,47 @@ import top.harrylei.community.user.filter.JwtAuthenticationFilter;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 无状态服务，禁用 CSRF 和 Session
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 认证端点公开，其余需要登录
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register",
+                                "/api/v1/internal/**",
                                 "/actuator/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                // 禁用默认表单登录和 HTTP Basic
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
-                // 在 UsernamePasswordAuthenticationFilter 前插入 JWT filter
+                .exceptionHandling(ex -> ex
+                        // 未登录：返回 401 JSON
+                        .authenticationEntryPoint((request, response, e) -> {
+                            try {
+                                writeJson(response, HttpServletResponse.SC_UNAUTHORIZED,
+                                        Result.fail(ResultCode.TOKEN_INVALID));
+                            } catch (Exception ex2) {
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                            }
+                        })
+                        // 已登录但权限不足：返回 403 JSON
+                        .accessDeniedHandler((request, response, e) -> {
+                            try {
+                                writeJson(response, HttpServletResponse.SC_FORBIDDEN,
+                                        Result.fail(ResultCode.FORBIDDEN));
+                            } catch (Exception ex2) {
+                                response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                            }
+                        })
+                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -56,5 +79,12 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    private void writeJson(HttpServletResponse response, int status, Object body) throws Exception {
+        response.setStatus(status);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 }

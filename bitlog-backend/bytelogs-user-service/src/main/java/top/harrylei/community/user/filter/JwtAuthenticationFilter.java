@@ -24,9 +24,6 @@ import java.util.List;
 
 /**
  * JWT 认证过滤器
- * <p>
- * 从 Authorization 头提取并验证 JWT，验证通过则填充 ReqInfoContext 和 Spring Security 上下文。
- * </p>
  *
  * @author harry
  * @since 0.0.1
@@ -46,8 +43,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
-            // TODO: Gateway 就绪后切换为读取 X-User-Id / X-User-Role header，删除 JWT 解析逻辑
-            // authenticateFromHeaders(request);
             String token = extractToken(request);
             if (StringUtils.hasText(token)) {
                 authenticate(token, request);
@@ -59,9 +54,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
-    /**
-     * 从 Authorization 头提取 Bearer token
-     */
     private String extractToken(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
         if (StringUtils.hasText(header) && header.startsWith(BEARER_PREFIX)) {
@@ -70,9 +62,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 
-    /**
-     * 验证 token 并填充上下文
-     */
     private void authenticate(String token, HttpServletRequest request) {
         Long userId = jwtUtil.extractUserId(token);
         if (userId == null) {
@@ -80,7 +69,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 验证 Redis 中的 token 是否一致（防止登出后复用）
         String storedToken = redisTemplate.opsForValue().get(RedisKeyConstants.getUserTokenKey(userId));
         if (!token.equals(storedToken)) {
             log.debug("Redis token 不匹配或已失效 userId={}", userId);
@@ -90,50 +78,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         UserRoleEnum role = jwtUtil.extractUserRole(token);
         String roleAuthority = role != null ? "ROLE_" + role.name() : "ROLE_NORMAL";
 
-        // 填充 Spring Security 上下文
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                userId,
-                null,
-                List.of(new SimpleGrantedAuthority(roleAuthority))
-        );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        // 填充请求上下文
-        ReqInfoContext.ReqInfo reqInfo = new ReqInfoContext.ReqInfo()
-                .setUserId(userId)
-                .setAuthorities(List.of(roleAuthority))
-                .setClientIp(getClientIp(request))
-                .setPath(request.getRequestURI());
-        ReqInfoContext.setContext(reqInfo);
+        buildContext(userId, roleAuthority, request);
     }
 
     /**
-     * Gateway 模式：从 X-User-Id / X-User-Role header 填充上下文（Gateway 就绪后启用）
+     * 填充 Spring Security 上下文和请求上下文
      */
-    @SuppressWarnings("unused")
-    private void authenticateFromHeaders(HttpServletRequest request) {
-        String userIdHeader = request.getHeader("X-User-Id");
-        String roleHeader = request.getHeader("X-User-Role");
-        if (!StringUtils.hasText(userIdHeader)) {
-            return;
-        }
-        try {
-            Long userId = Long.valueOf(userIdHeader);
-            String roleAuthority = StringUtils.hasText(roleHeader) ? roleHeader : "ROLE_NORMAL";
+    private void buildContext(Long userId, String roleAuthority, HttpServletRequest request) {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                userId, null, List.of(new SimpleGrantedAuthority(roleAuthority)));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    userId, null, List.of(new SimpleGrantedAuthority(roleAuthority)));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            ReqInfoContext.ReqInfo reqInfo = new ReqInfoContext.ReqInfo()
-                    .setUserId(userId)
-                    .setAuthorities(List.of(roleAuthority))
-                    .setClientIp(getClientIp(request))
-                    .setPath(request.getRequestURI());
-            ReqInfoContext.setContext(reqInfo);
-        } catch (NumberFormatException e) {
-            log.warn("X-User-Id header 格式非法: {}", userIdHeader);
-        }
+        ReqInfoContext.setContext(new ReqInfoContext.ReqInfo()
+                .setUserId(userId)
+                .setAuthorities(List.of(roleAuthority))
+                .setClientIp(getClientIp(request))
+                .setPath(request.getRequestURI()));
     }
 
     private String getClientIp(HttpServletRequest request) {

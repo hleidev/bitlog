@@ -30,8 +30,13 @@ public class JwtUtil {
 
     private final JwtProperties jwtProperties;
 
+    private SecretKey secretKey;
+
     private SecretKey getSecretKey() {
-        return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
+        if (secretKey == null) {
+            secretKey = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
+        }
+        return secretKey;
     }
 
     /**
