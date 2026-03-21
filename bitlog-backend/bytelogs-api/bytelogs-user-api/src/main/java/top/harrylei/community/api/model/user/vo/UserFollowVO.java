@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @Schema(description = "用户关注展示对象")
 public class UserFollowVO {
 
-    @Schema(description = "用户ID", example = "123")
+    @Schema(description = "用户 ID", example = "123")
     private Long userId;
 
     @Schema(description = "用户名", example = "harry")

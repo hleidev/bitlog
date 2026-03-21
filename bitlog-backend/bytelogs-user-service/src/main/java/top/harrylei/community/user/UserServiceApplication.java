@@ -11,9 +11,9 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
  * @author harry
  * @since 0.0.1
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "top.harrylei.community")
 @EnableDiscoveryClient
-@ConfigurationPropertiesScan
+@ConfigurationPropertiesScan(basePackages = "top.harrylei.community")
 public class UserServiceApplication {
 
     public static void main(String[] args) {
