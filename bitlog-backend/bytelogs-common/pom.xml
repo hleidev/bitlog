@@ -70,6 +70,14 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- Spring Web MVC（GlobalExceptionHandler 的 @RestControllerAdvice 等注解） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <!-- 各服务本身也会引入 web starter，common 只做编译依赖，不额外打包 Tomcat -->
+            <optional>true</optional>
+        </dependency>
+
         <!-- Lombok（编译期代码生成，provided 不打入 jar） -->
         <dependency>
             <groupId>org.projectlombok</groupId>

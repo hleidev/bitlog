@@ -40,6 +40,7 @@
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <commons-codec.version>1.15</commons-codec.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <lombok.version>1.18.36</lombok.version>
         <jjwt.version>0.11.5</jjwt.version>
         <flexmark.version>0.62.2</flexmark.version>
         <springdoc.version>2.3.0</springdoc.version>
