@@ -22,6 +22,7 @@
         <module>bytelogs-common</module>
         <module>bytelogs-api</module>
         <module>bytelogs-user-service</module>
+        <module>bytelogs-gateway</module>
     </modules>
 
     <properties>
