@@ -4,8 +4,6 @@ server:
 spring:
   application:
     name: bytelogs-user-service  # Nacos 注册名，与 UserClient @FeignClient(name=) 保持一致
-  profiles:
-    active: dev  # 默认激活 dev，生产环境通过启动参数覆盖
   cloud:
     nacos:
       discovery:
@@ -20,16 +18,11 @@ mybatis-plus:
     map-underscore-to-camel-case: true
     default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
 
-logging:
-  level:
-    top.harrylei.community: debug
-
 database:
   name: bytelogs_user
 
 jwt:
   issuer: bytelogs
-  secret: ***REMOVED***
   default-expire: 1d
   keep-login-expire: 3d
 
