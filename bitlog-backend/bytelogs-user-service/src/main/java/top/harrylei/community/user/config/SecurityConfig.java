@@ -16,7 +16,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import top.harrylei.community.common.enums.ResultCode;
 import top.harrylei.community.common.model.Result;
-import top.harrylei.community.user.filter.JwtAuthenticationFilter;
+import top.harrylei.community.user.filter.GatewayAuthenticationFilter;
 
 /**
  * Spring Security 配置
@@ -29,7 +29,7 @@ import top.harrylei.community.user.filter.JwtAuthenticationFilter;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final GatewayAuthenticationFilter gatewayAuthenticationFilter;
     private final ObjectMapper objectMapper;
 
     @Bean
@@ -71,7 +71,7 @@ public class SecurityConfig {
                             }
                         })
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(gatewayAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
