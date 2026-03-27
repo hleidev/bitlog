@@ -4,10 +4,12 @@ server:
 spring:
   application:
     name: bytelogs-gateway
+  config:
+    import:
+      - nacos:bytelogs-shared.yaml
   cloud:
     nacos:
-      discovery:
-        server-addr: 127.0.0.1:8848
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
     gateway:
       server:
         webflux:
@@ -36,7 +38,3 @@ gateway:
       - /api/v1/auth/login
       - /api/v1/auth/register
 
-logging:
-  level:
-    top.harrylei.community: debug
-    org.springframework.cloud.gateway: debug
