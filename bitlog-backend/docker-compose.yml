@@ -1,0 +1,64 @@
+services:
+
+  user-service:
+    build:
+      context: bytelogs-user-service
+      dockerfile: Dockerfile
+    image: bytelogs-user-service:latest
+    container_name: bytelogs-user-service
+    ports:
+      - "9001:9001"
+    environment:
+      # Nacos（服务注册 + 配置中心）
+      NACOS_SERVER_ADDR: nacos:8848
+      # 数据库
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/bytelogs_user?useUnicode=true&allowPublicKeyRetrieval=true&autoReconnect=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      # Redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_DATA_REDIS_DATABASE: 12
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9001/actuator/health | grep -q UP || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - infra-network
+
+  gateway:
+    build:
+      context: bytelogs-gateway
+      dockerfile: Dockerfile
+    image: bytelogs-gateway:latest
+    container_name: bytelogs-gateway
+    ports:
+      - "9000:9000"
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_DATA_REDIS_DATABASE: 12
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/actuator/health | grep -q UP || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      user-service:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - infra-network
+
+# 接入基础设施网络
+networks:
+  infra-network:
+    external: true
+    name: infrastructure_infra-network
