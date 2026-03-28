@@ -1,0 +1,4 @@
+src/
+*.md
+*.xml
+!target/bytelogs-user-service-*.jar
