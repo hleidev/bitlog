@@ -2,11 +2,7 @@ package top.harrylei.community.user.controller;
 
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import top.harrylei.community.api.model.user.vo.UserVO;
 import top.harrylei.community.common.model.Result;
 import top.harrylei.community.user.service.UserService;
