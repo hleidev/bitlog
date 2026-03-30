@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS `user_account`
   COLLATE = utf8mb4_general_ci
     COMMENT = '用户账号表';
 
--- 用户信息表（email 只存 user_account，此表不重复存储）
+-- 用户信息表
 CREATE TABLE IF NOT EXISTS `user_info`
 (
     `id`          bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
@@ -29,7 +29,6 @@ CREATE TABLE IF NOT EXISTS `user_info`
     `company`     varchar(64)     NOT NULL DEFAULT '' COMMENT '公司',
     `profile`     varchar(500)    NOT NULL DEFAULT '' COMMENT '个人简介',
     `user_role`   tinyint         NOT NULL DEFAULT 0 COMMENT '角色：0-普通用户，1-管理员',
-    `extend`      varchar(1024)   NOT NULL DEFAULT '' COMMENT '扩展信息，JSON 格式',
     `deleted`     tinyint         NOT NULL DEFAULT 0 COMMENT '删除标记：0-正常，1-已删除',
     `create_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

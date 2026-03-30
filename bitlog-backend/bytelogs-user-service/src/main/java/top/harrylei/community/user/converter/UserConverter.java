@@ -56,7 +56,6 @@ public interface UserConverter {
     @Mapping(source = "userInfo.position", target = "position")
     @Mapping(source = "userInfo.company", target = "company")
     @Mapping(source = "userInfo.userRole", target = "userRole")
-    @Mapping(source = "userInfo.extend", target = "extend")
     @Mapping(source = "user.email", target = "email")
     @Mapping(source = "user.status", target = "status")
     @Mapping(source = "user.deleted", target = "deleted")
@@ -99,7 +98,6 @@ public interface UserConverter {
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "userRole", ignore = true)
     @Mapping(target = "deleted", ignore = true)
-    @Mapping(target = "extend", ignore = true)
     @Mapping(target = "createTime", ignore = true)
     @Mapping(target = "updateTime", ignore = true)
     UserInfoDO toInfoDO(UserUpdateRequest req);

@@ -25,7 +25,4 @@ public class UserDetailVO extends UserListVO {
 
     @Schema(description = "个人简介", example = "专注于后端开发与系统架构。")
     private String profile;
-
-    @Schema(description = "扩展字段", example = "{\"github\":\"https://github.com/harrylei\"}")
-    private String extend;
 }

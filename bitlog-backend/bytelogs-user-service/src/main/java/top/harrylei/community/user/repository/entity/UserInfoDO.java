@@ -56,11 +56,6 @@ public class UserInfoDO extends BaseDO {
     private String profile;
 
     /**
-     * 扩展字段
-     */
-    private String extend;
-
-    /**
      * 删除标记
      */
     private DeleteStatusEnum deleted;
