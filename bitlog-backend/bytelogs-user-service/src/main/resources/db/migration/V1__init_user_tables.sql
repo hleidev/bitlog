@@ -40,20 +40,3 @@ CREATE TABLE IF NOT EXISTS `user_info`
   COLLATE = utf8mb4_general_ci
     COMMENT = '用户信息表';
 
--- 用户关注关系表
-CREATE TABLE IF NOT EXISTS `user_relation`
-(
-    `id`             bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-    `user_id`        bigint unsigned NOT NULL DEFAULT 0 COMMENT '关注者 user_id',
-    `follow_user_id` bigint unsigned NOT NULL DEFAULT 0 COMMENT '被关注者 user_id',
-    `follow_state`   tinyint         NOT NULL DEFAULT 1 COMMENT '关注状态：0-未关注，1-已关注',
-    `deleted`        tinyint         NOT NULL DEFAULT 0 COMMENT '删除标记：0-正常，1-已删除',
-    `create_time`    timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time`    timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_user_follow` (`user_id`, `follow_user_id`),
-    KEY `idx_follow_user_id` (`follow_user_id`)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_general_ci
-    COMMENT = '用户关注关系表';
