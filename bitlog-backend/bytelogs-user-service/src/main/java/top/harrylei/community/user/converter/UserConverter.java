@@ -3,6 +3,7 @@ package top.harrylei.community.user.converter;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import top.harrylei.community.api.enums.user.UserStatusEnum;
+import top.harrylei.community.api.model.user.dto.UserDetailDTO;
 import top.harrylei.community.api.model.user.req.UserUpdateRequest;
 import top.harrylei.community.api.model.user.vo.UserDetailVO;
 import top.harrylei.community.api.model.user.vo.UserListVO;
@@ -76,6 +77,13 @@ public interface UserConverter {
     @Mapping(source = "user.createTime", target = "createTime")
     @Mapping(source = "user.updateTime", target = "updateTime")
     UserListVO toListVO(UserInfoDO userInfo, UserDO user);
+
+    /**
+     * UserDetailDTO → UserListVO
+     */
+    @Mapping(source = "createTime", target = "createTime")
+    @Mapping(source = "updateTime", target = "updateTime")
+    UserListVO toListVO(UserDetailDTO dto);
 
     /**
      * UserStatusEnum → Integer（供 MapStruct 自动使用）

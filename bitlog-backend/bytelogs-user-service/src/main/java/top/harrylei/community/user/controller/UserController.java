@@ -3,6 +3,8 @@ package top.harrylei.community.user.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -78,7 +80,7 @@ public class UserController {
      */
     @Operation(summary = "更新头像")
     @PutMapping("/avatar")
-    public Result<Void> updateAvatar(@RequestParam String avatar) {
+    public Result<Void> updateAvatar(@RequestParam @NotBlank(message = "头像地址不能为空") @Size(max = 500, message = "头像地址过长") String avatar) {
         Long userId = getCurrentUserId();
         userService.updateAvatar(userId, avatar);
         return Result.success();
@@ -132,10 +134,10 @@ public class UserController {
      * 获取当前登录用户 ID，未登录则抛异常
      */
     private Long getCurrentUserId() {
-        Long userId = ReqInfoContext.getContext().getUserId();
-        if (userId == null) {
+        ReqInfoContext.ReqInfo context = ReqInfoContext.getContext();
+        if (context.getUserId() == null) {
             ResultCode.TOKEN_INVALID.throwException();
         }
-        return userId;
+        return context.getUserId();
     }
 }

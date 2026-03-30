@@ -54,6 +54,10 @@ public class UserServiceImpl implements UserService {
             return null;
         }
         UserDO user = userDAO.getById(userInfo.getId());
+        if (user == null) {
+            log.warn("用户账号数据缺失 userId={}", userId);
+            return userConverter.toVO(userInfo);
+        }
         return userConverter.toVO(userInfo, user);
     }
 
@@ -78,6 +82,10 @@ public class UserServiceImpl implements UserService {
         return userInfoList.stream()
                 .map(info -> {
                     UserDO user = userMap.get(info.getId());
+                    if (user == null) {
+                        log.warn("用户账号数据缺失 userId={}", info.getUserId());
+                        return userConverter.toVO(info);
+                    }
                     return userConverter.toVO(info, user);
                 })
                 .toList();
@@ -155,18 +163,7 @@ public class UserServiceImpl implements UserService {
         IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query, new Page<UserDetailDTO>(query.getPageNum(), query.getPageSize()));
 
         List<UserListVO> voList = resultPage.getRecords().stream()
-                .map(dto -> {
-                    UserListVO vo = new UserListVO();
-                    vo.setUserId(dto.getUserId());
-                    vo.setUserName(dto.getUserName());
-                    vo.setEmail(dto.getEmail());
-                    vo.setStatus(dto.getStatus());
-                    vo.setUserRole(dto.getUserRole());
-                    vo.setDeleted(dto.getDeleted());
-                    vo.setCreateTime(dto.getCreateTime());
-                    vo.setUpdateTime(dto.getUpdateTime());
-                    return vo;
-                })
+                .map(userConverter::toListVO)
                 .toList();
 
         PageVO<UserListVO> pageVO = new PageVO<>();
