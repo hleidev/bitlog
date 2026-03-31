@@ -5,7 +5,7 @@
 
     <parent>
         <groupId>top.harrylei.bitlog</groupId>
-        <artifactId>bitlog-cloud</artifactId>
+        <artifactId>bitlog-backend</artifactId>
         <version>0.0.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>

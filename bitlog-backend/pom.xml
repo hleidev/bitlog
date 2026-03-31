@@ -12,9 +12,9 @@
     </parent>
 
     <groupId>top.harrylei.bitlog</groupId>
-    <artifactId>bitlog-cloud</artifactId>
+    <artifactId>bitlog-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>bitlog-cloud</name>
+    <name>bitlog-backend</name>
     <description>BitLog 博客微服务</description>
 
     <modules>
