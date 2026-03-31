@@ -47,6 +47,6 @@ public class UserDTO extends BaseDTO {
     @Schema(hidden = true, description = "用户是否被删除")
     private DeleteStatusEnum deleted;
 
-    @Schema(description = "用户邮箱", example = "bytelogs@gmail.com")
+    @Schema(description = "用户邮箱", example = "bitlog@gmail.com")
     private String email;
 }

@@ -23,7 +23,7 @@ public class UserVO {
     @Schema(description = "角色", example = "ADMIN")
     private UserRoleEnum userRole;
 
-    @Schema(description = "头像", example = "https://cdn.bytelogs.com/avatar.jpg")
+    @Schema(description = "头像", example = "https://cdn.bitlog.top/avatar.jpg")
     private String avatar;
 
     @Schema(description = "用户简介", example = "热爱开源和后端开发")
@@ -35,6 +35,6 @@ public class UserVO {
     @Schema(description = "公司", example = "Bytelogs Inc.")
     private String company;
 
-    @Schema(description = "邮箱", example = "harry@bytelogs.com")
+    @Schema(description = "邮箱", example = "harry@bitlog.top")
     private String email;
 }

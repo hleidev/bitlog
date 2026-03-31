@@ -63,7 +63,7 @@ public class ReqInfoContext {
 
         /**
          * 用户角色列表，存储角色字符串（如 "ROLE_ADMIN"）。
-         * 不使用 SimpleGrantedAuthority，避免 bytelogs-common 依赖 Spring Security，
+         * 不使用 SimpleGrantedAuthority，避免 bitlog-common 依赖 Spring Security，
          * 防止 Servlet 栈与 WebFlux 栈（Gateway）之间的类路径冲突。
          */
         private List<String> authorities = new ArrayList<>();

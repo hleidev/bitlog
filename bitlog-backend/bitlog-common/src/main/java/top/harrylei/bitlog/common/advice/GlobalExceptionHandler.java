@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 /**
  * 全局异常处理器
  * <p>
- * 放在 bytelogs-common，各微服务通过扩大 ComponentScan 范围自动生效，无需重复定义。
+ * 放在 bitlog-common，各微服务通过扩大 ComponentScan 范围自动生效，无需重复定义。
  * 如需覆盖某类异常，在具体服务中再声明一个 @RestControllerAdvice 即可。
  * </p>
  *

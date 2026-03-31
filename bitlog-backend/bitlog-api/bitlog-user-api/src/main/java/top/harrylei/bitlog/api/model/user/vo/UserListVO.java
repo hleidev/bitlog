@@ -32,10 +32,10 @@ public class UserListVO {
     @Schema(description = "角色", example = "ADMIN")
     private UserRoleEnum userRole;
 
-    @Schema(description = "头像", example = "https://cdn.bytelogs.com/avatar.jpg")
+    @Schema(description = "头像", example = "https://cdn.bitlog.top/avatar.jpg")
     private String avatar;
 
-    @Schema(description = "邮箱", example = "harry@bytelogs.com")
+    @Schema(description = "邮箱", example = "harry@bitlog.top")
     private String email;
 
     @Schema(description = "是否已删除", example = "NO")
