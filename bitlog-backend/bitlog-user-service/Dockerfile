@@ -1,7 +1,7 @@
 # Stage 1: 从 fat JAR 提取分层（依赖层 / 框架层 / 应用层分离）
 FROM eclipse-temurin:21-jre-alpine AS builder
 WORKDIR /app
-COPY target/bytelogs-user-service-*.jar app.jar
+COPY target/bitlog-user-service-*.jar app.jar
 RUN java -Djarmode=layertools -jar app.jar extract
 
 # Stage 2: 最终运行镜像

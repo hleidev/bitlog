@@ -1,7 +1,7 @@
 # Stage 1: 从 fat JAR 提取分层
 FROM eclipse-temurin:21-jre-alpine AS builder
 WORKDIR /app
-COPY target/bytelogs-gateway-*.jar app.jar
+COPY target/bitlog-gateway-*.jar app.jar
 RUN java -Djarmode=layertools -jar app.jar extract
 
 # Stage 2: 最终运行镜像
