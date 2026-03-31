@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.harrylei.bitlog.user.repository.mapper.UserMapper">
+
+    <resultMap id="UserDetailDTOMap" type="top.harrylei.bitlog.api.model.user.dto.UserDetailDTO">
+        <id column="id" property="userId"/>
+        <result column="user_name" property="userName"/>
+        <result column="email" property="email"/>
+        <result column="status" property="status"/>
+        <result column="deleted" property="deleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="third_account_id" property="thirdAccountId"/>
+        <result column="login_type" property="loginType"/>
+        <result column="avatar" property="avatar"/>
+        <result column="position" property="position"/>
+        <result column="company" property="company"/>
+        <result column="profile" property="profile"/>
+        <result column="extend" property="extend"/>
+        <result column="user_role" property="userRole"/>
+    </resultMap>
+
+    <select id="pageUsers" resultMap="UserDetailDTOMap">
+        select
+            a.id, a.user_name, a.email, a.status, a.deleted, a.create_time, a.update_time,
+            a.third_account_id, a.login_type,
+            b.avatar, b.position, b.company, b.profile, b.extend, b.user_role
+        from user_account a
+        left join user_info b on a.id = b.user_id
+        <where>
+            <if test="queryParam.status != null">and a.status = #{queryParam.status}</if>
+            <if test="queryParam.deleted != null">and a.deleted = #{queryParam.deleted}</if>
+            <if test="queryParam.startTime != null">and a.create_time &gt;= #{queryParam.startTime}</if>
+            <if test="queryParam.endTime != null">and a.create_time &lt;= #{queryParam.endTime}</if>
+            <if test="queryParam.userName != null and queryParam.userName != ''">
+                and a.user_name like concat('%', #{queryParam.userName}, '%')
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+
+    <select id="selectUserDetail" resultMap="UserDetailDTOMap">
+        select
+            a.id, a.user_name, a.email, a.status, a.deleted, a.create_time, a.update_time,
+            a.third_account_id, a.login_type,
+            b.avatar, b.position, b.company, b.profile, b.extend, b.user_role
+        from user_account a
+        left join user_info b on a.id = b.user_id
+        where a.id = #{userId}
+    </select>
+
+</mapper>

@@ -1,0 +1,40 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: bitlog-gateway
+  config:
+    import:
+      - nacos:bitlog-shared.yaml
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: false
+          routes:
+            # 用户认证路由（无需鉴权，白名单覆盖）
+            - id: user-auth
+              uri: lb://bitlog-user-service
+              predicates:
+                - Path=/api/v1/auth/**
+
+            # 用户业务路由（需要鉴权）
+            - id: user-service
+              uri: lb://bitlog-user-service
+              predicates:
+                - Path=/api/v1/user/**
+
+jwt:
+  issuer: bitlog
+
+gateway:
+  auth:
+    whitelist:
+      - /api/v1/auth/login
+      - /api/v1/auth/register
+

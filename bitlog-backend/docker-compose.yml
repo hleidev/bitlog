@@ -2,17 +2,17 @@ services:
 
   user-service:
     build:
-      context: bytelogs-user-service
+      context: bitlog-user-service
       dockerfile: Dockerfile
-    image: bytelogs-user-service:latest
-    container_name: bytelogs-user-service
+    image: bitlog-user-service:latest
+    container_name: bitlog-user-service
     ports:
       - "9001:9001"
     environment:
       # Nacos（服务注册 + 配置中心）
       NACOS_SERVER_ADDR: nacos:8848
       # 数据库
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/bytelogs_user?useUnicode=true&allowPublicKeyRetrieval=true&autoReconnect=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/bitlog_user?useUnicode=true&allowPublicKeyRetrieval=true&autoReconnect=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       # Redis
@@ -32,10 +32,10 @@ services:
 
   gateway:
     build:
-      context: bytelogs-gateway
+      context: bitlog-gateway
       dockerfile: Dockerfile
-    image: bytelogs-gateway:latest
-    container_name: bytelogs-gateway
+    image: bitlog-gateway:latest
+    container_name: bitlog-gateway
     ports:
       - "9000:9000"
     environment:

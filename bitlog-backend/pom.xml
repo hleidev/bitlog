@@ -11,18 +11,18 @@
         <relativePath/>
     </parent>
 
-    <groupId>top.harrylei.community</groupId>
-    <artifactId>bytelogs-cloud</artifactId>
+    <groupId>top.harrylei.bitlog</groupId>
+    <artifactId>bitlog-cloud</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>bytelogs-cloud</name>
-    <description>ByteLogs 微服务版本</description>
+    <name>bitlog-cloud</name>
+    <description>BitLog 博客微服务</description>
 
     <modules>
         <!-- 已创建的模块，随开发进度逐步追加 -->
-        <module>bytelogs-common</module>
-        <module>bytelogs-api</module>
-        <module>bytelogs-user-service</module>
-        <module>bytelogs-gateway</module>
+        <module>bitlog-common</module>
+        <module>bitlog-api</module>
+        <module>bitlog-user-service</module>
+        <module>bitlog-gateway</module>
     </modules>
 
     <properties>
@@ -72,25 +72,25 @@
 
             <!-- ===== 内部公共模块 ===== -->
             <dependency>
-                <groupId>top.harrylei.community</groupId>
-                <artifactId>bytelogs-common</artifactId>
+                <groupId>top.harrylei.bitlog</groupId>
+                <artifactId>bitlog-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- bytelogs-api 子模块 -->
+            <!-- bitlog-api 子模块 -->
             <dependency>
-                <groupId>top.harrylei.community</groupId>
-                <artifactId>bytelogs-user-api</artifactId>
+                <groupId>top.harrylei.bitlog</groupId>
+                <artifactId>bitlog-user-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>top.harrylei.community</groupId>
-                <artifactId>bytelogs-article-api</artifactId>
+                <groupId>top.harrylei.bitlog</groupId>
+                <artifactId>bitlog-article-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>top.harrylei.community</groupId>
-                <artifactId>bytelogs-interaction-api</artifactId>
+                <groupId>top.harrylei.bitlog</groupId>
+                <artifactId>bitlog-interaction-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- ===== 三方依赖版本锁定 ===== -->

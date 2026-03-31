@@ -1,0 +1,46 @@
+package top.harrylei.bitlog.common.constans;
+
+/**
+ * Redis 键前缀常量，统一管理所有 Redis Key 结构
+ *
+ * @author harry
+ * @since 0.0.1
+ */
+public class RedisKeyConstants {
+
+    private RedisKeyConstants() {
+        throw new IllegalStateException("Constants class");
+    }
+
+    // ===== 全局前缀 =====
+    public static final String GLOBAL_PREFIX = "byte_logs:";
+
+    // ===== 模块前缀 =====
+    public static final String USER = GLOBAL_PREFIX + "user:";
+    public static final String LOCK = GLOBAL_PREFIX + "lock:";
+
+    // ===== 功能 Key 前缀 =====
+    public static final String USER_TOKEN = USER + "token:";
+    public static final String USER_INFO = USER + "info:";
+    public static final String DISTRIBUTED_LOCK = LOCK + "distributed:";
+    public static final String DUPLICATE_LOCK = LOCK + "duplicate:";
+    public static final String HEALTH_CHECK = GLOBAL_PREFIX + "health:check";
+
+    // ===== Key 构建方法 =====
+
+    public static String getUserTokenKey(Long userId) {
+        return USER_TOKEN + userId;
+    }
+
+    public static String getUserInfoKey(Long userId) {
+        return USER_INFO + userId;
+    }
+
+    public static String getDistributedLockKey(String lockKey) {
+        return DISTRIBUTED_LOCK + lockKey;
+    }
+
+    public static String getDuplicateLockKey(String lockKey) {
+        return DUPLICATE_LOCK + lockKey;
+    }
+}

@@ -1,0 +1,36 @@
+server:
+  port: 9001
+
+spring:
+  application:
+    name: bitlog-user-service  # Nacos 注册名，与 UserClient @FeignClient(name=) 保持一致
+  config:
+    import:
+      - nacos:bitlog-shared.yaml
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+  flyway:
+    enabled: true
+    baseline-on-migrate: true   # 数据库已存在表时不报错，直接标记为基线
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+
+database:
+  name: bitlog_user
+
+jwt:
+  issuer: bitlog
+  default-expire: 1d
+  keep-login-expire: 3d
+
+user:
+  default-password: bitlog@123
+
+app:
+  exception:
+    print-stack-trace: true
