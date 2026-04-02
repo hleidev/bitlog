@@ -30,6 +30,16 @@ public enum ResultCode implements IResultCode {
     USER_ALREADY_EXISTS(42002, "用户已存在"),
     USER_DISABLED(42003, "用户已被禁用"),
 
+    // ========== 文章 43xxx ==========
+    ARTICLE_NOT_EXISTS(43001, "文章不存在"),
+    ARTICLE_NOT_PUBLISHED(43002, "文章未发布"),
+    ARTICLE_NO_PERMISSION(43003, "无权操作该文章"),
+    ARTICLE_VERSION_NOT_EXISTS(43004, "文章版本不存在"),
+    CATEGORY_NOT_EXISTS(43101, "分类不存在"),
+    CATEGORY_ALREADY_EXISTS(43102, "分类已存在"),
+    TAG_NOT_EXISTS(43201, "标签不存在"),
+    TAG_ALREADY_EXISTS(43202, "标签已存在"),
+
     // ========== 系统 50xxx ==========
     INTERNAL_ERROR(50000, "系统内部错误"),
     SERVICE_UNAVAILABLE(50003, "服务暂不可用"),
