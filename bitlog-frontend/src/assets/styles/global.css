@@ -1,0 +1,29 @@
+@import './variables.css';
+@import './reset.css';
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+* { scrollbar-width: thin; scrollbar-color: #d1d5db var(--color-bg); }
+
+/* Container */
+.container {
+  max-width: var(--spacing-container);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Visually hidden (accessibility) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
