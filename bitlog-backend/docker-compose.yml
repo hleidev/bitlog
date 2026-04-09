@@ -6,8 +6,6 @@ services:
       dockerfile: Dockerfile
     image: bitlog-user-service:latest
     container_name: bitlog-user-service
-    ports:
-      - "9001:9001"
     environment:
       # Nacos（服务注册 + 配置中心）
       NACOS_SERVER_ADDR: nacos:8848
@@ -22,6 +20,31 @@ services:
       SPRING_DATA_REDIS_DATABASE: 12
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:9001/actuator/health | grep -q UP || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - infra-network
+
+  article-service:
+    build:
+      context: bitlog-article-service
+      dockerfile: Dockerfile
+    image: bitlog-article-service:latest
+    container_name: bitlog-article-service
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/bitlog_article?useUnicode=true&allowPublicKeyRetrieval=true&autoReconnect=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_DATA_REDIS_DATABASE: 13
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9002/actuator/health | grep -q UP || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -52,6 +75,8 @@ services:
       start_period: 30s
     depends_on:
       user-service:
+        condition: service_healthy
+      article-service:
         condition: service_healthy
     restart: unless-stopped
     networks:

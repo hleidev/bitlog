@@ -10,6 +10,9 @@ target/
 .vscode/
 .DS_Store
 
+# Local
+CLAUDE.md
+
 # 环境配置（含敏感信息，不入库）
 **/application-dev.yml
 **/application-prod.yml
