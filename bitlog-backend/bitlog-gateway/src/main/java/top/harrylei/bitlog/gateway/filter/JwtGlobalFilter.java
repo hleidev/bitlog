@@ -11,7 +11,6 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -30,8 +29,10 @@ import java.nio.charset.StandardCharsets;
 /**
  * JWT 全局过滤器
  * <p>
- * 职责：验证 JWT → 校验 Redis 一致性 → 向下游注入 X-User-Id / X-User-Role header
- * 下游服务无需再解析 JWT，直接读取 header 即可。
+ * 职责：验证 JWT 签名和过期时间 → 向下游注入 X-User-Id / X-User-Role header
+ * <p>
+ * Access Token 为短期令牌（15 分钟），不存 Redis，仅靠签名和过期时间验证。
+ * Refresh Token 由 /auth/refresh 端点（已加入白名单）单独处理。
  *
  * @author harry
  * @since 0.0.1
@@ -42,11 +43,9 @@ import java.nio.charset.StandardCharsets;
 public class JwtGlobalFilter implements GlobalFilter, Ordered {
 
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String REDIS_KEY_PREFIX = "byte_logs:user:token:";
 
     private final JwtProperties jwtProperties;
     private final AuthProperties authProperties;
-    private final ReactiveStringRedisTemplate redisTemplate;
 
     private SecretKey secretKey;
 
@@ -57,7 +56,6 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        // 数字越小优先级越高，-100 保证在路由之前执行
         return -100;
     }
 
@@ -65,7 +63,6 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
 
-        // 白名单路径直接放行
         if (isWhitelisted(path)) {
             return chain.filter(exchange);
         }
@@ -80,29 +77,13 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
             return unauthorized(exchange);
         }
 
-        String userId = claims.getSubject();
-        String redisKey = REDIS_KEY_PREFIX + userId;
-
-        // 异步校验 Redis 中的 token 一致性
-        return redisTemplate.opsForValue().get(redisKey)
-                .flatMap(storedToken -> {
-                    if (!token.equals(storedToken)) {
-                        log.debug("Redis token 不匹配，userId={}", userId);
-                        return unauthorized(exchange);
-                    }
-                    // 向下游注入用户信息 header
-                    Object roleObj = claims.get("role");
-                    String role = roleObj != null ? String.valueOf(roleObj) : "";
-                    ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                            .header("X-User-Id", userId)
-                            .header("X-User-Role", role)
-                            .build();
-                    return chain.filter(exchange.mutate().request(mutatedRequest).build());
-                })
-                .switchIfEmpty(Mono.defer(() -> {
-                    log.debug("Redis 中无 token，userId={}", userId);
-                    return unauthorized(exchange);
-                }));
+        Object roleObj = claims.get("role");
+        String role = roleObj != null ? String.valueOf(roleObj) : "";
+        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                .header("X-User-Id", claims.getSubject())
+                .header("X-User-Role", role)
+                .build();
+        return chain.filter(exchange.mutate().request(mutatedRequest).build());
     }
 
     private boolean isWhitelisted(String path) {
