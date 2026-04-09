@@ -15,8 +15,10 @@ const handleKeydown = (e: KeyboardEvent) => {
 }
 
 let savedScrollY = 0
+let previouslyFocused: HTMLElement | null = null
 
 function lockScroll() {
+  previouslyFocused = document.activeElement as HTMLElement
   savedScrollY = window.scrollY
   const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
   document.documentElement.style.setProperty('--scrollbar-width', `${scrollbarWidth}px`)
@@ -34,6 +36,9 @@ function unlockScroll() {
   document.body.style.width = ''
   document.body.style.paddingRight = ''
   window.scrollTo(0, savedScrollY)
+  // 将焦点还给触发元素，preventScroll 阻止 Safari 滚动到被聚焦元素
+  previouslyFocused?.focus({ preventScroll: true })
+  previouslyFocused = null
 }
 
 watch(() => props.visible, (val) => {
