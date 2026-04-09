@@ -22,17 +22,26 @@ public interface AuthService {
     /**
      * 用户登录
      *
-     * @param username  用户名
-     * @param password  密码
-     * @param keepLogin 是否保持登录
-     * @return JWT token
+     * @param username 用户名
+     * @param password 密码
+     * @return 包含 Access Token 和 Refresh Token 的登录结果
      */
-    String login(String username, String password, boolean keepLogin);
+    LoginResult login(String username, String password);
+
+    /**
+     * 刷新 Token
+     * <p>验证 Refresh Token，轮换生成新的双 Token。
+     *
+     * @param refreshToken 当前 Refresh Token（来自 HttpOnly Cookie）
+     * @return 包含新 Access Token 和新 Refresh Token 的结果
+     */
+    LoginResult refresh(String refreshToken);
 
     /**
      * 退出登录
+     * <p>从 Redis 中删除 Refresh Token，使其立即失效。
      *
-     * @param userId 用户 ID
+     * @param refreshToken 当前 Refresh Token（来自 HttpOnly Cookie，可为 null）
      */
-    void logout(Long userId);
+    void logout(String refreshToken);
 }

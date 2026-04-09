@@ -13,14 +13,14 @@ public class RedisKeyConstants {
     }
 
     // ===== 全局前缀 =====
-    public static final String GLOBAL_PREFIX = "byte_logs:";
+    public static final String GLOBAL_PREFIX = "bitlog:";
 
     // ===== 模块前缀 =====
     public static final String USER = GLOBAL_PREFIX + "user:";
     public static final String LOCK = GLOBAL_PREFIX + "lock:";
 
     // ===== 功能 Key 前缀 =====
-    public static final String USER_TOKEN = USER + "token:";
+    public static final String USER_REFRESH_TOKEN = USER + "refresh:";
     public static final String USER_INFO = USER + "info:";
     public static final String DISTRIBUTED_LOCK = LOCK + "distributed:";
     public static final String DUPLICATE_LOCK = LOCK + "duplicate:";
@@ -28,8 +28,8 @@ public class RedisKeyConstants {
 
     // ===== Key 构建方法 =====
 
-    public static String getUserTokenKey(Long userId) {
-        return USER_TOKEN + userId;
+    public static String getUserRefreshTokenKey(String tokenValue) {
+        return USER_REFRESH_TOKEN + tokenValue;
     }
 
     public static String getUserInfoKey(Long userId) {

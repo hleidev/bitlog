@@ -6,20 +6,23 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.harrylei.bitlog.common.enums.ResultCode;
+import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.user.LoginTypeEnum;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.common.constans.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
+import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.user.config.JwtProperties;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
 import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 import top.harrylei.bitlog.user.service.AuthService;
+import top.harrylei.bitlog.user.service.LoginResult;
 import top.harrylei.bitlog.user.util.JwtUtil;
 
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -43,7 +46,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void register(String username, String password, UserRoleEnum userRole) {
-        if (userDAO.getByUsername(username) != null) {
+        if (userDAO.existsUser(username)) {
             ResultCode.USER_ALREADY_EXISTS.throwException(username);
         }
 
@@ -69,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public String login(String username, String password, boolean keepLogin) {
+    public LoginResult login(String username, String password) {
         UserDO user = userDAO.getByUsername(username);
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
             ResultCode.USERNAME_OR_PASSWORD_ERROR.throwException();
@@ -83,28 +86,57 @@ public class AuthServiceImpl implements AuthService {
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
         UserRoleEnum role = userInfo != null ? userInfo.getUserRole() : UserRoleEnum.NORMAL;
 
-        String token = jwtUtil.generateToken(userId, role, keepLogin);
-
-        long expireSeconds = keepLogin
-                ? jwtProperties.getKeepLoginExpire().getSeconds()
-                : jwtProperties.getDefaultExpire().getSeconds();
-        redisTemplate.opsForValue().set(
-                RedisKeyConstants.getUserTokenKey(userId), token, expireSeconds, TimeUnit.SECONDS);
-
-        log.info("用户登录成功 userId={}", userId);
-        return token;
+        return issueTokenPair(userId, role);
     }
 
     @Override
-    public void logout(Long userId) {
-        if (userId == null) {
-            ResultCode.INVALID_PARAMETER.throwException("用户 ID 不能为空");
+    public LoginResult refresh(String refreshToken) {
+        String redisKey = RedisKeyConstants.getUserRefreshTokenKey(refreshToken);
+        String storedValue = redisTemplate.opsForValue().get(redisKey);
+        if (storedValue == null) {
+            ResultCode.REFRESH_TOKEN_INVALID.throwException();
+        }
+
+        String[] parts = storedValue.split(":", 2);
+        Long userId = Long.parseLong(parts[0]);
+        UserRoleEnum role = UserRoleEnum.valueOf(parts[1]);
+
+        redisTemplate.delete(redisKey);
+        LoginResult result = issueTokenPair(userId, role);
+
+        log.info("用户刷新 Token 成功 userId={}", userId);
+        return result;
+    }
+
+    @Override
+    public void logout(String refreshToken) {
+        if (!StringUtils.hasText(refreshToken)) {
+            return;
         }
         try {
-            redisTemplate.delete(RedisKeyConstants.getUserTokenKey(userId));
-            log.info("用户退出登录 userId={}", userId);
+            redisTemplate.delete(RedisKeyConstants.getUserRefreshTokenKey(refreshToken));
+            log.info("用户退出登录，Refresh Token 已撤销");
         } catch (Exception e) {
-            log.error("退出登录异常 userId={}", userId, e);
+            log.error("退出登录删除 Refresh Token 异常", e);
         }
+    }
+
+    /**
+     * 颁发双 Token：生成 Access Token + Refresh Token 并将 Refresh Token 存入 Redis
+     */
+    private LoginResult issueTokenPair(Long userId, UserRoleEnum role) {
+        String accessToken = jwtUtil.generateToken(userId, role);
+        String refreshToken = UUID.randomUUID().toString();
+        String redisValue = userId + ":" + role.name();
+
+        redisTemplate.opsForValue().set(
+                RedisKeyConstants.getUserRefreshTokenKey(refreshToken),
+                redisValue,
+                jwtProperties.getRefreshTokenExpire().getSeconds(),
+                TimeUnit.SECONDS
+        );
+
+        log.info("颁发 Token 对 userId={}", userId);
+        return new LoginResult(accessToken, refreshToken);
     }
 }

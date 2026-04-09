@@ -26,12 +26,12 @@ public class JwtProperties {
     private String secret;
 
     /**
-     * 默认有效期
+     * Access Token 有效期（默认 15 分钟）
      */
-    private Duration defaultExpire;
+    private Duration accessTokenExpire = Duration.ofMinutes(15);
 
     /**
-     * 保持登录有效期
+     * Refresh Token 有效期（默认 30 天）
      */
-    private Duration keepLoginExpire;
+    private Duration refreshTokenExpire = Duration.ofDays(30);
 }

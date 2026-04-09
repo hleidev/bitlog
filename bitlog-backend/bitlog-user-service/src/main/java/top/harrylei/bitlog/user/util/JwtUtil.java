@@ -10,7 +10,6 @@ import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.user.config.JwtProperties;
 
 import javax.crypto.SecretKey;
-import java.time.Duration;
 import java.util.Date;
 
 /**
@@ -33,20 +32,18 @@ public class JwtUtil {
     }
 
     /**
-     * 生成 JWT 令牌
+     * 生成 Access Token
      *
-     * @param userId    用户 ID
-     * @param role      用户角色
-     * @param keepLogin 是否保持登录
-     * @return JWT 字符串
+     * @param userId 用户 ID
+     * @param role   用户角色
+     * @return JWT 字符串（有效期由 jwt.access-token-expire 配置决定）
      */
-    public String generateToken(Long userId, UserRoleEnum role, boolean keepLogin) {
+    public String generateToken(Long userId, UserRoleEnum role) {
         if (userId == null || role == null) {
             throw new IllegalArgumentException("用户 ID 和角色不能为空");
         }
         long now = System.currentTimeMillis();
-        Duration expire = keepLogin ? jwtProperties.getKeepLoginExpire() : jwtProperties.getDefaultExpire();
-        Date expiryDate = new Date(now + expire.toMillis());
+        Date expiryDate = new Date(now + jwtProperties.getAccessTokenExpire().toMillis());
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .claim("role", role)
