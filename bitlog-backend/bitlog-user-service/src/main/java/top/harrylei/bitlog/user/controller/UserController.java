@@ -16,8 +16,8 @@ import top.harrylei.bitlog.api.model.user.req.PasswordUpdateRequest;
 import top.harrylei.bitlog.api.model.user.req.UserUpdateRequest;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
-import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.Result;
+import top.harrylei.bitlog.common.security.RequiresLogin;
 import top.harrylei.bitlog.user.service.UserService;
 
 /**
@@ -27,6 +27,7 @@ import top.harrylei.bitlog.user.service.UserService;
  * @since 0.0.1
  */
 @Tag(name = "用户接口")
+@RequiresLogin
 @RestController
 @RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
@@ -40,8 +41,7 @@ public class UserController {
     @Operation(summary = "获取当前用户详情")
     @GetMapping("/profile")
     public Result<UserDetailVO> getProfile() {
-        Long userId = getCurrentUserId();
-        return Result.success(userService.getUserDetail(userId));
+        return Result.success(userService.getUserDetail(ReqInfoContext.getContext().getUserId()));
     }
 
     /**
@@ -50,8 +50,7 @@ public class UserController {
     @Operation(summary = "更新用户基本信息")
     @PutMapping("/info")
     public Result<Void> updateInfo(@Valid @RequestBody UserUpdateRequest req) {
-        Long userId = getCurrentUserId();
-        userService.updateUserInfo(userId, req);
+        userService.updateUserInfo(ReqInfoContext.getContext().getUserId(), req);
         return Result.success();
     }
 
@@ -61,8 +60,7 @@ public class UserController {
     @Operation(summary = "修改密码")
     @PutMapping("/password")
     public Result<Void> updatePassword(@Valid @RequestBody PasswordUpdateRequest req) {
-        Long userId = getCurrentUserId();
-        userService.updatePassword(userId, req);
+        userService.updatePassword(ReqInfoContext.getContext().getUserId(), req);
         return Result.success();
     }
 
@@ -72,19 +70,7 @@ public class UserController {
     @Operation(summary = "更新头像")
     @PutMapping("/avatar")
     public Result<Void> updateAvatar(@RequestParam @NotBlank(message = "头像地址不能为空") @Size(max = 500, message = "头像地址过长") String avatar) {
-        Long userId = getCurrentUserId();
-        userService.updateAvatar(userId, avatar);
+        userService.updateAvatar(ReqInfoContext.getContext().getUserId(), avatar);
         return Result.success();
-    }
-
-    /**
-     * 获取当前登录用户 ID，未登录则抛异常
-     */
-    private Long getCurrentUserId() {
-        ReqInfoContext.ReqInfo context = ReqInfoContext.getContext();
-        if (context.getUserId() == null) {
-            ResultCode.TOKEN_INVALID.throwException();
-        }
-        return context.getUserId();
     }
 }

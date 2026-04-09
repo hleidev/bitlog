@@ -20,8 +20,7 @@ import top.harrylei.bitlog.user.converter.UserConverter;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
-import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
-import top.harrylei.bitlog.user.service.UserService;
+import top.harrylei.bitlog.user.repository.entity.UserInfoDO;import top.harrylei.bitlog.user.service.UserService;
 
 import java.util.List;
 import java.util.Map;
@@ -46,24 +45,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserVO getUserById(Long userId) {
-        if (userId == null) {
-            return null;
-        }
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
         if (userInfo == null) {
             return null;
         }
-        UserDO user = userDAO.getById(userInfo.getId());
-        if (user == null) {
-            log.warn("用户账号数据缺失 userId={}", userId);
-            return userConverter.toVO(userInfo);
-        }
+        UserDO user = userDAO.getById(userInfo.getUserId());
         return userConverter.toVO(userInfo, user);
     }
 
     @Override
     public List<UserVO> getUserBatchByIds(List<Long> userIds) {
-        if (userIds == null || userIds.isEmpty()) {
+        if (userIds.isEmpty()) {
             return List.of();
         }
         List<UserInfoDO> userInfoList = userInfoDAO.listByUserIds(userIds);
@@ -71,23 +63,15 @@ public class UserServiceImpl implements UserService {
             return List.of();
         }
 
-        // 批量查询对应的账号信息（user_info 的主键 id 对应 user_account 的主键 id）
         List<Long> accountIds = userInfoList.stream()
-                .map(UserInfoDO::getId)
+                .map(UserInfoDO::getUserId)
                 .toList();
-        List<UserDO> userList = userDAO.listByIds(accountIds);
+        List<UserDO> userList = userDAO.listByUserIds(accountIds);
         Map<Long, UserDO> userMap = userList.stream()
                 .collect(Collectors.toMap(UserDO::getId, Function.identity()));
 
         return userInfoList.stream()
-                .map(info -> {
-                    UserDO user = userMap.get(info.getId());
-                    if (user == null) {
-                        log.warn("用户账号数据缺失 userId={}", info.getUserId());
-                        return userConverter.toVO(info);
-                    }
-                    return userConverter.toVO(info, user);
-                })
+                .map(info -> userConverter.toVO(info, userMap.get(info.getUserId())))
                 .toList();
     }
 
@@ -97,10 +81,7 @@ public class UserServiceImpl implements UserService {
         if (userInfo == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        UserDO user = userDAO.getById(userInfo.getId());
-        if (user == null) {
-            ResultCode.USER_NOT_EXISTS.throwException();
-        }
+        UserDO user = userDAO.getById(userInfo.getUserId());
         return userConverter.toDetailVO(userInfo, user);
     }
 
@@ -111,13 +92,7 @@ public class UserServiceImpl implements UserService {
         if (userInfo == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        userInfoDAO.lambdaUpdate()
-                .eq(UserInfoDO::getUserId, userId)
-                .set(UserInfoDO::getUserName, req.getUserName())
-                .set(req.getProfile() != null, UserInfoDO::getProfile, req.getProfile())
-                .set(req.getPosition() != null, UserInfoDO::getPosition, req.getPosition())
-                .set(req.getCompany() != null, UserInfoDO::getCompany, req.getCompany())
-                .update();
+        userInfoDAO.updateInfo(userId, req.getUserName(), req.getProfile(), req.getPosition(), req.getCompany());
         log.info("更新用户基本信息 userId={}", userId);
     }
 
@@ -128,19 +103,13 @@ public class UserServiceImpl implements UserService {
         if (userInfo == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        UserDO user = userDAO.getById(userInfo.getId());
-        if (user == null) {
-            ResultCode.USER_NOT_EXISTS.throwException();
-        }
+        UserDO user = userDAO.getById(userInfo.getUserId());
 
         if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
             ResultCode.USERNAME_OR_PASSWORD_ERROR.throwException();
         }
 
-        userDAO.lambdaUpdate()
-                .eq(UserDO::getId, user.getId())
-                .set(UserDO::getPassword, passwordEncoder.encode(req.getNewPassword()))
-                .update();
+        userDAO.updatePassword(user.getId(), passwordEncoder.encode(req.getNewPassword()));
         log.info("用户修改密码 userId={}", userId);
     }
 
@@ -151,16 +120,13 @@ public class UserServiceImpl implements UserService {
         if (userInfo == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        userInfoDAO.lambdaUpdate()
-                .eq(UserInfoDO::getUserId, userId)
-                .set(UserInfoDO::getAvatar, avatar)
-                .update();
+        userInfoDAO.updateAvatar(userId, avatar);
         log.info("更新用户头像 userId={}", userId);
     }
 
     @Override
     public PageVO<UserListVO> pageQuery(UserPageQuery query) {
-        IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query, new Page<UserDetailDTO>(query.getPageNum(), query.getPageSize()));
+        IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query, new Page<>(query.getPageNum(), query.getPageSize()));
 
         List<UserListVO> voList = resultPage.getRecords().stream()
                 .map(userConverter::toListVO)
