@@ -17,6 +17,8 @@
     <modules>
         <!-- 用户服务 API：DTO/VO/Feign + 公共响应模型 -->
         <module>bitlog-user-api</module>
+        <!-- 文章服务 API：DTO/VO/请求参数/Feign 接口 -->
+        <module>bitlog-article-api</module>
     </modules>
 
 </project>
