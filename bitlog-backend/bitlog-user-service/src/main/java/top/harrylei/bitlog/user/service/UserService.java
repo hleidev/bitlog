@@ -1,5 +1,6 @@
 package top.harrylei.bitlog.user.service;
 
+import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.user.query.UserPageQuery;
 import top.harrylei.bitlog.api.model.user.req.PasswordUpdateRequest;
 import top.harrylei.bitlog.api.model.user.req.UserUpdateRequest;
@@ -67,7 +68,15 @@ public interface UserService {
     void updateAvatar(Long userId, String avatar);
 
     /**
-     * 分页查询用户列表（管理员用）
+     * 修改用户状态
+     *
+     * @param userId 用户 ID
+     * @param status 目标状态
+     */
+    void updateUserStatus(Long userId, UserStatusEnum status);
+
+    /**
+     * 分页查询用户列表
      *
      * @param query 查询参数
      * @return 分页结果

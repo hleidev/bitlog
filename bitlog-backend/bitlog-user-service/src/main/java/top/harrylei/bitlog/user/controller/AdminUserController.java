@@ -5,9 +5,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.user.query.UserPageQuery;
+import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.model.Result;
@@ -36,5 +41,24 @@ public class AdminUserController {
     @GetMapping("/users")
     public Result<PageVO<UserListVO>> pageUsers(@ParameterObject UserPageQuery query) {
         return Result.success(userService.pageQuery(query));
+    }
+
+    /**
+     * 查询用户完整信息
+     */
+    @Operation(summary = "查询用户完整信息")
+    @GetMapping("/users/{userId}")
+    public Result<UserDetailVO> getUserDetail(@PathVariable Long userId) {
+        return Result.success(userService.getUserDetail(userId));
+    }
+
+    /**
+     * 修改用户状态
+     */
+    @Operation(summary = "修改用户状态")
+    @PatchMapping("/users/{userId}/status")
+    public Result<Void> updateUserStatus(@PathVariable Long userId, @RequestParam Integer status) {
+        userService.updateUserStatus(userId, UserStatusEnum.fromCode(status));
+        return Result.success();
     }
 }

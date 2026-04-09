@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
 import top.harrylei.bitlog.api.model.user.query.UserPageQuery;
+import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
 import top.harrylei.bitlog.user.repository.mapper.UserMapper;
@@ -52,6 +53,13 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
         lambdaUpdate()
                 .eq(UserDO::getId, userId)
                 .set(UserDO::getPassword, encodedPassword)
+                .update();
+    }
+
+    public void updateStatus(Long userId, UserStatusEnum status) {
+        lambdaUpdate()
+                .eq(UserDO::getId, userId)
+                .set(UserDO::getStatus, status)
                 .update();
     }
 
