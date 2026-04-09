@@ -2,7 +2,7 @@ package top.harrylei.bitlog.user.repository.dao;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
-import top.harrylei.bitlog.api.enums.common.DeleteStatusEnum;
+import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 import top.harrylei.bitlog.user.repository.mapper.UserInfoMapper;
 
@@ -18,9 +18,6 @@ import java.util.List;
 public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {
 
     public UserInfoDO getByUserId(Long userId) {
-        if (userId == null) {
-            return null;
-        }
         return lambdaQuery()
                 .eq(UserInfoDO::getUserId, userId)
                 .eq(UserInfoDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
@@ -28,12 +25,26 @@ public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {
     }
 
     public List<UserInfoDO> listByUserIds(List<Long> userIds) {
-        if (userIds == null || userIds.isEmpty()) {
-            return List.of();
-        }
         return lambdaQuery()
                 .in(UserInfoDO::getUserId, userIds)
                 .eq(UserInfoDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
                 .list();
+    }
+
+    public void updateInfo(Long userId, String userName, String profile, String position, String company) {
+        lambdaUpdate()
+                .eq(UserInfoDO::getUserId, userId)
+                .set(UserInfoDO::getUserName, userName)
+                .set(profile != null, UserInfoDO::getProfile, profile)
+                .set(position != null, UserInfoDO::getPosition, position)
+                .set(company != null, UserInfoDO::getCompany, company)
+                .update();
+    }
+
+    public void updateAvatar(Long userId, String avatar) {
+        lambdaUpdate()
+                .eq(UserInfoDO::getUserId, userId)
+                .set(UserInfoDO::getAvatar, avatar)
+                .update();
     }
 }

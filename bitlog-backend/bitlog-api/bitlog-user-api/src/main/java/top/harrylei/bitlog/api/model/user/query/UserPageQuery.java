@@ -5,11 +5,10 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.springframework.format.annotation.DateTimeFormat;
-import top.harrylei.bitlog.api.enums.common.DeleteStatusEnum;
+import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.model.BasePage;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 /**
  * 用户列表查询参数
@@ -22,17 +21,6 @@ import java.util.Map;
 @Schema(description = "用户列表查询参数")
 @Accessors(chain = true)
 public class UserPageQuery extends BasePage {
-
-    private static final Map<String, String> FIELD_MAPPING = Map.of(
-            "userId", "id",
-            "userName", "user_name",
-            "email", "email",
-            "status", "status",
-            "role", "user_role",
-            "createTime", "create_time",
-            "updateTime", "update_time",
-            "deleted", "deleted"
-    );
 
     @Schema(description = "用户名")
     private String userName;
@@ -50,9 +38,4 @@ public class UserPageQuery extends BasePage {
     @Schema(description = "注册结束时间", example = "2025-12-31 23:59:59")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
-
-    @Override
-    public Map<String, String> getFieldMapping() {
-        return FIELD_MAPPING;
-    }
 }

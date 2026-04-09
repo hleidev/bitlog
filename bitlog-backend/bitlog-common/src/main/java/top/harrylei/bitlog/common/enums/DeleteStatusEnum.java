@@ -1,4 +1,4 @@
-package top.harrylei.bitlog.api.enums.common;
+package top.harrylei.bitlog.common.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonCreator;
