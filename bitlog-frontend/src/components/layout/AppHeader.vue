@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia'
 import { useHeaderScroll } from '@/composables/useHeaderScroll'
 import { useModalStore } from '@/stores/useModalStore'
 import { useUserStore } from '@/stores/useUserStore'
+import UserDropdown from '@/components/common/UserDropdown.vue'
 
 const { isScrolled } = useHeaderScroll()
 const modalStore = useModalStore()
@@ -15,17 +16,8 @@ const isDark = ref(false)
 const mobileMenuOpen = ref(false)
 const dropdownOpen = ref(false)
 
-const toggleDropdown = () => {
-  dropdownOpen.value = !dropdownOpen.value
-}
-
 const closeDropdown = () => {
   dropdownOpen.value = false
-}
-
-const handleLogout = async () => {
-  dropdownOpen.value = false
-  await userStore.logout()
 }
 
 const toggleTheme = () => {
@@ -38,7 +30,7 @@ const toggleTheme = () => {
   <header class="header" :class="{ 'header--scrolled': isScrolled }">
     <div class="header__inner">
       <RouterLink to="/" class="header__logo">
-        <span class="header__logo-icon"></span>
+        <img src="@/assets/images/logo.jpeg" class="header__logo-icon" alt="Bitlog Logo" />
         <span class="header__logo-text">BitLog</span>
       </RouterLink>
 
@@ -64,8 +56,8 @@ const toggleTheme = () => {
         <!-- 登录按钮 / 用户头像 -->
         <button v-if="!isLoggedIn" class="header__login-btn" @click="modalStore.open('login')">登录</button>
         <template v-else>
-          <div class="header__user" v-click-outside="closeDropdown">
-            <button class="header__avatar-btn" @click="toggleDropdown" aria-label="用户菜单">
+          <div class="header__user" @mouseenter="dropdownOpen = true" @mouseleave="dropdownOpen = false">
+            <button class="header__avatar-btn" aria-label="用户菜单">
               <img
                 v-if="userInfo?.avatar"
                 :src="userInfo.avatar"
@@ -77,38 +69,11 @@ const toggleTheme = () => {
               </span>
             </button>
             <Transition name="dropdown">
-              <div v-if="dropdownOpen" class="header__dropdown">
-                <!-- 用户信息头部 -->
-                <div class="header__dropdown-profile">
-                  <img
-                    v-if="userInfo?.avatar"
-                    :src="userInfo.avatar"
-                    class="header__dropdown-avatar"
-                    :alt="userInfo?.userName"
-                  />
-                  <span v-else class="header__dropdown-avatar header__dropdown-avatar--placeholder">
-                    {{ userInfo?.userName?.[0]?.toUpperCase() ?? '?' }}
-                  </span>
-                  <div class="header__dropdown-info">
-                    <span class="header__dropdown-name">{{ userInfo?.userName }}</span>
-                    <span v-if="userInfo?.position" class="header__dropdown-sub">{{ userInfo.position }}</span>
-                  </div>
-                </div>
-                <div class="header__dropdown-divider"></div>
-                <RouterLink to="/profile" class="header__dropdown-item" @click="closeDropdown">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-                  </svg>
-                  个人中心
-                </RouterLink>
-                <div class="header__dropdown-divider"></div>
-                <button class="header__dropdown-item header__dropdown-item--danger" @click="handleLogout">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-                  </svg>
-                  退出登录
-                </button>
-              </div>
+              <UserDropdown
+                v-if="dropdownOpen"
+                show-admin-links
+                class="header__dropdown"
+              />
             </Transition>
           </div>
         </template>
@@ -178,8 +143,10 @@ const toggleTheme = () => {
 .header__logo-icon {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #4a8db7, #2d6a9f);
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
 }
 
 .header__logo-text {
@@ -340,105 +307,7 @@ const toggleTheme = () => {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 180px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  padding: 6px;
   z-index: 1001;
-}
-
-.header__dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 9px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--color-text-primary);
-  transition: background var(--transition-base);
-  text-align: left;
-}
-
-.header__dropdown-item svg {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-  color: var(--color-text-muted);
-}
-
-.header__dropdown-item:hover {
-  background: var(--color-bg-hover);
-}
-
-.header__dropdown-item--danger {
-  color: #ef4444;
-}
-
-.header__dropdown-item--danger svg {
-  color: #ef4444;
-}
-
-.header__dropdown-item--danger:hover {
-  background: #fef2f2;
-}
-
-.header__dropdown-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px 8px;
-}
-
-.header__dropdown-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-  display: block;
-}
-
-.header__dropdown-avatar--placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #4a8db7, #2d6a9f);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.header__dropdown-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.header__dropdown-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.header__dropdown-sub {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.header__dropdown-divider {
-  height: 1px;
-  background: var(--color-border);
-  margin: 4px 0;
 }
 
 .dropdown-enter-active,

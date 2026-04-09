@@ -1,0 +1,211 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
+import { useUserStore } from '@/stores/useUserStore'
+import { storeToRefs } from 'pinia'
+
+const props = withDefaults(defineProps<{ showAdminLinks?: boolean }>(), {
+  showAdminLinks: false,
+})
+
+const emit = defineEmits<{ close: [] }>()
+
+const router = useRouter()
+const userStore = useUserStore()
+const { userInfo, isAdmin } = storeToRefs(userStore)
+
+const displayName = computed(() => userInfo.value?.userName ?? '')
+const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase() || '?')
+
+function close() {
+  emit('close')
+}
+
+async function handleLogout() {
+  close()
+  try {
+    await ElMessageBox.confirm('确认注销登录？', '提示', {
+      confirmButtonText: '注销',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  await userStore.logout()
+  router.push('/')
+}
+</script>
+
+<template>
+  <div class="user-dropdown">
+    <!-- 顶部：头像 + 用户名 -->
+    <div class="ud-profile">
+      <img
+        v-if="userInfo?.avatar"
+        :src="userInfo.avatar"
+        class="ud-avatar ud-avatar--img"
+        :alt="displayName"
+      />
+      <span v-else class="ud-avatar ud-avatar--placeholder">{{ avatarLetter }}</span>
+      <div class="ud-profile-info">
+        <span class="ud-name">{{ displayName }}</span>
+        <span v-if="userInfo?.position" class="ud-position">{{ userInfo.position }}</span>
+      </div>
+    </div>
+
+    <div class="ud-divider" />
+
+    <!-- Admin 专属（仅前台展示，admin 后台本身不需要） -->
+    <template v-if="showAdminLinks && isAdmin">
+      <RouterLink to="/admin/dashboard" class="ud-item" @click="close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        后台管理
+      </RouterLink>
+      <RouterLink to="/admin/articles" class="ud-item" @click="close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        文章管理
+      </RouterLink>
+      <div class="ud-divider" />
+    </template>
+
+    <!-- 个人资料 -->
+    <RouterLink to="/admin/profile" class="ud-item" @click="close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+      个人资料
+    </RouterLink>
+
+    <div class="ud-divider" />
+
+    <!-- 注销 -->
+    <button class="ud-item ud-item--danger" @click="handleLogout">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      注销
+    </button>
+  </div>
+</template>
+
+<style scoped>
+.user-dropdown {
+  width: 240px;
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+/* Profile */
+.ud-profile {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 16px;
+}
+
+.ud-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ud-avatar--img {
+  object-fit: cover;
+  display: block;
+}
+
+.ud-avatar--placeholder {
+  background: linear-gradient(135deg, #4a8db7, #2d6a9f);
+  color: #fff;
+}
+
+.ud-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ud-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ud-position {
+  font-size: 11px;
+  color: #8c8c8c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Divider */
+.ud-divider {
+  height: 1px;
+  background: #f0f0f0;
+}
+
+/* Items */
+.ud-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 16px;
+  font-size: 13px;
+  color: #3a3a3a;
+  text-decoration: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  text-align: left;
+}
+
+.ud-item svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: #8c8c8c;
+  transition: color 0.15s;
+}
+
+.ud-item:hover {
+  background-color: #f7f7f7;
+  color: #1a1a1a;
+}
+
+.ud-item:hover svg {
+  color: #595959;
+}
+
+.ud-item--danger:hover {
+  background-color: #fff2f0;
+  color: #cf1322;
+}
+
+.ud-item--danger:hover svg {
+  color: #cf1322;
+}
+</style>
