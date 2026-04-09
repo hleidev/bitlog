@@ -102,6 +102,12 @@ public class AuthServiceImpl implements AuthService {
         UserRoleEnum role = UserRoleEnum.valueOf(parts[1]);
 
         redisTemplate.delete(redisKey);
+
+        UserDO user = userDAO.getById(userId);
+        if (user == null || !UserStatusEnum.ENABLED.equals(user.getStatus())) {
+            ResultCode.USER_DISABLED.throwException();
+        }
+
         LoginResult result = issueTokenPair(userId, role);
 
         log.info("用户刷新 Token 成功 userId={}", userId);
