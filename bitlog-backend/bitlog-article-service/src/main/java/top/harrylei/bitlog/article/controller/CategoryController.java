@@ -9,6 +9,8 @@ import top.harrylei.bitlog.api.model.article.req.CategorySaveRequest;
 import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
 import top.harrylei.bitlog.article.service.CategoryService;
 import top.harrylei.bitlog.common.model.Result;
+import top.harrylei.bitlog.common.security.RequiresAdmin;
+import top.harrylei.bitlog.common.security.RequiresLogin;
 
 import java.util.List;
 
@@ -32,18 +34,21 @@ public class CategoryController {
         return Result.success(categoryService.listAll());
     }
 
+    @RequiresLogin
     @Operation(summary = "查询或创建分类")
     @PostMapping("/get-or-create")
     public Result<Long> getOrCreate(@RequestParam String name) {
         return Result.success(categoryService.getOrCreate(name));
     }
 
+    @RequiresAdmin
     @Operation(summary = "创建分类")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody CategorySaveRequest req) {
         return Result.success(categoryService.save(req));
     }
 
+    @RequiresAdmin
     @Operation(summary = "更新分类")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody CategorySaveRequest req) {
@@ -51,6 +56,7 @@ public class CategoryController {
         return Result.success();
     }
 
+    @RequiresAdmin
     @Operation(summary = "删除分类")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {

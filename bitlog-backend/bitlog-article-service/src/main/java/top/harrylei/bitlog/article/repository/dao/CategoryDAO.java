@@ -6,6 +6,7 @@ import top.harrylei.bitlog.article.repository.entity.CategoryDO;
 import top.harrylei.bitlog.article.repository.mapper.CategoryMapper;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -16,6 +17,22 @@ import java.util.List;
  */
 @Repository
 public class CategoryDAO extends ServiceImpl<CategoryMapper, CategoryDO> {
+
+    /** 根据 ID 查询未删除分类 */
+    public CategoryDO getByIdAndNotDeleted(Long id) {
+        return lambdaQuery()
+                .eq(CategoryDO::getId, id)
+                .eq(CategoryDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .one();
+    }
+
+    /** 批量查询未删除分类 */
+    public List<CategoryDO> listByIdAndNotDeleted(Collection<Long> ids) {
+        return lambdaQuery()
+                .in(CategoryDO::getId, ids)
+                .eq(CategoryDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .list();
+    }
 
     /** 根据名称查询分类 */
     public CategoryDO getByName(String name) {

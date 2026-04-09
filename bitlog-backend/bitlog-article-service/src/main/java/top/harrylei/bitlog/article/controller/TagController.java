@@ -10,6 +10,8 @@ import top.harrylei.bitlog.api.model.article.req.TagUpdateRequest;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import top.harrylei.bitlog.article.service.TagService;
 import top.harrylei.bitlog.common.model.Result;
+import top.harrylei.bitlog.common.security.RequiresAdmin;
+import top.harrylei.bitlog.common.security.RequiresLogin;
 
 import java.util.List;
 
@@ -33,18 +35,21 @@ public class TagController {
         return Result.success(tagService.listAll());
     }
 
+    @RequiresLogin
     @Operation(summary = "查询或创建标签")
     @PostMapping("/get-or-create")
     public Result<Long> getOrCreate(@RequestParam String name) {
         return Result.success(tagService.getOrCreate(name));
     }
 
+    @RequiresAdmin
     @Operation(summary = "创建标签")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody TagSaveRequest req) {
         return Result.success(tagService.save(req));
     }
 
+    @RequiresAdmin
     @Operation(summary = "更新标签")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody TagUpdateRequest req) {
@@ -52,6 +57,7 @@ public class TagController {
         return Result.success();
     }
 
+    @RequiresAdmin
     @Operation(summary = "删除标签")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
