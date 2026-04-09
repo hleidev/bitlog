@@ -1,0 +1,27 @@
+:root {
+  --admin-sidebar-bg: #001529;
+  --admin-sidebar-popup-bg: #002140;
+  --admin-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --admin-sidebar-active: #4a8db7;
+  --admin-sidebar-text: rgba(255, 255, 255, 0.65);
+  --admin-sidebar-text-active: #ffffff;
+  --admin-sidebar-width: 220px;
+  --admin-sidebar-width-collapsed: 64px;
+
+  --admin-header-bg: #ffffff;
+  --admin-header-border: #e8e8e8;
+  --admin-header-height: 60px;
+
+  --admin-body-bg: #f0f2f5;
+  --admin-accent: #4a8db7;
+  --admin-accent-dark: #2d6a9f;
+}
+
+/* NProgress 进度条颜色覆盖 */
+#nprogress .bar {
+  background: var(--admin-accent) !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--admin-accent), 0 0 5px var(--admin-accent) !important;
+}
