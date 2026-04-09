@@ -1,0 +1,4 @@
+src/
+*.md
+*.xml
+!target/bitlog-article-service-*.jar

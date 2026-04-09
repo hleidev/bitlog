@@ -1,0 +1,35 @@
+server:
+  port: 9002
+
+spring:
+  application:
+    name: bitlog-article-service  # Nacos 注册名，与 ArticleClient @FeignClient(name=) 保持一致
+  config:
+    import:
+      - nacos:bitlog-shared.yaml
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+  flyway:
+    enabled: true
+    clean-disabled: false       # 开发阶段允许 clean 重建，生产环境需改为 true
+    baseline-on-migrate: true   # 数据库已存在表时不报错，直接标记为基线
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+
+database:
+  name: bitlog_article
+
+security:
+  additional-whitelist:
+    - /api/v1/article/page
+    - /api/v1/tag
+    - /api/v1/category
+
+app:
+  exception:
+    print-stack-trace: true

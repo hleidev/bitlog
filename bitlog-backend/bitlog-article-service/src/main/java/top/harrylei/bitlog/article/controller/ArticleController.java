@@ -1,0 +1,122 @@
+package top.harrylei.bitlog.article.controller;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import top.harrylei.bitlog.api.model.article.query.ArticlePageQuery;
+import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
+import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
+import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
+import top.harrylei.bitlog.article.service.ArticleService;
+import top.harrylei.bitlog.common.context.ReqInfoContext;
+import top.harrylei.bitlog.common.model.PageVO;
+import top.harrylei.bitlog.common.model.Result;
+import top.harrylei.bitlog.common.security.RequiresLogin;
+
+import java.util.List;
+
+/**
+ * 文章接口
+ *
+ * @author harry
+ * @since 0.0.1
+ */
+@Tag(name = "文章接口")
+@RestController
+@RequestMapping("/api/v1/article")
+@RequiredArgsConstructor
+public class ArticleController {
+
+    private final ArticleService articleService;
+
+    @RequiresLogin
+    @Operation(summary = "新建文章草稿")
+    @PostMapping
+    public Result<Long> save(@Valid @RequestBody ArticleSaveRequest req) {
+        return Result.success(articleService.saveArticle(ReqInfoContext.getContext().getUserId(), req));
+    }
+
+    @RequiresLogin
+    @Operation(summary = "更新文章草稿（生成新版本）")
+    @PutMapping("/{id}")
+    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody ArticleSaveRequest req) {
+        articleService.updateArticle(ReqInfoContext.getContext().getUserId(), id, req);
+        return Result.success();
+    }
+
+    @RequiresLogin
+    @Operation(summary = "发布文章（设置封面、摘要、分类、标签并发布）")
+    @PostMapping("/{id}/publish")
+    public Result<Void> publish(@PathVariable Long id, @Valid @RequestBody ArticlePublishRequest req) {
+        articleService.publishArticle(ReqInfoContext.getContext().getUserId(), id, req);
+        return Result.success();
+    }
+
+    @RequiresLogin
+    @Operation(summary = "取消发布文章")
+    @PostMapping("/{id}/unpublish")
+    public Result<Void> unpublish(@PathVariable Long id) {
+        articleService.unpublishArticle(ReqInfoContext.getContext().getUserId(), id);
+        return Result.success();
+    }
+
+    @RequiresLogin
+    @Operation(summary = "删除文章")
+    @DeleteMapping("/{id}")
+    public Result<Void> delete(@PathVariable Long id) {
+        articleService.deleteArticle(ReqInfoContext.getContext().getUserId(), id);
+        return Result.success();
+    }
+
+    @Operation(summary = "获取文章详情（已发布，读者视角）")
+    @GetMapping("/{id}")
+    public Result<ArticleDetailVO> detail(@PathVariable Long id) {
+        return Result.success(articleService.getPublishedDetail(id));
+    }
+
+    @RequiresLogin
+    @Operation(summary = "获取文章草稿（作者编辑视角）")
+    @GetMapping("/{id}/draft")
+    public Result<ArticleDetailVO> draft(@PathVariable Long id) {
+        return Result.success(articleService.getDraftDetail(ReqInfoContext.getContext().getUserId(), id));
+    }
+
+    @RequiresLogin
+    @Operation(summary = "获取文章版本历史")
+    @GetMapping("/{id}/versions")
+    public Result<List<ArticleVersionVO>> versions(@PathVariable Long id) {
+        return Result.success(articleService.listVersions(ReqInfoContext.getContext().getUserId(), id));
+    }
+
+    @RequiresLogin
+    @Operation(summary = "回滚到指定版本")
+    @PostMapping("/{id}/versions/{versionId}/rollback")
+    public Result<Void> rollback(@PathVariable Long id, @PathVariable Long versionId) {
+        articleService.rollbackVersion(ReqInfoContext.getContext().getUserId(), id, versionId);
+        return Result.success();
+    }
+
+    @Operation(summary = "分页查询已发布文章列表（公开）")
+    @GetMapping("/page")
+    public Result<PageVO<ArticleVO>> pagePublished(@Valid ArticlePageQuery query) {
+        return Result.success(articleService.pagePublished(query));
+    }
+
+    @RequiresLogin
+    @Operation(summary = "分页查询我的文章列表（含草稿）")
+    @GetMapping("/my")
+    public Result<PageVO<ArticleVO>> myArticles(@Valid ArticlePageQuery query) {
+        return Result.success(articleService.pageMyArticles(ReqInfoContext.getContext().getUserId(), query));
+    }
+}
