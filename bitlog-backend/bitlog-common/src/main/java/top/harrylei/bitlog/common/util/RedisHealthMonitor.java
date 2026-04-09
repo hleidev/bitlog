@@ -42,11 +42,11 @@ public class RedisHealthMonitor {
             boolean currentHealthy = HEALTH_CHECK_VALUE.equals(result);
             boolean previousHealthy = healthy.getAndSet(currentHealthy);
             if (previousHealthy != currentHealthy) {
-                if (currentHealthy) log.info("Redis健康状态恢复正常");
-                else log.error("Redis健康状态异常，连接不可用");
+                if (currentHealthy) log.info("Redis 健康状态恢复正常");
+                else log.error("Redis 健康状态异常，连接不可用");
             }
         } catch (Exception e) {
-            if (healthy.getAndSet(false)) log.error("Redis健康检查失败，连接异常", e);
+            if (healthy.getAndSet(false)) log.error("Redis 健康检查失败，连接异常", e);
         }
     }
 
