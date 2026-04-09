@@ -7,7 +7,6 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.Map;
 
 /**
  * 分页基础类
@@ -25,10 +24,6 @@ public class BasePage implements Serializable {
     public static final int DEFAULT_PAGE_SIZE = 10;
     public static final int MAX_PAGE_SIZE = 100;
 
-    public static final Map<String, String> DEFAULT_SORT_MAPPING = Map.of(
-            "createTime", "create_time"
-    );
-
     @NotNull(message = "页码不能为空")
     @Min(value = 1, message = "页码最小为1")
     private Integer pageNum = DEFAULT_PAGE_NUM;
@@ -37,13 +32,4 @@ public class BasePage implements Serializable {
     @Min(value = 1, message = "每页大小最小为1")
     @Max(value = MAX_PAGE_SIZE, message = "每页大小最大为100")
     private Integer pageSize = DEFAULT_PAGE_SIZE;
-
-    private String sortField;
-
-    /**
-     * 获取字段映射关系（子类可覆盖以扩展）
-     */
-    public Map<String, String> getFieldMapping() {
-        return DEFAULT_SORT_MAPPING;
-    }
 }
