@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, RefreshLeft, MoreFilled, Plus } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import {
   getUsers,
@@ -18,6 +19,7 @@ import {
   type PageVO,
 } from '@/api/admin/user'
 
+const router = useRouter()
 const { userInfo } = storeToRefs(useUserStore())
 
 const loading = ref(false)
@@ -47,10 +49,12 @@ function switchTab(tab: TabKey) {
 const passwordDialogVisible = ref(false)
 const newPassword = ref('')
 
-async function copyAndClose() {
-  await navigator.clipboard.writeText(newPassword.value)
-  ElMessage.success('已复制到剪贴板')
-  passwordDialogVisible.value = false
+async function copyPassword(pwd: string) {
+  try {
+    await navigator.clipboard.writeText(pwd)
+  } catch {
+    // 自动复制失败时静默，用户可手动复制
+  }
 }
 
 // ── Detail dialog ─────────────────────────────────────────────────────────────
@@ -118,13 +122,11 @@ function handleReset() {
   fetchUsers()
 }
 
-function handlePageChange(page: number) {
-  pagination.pageNum = page
+function handlePageChange() {
   fetchUsers()
 }
 
-function handleSizeChange(size: number) {
-  pagination.pageSize = size
+function handleSizeChange() {
   pagination.pageNum = 1
   fetchUsers()
 }
@@ -284,6 +286,7 @@ async function handleCommand(command: string, row: UserListItem) {
       const result = await resetUserPassword(row.userId)
       newPassword.value = result.newPassword
       passwordDialogVisible.value = true
+      copyPassword(result.newPassword)
     } catch {
       ElMessage.error('重置失败')
     }
@@ -400,7 +403,7 @@ onMounted(() => {
             @clear="handleSearch"
           />
           <el-button :icon="RefreshLeft" @click="handleReset" />
-          <el-button v-if="activeTab !== 'deleted'" type="primary" :icon="Plus" />
+          <el-button v-if="activeTab !== 'deleted'" type="primary" :icon="Plus" @click="router.push('/admin/users/add')" />
         </div>
       </div>
 
@@ -427,14 +430,14 @@ onMounted(() => {
       <el-table
         ref="tableRef"
         :data="pageData.content"
+        :row-key="(row: UserListItem) => row.userId"
         v-loading="loading"
         style="width: 100%"
-
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="44" />
 
-        <el-table-column label="用户" min-width="160">
+        <el-table-column label="用户">
           <template #default="{ row }">
             <div class="user-cell">
               <div class="user-avatar" :class="{ 'user-avatar--placeholder': !row.avatar }">
@@ -446,13 +449,13 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="邮箱" min-width="160" show-overflow-tooltip>
+        <el-table-column label="邮箱" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="cell-muted">{{ row.email || '—' }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="角色" min-width="160" align="center">
+        <el-table-column label="角色" align="center">
           <template #default="{ row }">
             <span class="role-badge" :class="row.userRole === 1 ? 'role-badge--admin' : 'role-badge--user'">
               {{ row.userRole === 1 ? '管理员' : '普通用户' }}
@@ -460,7 +463,15 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="注册时间" min-width="160">
+        <el-table-column label="状态" align="center">
+          <template #default="{ row }">
+            <span class="status-badge" :class="row.status === 1 ? 'status-badge--enabled' : 'status-badge--disabled'">
+              {{ row.status === 1 ? '启用' : '禁用' }}
+            </span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="注册时间">
           <template #default="{ row }">
             <el-tooltip :content="row.createTime" placement="top">
               <span class="cell-muted">{{ relativeTime(row.createTime) }}</span>
@@ -521,13 +532,16 @@ onMounted(() => {
 
   <!-- 密码重置结果弹窗 -->
   <el-dialog v-model="passwordDialogVisible" width="360px" :show-close="false" align-center>
-    <template #header>
-      <span class="pwd-dialog-title">密码已重置</span>
-    </template>
-    <p class="pwd-dialog-hint">新密码如下，点击「复制」后告知用户</p>
-    <div class="pwd-display">{{ newPassword }}</div>
+    <template #header><span /></template>
+    <div class="pwd-dialog-inner">
+      <div class="pwd-dialog-icon">✓</div>
+      <p class="pwd-dialog-title">密码已重置</p>
+      <p class="pwd-dialog-sub">新密码</p>
+      <div class="pwd-dialog-value">{{ newPassword }}</div>
+      <p class="pwd-dialog-copied">已自动复制到剪贴板</p>
+    </div>
     <template #footer>
-      <el-button type="primary" @click="copyAndClose">复制</el-button>
+      <el-button type="primary" @click="passwordDialogVisible = false">完成</el-button>
     </template>
   </el-dialog>
 
@@ -800,6 +814,26 @@ onMounted(() => {
   color: #4b5563;
 }
 
+/* Status badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge--enabled {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.status-badge--disabled {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
 /* More button */
 .more-btn {
   display: flex;
@@ -829,28 +863,58 @@ onMounted(() => {
 
 
 /* Password dialog */
+.pwd-dialog-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 4px;
+  text-align: center;
+}
+
+.pwd-dialog-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #16a34a;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
 .pwd-dialog-title {
   font-size: 16px;
   font-weight: 600;
   color: #111827;
+  margin: 0;
 }
 
-.pwd-dialog-hint {
-  font-size: 13px;
-  color: #6b7280;
-  margin: 0 0 14px;
+.pwd-dialog-sub {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 4px 0 0;
 }
 
-.pwd-display {
+.pwd-dialog-value {
   font-family: ui-monospace, monospace;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
-  letter-spacing: 2px;
-  color: #111827;
-  background: #f3f4f6;
+  letter-spacing: 1px;
+  color: #1d4ed8;
+  background: #eff6ff;
   border-radius: 8px;
-  padding: 14px 18px;
-  text-align: center;
+  padding: 10px 20px;
+  margin: 2px 0;
+}
+
+.pwd-dialog-copied {
+  font-size: 12px;
+  color: #16a34a;
+  margin: 0;
 }
 
 /* User Detail Dialog */
