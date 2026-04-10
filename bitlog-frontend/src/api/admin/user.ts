@@ -5,6 +5,7 @@ export interface UserPageQuery {
   pageSize?: number
   userName?: string
   status?: number
+  deleted?: number
   startTime?: string
   endTime?: string
 }
@@ -36,14 +37,25 @@ export interface UserDetail {
   userName: string
   email: string
   status: number
-  userRole: 'ADMIN' | 'USER'
+  userRole: number
   avatar: string
-  deleted: 'NO' | 'YES'
+  deleted: number
   createTime: string
   updateTime: string
   position: string | null
   company: string | null
   profile: string | null
+}
+
+export interface UserStats {
+  total: number
+  enabled: number
+  disabled: number
+  deleted: number
+}
+
+export function getUserStats(): Promise<UserStats> {
+  return request.get<never, UserStats>('/v1/admin/users/stats')
 }
 
 export function getUsers(query: UserPageQuery): Promise<PageVO<UserListItem>> {
@@ -54,6 +66,22 @@ export function getUserById(userId: number): Promise<UserDetail> {
   return request.get<never, UserDetail>(`/v1/admin/users/${userId}`)
 }
 
-export function updateUserStatus(userId: number, status: 0 | 1): Promise<void> {
-  return request.patch<never, void>(`/v1/admin/users/${userId}/status`, null, { params: { status } })
+export function updateUsersStatus(userIds: number[], status: 0 | 1): Promise<void> {
+  return request.patch<never, void>('/v1/admin/users/status', { userIds, status })
+}
+
+export function deleteUsers(userIds: number[]): Promise<void> {
+  return request.delete<never, void>('/v1/admin/users', { data: { userIds } })
+}
+
+export function restoreUsers(userIds: number[]): Promise<void> {
+  return request.patch<never, void>('/v1/admin/users/restore', { userIds })
+}
+
+export function permanentDeleteUsers(userIds: number[]): Promise<void> {
+  return request.delete<never, void>('/v1/admin/users/permanent', { data: { userIds } })
+}
+
+export function resetUserPassword(userId: number): Promise<{ newPassword: string }> {
+  return request.post<never, { newPassword: string }>(`/v1/admin/users/${userId}/password/reset`)
 }
