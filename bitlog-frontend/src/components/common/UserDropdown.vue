@@ -25,10 +25,9 @@ function close() {
 async function handleLogout() {
   close()
   try {
-    await ElMessageBox.confirm('确认注销登录？', '提示', {
+    await ElMessageBox.confirm('确认注销登录？', '注销', {
       confirmButtonText: '注销',
       cancelButtonText: '取消',
-      type: 'warning',
     })
   } catch {
     return

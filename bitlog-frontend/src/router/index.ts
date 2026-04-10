@@ -32,12 +32,7 @@ const router = createRouter({
         {
           path: 'articles',
           component: () => import('@/admin/views/ArticlesView.vue'),
-          meta: { title: '所有文章', parent: '文章', requiresAdmin: true },
-        },
-        {
-          path: 'write',
-          component: () => import('@/admin/views/WriteView.vue'),
-          meta: { title: '写文章', parent: '文章', requiresAdmin: true },
+          meta: { title: '文章管理', parent: '文章', requiresAdmin: true },
         },
         {
           path: 'categories',
@@ -59,12 +54,7 @@ const router = createRouter({
         {
           path: 'users',
           component: () => import('@/admin/views/UsersView.vue'),
-          meta: { title: '所有用户', parent: '用户', requiresAdmin: true },
-        },
-        {
-          path: 'users/add',
-          component: () => import('@/admin/views/AddUserView.vue'),
-          meta: { title: '添加用户', parent: '用户', requiresAdmin: true },
+          meta: { title: '用户管理', parent: '用户', requiresAdmin: true },
         },
         {
           path: 'profile',

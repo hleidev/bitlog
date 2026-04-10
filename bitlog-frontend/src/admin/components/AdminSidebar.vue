@@ -4,13 +4,12 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   Odometer,
   Document,
-  EditPen,
   Folder,
   CollectionTag,
   ChatLineRound,
   User,
   UserFilled,
-  Plus,
+  Postcard,
   Avatar,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/useUserStore'
@@ -37,8 +36,7 @@ const adminMenus: MenuItem[] = [
     key: 'articles',
     defaultPath: '/admin/articles',
     children: [
-      { title: '所有文章', icon: Document, path: '/admin/articles' },
-      { title: '写文章', icon: EditPen, path: '/admin/write' },
+      { title: '文章管理', icon: Document, path: '/admin/articles' },
       { title: '分类', icon: Folder, path: '/admin/categories' },
       { title: '标签', icon: CollectionTag, path: '/admin/tags' },
     ],
@@ -50,9 +48,8 @@ const adminMenus: MenuItem[] = [
     key: 'users',
     defaultPath: '/admin/users',
     children: [
-      { title: '所有用户', icon: UserFilled, path: '/admin/users' },
-      { title: '添加用户', icon: Plus, path: '/admin/users/add' },
-      { title: '个人资料', icon: Avatar, path: '/admin/profile' },
+      { title: '用户管理', icon: UserFilled, path: '/admin/users' },
+      { title: '个人资料', icon: Postcard, path: '/admin/profile' },
     ],
   },
 ]
@@ -84,13 +81,10 @@ const menus = computed<MenuItem[]>(() => (isAdmin.value ? adminMenus : userMenus
         <!-- 有子菜单 -->
         <el-sub-menu v-if="isGroup(item)" :index="item.key">
           <template #title>
-            <div
-              class="sub-menu-title"
-              @click.stop="item.defaultPath && router.push(item.defaultPath)"
-            >
-              <el-icon><component :is="item.icon" /></el-icon>
-              <span>{{ item.title }}</span>
-            </div>
+            <el-icon @click.stop="item.defaultPath && router.push(item.defaultPath)">
+              <component :is="item.icon" />
+            </el-icon>
+            <span @click.stop="item.defaultPath && router.push(item.defaultPath)">{{ item.title }}</span>
           </template>
           <el-menu-item v-for="child in item.children" :key="child.path" :index="child.path">
             <el-icon><component :is="child.icon" /></el-icon>
@@ -191,13 +185,6 @@ const menus = computed<MenuItem[]>(() => (isAdmin.value ? adminMenus : userMenus
   color: var(--admin-sidebar-text-active) !important;
 }
 
-.sub-menu-title {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex: 1;
-  min-width: 0;
-}
 
 .sidebar-menu :deep(.el-sub-menu__icon-arrow) {
   color: rgba(255, 255, 255, 0.35);
