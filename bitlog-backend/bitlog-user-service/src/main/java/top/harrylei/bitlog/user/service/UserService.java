@@ -4,8 +4,10 @@ import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.user.query.UserPageQuery;
 import top.harrylei.bitlog.api.model.user.req.PasswordUpdateRequest;
 import top.harrylei.bitlog.api.model.user.req.UserUpdateRequest;
+import top.harrylei.bitlog.api.model.user.vo.PasswordResetVO;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
+import top.harrylei.bitlog.api.model.user.vo.UserStatsVO;
 import top.harrylei.bitlog.api.model.user.vo.UserVO;
 import top.harrylei.bitlog.common.model.PageVO;
 
@@ -68,12 +70,53 @@ public interface UserService {
     void updateAvatar(Long userId, String avatar);
 
     /**
-     * 修改用户状态
+     * 批量修改用户状态
+     * <p>权限：不可操作自己（禁用自己将导致无法继续操作）；不可操作管理员账号
+     *
+     * @param userIds 用户 ID 列表
+     * @param status  目标状态
+     */
+    void updateUserStatusBatch(List<Long> userIds, UserStatusEnum status);
+
+    /**
+     * 批量软删除用户
+     * <p>权限：可操作自己（管理员也是用户，可注销自己账号）；不可操作其他管理员账号
+     *
+     * @param userIds 用户 ID 列表
+     */
+    void deleteUserBatch(List<Long> userIds);
+
+    /**
+     * 批量恢复已删除用户
+     * <p>权限：可操作自己；不可操作其他管理员账号
+     *
+     * @param userIds 用户 ID 列表
+     */
+    void restoreUserBatch(List<Long> userIds);
+
+    /**
+     * 批量物理删除用户（不可恢复）
+     * <p>权限：可操作自己；不可操作其他管理员账号
+     *
+     * @param userIds 用户 ID 列表
+     */
+    void removeUserBatch(List<Long> userIds);
+
+    /**
+     * 查询用户数量统计
+     *
+     * @return 各状态用户数量
+     */
+    UserStatsVO getUserStats();
+
+    /**
+     * 管理员重置用户密码
+     * <p>权限：可重置自己；可重置其他管理员账号；密码重置不涉及权限变更，无限制
      *
      * @param userId 用户 ID
-     * @param status 目标状态
+     * @return 重置后的新密码
      */
-    void updateUserStatus(Long userId, UserStatusEnum status);
+    PasswordResetVO resetPassword(Long userId);
 
     /**
      * 分页查询用户列表

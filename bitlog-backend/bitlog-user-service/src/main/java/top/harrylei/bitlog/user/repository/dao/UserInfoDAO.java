@@ -47,4 +47,10 @@ public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {
                 .set(UserInfoDO::getAvatar, avatar)
                 .update();
     }
+
+    public void removeByUserIds(List<Long> userIds) {
+        lambdaUpdate()
+                .in(UserInfoDO::getUserId, userIds)
+                .remove();
+    }
 }

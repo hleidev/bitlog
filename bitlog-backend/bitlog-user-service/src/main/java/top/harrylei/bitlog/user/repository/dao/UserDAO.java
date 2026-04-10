@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
+import top.harrylei.bitlog.api.model.user.dto.UserStatsDTO;
 import top.harrylei.bitlog.api.model.user.query.UserPageQuery;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
@@ -56,11 +57,29 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
                 .update();
     }
 
-    public void updateStatus(Long userId, UserStatusEnum status) {
+    public void updateStatusBatch(List<Long> userIds, UserStatusEnum status) {
         lambdaUpdate()
-                .eq(UserDO::getId, userId)
+                .in(UserDO::getId, userIds)
                 .set(UserDO::getStatus, status)
                 .update();
+    }
+
+    public void deleteBatch(List<Long> userIds) {
+        updateDeletedStatus(userIds, DeleteStatusEnum.DELETED);
+    }
+
+    public void restoreBatch(List<Long> userIds) {
+        updateDeletedStatus(userIds, DeleteStatusEnum.NOT_DELETED);
+    }
+
+    public void removeBatch(List<Long> userIds) {
+        lambdaUpdate()
+                .in(UserDO::getId, userIds)
+                .remove();
+    }
+
+    public UserStatsDTO countStats() {
+        return getBaseMapper().selectUserStats();
     }
 
     public IPage<UserDetailDTO> pageUsers(UserPageQuery queryParam, IPage<UserDetailDTO> page) {
@@ -69,5 +88,12 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
 
     public UserDetailDTO getUserDetail(Long userId) {
         return getBaseMapper().selectUserDetail(userId);
+    }
+
+    private void updateDeletedStatus(List<Long> userIds, DeleteStatusEnum status) {
+        lambdaUpdate()
+                .in(UserDO::getId, userIds)
+                .set(UserDO::getDeleted, status)
+                .update();
     }
 }

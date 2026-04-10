@@ -38,6 +38,15 @@
         order by a.create_time desc
     </select>
 
+    <select id="selectUserStats" resultType="top.harrylei.bitlog.api.model.user.dto.UserStatsDTO">
+        select
+            COALESCE(SUM(deleted = 0),                0) AS total,
+            COALESCE(SUM(deleted = 0 AND status = 1), 0) AS enabled,
+            COALESCE(SUM(deleted = 0 AND status = 0), 0) AS disabled,
+            COALESCE(SUM(deleted = 1),                0) AS deleted
+        from user_account
+    </select>
+
     <select id="selectUserDetail" resultMap="UserDetailDTOMap">
         select
             a.id, a.user_name, a.email, a.status, a.deleted, a.create_time, a.update_time,

@@ -28,7 +28,7 @@ public class UserPageQuery extends BasePage {
     @Schema(description = "用户状态")
     private Integer status;
 
-    @Schema(description = "是否删除")
+    @Schema(description = "删除状态：0-未删除，1-已删除")
     private DeleteStatusEnum deleted;
 
     @Schema(description = "注册起始时间", example = "2025-01-01 00:00:00")

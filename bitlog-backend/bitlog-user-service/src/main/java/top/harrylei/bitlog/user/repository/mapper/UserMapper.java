@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.apache.ibatis.annotations.Mapper;
 import top.harrylei.bitlog.api.model.user.query.UserPageQuery;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
+import top.harrylei.bitlog.api.model.user.dto.UserStatsDTO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
 
 /**
@@ -25,4 +26,9 @@ public interface UserMapper extends BaseMapper<UserDO> {
      * 查询单个用户详细信息
      */
     UserDetailDTO selectUserDetail(Long userId);
+
+    /**
+     * 查询各状态用户数量统计
+     */
+    UserStatsDTO selectUserStats();
 }

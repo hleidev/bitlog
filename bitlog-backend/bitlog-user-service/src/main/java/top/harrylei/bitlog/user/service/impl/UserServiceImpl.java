@@ -10,11 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
+import top.harrylei.bitlog.api.model.user.dto.UserStatsDTO;
 import top.harrylei.bitlog.api.model.user.query.UserPageQuery;
 import top.harrylei.bitlog.api.model.user.req.PasswordUpdateRequest;
 import top.harrylei.bitlog.api.model.user.req.UserUpdateRequest;
+import top.harrylei.bitlog.api.model.user.vo.PasswordResetVO;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
+import top.harrylei.bitlog.api.model.user.vo.UserStatsVO;
 import top.harrylei.bitlog.api.model.user.vo.UserVO;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
@@ -26,6 +29,7 @@ import top.harrylei.bitlog.user.repository.entity.UserDO;
 import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 import top.harrylei.bitlog.user.service.UserService;
 
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -41,6 +45,10 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+
+    private static final String PASSWORD_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final int PASSWORD_LENGTH = 12;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserDAO userDAO;
     private final UserInfoDAO userInfoDAO;
@@ -129,20 +137,85 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateUserStatus(Long userId, UserStatusEnum status) {
-        if (userId.equals(ReqInfoContext.getContext().getUserId())) {
-            ResultCode.OPERATION_NOT_ALLOWED.throwException("不能修改自己的账号状态");
-        }
+    public void updateUserStatusBatch(List<Long> userIds, UserStatusEnum status) {
+        checkNotSelf(userIds);
+        checkNotAdmin(userIds);
+        userDAO.updateStatusBatch(userIds, status);
+        log.info("批量修改用户状态 userIds={} status={}", userIds, status);
+    }
+
+    @Override
+    public void deleteUserBatch(List<Long> userIds) {
+        checkNotAdmin(userIds);
+        userDAO.deleteBatch(userIds);
+        log.info("批量软删除用户 userIds={}", userIds);
+    }
+
+    @Override
+    public void restoreUserBatch(List<Long> userIds) {
+        checkNotAdmin(userIds);
+        userDAO.restoreBatch(userIds);
+        log.info("批量恢复用户 userIds={}", userIds);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeUserBatch(List<Long> userIds) {
+        checkNotAdmin(userIds);
+        userDAO.removeBatch(userIds);
+        userInfoDAO.removeByUserIds(userIds);
+        log.info("批量物理删除用户 userIds={}", userIds);
+    }
+
+    @Override
+    public UserStatsVO getUserStats() {
+        UserStatsDTO dto = userDAO.countStats();
+        UserStatsVO vo = new UserStatsVO();
+        vo.setTotal(dto.getTotal());
+        vo.setEnabled(dto.getEnabled());
+        vo.setDisabled(dto.getDisabled());
+        vo.setDeleted(dto.getDeleted());
+        return vo;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public PasswordResetVO resetPassword(Long userId) {
         UserDO user = userDAO.getById(userId);
         if (user == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
-        if (userInfo != null && UserRoleEnum.ADMIN.equals(userInfo.getUserRole())) {
-            ResultCode.OPERATION_NOT_ALLOWED.throwException("不能修改管理员账号状态");
+        String newPassword = generateRandomPassword();
+        userDAO.updatePassword(userId, passwordEncoder.encode(newPassword));
+        log.info("管理员重置用户密码 userId={}", userId);
+        // TODO: 发送邮件通知用户新密码
+        return new PasswordResetVO().setNewPassword(newPassword);
+    }
+
+    private void checkNotSelf(List<Long> userIds) {
+        Long currentUserId = ReqInfoContext.getContext().getUserId();
+        if (userIds.contains(currentUserId)) {
+            ResultCode.OPERATION_NOT_ALLOWED.throwException("不能对自己的账号执行此操作");
         }
-        userDAO.updateStatus(userId, status);
-        log.info("修改用户状态 userId={} status={}", userId, status);
+    }
+
+    private void checkNotAdmin(List<Long> userIds) {
+        // TODO: 后续支持分级管理员后，改为只拦同级或更高权限账号
+        // TODO: 检查是否为最后一个管理员，防止系统失去管理员
+        List<UserInfoDO> userInfoList = userInfoDAO.listByUserIds(userIds);
+        boolean hasAdmin = userInfoList.stream()
+                .anyMatch(info -> UserRoleEnum.ADMIN.equals(info.getUserRole()));
+        if (hasAdmin) {
+            ResultCode.OPERATION_NOT_ALLOWED.throwException("不能操作管理员账号");
+        }
+    }
+
+    private String generateRandomPassword() {
+        StringBuilder sb = new StringBuilder(PASSWORD_LENGTH);
+        for (int i = 0; i < PASSWORD_LENGTH; i++) {
+            sb.append(PASSWORD_CHARS.charAt(SECURE_RANDOM.nextInt(PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
     }
 
     @Override
