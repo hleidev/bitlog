@@ -1,6 +1,8 @@
 package top.harrylei.bitlog.user.service;
 
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
+import top.harrylei.bitlog.api.model.user.req.AdminCreateUserRequest;
+import top.harrylei.bitlog.api.model.user.vo.UserCreatedVO;
 
 /**
  * 认证服务接口
@@ -44,4 +46,13 @@ public interface AuthService {
      * @param refreshToken 当前 Refresh Token（来自 HttpOnly Cookie，可为 null）
      */
     void logout(String refreshToken);
+
+    /**
+     * 管理员创建用户
+     * <p>密码由系统自动生成，以明文形式返回给管理员
+     *
+     * @param req 创建请求
+     * @return 包含账号和初始密码的结果
+     */
+    UserCreatedVO adminCreateUser(AdminCreateUserRequest req);
 }

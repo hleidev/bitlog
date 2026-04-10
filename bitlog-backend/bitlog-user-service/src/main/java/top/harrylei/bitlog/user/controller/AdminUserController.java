@@ -14,15 +14,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.harrylei.bitlog.api.model.user.query.UserPageQuery;
+import top.harrylei.bitlog.api.model.user.req.AdminCreateUserRequest;
 import top.harrylei.bitlog.api.model.user.req.UserIdsRequest;
 import top.harrylei.bitlog.api.model.user.req.UserStatusUpdateRequest;
 import top.harrylei.bitlog.api.model.user.vo.PasswordResetVO;
+import top.harrylei.bitlog.api.model.user.vo.UserCreatedVO;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
 import top.harrylei.bitlog.api.model.user.vo.UserStatsVO;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.model.Result;
 import top.harrylei.bitlog.common.security.RequiresAdmin;
+import top.harrylei.bitlog.user.service.AuthService;
 import top.harrylei.bitlog.user.service.UserService;
 
 /**
@@ -38,7 +41,17 @@ import top.harrylei.bitlog.user.service.UserService;
 @RequiredArgsConstructor
 public class AdminUserController {
 
+    private final AuthService authService;
     private final UserService userService;
+
+    /**
+     * 创建用户
+     */
+    @Operation(summary = "创建用户")
+    @PostMapping("/users")
+    public Result<UserCreatedVO> createUser(@Valid @RequestBody AdminCreateUserRequest req) {
+        return Result.success(authService.adminCreateUser(req));
+    }
 
     /**
      * 分页查询用户列表

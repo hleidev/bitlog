@@ -10,6 +10,8 @@ import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.user.LoginTypeEnum;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
+import top.harrylei.bitlog.api.model.user.req.AdminCreateUserRequest;
+import top.harrylei.bitlog.api.model.user.vo.UserCreatedVO;
 import top.harrylei.bitlog.common.constans.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
@@ -22,6 +24,7 @@ import top.harrylei.bitlog.user.service.AuthService;
 import top.harrylei.bitlog.user.service.LoginResult;
 import top.harrylei.bitlog.user.util.JwtUtil;
 
+import java.security.SecureRandom;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -35,6 +38,10 @@ import java.util.concurrent.TimeUnit;
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
+    private static final String PASSWORD_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final int PASSWORD_LENGTH = 12;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserDAO userDAO;
     private final UserInfoDAO userInfoDAO;
@@ -54,9 +61,30 @@ public class AuthServiceImpl implements AuthService {
             ResultCode.FORBIDDEN.throwException("创建管理员账号需要管理员权限");
         }
 
+        doCreateUser(username, null, password, userRole, null, null, null);
+        log.info("用户注册成功 username={}", username);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public UserCreatedVO adminCreateUser(AdminCreateUserRequest req) {
+        if (userDAO.existsUser(req.getUserName())) {
+            ResultCode.USER_ALREADY_EXISTS.throwException(req.getUserName());
+        }
+
+        String password = generateRandomPassword();
+        doCreateUser(req.getUserName(), req.getEmail(), password, req.getUserRole(),
+                req.getPosition(), req.getCompany(), req.getProfile());
+        log.info("管理员创建用户成功 username={}", req.getUserName());
+        return new UserCreatedVO().setUserName(req.getUserName()).setInitialPassword(password);
+    }
+
+    private void doCreateUser(String username, String email, String rawPassword, UserRoleEnum role,
+                              String position, String company, String profile) {
         UserDO newUser = new UserDO()
                 .setUserName(username)
-                .setPassword(passwordEncoder.encode(password))
+                .setEmail(email)
+                .setPassword(passwordEncoder.encode(rawPassword))
                 .setThirdAccountId("")
                 .setLoginType(LoginTypeEnum.USERNAME_PASSWORD);
         userDAO.save(newUser);
@@ -65,10 +93,19 @@ public class AuthServiceImpl implements AuthService {
                 .setUserId(newUser.getId())
                 .setUserName(username)
                 .setAvatar("")
-                .setUserRole(userRole);
+                .setUserRole(role)
+                .setPosition(position)
+                .setCompany(company)
+                .setProfile(profile);
         userInfoDAO.save(userInfo);
+    }
 
-        log.info("用户注册成功 userId={}", newUser.getId());
+    private String generateRandomPassword() {
+        StringBuilder sb = new StringBuilder(PASSWORD_LENGTH);
+        for (int i = 0; i < PASSWORD_LENGTH; i++) {
+            sb.append(PASSWORD_CHARS.charAt(SECURE_RANDOM.nextInt(PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
     }
 
     @Override
