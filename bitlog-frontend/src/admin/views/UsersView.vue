@@ -1,15 +1,59 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Search, RefreshLeft, MoreFilled } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, RefreshLeft, MoreFilled, Plus } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/useUserStore'
-import { getUsers, getUserById, updateUserStatus, type UserListItem, type UserDetail, type PageVO } from '@/api/admin/user'
+import {
+  getUsers,
+  getUserById,
+  getUserStats,
+  updateUsersStatus,
+  deleteUsers,
+  restoreUsers,
+  permanentDeleteUsers,
+  resetUserPassword,
+  type UserListItem,
+  type UserDetail,
+  type PageVO,
+} from '@/api/admin/user'
 
 const { userInfo } = storeToRefs(useUserStore())
 
 const loading = ref(false)
+const tableRef = ref()
 
+// ── Tab ───────────────────────────────────────────────────────────────────────
+type TabKey = 'all' | 'enabled' | 'disabled' | 'deleted'
+const activeTab = ref<TabKey>('all')
+
+const TAB_STATUS: Record<TabKey, number | undefined> = {
+  all: undefined,
+  enabled: 1,
+  disabled: 0,
+  deleted: undefined,
+}
+
+function switchTab(tab: TabKey) {
+  if (activeTab.value === tab) return
+  activeTab.value = tab
+  tableRef.value?.clearSelection()
+  selectedRows.value = []
+  pagination.pageNum = 1
+  fetchUsers()
+}
+
+// ── Password dialog ───────────────────────────────────────────────────────────
+const passwordDialogVisible = ref(false)
+const newPassword = ref('')
+
+async function copyAndClose() {
+  await navigator.clipboard.writeText(newPassword.value)
+  ElMessage.success('已复制到剪贴板')
+  passwordDialogVisible.value = false
+}
+
+// ── Detail dialog ─────────────────────────────────────────────────────────────
 const detailVisible = ref(false)
 const detailUser = ref<UserDetail | null>(null)
 const detailLoading = ref(false)
@@ -28,9 +72,9 @@ async function openDetail(row: UserListItem) {
   }
 }
 
+// ── Filters & pagination ──────────────────────────────────────────────────────
 const filters = reactive({
   userName: '',
-  status: undefined as number | undefined,
 })
 
 const pagination = reactive({
@@ -51,13 +95,13 @@ const pageData = ref<PageVO<UserListItem>>({
 async function fetchUsers() {
   loading.value = true
   try {
-    const query = {
+    pageData.value = await getUsers({
       pageNum: pagination.pageNum,
       pageSize: pagination.pageSize,
       userName: filters.userName || undefined,
-      status: filters.status,
-    }
-    pageData.value = await getUsers(query)
+      status: TAB_STATUS[activeTab.value],
+      deleted: activeTab.value === 'deleted' ? 1 : 0,
+    })
   } finally {
     loading.value = false
   }
@@ -70,7 +114,6 @@ function handleSearch() {
 
 function handleReset() {
   filters.userName = ''
-  filters.status = undefined
   pagination.pageNum = 1
   fetchUsers()
 }
@@ -86,6 +129,133 @@ function handleSizeChange(size: number) {
   fetchUsers()
 }
 
+// ── Relative time ─────────────────────────────────────────────────────────────
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes} 分钟前`
+  if (hours < 24) return `${hours} 小时前`
+  if (days < 30) return `${days} 天前`
+  if (days < 365) return `${Math.floor(days / 30)} 个月前`
+  return `${Math.floor(days / 365)} 年前`
+}
+
+// ── Row selection ─────────────────────────────────────────────────────────────
+const selectedRows = ref<UserListItem[]>([])
+
+function handleSelectionChange(rows: UserListItem[]) {
+  selectedRows.value = rows
+}
+
+function handleClearSelection() {
+  tableRef.value?.clearSelection()
+}
+
+// ── Batch operations — active tab ─────────────────────────────────────────────
+async function handleBatchStatus(status: 0 | 1) {
+  const targets = selectedRows.value.filter((r) => r.userId !== userInfo.value?.userId)
+  if (targets.length === 0) {
+    ElMessage.warning('已排除当前登录账号，无可操作的用户')
+    return
+  }
+  const label = status === 1 ? '启用' : '禁用'
+  try {
+    await ElMessageBox.confirm(
+      `确认批量${label}选中的 ${targets.length} 个用户？`,
+      `批量${label}`,
+      { confirmButtonText: label, cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  try {
+    await updateUsersStatus(targets.map((r) => r.userId), status)
+    ElMessage.success(`已${label} ${targets.length} 个用户`)
+    handleClearSelection()
+    fetchUsers()
+    fetchTabCounts()
+  } catch {
+    ElMessage.error('操作失败')
+  }
+}
+
+async function handleBatchDelete() {
+  const targets = selectedRows.value.filter((r) => r.userId !== userInfo.value?.userId)
+  if (targets.length === 0) {
+    ElMessage.warning('已排除当前登录账号，无可删除的用户')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(
+      `确认删除选中的 ${targets.length} 个用户？删除后可在「已删除」中恢复。`,
+      '批量删除',
+      { confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  try {
+    await deleteUsers(targets.map((r) => r.userId))
+    ElMessage.success(`已删除 ${targets.length} 个用户`)
+    handleClearSelection()
+    fetchUsers()
+    fetchTabCounts()
+  } catch {
+    ElMessage.error('删除失败')
+  }
+}
+
+// ── Batch operations — deleted tab ────────────────────────────────────────────
+async function handleBatchRestore() {
+  try {
+    await ElMessageBox.confirm(
+      `确认恢复选中的 ${selectedRows.value.length} 个用户？`,
+      '批量恢复',
+      { confirmButtonText: '恢复', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  try {
+    await restoreUsers(selectedRows.value.map((r) => r.userId))
+    ElMessage.success(`已恢复 ${selectedRows.value.length} 个用户`)
+    handleClearSelection()
+    fetchUsers()
+    fetchTabCounts()
+  } catch {
+    ElMessage.error('恢复失败')
+  }
+}
+
+async function handleBatchPermanentDelete() {
+  try {
+    await ElMessageBox.confirm(
+      `彻底删除后数据将无法恢复，确认继续？`,
+      `彻底删除 ${selectedRows.value.length} 个用户`,
+      {
+        confirmButtonText: '彻底删除',
+        cancelButtonText: '取消',
+        confirmButtonClass: 'el-button--danger',
+      },
+    )
+  } catch {
+    return
+  }
+  try {
+    await permanentDeleteUsers(selectedRows.value.map((r) => r.userId))
+    ElMessage.success('已彻底删除')
+    handleClearSelection()
+    fetchUsers()
+    fetchTabCounts()
+  } catch {
+    ElMessage.error('操作失败')
+  }
+}
+
+// ── Single row operations ─────────────────────────────────────────────────────
 async function handleCommand(command: string, row: UserListItem) {
   if (command === 'detail') {
     openDetail(row)
@@ -93,54 +263,177 @@ async function handleCommand(command: string, row: UserListItem) {
     if (row.userId === userInfo.value?.userId) return
     const newStatus = row.status === 1 ? 0 : 1
     try {
-      await updateUserStatus(row.userId, newStatus as 0 | 1)
+      await updateUsersStatus([row.userId], newStatus as 0 | 1)
       ElMessage.success(newStatus === 1 ? '已启用' : '已禁用')
       fetchUsers()
+      fetchTabCounts()
     } catch {
       ElMessage.error('操作失败')
     }
   } else if (command === 'resetPassword') {
-    // TODO: 重置密码
+    try {
+      await ElMessageBox.confirm(
+        `确认重置「${row.userName}」的密码？`,
+        '重置密码',
+        { confirmButtonText: '重置密码', cancelButtonText: '取消' },
+      )
+    } catch {
+      return
+    }
+    try {
+      const result = await resetUserPassword(row.userId)
+      newPassword.value = result.newPassword
+      passwordDialogVisible.value = true
+    } catch {
+      ElMessage.error('重置失败')
+    }
   } else if (command === 'delete') {
-    // TODO: 删除用户
+    try {
+      await ElMessageBox.confirm(
+        `确认删除用户「${row.userName}」？删除后可在「已删除」中恢复。`,
+        '删除用户',
+        { confirmButtonText: '删除', cancelButtonText: '取消' },
+      )
+    } catch {
+      return
+    }
+    try {
+      await deleteUsers([row.userId])
+      ElMessage.success('用户已删除')
+      fetchUsers()
+      fetchTabCounts()
+    } catch {
+      ElMessage.error('删除失败')
+    }
+  } else if (command === 'restore') {
+    try {
+      await ElMessageBox.confirm(
+        `确认恢复用户「${row.userName}」？`,
+        '恢复用户',
+        { confirmButtonText: '恢复', cancelButtonText: '取消' },
+      )
+    } catch {
+      return
+    }
+    try {
+      await restoreUsers([row.userId])
+      ElMessage.success('用户已恢复')
+      fetchUsers()
+      fetchTabCounts()
+    } catch {
+      ElMessage.error('恢复失败')
+    }
+  } else if (command === 'permanentDelete') {
+    try {
+      await ElMessageBox.confirm(
+        `彻底删除「${row.userName}」后数据将无法恢复，确认继续？`,
+        '彻底删除',
+        { confirmButtonText: '彻底删除', cancelButtonText: '取消', confirmButtonClass: 'el-button--danger' },
+      )
+    } catch {
+      return
+    }
+    try {
+      await permanentDeleteUsers([row.userId])
+      ElMessage.success('用户已彻底删除')
+      fetchUsers()
+      fetchTabCounts()
+    } catch {
+      ElMessage.error('操作失败')
+    }
   }
 }
 
-onMounted(fetchUsers)
+// ── Tab counts ────────────────────────────────────────────────────────────────
+const tabCounts = reactive({ all: 0, enabled: 0, disabled: 0, deleted: 0 })
+
+async function fetchTabCounts() {
+  try {
+    const stats = await getUserStats()
+    tabCounts.all = stats.total
+    tabCounts.enabled = stats.enabled
+    tabCounts.disabled = stats.disabled
+    tabCounts.deleted = stats.deleted
+  } catch {
+    // 统计接口失败不影响主流程
+  }
+}
+
+onMounted(() => {
+  fetchUsers()
+  fetchTabCounts()
+})
 </script>
 
 <template>
   <div class="users-page">
-    <el-card shadow="never" class="filter-card">
-      <div class="filter-bar">
-        <el-input
-          v-model="filters.userName"
-          placeholder="搜索用户名"
-          clearable
-          style="width: 220px"
-          @keyup.enter="handleSearch"
-        />
-        <el-select
-          v-model="filters.status"
-          placeholder="全部状态"
-          clearable
-          style="width: 140px"
-        >
-          <el-option label="启用" :value="1" />
-          <el-option label="禁用" :value="0" />
-        </el-select>
-        <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
-        <el-button :icon="RefreshLeft" @click="handleReset">重置</el-button>
-      </div>
-    </el-card>
+    <div class="main-card">
+      <!-- 顶部：tab + 搜索 + 操作 -->
+      <div class="card-header">
+        <div class="view-tabs">
+          <button class="view-tab" :class="{ 'view-tab--active': activeTab === 'all' }" @click="switchTab('all')">
+            全部
+            <span v-if="tabCounts.all > 0" class="tab-count">{{ tabCounts.all }}</span>
+          </button>
+          <button class="view-tab" :class="{ 'view-tab--active': activeTab === 'enabled' }" @click="switchTab('enabled')">
+            启用
+            <span v-if="tabCounts.enabled > 0" class="tab-count">{{ tabCounts.enabled }}</span>
+          </button>
+          <button class="view-tab" :class="{ 'view-tab--active': activeTab === 'disabled' }" @click="switchTab('disabled')">
+            禁用
+            <span v-if="tabCounts.disabled > 0" class="tab-count">{{ tabCounts.disabled }}</span>
+          </button>
+          <button class="view-tab" :class="{ 'view-tab--active': activeTab === 'deleted' }" @click="switchTab('deleted')">
+            已删除
+            <span v-if="tabCounts.deleted > 0" class="tab-count">{{ tabCounts.deleted }}</span>
+          </button>
+        </div>
 
-    <el-card shadow="never" class="table-card">
+        <div class="header-actions">
+          <el-input
+            v-model="filters.userName"
+            placeholder="搜索用户名"
+            clearable
+            :prefix-icon="Search"
+            style="width: 200px"
+            @keyup.enter="handleSearch"
+            @clear="handleSearch"
+          />
+          <el-button :icon="RefreshLeft" @click="handleReset" />
+          <el-button v-if="activeTab !== 'deleted'" type="primary" :icon="Plus" />
+        </div>
+      </div>
+
+      <!-- 批量操作栏 -->
+      <Transition name="sel-bar">
+        <div v-if="selectedRows.length > 0" class="selection-bar">
+          <span class="sel-count">已选 <b>{{ selectedRows.length }}</b> 项</span>
+          <div class="sel-actions">
+            <template v-if="activeTab !== 'deleted'">
+              <el-button size="small" @click="handleBatchStatus(1)">批量启用</el-button>
+              <el-button size="small" @click="handleBatchStatus(0)">批量禁用</el-button>
+              <el-button size="small" type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+            </template>
+            <template v-else>
+              <el-button size="small" type="primary" plain @click="handleBatchRestore">批量恢复</el-button>
+              <el-button size="small" type="danger" plain @click="handleBatchPermanentDelete">彻底删除</el-button>
+            </template>
+          </div>
+          <el-button size="small" text class="sel-cancel" @click="handleClearSelection">取消选择</el-button>
+        </div>
+      </Transition>
+
+      <!-- 表格 -->
       <el-table
+        ref="tableRef"
         :data="pageData.content"
         v-loading="loading"
-        stripe
         style="width: 100%"
+
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" width="44" />
+
         <el-table-column label="用户" min-width="160">
           <template #default="{ row }">
             <div class="user-cell">
@@ -161,48 +454,45 @@ onMounted(fetchUsers)
 
         <el-table-column label="角色" min-width="160" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.userRole === 1 ? 'primary' : 'info'" size="small">
+            <span class="role-badge" :class="row.userRole === 1 ? 'role-badge--admin' : 'role-badge--user'">
               {{ row.userRole === 1 ? '管理员' : '普通用户' }}
-            </el-tag>
+            </span>
           </template>
         </el-table-column>
 
-        <el-table-column label="状态" min-width="160" align="center">
+        <el-table-column label="注册时间" min-width="160">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </el-tag>
+            <el-tooltip :content="row.createTime" placement="top">
+              <span class="cell-muted">{{ relativeTime(row.createTime) }}</span>
+            </el-tooltip>
           </template>
         </el-table-column>
 
-        <el-table-column label="注册时间" prop="createTime" min-width="160" />
-
-        <el-table-column label="" width="64" align="center" fixed="right">
+        <el-table-column label="" width="52" align="center" fixed="right">
           <template #default="{ row }">
             <el-dropdown trigger="hover" @command="(cmd: string) => handleCommand(cmd, row)">
               <button class="more-btn">
                 <el-icon><MoreFilled /></el-icon>
               </button>
               <template #dropdown>
-                <el-dropdown-menu>
+                <el-dropdown-menu v-if="activeTab !== 'deleted'">
                   <el-dropdown-item command="detail">用户信息</el-dropdown-item>
                   <el-tooltip
-                    :content="row.userId === userInfo?.userId ? '不能禁用当前登录账号' : ''"
+                    :content="row.userId === userInfo?.userId ? '不能操作当前登录账号' : ''"
                     :disabled="row.userId !== userInfo?.userId"
                     placement="left"
                   >
-                    <el-dropdown-item
-                      command="toggleStatus"
-                      divided
-                      :disabled="row.userId === userInfo?.userId"
-                    >
+                    <el-dropdown-item command="toggleStatus" divided :disabled="row.userId === userInfo?.userId">
                       {{ row.status === 1 ? '禁用' : '启用' }}
                     </el-dropdown-item>
                   </el-tooltip>
                   <el-dropdown-item command="resetPassword">重置密码</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">
-                    删除
-                  </el-dropdown-item>
+                  <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">删除</el-dropdown-item>
+                </el-dropdown-menu>
+                <el-dropdown-menu v-else>
+                  <el-dropdown-item command="detail">用户信息</el-dropdown-item>
+                  <el-dropdown-item command="restore" divided>恢复</el-dropdown-item>
+                  <el-dropdown-item command="permanentDelete" style="color: var(--el-color-danger)">彻底删除</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -210,7 +500,7 @@ onMounted(fetchUsers)
         </el-table-column>
 
         <template #empty>
-          <el-empty description="暂无数据" :image-size="80" />
+          <el-empty :description="activeTab === 'deleted' ? '没有已删除的用户' : '暂无用户'" :image-size="80" />
         </template>
       </el-table>
 
@@ -226,8 +516,20 @@ onMounted(fetchUsers)
           @size-change="handleSizeChange"
         />
       </div>
-    </el-card>
+    </div>
   </div>
+
+  <!-- 密码重置结果弹窗 -->
+  <el-dialog v-model="passwordDialogVisible" width="360px" :show-close="false" align-center>
+    <template #header>
+      <span class="pwd-dialog-title">密码已重置</span>
+    </template>
+    <p class="pwd-dialog-hint">新密码如下，点击「复制」后告知用户</p>
+    <div class="pwd-display">{{ newPassword }}</div>
+    <template #footer>
+      <el-button type="primary" @click="copyAndClose">复制</el-button>
+    </template>
+  </el-dialog>
 
   <!-- 用户信息弹窗 -->
   <el-dialog
@@ -243,7 +545,6 @@ onMounted(fetchUsers)
     </div>
 
     <template v-else-if="detailUser">
-      <!-- 顶部 Banner -->
       <div class="dg-banner">
         <div class="dg-avatar" :class="{ 'dg-avatar--placeholder': !detailUser.avatar }">
           <img v-if="detailUser.avatar" :src="detailUser.avatar" :alt="detailUser.userName" />
@@ -253,8 +554,8 @@ onMounted(fetchUsers)
           <span class="dg-name">{{ detailUser.userName }}</span>
           <span class="dg-position">{{ detailUser.position || '暂无职位' }}</span>
           <div class="dg-badges">
-            <el-tag :type="detailUser.userRole === 'ADMIN' ? 'primary' : 'info'" size="small" effect="light">
-              {{ detailUser.userRole === 'ADMIN' ? '管理员' : '普通用户' }}
+            <el-tag :type="detailUser.userRole === 1 ? 'primary' : 'info'" size="small" effect="light">
+              {{ detailUser.userRole === 1 ? '管理员' : '普通用户' }}
             </el-tag>
             <el-tag :type="detailUser.status === 1 ? 'success' : 'danger'" size="small" effect="light">
               {{ detailUser.status === 1 ? '启用' : '禁用' }}
@@ -263,7 +564,6 @@ onMounted(fetchUsers)
         </div>
       </div>
 
-      <!-- 信息网格 -->
       <div class="dg-grid">
         <div class="dg-cell">
           <span class="dg-cell-label">用户 ID</span>
@@ -287,7 +587,6 @@ onMounted(fetchUsers)
         </div>
       </div>
 
-      <!-- 简介（独占一行） -->
       <div class="dg-profile">
         <span class="dg-cell-label">个人简介</span>
         <p class="dg-profile-text">{{ detailUser.profile || '—' }}</p>
@@ -300,37 +599,153 @@ onMounted(fetchUsers)
 .users-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
 }
 
-.filter-card,
-.table-card {
-  border-radius: 8px;
+/* Main card */
+.main-card {
+  background: #fff;
   border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-.filter-bar {
+/* Card header: tabs left, actions right */
+.card-header {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: space-between;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 0 20px;
   gap: 12px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+}
+
+/* Tabs */
+.view-tabs {
+  display: flex;
+}
+
+.view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  margin-right: 20px;
+  height: 48px;
+  font-size: 14px;
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.view-tab:hover {
+  color: #374151;
+}
+
+.view-tab--active {
+  color: #1d4ed8;
+  border-bottom-color: #1d4ed8;
+  font-weight: 500;
+}
+
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #e0e7ff;
+  color: #3730a3;
+  border-radius: 10px;
+}
+
+/* Selection bar */
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  background: #eff6ff;
+  border-bottom: 1px solid #bfdbfe;
+}
+
+.sel-count {
+  font-size: 13px;
+  color: #1d4ed8;
+  white-space: nowrap;
+}
+
+.sel-count b {
+  font-weight: 700;
+}
+
+.sel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sel-cancel {
+  margin-left: auto;
+  color: #6b7280;
+}
+
+.sel-bar-enter-active,
+.sel-bar-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.sel-bar-enter-from,
+.sel-bar-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* Table wrapper padding */
+:deep(.el-table) {
+  --el-table-border-color: #f3f4f6;
+  --el-table-header-bg-color: #f9fafb;
+  --el-table-header-text-color: #6b7280;
+  --el-table-row-hover-bg-color: #f5f7ff;
+  --el-table-tr-bg-color: #fff;
+}
+
+:deep(.el-table th) {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* Pagination */
 .pagination-bar {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  padding: 14px 20px;
+  border-top: 1px solid #f3f4f6;
 }
 
+/* User cell */
 .user-cell {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   flex-shrink: 0;
   overflow: hidden;
@@ -349,37 +764,93 @@ onMounted(fetchUsers)
   justify-content: center;
   background: linear-gradient(135deg, #4a8db7, #2d6a9f);
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .user-name {
   font-size: 14px;
   font-weight: 500;
-  color: #1f2937;
+  color: #111827;
 }
 
-.more-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: #6b7280;
-  cursor: pointer;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.more-btn:focus,
-.more-btn:active {
-  background: transparent;
-  outline: none;
-}
 
 .cell-muted {
   font-size: 13px;
   color: #6b7280;
+}
+
+/* Role badge */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.role-badge--admin {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.role-badge--user {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* More button */
+.more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.more-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.more-btn:focus,
+.more-btn:active {
+  outline: none;
+}
+
+
+/* Password dialog */
+.pwd-dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.pwd-dialog-hint {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 14px;
+}
+
+.pwd-display {
+  font-family: ui-monospace, monospace;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: #111827;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 14px 18px;
+  text-align: center;
 }
 
 /* User Detail Dialog */
@@ -390,6 +861,7 @@ onMounted(fetchUsers)
 :global(.user-detail-dialog .el-dialog__header) {
   padding: 0;
 }
+
 .dg-banner {
   display: flex;
   align-items: center;
@@ -448,23 +920,6 @@ onMounted(fetchUsers)
   color: #6b7280;
 }
 
-.dg-profile {
-  margin-bottom: 14px;
-  padding: 14px 16px;
-  background: #f9fafb;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.dg-profile-text {
-  font-size: 13px;
-  color: #374151;
-  line-height: 1.6;
-  margin: 0;
-}
-
 .dg-badges {
   display: flex;
   gap: 8px;
@@ -484,6 +939,23 @@ onMounted(fetchUsers)
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.dg-profile {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dg-profile-text {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .dg-cell-label {
