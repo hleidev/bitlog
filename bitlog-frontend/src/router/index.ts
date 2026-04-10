@@ -57,6 +57,11 @@ const router = createRouter({
           meta: { title: '用户管理', parent: '用户', requiresAdmin: true },
         },
         {
+          path: 'users/add',
+          component: () => import('@/admin/views/AddUserView.vue'),
+          meta: { title: '新增用户', parent: '用户', requiresAdmin: true },
+        },
+        {
           path: 'profile',
           component: () => import('@/admin/views/ProfileView.vue'),
           meta: { title: '个人资料', parent: '用户' },
