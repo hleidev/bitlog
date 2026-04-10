@@ -85,3 +85,21 @@ export function permanentDeleteUsers(userIds: number[]): Promise<void> {
 export function resetUserPassword(userId: number): Promise<{ newPassword: string }> {
   return request.post<never, { newPassword: string }>(`/v1/admin/users/${userId}/password/reset`)
 }
+
+export interface CreateUserBody {
+  userName: string
+  email?: string
+  userRole: 0 | 1
+  position?: string
+  company?: string
+  profile?: string
+}
+
+export interface CreateUserResult {
+  userName: string
+  initialPassword: string
+}
+
+export function createUser(body: CreateUserBody): Promise<CreateUserResult> {
+  return request.post<never, CreateUserResult>('/v1/admin/users', body)
+}
