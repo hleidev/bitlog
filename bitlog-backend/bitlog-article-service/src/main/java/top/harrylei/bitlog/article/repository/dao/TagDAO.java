@@ -76,17 +76,18 @@ public class TagDAO extends ServiceImpl<TagMapper, TagDO> {
         );
     }
 
-    public void restore(Long id) {
-        lambdaUpdate()
-                .eq(TagDO::getId, id)
-                .set(TagDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-                .update();
+    public void delete(Long id) {
+        updateDeletedStatus(id, DeleteStatusEnum.DELETED);
     }
 
-    public void delete(Long id) {
+    public void restore(Long id) {
+        updateDeletedStatus(id, DeleteStatusEnum.NOT_DELETED);
+    }
+
+    private void updateDeletedStatus(Long id, DeleteStatusEnum status) {
         lambdaUpdate()
                 .eq(TagDO::getId, id)
-                .set(TagDO::getDeleted, DeleteStatusEnum.DELETED)
+                .set(TagDO::getDeleted, status)
                 .update();
     }
 }
