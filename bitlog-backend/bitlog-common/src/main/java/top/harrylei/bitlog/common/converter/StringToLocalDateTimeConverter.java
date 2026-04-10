@@ -1,6 +1,7 @@
 package top.harrylei.bitlog.common.converter;
 
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.stereotype.Component;
 import top.harrylei.bitlog.common.util.DateUtil;
 
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
  * @author harry
  * @since 0.0.1
  */
+@Component
 public class StringToLocalDateTimeConverter implements Converter<String, LocalDateTime> {
 
     @Override
