@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
@@ -26,6 +27,7 @@ public class AdminCreateUserRequest {
     private String userName;
 
     @Email(message = "邮箱格式不正确")
+    @Size(max = 128, message = "邮箱最长128字符")
     @Schema(description = "邮箱（选填）")
     private String email;
 
@@ -33,12 +35,15 @@ public class AdminCreateUserRequest {
     @Schema(description = "用户角色", requiredMode = Schema.RequiredMode.REQUIRED)
     private UserRoleEnum userRole;
 
+    @Size(max = 64, message = "职位最长64字符")
     @Schema(description = "职位")
     private String position;
 
+    @Size(max = 64, message = "公司最长64字符")
     @Schema(description = "公司")
     private String company;
 
+    @Size(max = 500, message = "个人简介最长500字符")
     @Schema(description = "个人简介")
     private String profile;
 }

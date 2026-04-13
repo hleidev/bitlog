@@ -69,7 +69,7 @@ public class UserController {
      */
     @Operation(summary = "更新头像")
     @PutMapping("/avatar")
-    public Result<Void> updateAvatar(@RequestParam @NotBlank(message = "头像地址不能为空") @Size(max = 500, message = "头像地址过长") String avatar) {
+    public Result<Void> updateAvatar(@RequestParam @NotBlank(message = "头像地址不能为空") @Size(max = 256, message = "头像地址过长") String avatar) {
         userService.updateAvatar(ReqInfoContext.getContext().getUserId(), avatar);
         return Result.success();
     }
