@@ -17,11 +17,17 @@
         <!-- ===== 内部公共模块 ===== -->
         <dependency>
             <groupId>top.harrylei.bitlog</groupId>
-            <artifactId>bitlog-common</artifactId>
+            <artifactId>bitlog-common-web</artifactId>
         </dependency>
         <dependency>
             <groupId>top.harrylei.bitlog</groupId>
             <artifactId>bitlog-article-api</artifactId>
+        </dependency>
+
+        <!-- ===== Redis ===== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
         <!-- ===== Web ===== -->

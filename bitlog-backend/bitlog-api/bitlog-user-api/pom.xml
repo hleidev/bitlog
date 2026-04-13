@@ -17,7 +17,7 @@
         <!-- ===== 公共基础设施（工具类、上下文） ===== -->
         <dependency>
             <groupId>top.harrylei.bitlog</groupId>
-            <artifactId>bitlog-common</artifactId>
+            <artifactId>bitlog-common-core</artifactId>
         </dependency>
 
         <!-- ===== Web + 参数校验 ===== -->
