@@ -8,7 +8,7 @@ import { createUser, type CreateUserResult } from '@/api/admin/user'
 const router = useRouter()
 
 const form = reactive({
-  userName: '',
+  username: '',
   email: '',
   userRole: 0 as 0 | 1,
   position: '',
@@ -23,11 +23,11 @@ const successVisible = ref(false)
 const createResult = ref<CreateUserResult | null>(null)
 
 async function handleSubmit() {
-  if (!form.userName.trim()) {
+  if (!form.username.trim()) {
     ElMessage.warning('请输入用户名')
     return
   }
-  if (!/^[a-zA-Z0-9_-]{4,16}$/.test(form.userName)) {
+  if (!/^[a-zA-Z0-9_-]{4,16}$/.test(form.username)) {
     ElMessage.warning('用户名为 4-16 位字母、数字、下划线或连字符')
     return
   }
@@ -55,7 +55,7 @@ async function handleSubmit() {
   submitting.value = true
   try {
     const result = await createUser({
-      userName: form.userName,
+      username: form.username,
       email: form.email || undefined,
       userRole: form.userRole,
       position: form.position || undefined,
@@ -82,7 +82,7 @@ async function handleSubmit() {
 async function copyCredentials(result = createResult.value) {
   if (!result) return
   try {
-    await navigator.clipboard.writeText(`账号：${result.userName}\n密码：${result.initialPassword}`)
+    await navigator.clipboard.writeText(`账号：${result.username}\n密码：${result.initialPassword}`)
     ElMessage.success('账号和密码已复制到剪贴板')
   } catch {
     ElMessage.error('复制失败，请手动复制')
@@ -116,7 +116,7 @@ function handleSuccessClose() {
           <div class="field-row">
             <div class="field">
               <label class="field-label">用户名 <span class="required">*</span></label>
-              <el-input v-model="form.userName" placeholder="请输入用户名" :maxlength="16" />
+              <el-input v-model="form.username" placeholder="请输入用户名" :maxlength="16" />
             </div>
             <div class="field">
               <label class="field-label">邮箱</label>
@@ -172,7 +172,7 @@ function handleSuccessClose() {
     <div v-if="createResult" class="pwd-dialog-inner">
       <div class="pwd-dialog-icon">✓</div>
       <p class="pwd-dialog-title">用户已创建</p>
-      <p class="pwd-dialog-sub">账号 <b>{{ createResult.userName }}</b> · 初始密码</p>
+      <p class="pwd-dialog-sub">账号 <b>{{ createResult.username }}</b> · 初始密码</p>
       <div class="pwd-dialog-value">{{ createResult.initialPassword }}</div>
       <p class="pwd-dialog-copied">账号和密码已自动复制到剪贴板</p>
     </div>

@@ -78,7 +78,7 @@ async function openDetail(row: UserListItem) {
 
 // ── Filters & pagination ──────────────────────────────────────────────────────
 const filters = reactive({
-  userName: '',
+  username: '',
 })
 
 const pagination = reactive({
@@ -102,7 +102,7 @@ async function fetchUsers() {
     pageData.value = await getUsers({
       pageNum: pagination.pageNum,
       pageSize: pagination.pageSize,
-      userName: filters.userName || undefined,
+      username: filters.username || undefined,
       status: TAB_STATUS[activeTab.value],
       deleted: activeTab.value === 'deleted' ? 1 : 0,
     })
@@ -117,7 +117,7 @@ function handleSearch() {
 }
 
 function handleReset() {
-  filters.userName = ''
+  filters.username = ''
   pagination.pageNum = 1
   fetchUsers()
 }
@@ -275,7 +275,7 @@ async function handleCommand(command: string, row: UserListItem) {
   } else if (command === 'resetPassword') {
     try {
       await ElMessageBox.confirm(
-        `确认重置「${row.userName}」的密码？`,
+        `确认重置「${row.username}」的密码？`,
         '重置密码',
         { confirmButtonText: '重置密码', cancelButtonText: '取消' },
       )
@@ -293,7 +293,7 @@ async function handleCommand(command: string, row: UserListItem) {
   } else if (command === 'delete') {
     try {
       await ElMessageBox.confirm(
-        `确认删除用户「${row.userName}」？删除后可在「已删除」中恢复。`,
+        `确认删除用户「${row.username}」？删除后可在「已删除」中恢复。`,
         '删除用户',
         { confirmButtonText: '删除', cancelButtonText: '取消' },
       )
@@ -311,7 +311,7 @@ async function handleCommand(command: string, row: UserListItem) {
   } else if (command === 'restore') {
     try {
       await ElMessageBox.confirm(
-        `确认恢复用户「${row.userName}」？`,
+        `确认恢复用户「${row.username}」？`,
         '恢复用户',
         { confirmButtonText: '恢复', cancelButtonText: '取消' },
       )
@@ -329,7 +329,7 @@ async function handleCommand(command: string, row: UserListItem) {
   } else if (command === 'permanentDelete') {
     try {
       await ElMessageBox.confirm(
-        `彻底删除「${row.userName}」后数据将无法恢复，确认继续？`,
+        `彻底删除「${row.username}」后数据将无法恢复，确认继续？`,
         '彻底删除',
         { confirmButtonText: '彻底删除', cancelButtonText: '取消', confirmButtonClass: 'el-button--danger' },
       )
@@ -401,7 +401,7 @@ onMounted(() => {
 
         <div class="header-actions">
           <el-input
-            v-model="filters.userName"
+            v-model="filters.username"
             placeholder="搜索用户名"
             clearable
             :prefix-icon="Search"
@@ -449,10 +449,10 @@ onMounted(() => {
             <template #default="{ row }">
               <div class="user-cell">
                 <div class="user-avatar" :class="{ 'user-avatar--placeholder': !row.avatar }">
-                  <img v-if="row.avatar" :src="row.avatar" :alt="row.userName" />
-                  <span v-else>{{ row.userName?.[0]?.toUpperCase() ?? '?' }}</span>
+                  <img v-if="row.avatar" :src="row.avatar" :alt="row.username" />
+                  <span v-else>{{ row.username?.[0]?.toUpperCase() ?? '?' }}</span>
                 </div>
-                <span class="user-name">{{ row.userName }}</span>
+                <span class="user-name">{{ row.username }}</span>
               </div>
             </template>
           </el-table-column>
@@ -539,12 +539,12 @@ onMounted(() => {
         >
           <div class="mc-main">
             <div class="user-avatar" :class="{ 'user-avatar--placeholder': !row.avatar }">
-              <img v-if="row.avatar" :src="row.avatar" :alt="row.userName" />
-              <span v-else>{{ row.userName?.[0]?.toUpperCase() ?? '?' }}</span>
+              <img v-if="row.avatar" :src="row.avatar" :alt="row.username" />
+              <span v-else>{{ row.username?.[0]?.toUpperCase() ?? '?' }}</span>
             </div>
             <div class="mc-info">
               <div class="mc-name-row">
-                <span class="user-name">{{ row.userName }}</span>
+                <span class="user-name">{{ row.username }}</span>
                 <span class="role-badge" :class="row.userRole === 1 ? 'role-badge--admin' : 'role-badge--user'">
                   {{ row.userRole === 1 ? '管理员' : '普通用户' }}
                 </span>
@@ -625,12 +625,12 @@ onMounted(() => {
     <template v-else-if="detailUser">
       <div class="dg-banner">
         <div class="dg-avatar" :class="{ 'dg-avatar--placeholder': !detailUser.avatar }">
-          <img v-if="detailUser.avatar" :src="detailUser.avatar" :alt="detailUser.userName" />
-          <span v-else>{{ detailUser.userName?.[0]?.toUpperCase() ?? '?' }}</span>
+          <img v-if="detailUser.avatar" :src="detailUser.avatar" :alt="detailUser.username" />
+          <span v-else>{{ detailUser.username?.[0]?.toUpperCase() ?? '?' }}</span>
         </div>
         <div class="dg-banner-info">
-          <span class="dg-name">{{ detailUser.userName }}</span>
-          <span class="dg-position">{{ detailUser.position || '暂无职位' }}</span>
+          <span class="dg-name">{{ detailUser.nickname }}</span>
+          <span class="dg-position">@{{ detailUser.username }}</span>
           <div class="dg-badges">
             <el-tag :type="detailUser.userRole === 1 ? 'primary' : 'info'" size="small" effect="light">
               {{ detailUser.userRole === 1 ? '管理员' : '普通用户' }}
@@ -648,8 +648,16 @@ onMounted(() => {
           <span class="dg-cell-value"># {{ detailUser.userId }}</span>
         </div>
         <div class="dg-cell">
+          <span class="dg-cell-label">别名</span>
+          <span class="dg-cell-value">{{ detailUser.nickname || '—' }}</span>
+        </div>
+        <div class="dg-cell">
           <span class="dg-cell-label">邮箱</span>
           <span class="dg-cell-value">{{ detailUser.email || '—' }}</span>
+        </div>
+        <div class="dg-cell">
+          <span class="dg-cell-label">职位</span>
+          <span class="dg-cell-value">{{ detailUser.position || '—' }}</span>
         </div>
         <div class="dg-cell">
           <span class="dg-cell-label">公司</span>
