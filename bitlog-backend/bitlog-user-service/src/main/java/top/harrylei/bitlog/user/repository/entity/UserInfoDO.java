@@ -31,9 +31,9 @@ public class UserInfoDO extends BaseDO {
     private Long userId;
 
     /**
-     * 用户名
+     * 昵称
      */
-    private String userName;
+    private String nickname;
 
     /**
      * 头像

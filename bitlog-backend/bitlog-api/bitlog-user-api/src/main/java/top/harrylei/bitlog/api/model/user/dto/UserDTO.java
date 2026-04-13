@@ -23,8 +23,8 @@ public class UserDTO extends BaseDTO {
     @Schema(description = "用户id", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long userId;
 
-    @Schema(description = "用户名", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String userName;
+    @Schema(description = "昵称", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String nickname;
 
     @Schema(description = "角色", example = "ADMIN|NORMAL")
     private UserRoleEnum userRole;

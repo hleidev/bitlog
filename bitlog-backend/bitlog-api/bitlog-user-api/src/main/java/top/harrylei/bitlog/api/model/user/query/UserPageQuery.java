@@ -22,8 +22,8 @@ import java.time.LocalDateTime;
 @Accessors(chain = true)
 public class UserPageQuery extends BasePage {
 
-    @Schema(description = "用户名")
-    private String userName;
+    @Schema(description = "登录用户名")
+    private String username;
 
     @Schema(description = "用户状态")
     private Integer status;

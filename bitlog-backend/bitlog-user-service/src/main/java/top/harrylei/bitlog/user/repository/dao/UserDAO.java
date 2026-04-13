@@ -24,14 +24,14 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
 
     public UserDO getByUsername(String username) {
         return lambdaQuery()
-                .eq(UserDO::getUserName, username)
+                .eq(UserDO::getUsername, username)
                 .eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
                 .one();
     }
 
     public boolean existsUser(String username) {
         return lambdaQuery()
-                .eq(UserDO::getUserName, username)
+                .eq(UserDO::getUsername, username)
                 .eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
                 .exists();
     }

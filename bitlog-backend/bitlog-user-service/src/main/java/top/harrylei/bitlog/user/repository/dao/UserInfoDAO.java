@@ -31,10 +31,10 @@ public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {
                 .list();
     }
 
-    public void updateInfo(Long userId, String userName, String profile, String position, String company) {
+    public void updateInfo(Long userId, String nickname, String profile, String position, String company) {
         lambdaUpdate()
                 .eq(UserInfoDO::getUserId, userId)
-                .set(UserInfoDO::getUserName, userName)
+                .set(UserInfoDO::getNickname, nickname)
                 .set(profile != null, UserInfoDO::getProfile, profile)
                 .set(position != null, UserInfoDO::getPosition, position)
                 .set(company != null, UserInfoDO::getCompany, company)

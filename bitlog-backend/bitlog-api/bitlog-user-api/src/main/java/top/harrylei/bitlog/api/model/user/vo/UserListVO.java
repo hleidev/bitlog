@@ -23,8 +23,11 @@ public class UserListVO {
     @Schema(description = "用户ID", example = "123")
     private Long userId;
 
-    @Schema(description = "用户名", example = "harry")
-    private String userName;
+    @Schema(description = "登录用户名", example = "harry")
+    private String username;
+
+    @Schema(description = "昵称", example = "harry")
+    private String nickname;
 
     @Schema(description = "账号状态：0-禁用，1-启用", example = "1")
     private Integer status;

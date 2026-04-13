@@ -44,7 +44,7 @@ public class UserDO extends BaseDO {
     /**
      * 登录用户名
      */
-    private String userName;
+    private String username;
 
     /**
      * 登录密码（密文存储）

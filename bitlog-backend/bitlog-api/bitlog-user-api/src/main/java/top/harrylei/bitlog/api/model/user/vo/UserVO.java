@@ -17,8 +17,8 @@ public class UserVO {
     @Schema(description = "用户 ID", example = "123")
     private Long userId;
 
-    @Schema(description = "用户名", example = "harry")
-    private String userName;
+    @Schema(description = "昵称", example = "harry")
+    private String nickname;
 
     @Schema(description = "角色", example = "ADMIN")
     private UserRoleEnum userRole;

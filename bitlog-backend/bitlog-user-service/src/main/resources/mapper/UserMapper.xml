@@ -4,7 +4,7 @@
 
     <resultMap id="UserDetailDTOMap" type="top.harrylei.bitlog.api.model.user.dto.UserDetailDTO">
         <id column="id" property="userId"/>
-        <result column="user_name" property="userName"/>
+        <result column="username" property="username"/>
         <result column="email" property="email"/>
         <result column="status" property="status"/>
         <result column="deleted" property="deleted"/>
@@ -18,12 +18,13 @@
         <result column="profile" property="profile"/>
         <result column="extend" property="extend"/>
         <result column="user_role" property="userRole"/>
+        <result column="nickname" property="nickname"/>
     </resultMap>
 
     <select id="pageUsers" resultMap="UserDetailDTOMap">
         select
-            a.id, a.user_name, a.email, a.status, a.deleted, a.create_time, a.update_time,
-            b.avatar, b.user_role
+            a.id, a.username, a.email, a.status, a.deleted, a.create_time, a.update_time,
+            b.avatar, b.user_role, b.nickname
         from user_account a
         left join user_info b on a.id = b.user_id
         <where>
@@ -31,8 +32,8 @@
             <if test="queryParam.deleted != null">and a.deleted = #{queryParam.deleted}</if>
             <if test="queryParam.startTime != null">and a.create_time &gt;= #{queryParam.startTime}</if>
             <if test="queryParam.endTime != null">and a.create_time &lt;= #{queryParam.endTime}</if>
-            <if test="queryParam.userName != null and queryParam.userName != ''">
-                and a.user_name like concat('%', #{queryParam.userName}, '%')
+            <if test="queryParam.username != null and queryParam.username != ''">
+                and a.username like concat('%', #{queryParam.username}, '%')
             </if>
         </where>
         order by a.create_time desc
@@ -49,7 +50,7 @@
 
     <select id="selectUserDetail" resultMap="UserDetailDTOMap">
         select
-            a.id, a.user_name, a.email, a.status, a.deleted, a.create_time, a.update_time,
+            a.id, a.username, a.email, a.status, a.deleted, a.create_time, a.update_time,
             a.third_account_id, a.login_type,
             b.avatar, b.position, b.company, b.profile, b.extend, b.user_role
         from user_account a

@@ -24,7 +24,7 @@ public interface UserConverter {
      * UserInfoDO + UserDO → UserVO（合并两个源）
      */
     @Mapping(source = "userInfo.userId", target = "userId")
-    @Mapping(source = "userInfo.userName", target = "userName")
+    @Mapping(source = "userInfo.nickname", target = "nickname")
     @Mapping(source = "userInfo.avatar", target = "avatar")
     @Mapping(source = "userInfo.profile", target = "profile")
     @Mapping(source = "userInfo.position", target = "position")
@@ -37,7 +37,7 @@ public interface UserConverter {
      * UserInfoDO → UserVO（只有 info，email 为空）
      */
     @Mapping(source = "userId", target = "userId")
-    @Mapping(source = "userName", target = "userName")
+    @Mapping(source = "nickname", target = "nickname")
     @Mapping(source = "avatar", target = "avatar")
     @Mapping(source = "profile", target = "profile")
     @Mapping(source = "position", target = "position")
@@ -50,7 +50,8 @@ public interface UserConverter {
      * UserInfoDO + UserDO → UserDetailVO（含基础信息）
      */
     @Mapping(source = "userInfo.userId", target = "userId")
-    @Mapping(source = "userInfo.userName", target = "userName")
+    @Mapping(source = "user.username", target = "username")
+    @Mapping(source = "userInfo.nickname", target = "nickname")
     @Mapping(source = "userInfo.avatar", target = "avatar")
     @Mapping(source = "userInfo.profile", target = "profile")
     @Mapping(source = "userInfo.position", target = "position")
@@ -67,7 +68,8 @@ public interface UserConverter {
      * UserInfoDO + UserDO → UserListVO
      */
     @Mapping(source = "userInfo.userId", target = "userId")
-    @Mapping(source = "userInfo.userName", target = "userName")
+    @Mapping(source = "user.username", target = "username")
+    @Mapping(source = "userInfo.nickname", target = "nickname")
     @Mapping(source = "userInfo.avatar", target = "avatar")
     @Mapping(source = "userInfo.userRole", target = "userRole")
     @Mapping(source = "user.email", target = "email")

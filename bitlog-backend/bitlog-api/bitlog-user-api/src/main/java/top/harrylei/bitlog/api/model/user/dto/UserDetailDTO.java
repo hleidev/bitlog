@@ -25,8 +25,8 @@ public class UserDetailDTO extends BaseDTO {
 
     // ---------------- user_account 表字段 ----------------
 
-    @Schema(description = "用户名")
-    private String userName;
+    @Schema(description = "登录用户名")
+    private String username;
 
     @Schema(description = "邮箱")
     private String email;
@@ -44,6 +44,9 @@ public class UserDetailDTO extends BaseDTO {
     private Integer loginType;
 
     // ---------------- user_info 表字段 ----------------
+
+    @Schema(description = "昵称")
+    private String nickname;
 
     @Schema(description = "用户头像")
     private String avatar;

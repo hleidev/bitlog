@@ -23,8 +23,8 @@ public class AdminCreateUserRequest {
 
     @NotBlank(message = "用户名不能为空")
     @Pattern(regexp = "^[a-zA-Z0-9_-]{4,16}$", message = "用户名只能包含字母、数字、下划线和连字符，长度为4-16位")
-    @Schema(description = "用户名", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String userName;
+    @Schema(description = "登录用户名", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String username;
 
     @Email(message = "邮箱格式不正确")
     @Size(max = 128, message = "邮箱最长128字符")

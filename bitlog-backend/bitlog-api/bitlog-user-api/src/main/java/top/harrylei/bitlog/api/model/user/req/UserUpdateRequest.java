@@ -2,7 +2,6 @@ package top.harrylei.bitlog.api.model.user.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -18,10 +17,10 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class UserUpdateRequest {
 
-    @NotBlank(message = "用户名不能为空")
-    @Pattern(regexp = "^[a-zA-Z0-9_-]{4,16}$", message = "用户名只能包含字母、数字、下划线和连字符，长度为4-16位")
-    @Schema(description = "用户名", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String userName;
+    @NotBlank(message = "昵称不能为空")
+    @Size(max = 64, message = "昵称最长64字符")
+    @Schema(description = "昵称", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String nickname;
 
     @Size(max = 500, message = "个人简介最长500字符")
     @Schema(description = "用户简介")

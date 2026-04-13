@@ -68,21 +68,21 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(rollbackFor = Exception.class)
     @Override
     public UserCreatedVO adminCreateUser(AdminCreateUserRequest req) {
-        if (userDAO.existsUser(req.getUserName())) {
-            ResultCode.USER_ALREADY_EXISTS.throwException(req.getUserName());
+        if (userDAO.existsUser(req.getUsername())) {
+            ResultCode.USER_ALREADY_EXISTS.throwException(req.getUsername());
         }
 
         String password = generateRandomPassword();
-        doCreateUser(req.getUserName(), req.getEmail(), password, req.getUserRole(),
+        doCreateUser(req.getUsername(), req.getEmail(), password, req.getUserRole(),
                 req.getPosition(), req.getCompany(), req.getProfile());
-        log.info("管理员创建用户成功 username={}", req.getUserName());
-        return new UserCreatedVO().setUserName(req.getUserName()).setInitialPassword(password);
+        log.info("管理员创建用户成功 username={}", req.getUsername());
+        return new UserCreatedVO().setUsername(req.getUsername()).setInitialPassword(password);
     }
 
     private void doCreateUser(String username, String email, String rawPassword, UserRoleEnum role,
                               String position, String company, String profile) {
         UserDO newUser = new UserDO()
-                .setUserName(username)
+                .setUsername(username)
                 .setEmail(email)
                 .setPassword(passwordEncoder.encode(rawPassword))
                 .setThirdAccountId("")
@@ -91,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
 
         UserInfoDO userInfo = new UserInfoDO()
                 .setUserId(newUser.getId())
-                .setUserName(username)
+                .setNickname(username)
                 .setAvatar("")
                 .setUserRole(role)
                 .setPosition(position)

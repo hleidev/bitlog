@@ -15,8 +15,8 @@ import lombok.experimental.Accessors;
 @Schema(description = "管理员创建用户结果展示对象")
 public class UserCreatedVO {
 
-    @Schema(description = "用户名")
-    private String userName;
+    @Schema(description = "登录用户名")
+    private String username;
 
     @Schema(description = "系统生成的初始密码（明文）")
     private String initialPassword;
