@@ -476,4 +476,22 @@ function formatDate(dateStr: string) {
   font-weight: 500;
   color: #374151;
 }
+
+@media (max-width: 768px) {
+  .profile-page {
+    max-width: 100%;
+  }
+
+  .field-row {
+    flex-direction: column;
+  }
+
+  .field-row--align-end {
+    align-items: stretch;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+}
 </style>

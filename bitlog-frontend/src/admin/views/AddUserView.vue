@@ -167,7 +167,7 @@ function handleSuccessClose() {
   </div>
 
   <!-- 创建成功弹窗 -->
-  <el-dialog v-model="successVisible" width="360px" :show-close="false" :close-on-click-modal="false" align-center>
+  <el-dialog v-model="successVisible" width="min(360px, 92vw)" :show-close="false" :close-on-click-modal="false" align-center>
     <template #header><span /></template>
     <div v-if="createResult" class="pwd-dialog-inner">
       <div class="pwd-dialog-icon">✓</div>
@@ -280,6 +280,21 @@ function handleSuccessClose() {
 .required {
   color: #ef4444;
   margin-left: 2px;
+}
+
+@media (max-width: 768px) {
+  .field-row {
+    flex-direction: column;
+  }
+
+  /* 角色 select 在移动端占满宽度 */
+  .card-body > .field[style] {
+    width: 100% !important;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
 }
 
 /* Success dialog */
