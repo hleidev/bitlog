@@ -19,6 +19,7 @@
 
     <modules>
         <!-- 已创建的模块，随开发进度逐步追加 -->
+        <module>bitlog-common-core</module>
         <module>bitlog-common</module>
         <module>bitlog-api</module>
         <module>bitlog-user-service</module>
@@ -84,7 +85,17 @@
             <!-- ===== 内部公共模块 ===== -->
             <dependency>
                 <groupId>top.harrylei.bitlog</groupId>
+                <artifactId>bitlog-common-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.harrylei.bitlog</groupId>
                 <artifactId>bitlog-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.harrylei.bitlog</groupId>
+                <artifactId>bitlog-common-web</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

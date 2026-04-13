@@ -9,65 +9,34 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>bitlog-common</artifactId>
-    <name>bitlog-common</name>
-    <description>公共基础设施：工具类、配置、请求上下文（无业务模型依赖）</description>
+    <artifactId>bitlog-common-web</artifactId>
+    <name>bitlog-common-web</name>
+    <description>Web 基础设施：Spring MVC、Security、MyBatis-Plus、Redis 相关配置</description>
 
     <dependencies>
-        <!-- Spring Boot 核心（@Scheduled、@Async 等注解支持） -->
+        <!-- 核心基础模块（POJO、枚举、工具类、异常体系） -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <groupId>top.harrylei.bitlog</groupId>
+            <artifactId>bitlog-common-core</artifactId>
         </dependency>
 
-        <!-- Redis -->
+        <!-- Redis（optional：仅在使用 Redis 的服务中生效） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
+            <optional>true</optional>
         </dependency>
 
-        <!-- MyBatis-Plus（MybatisPlusConfig 分页插件） -->
+        <!-- MyBatis-Plus（MybatisPlusConfig 分页插件，BaseDO @TableId，optional：仅在使用 DB 的服务中生效） -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-jsqlparser</artifactId>
-        </dependency>
-
-        <!-- TransmittableThreadLocal（ReqInfoContext 异步线程传递） -->
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>transmittable-thread-local</artifactId>
-        </dependency>
-
-        <!-- Guava（RedisUtil 中的 ImmutableList） -->
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
-
-        <!-- Commons Lang3（JsonUtil、DateUtil 中的 StringUtils） -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
-
-        <!-- Jackson（JSON 序列化，JsonUtil 依赖） -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-
-        <!-- Bean Validation（BasePage 分页参数校验注解） -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <!-- Spring Security（SecurityConfig、GatewayAuthenticationFilter） -->
@@ -83,6 +52,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
             <!-- 各服务本身也会引入 web starter，common 只做编译依赖，不额外打包 Tomcat -->
             <optional>true</optional>
+        </dependency>
+
+        <!-- Bean Validation（StringToDeleteStatusEnumConverter） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
         <!-- Lombok（编译期代码生成，provided 不打入 jar） -->
