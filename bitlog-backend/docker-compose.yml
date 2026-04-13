@@ -53,6 +53,29 @@ services:
     networks:
       - infra-network
 
+  file-service:
+    build:
+      context: bitlog-file-service
+      dockerfile: Dockerfile
+    image: bitlog-file-service:latest
+    container_name: bitlog-file-service
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+      STORAGE_BUCKET: ${STORAGE_BUCKET}
+      STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9003/actuator/health | grep -q UP || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - infra-network
+
   gateway:
     build:
       context: bitlog-gateway
@@ -77,6 +100,8 @@ services:
       user-service:
         condition: service_healthy
       article-service:
+        condition: service_healthy
+      file-service:
         condition: service_healthy
     restart: unless-stopped
     networks:
