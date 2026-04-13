@@ -3,7 +3,7 @@ import request from '@/utils/request'
 export interface UserPageQuery {
   pageNum?: number
   pageSize?: number
-  userName?: string
+  username?: string
   status?: number
   deleted?: number
   startTime?: string
@@ -12,7 +12,7 @@ export interface UserPageQuery {
 
 export interface UserListItem {
   userId: number
-  userName: string
+  username: string
   status: number
   userRole: number
   avatar: string
@@ -34,7 +34,8 @@ export interface PageVO<T> {
 
 export interface UserDetail {
   userId: number
-  userName: string
+  username: string
+  nickname: string
   email: string
   status: number
   userRole: number
@@ -87,7 +88,7 @@ export function resetUserPassword(userId: number): Promise<{ newPassword: string
 }
 
 export interface CreateUserBody {
-  userName: string
+  username: string
   email?: string
   userRole: 0 | 1
   position?: string
@@ -96,7 +97,7 @@ export interface CreateUserBody {
 }
 
 export interface CreateUserResult {
-  userName: string
+  username: string
   initialPassword: string
 }
 
