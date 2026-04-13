@@ -12,12 +12,11 @@ spring:
       server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
 
 storage:
-  endpoint: http://minio:9000
-  access-key: admin
-  secret-key: ***REMOVED***
-  bucket: media
-  public-url: http://localhost/files
-  presign-expire-minutes: 5
+  endpoint: ${STORAGE_ENDPOINT:http://minio:9000}
+  access-key: ${STORAGE_ACCESS_KEY:admin}
+  secret-key: ${STORAGE_SECRET_KEY:}
+  bucket: ${STORAGE_BUCKET:media}
+  public-url: ${STORAGE_PUBLIC_URL:http://localhost/files}
 
 app:
   exception:

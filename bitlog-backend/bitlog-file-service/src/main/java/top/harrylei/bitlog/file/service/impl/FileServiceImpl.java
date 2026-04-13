@@ -4,16 +4,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.file.config.StorageProperties;
-import top.harrylei.bitlog.file.model.PresignRequest;
-import top.harrylei.bitlog.file.model.PresignVO;
+import top.harrylei.bitlog.file.model.UploadScene;
+import top.harrylei.bitlog.file.model.UploadVO;
 import top.harrylei.bitlog.file.service.FileService;
 
-import java.time.Duration;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -28,38 +29,44 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FileServiceImpl implements FileService {
 
-    private final S3Presigner presigner;
+    private final S3Client s3Client;
     private final StorageProperties props;
 
     @Override
-    public PresignVO presign(Long userId, PresignRequest req) {
-        String ext = StringUtils.getFilenameExtension(req.getFileName());
+    public UploadVO upload(Long userId, UploadScene scene, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            ResultCode.INVALID_PARAMETER.throwException("文件不能为空");
+        }
+
+        String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
         if (ext == null || ext.isBlank()) {
             ResultCode.INVALID_PARAMETER.throwException("文件名缺少扩展名");
         }
 
         LocalDateTime now = LocalDateTime.now();
         String key = String.format("bitlog/%s/%d/%d/%02d/%s.%s",
-                req.getScene(), userId,
+                scene, userId,
                 now.getYear(), now.getMonthValue(),
                 UUID.randomUUID(), ext);
 
-        PutObjectRequest putReq = PutObjectRequest.builder()
-                .bucket(props.getBucket())
-                .key(key)
-                .contentType(req.getContentType())
-                .build();
-
-        PresignedPutObjectRequest presigned = presigner.presignPutObject(r -> r
-                .signatureDuration(Duration.ofMinutes(props.getPresignExpireMinutes()))
-                .putObjectRequest(putReq)
-                .build());
+        try {
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(props.getBucket())
+                            .key(key)
+                            .contentType(file.getContentType())
+                            .contentLength(file.getSize())
+                            .build(),
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+            );
+        } catch (IOException e) {
+            log.error("文件上传失败 scene={} userId={} key={}", scene, userId, key, e);
+            ResultCode.INTERNAL_ERROR.throwException("文件上传失败");
+        }
 
         String fileUrl = props.getPublicUrl() + "/" + key;
-        log.info("生成预签名 URL scene={} userId={} key={}", req.getScene(), userId, key);
+        log.info("文件上传成功 scene={} userId={} key={}", scene, userId, key);
 
-        return new PresignVO()
-                .setUploadUrl(presigned.url().toString())
-                .setFileUrl(fileUrl);
+        return new UploadVO().setFileUrl(fileUrl);
     }
 }

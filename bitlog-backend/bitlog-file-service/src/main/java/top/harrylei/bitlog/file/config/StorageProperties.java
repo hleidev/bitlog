@@ -28,6 +28,4 @@ public class StorageProperties {
     /** 对外暴露的文件 URL 前缀（经 Nginx 代理后的地址） */
     private String publicUrl;
 
-    /** 预签名 URL 有效期（分钟） */
-    private int presignExpireMinutes = 5;
 }

@@ -1,7 +1,8 @@
 package top.harrylei.bitlog.file.service;
 
-import top.harrylei.bitlog.file.model.PresignRequest;
-import top.harrylei.bitlog.file.model.PresignVO;
+import org.springframework.web.multipart.MultipartFile;
+import top.harrylei.bitlog.file.model.UploadScene;
+import top.harrylei.bitlog.file.model.UploadVO;
 
 /**
  * 文件服务接口
@@ -12,11 +13,12 @@ import top.harrylei.bitlog.file.model.PresignVO;
 public interface FileService {
 
     /**
-     * 生成预签名上传地址
+     * 上传文件至对象存储
      *
      * @param userId 当前用户 ID
-     * @param req    上传请求参数
-     * @return 预签名上传地址和文件访问地址
+     * @param scene  上传场景
+     * @param file   上传的文件
+     * @return 文件访问地址
      */
-    PresignVO presign(Long userId, PresignRequest req);
+    UploadVO upload(Long userId, UploadScene scene, MultipartFile file);
 }
