@@ -40,7 +40,7 @@ class UserConverterTest {
 
         assertThat(vo).isNotNull();
         assertThat(vo.getUserId()).isEqualTo(100L);
-        assertThat(vo.getUserName()).isEqualTo("harry");
+        assertThat(vo.getNickname()).isEqualTo("harry");
         assertThat(vo.getAvatar()).isEqualTo("https://cdn/avatar.jpg");
         assertThat(vo.getProfile()).isEqualTo("I love coding");
         assertThat(vo.getPosition()).isEqualTo("backend engineer");
@@ -58,7 +58,7 @@ class UserConverterTest {
 
         assertThat(vo).isNotNull();
         assertThat(vo.getUserId()).isEqualTo(200L);
-        assertThat(vo.getUserName()).isEqualTo("alice");
+        assertThat(vo.getNickname()).isEqualTo("alice");
         assertThat(vo.getUserRole()).isEqualTo(UserRoleEnum.ADMIN);
         assertThat(vo.getEmail()).isNull();
     }
@@ -91,7 +91,7 @@ class UserConverterTest {
 
         assertThat(vo).isNotNull();
         assertThat(vo.getUserId()).isEqualTo(300L);
-        assertThat(vo.getUserName()).isEqualTo("bob");
+        assertThat(vo.getNickname()).isEqualTo("bob");
         assertThat(vo.getEmail()).isEqualTo("bob@bitlog.top");
         assertThat(vo.getStatus()).isEqualTo(UserStatusEnum.ENABLED.getCode());
         assertThat(vo.getDeleted()).isEqualTo(DeleteStatusEnum.NOT_DELETED);
@@ -128,7 +128,7 @@ class UserConverterTest {
         LocalDateTime now = LocalDateTime.now();
         UserDetailDTO dto = new UserDetailDTO();
         dto.setUserId(500L);
-        dto.setUserName("dave");
+        dto.setUsername("dave");
         dto.setEmail("dave@bitlog.top");
         dto.setStatus(1);
         dto.setDeleted(DeleteStatusEnum.NOT_DELETED);
@@ -141,7 +141,7 @@ class UserConverterTest {
 
         assertThat(vo).isNotNull();
         assertThat(vo.getUserId()).isEqualTo(500L);
-        assertThat(vo.getUserName()).isEqualTo("dave");
+        assertThat(vo.getUsername()).isEqualTo("dave");
         assertThat(vo.getEmail()).isEqualTo("dave@bitlog.top");
         assertThat(vo.getStatus()).isEqualTo(1);
         assertThat(vo.getDeleted()).isEqualTo(DeleteStatusEnum.NOT_DELETED);
@@ -184,7 +184,7 @@ class UserConverterTest {
                                        UserRoleEnum role) {
         UserInfoDO userInfo = new UserInfoDO();
         userInfo.setUserId(userId);
-        userInfo.setUserName(userName);
+        userInfo.setNickname(userName);
         userInfo.setAvatar(avatar);
         userInfo.setPosition(position);
         userInfo.setCompany(company);

@@ -94,7 +94,7 @@ class UserServiceImplTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getUserId()).isEqualTo(userId);
-        assertThat(result.getUserName()).isEqualTo("harry");
+        assertThat(result.getNickname()).isEqualTo("harry");
         assertThat(result.getEmail()).isNull();
     }
 
@@ -201,7 +201,7 @@ class UserServiceImplTest {
         when(userInfoDAO.getByUserId(userId)).thenReturn(null);
 
         UserUpdateRequest req = new UserUpdateRequest();
-        req.setUserName("newName");
+        req.setNickname("newName");
 
         assertThatThrownBy(() -> userService.updateUserInfo(userId, req))
                 .isInstanceOf(BusinessException.class)
@@ -273,7 +273,7 @@ class UserServiceImplTest {
     private UserInfoDO buildUserInfoDO(Long userId, String userName, UserRoleEnum role) {
         UserInfoDO userInfo = new UserInfoDO();
         userInfo.setUserId(userId);
-        userInfo.setUserName(userName);
+        userInfo.setNickname(userName);
         userInfo.setUserRole(role);
         return userInfo;
     }

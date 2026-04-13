@@ -80,11 +80,11 @@ class AuthServiceImplTest {
         authService.register(username, password, UserRoleEnum.NORMAL);
 
         verify(userDAO).save(argThat(user ->
-                user.getUserName().equals(username) &&
+                user.getUsername().equals(username) &&
                 user.getPassword().equals(encodedPassword)
         ));
         verify(userInfoDAO).save(argThat(info ->
-                info.getUserName().equals(username) &&
+                info.getNickname().equals(username) &&
                 info.getUserRole().equals(UserRoleEnum.NORMAL)
         ));
     }
@@ -156,7 +156,7 @@ class AuthServiceImplTest {
         String username = "disabledUser";
         UserDO user = new UserDO();
         user.setId(10L);
-        user.setUserName(username);
+        user.setUsername(username);
         user.setPassword("encodedPass");
         user.setStatus(UserStatusEnum.DISABLED);
         when(userDAO.getByUsername(username)).thenReturn(user);
@@ -244,6 +244,7 @@ class AuthServiceImplTest {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(contains(oldToken))).thenReturn("100:NORMAL");
         when(redisTemplate.delete(contains(oldToken))).thenReturn(true);
+        when(userDAO.getById(100L)).thenReturn(buildEnabledUser("testUser", "encodedPass"));
         when(jwtUtil.generateToken(100L, UserRoleEnum.NORMAL)).thenReturn(newAccessToken);
         when(jwtProperties.getRefreshTokenExpire()).thenReturn(Duration.ofDays(30));
 
@@ -289,7 +290,7 @@ class AuthServiceImplTest {
 
     private UserDO buildEnabledUser(String username, String encodedPassword) {
         UserDO user = new UserDO();
-        user.setUserName(username);
+        user.setUsername(username);
         user.setPassword(encodedPassword);
         user.setStatus(UserStatusEnum.ENABLED);
         return user;
