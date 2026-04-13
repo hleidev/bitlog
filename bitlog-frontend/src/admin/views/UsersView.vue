@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, RefreshLeft, MoreFilled, Plus } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
@@ -362,6 +362,13 @@ async function fetchTabCounts() {
   }
 }
 
+// ── Mobile detection ──────────────────────────────────────────────────────────
+const windowWidth = ref(window.innerWidth)
+const isMobile = computed(() => windowWidth.value <= 768)
+function onResize() { windowWidth.value = window.innerWidth }
+onMounted(() => window.addEventListener('resize', onResize))
+onUnmounted(() => window.removeEventListener('resize', onResize))
+
 onMounted(() => {
   fetchUsers()
   fetchTabCounts()
@@ -426,94 +433,151 @@ onMounted(() => {
         </div>
       </Transition>
 
-      <!-- 表格 -->
-      <el-table
-        ref="tableRef"
-        :data="pageData.content"
-        :row-key="(row: UserListItem) => row.userId"
-        v-loading="loading"
-        style="width: 100%"
-        @selection-change="handleSelectionChange"
-      >
-        <el-table-column type="selection" width="44" />
+      <!-- 桌面端：表格 -->
+      <div v-if="!isMobile" class="table-scroll-wrap">
+        <el-table
+          ref="tableRef"
+          :data="pageData.content"
+          :row-key="(row: UserListItem) => row.userId"
+          v-loading="loading"
+          style="width: 100%"
+          @selection-change="handleSelectionChange"
+        >
+          <el-table-column type="selection" width="44" />
 
-        <el-table-column label="用户">
-          <template #default="{ row }">
-            <div class="user-cell">
-              <div class="user-avatar" :class="{ 'user-avatar--placeholder': !row.avatar }">
-                <img v-if="row.avatar" :src="row.avatar" :alt="row.userName" />
-                <span v-else>{{ row.userName?.[0]?.toUpperCase() ?? '?' }}</span>
+          <el-table-column label="用户">
+            <template #default="{ row }">
+              <div class="user-cell">
+                <div class="user-avatar" :class="{ 'user-avatar--placeholder': !row.avatar }">
+                  <img v-if="row.avatar" :src="row.avatar" :alt="row.userName" />
+                  <span v-else>{{ row.userName?.[0]?.toUpperCase() ?? '?' }}</span>
+                </div>
+                <span class="user-name">{{ row.userName }}</span>
               </div>
-              <span class="user-name">{{ row.userName }}</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="邮箱" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span class="cell-muted">{{ row.email || '—' }}</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="角色" align="center">
+            <template #default="{ row }">
+              <span class="role-badge" :class="row.userRole === 1 ? 'role-badge--admin' : 'role-badge--user'">
+                {{ row.userRole === 1 ? '管理员' : '普通用户' }}
+              </span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="状态" align="center">
+            <template #default="{ row }">
+              <span class="status-badge" :class="row.status === 1 ? 'status-badge--enabled' : 'status-badge--disabled'">
+                {{ row.status === 1 ? '启用' : '禁用' }}
+              </span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="注册时间">
+            <template #default="{ row }">
+              <el-tooltip :content="row.createTime" placement="top">
+                <span class="cell-muted">{{ relativeTime(row.createTime) }}</span>
+              </el-tooltip>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="" width="52" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-dropdown trigger="hover" @command="(cmd: string) => handleCommand(cmd, row)">
+                <button class="more-btn">
+                  <el-icon><MoreFilled /></el-icon>
+                </button>
+                <template #dropdown>
+                  <el-dropdown-menu v-if="activeTab !== 'deleted'">
+                    <el-dropdown-item command="detail">用户信息</el-dropdown-item>
+                    <el-tooltip
+                      :content="row.userId === userInfo?.userId ? '不能操作当前登录账号' : ''"
+                      :disabled="row.userId !== userInfo?.userId"
+                      placement="left"
+                    >
+                      <el-dropdown-item command="toggleStatus" divided :disabled="row.userId === userInfo?.userId">
+                        {{ row.status === 1 ? '禁用' : '启用' }}
+                      </el-dropdown-item>
+                    </el-tooltip>
+                    <el-dropdown-item command="resetPassword">重置密码</el-dropdown-item>
+                    <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">删除</el-dropdown-item>
+                  </el-dropdown-menu>
+                  <el-dropdown-menu v-else>
+                    <el-dropdown-item command="detail">用户信息</el-dropdown-item>
+                    <el-dropdown-item command="restore" divided>恢复</el-dropdown-item>
+                    <el-dropdown-item command="permanentDelete" style="color: var(--el-color-danger)">彻底删除</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </template>
+          </el-table-column>
+
+          <template #empty>
+            <el-empty :description="activeTab === 'deleted' ? '没有已删除的用户' : '暂无用户'" :image-size="80" />
+          </template>
+        </el-table>
+      </div>
+
+      <!-- 移动端：卡片列表 -->
+      <div v-else v-loading="loading" class="mobile-list">
+        <el-empty
+          v-if="!loading && pageData.content.length === 0"
+          :description="activeTab === 'deleted' ? '没有已删除的用户' : '暂无用户'"
+          :image-size="80"
+          style="padding: 40px 0"
+        />
+        <div
+          v-for="row in pageData.content"
+          :key="row.userId"
+          class="mobile-card"
+        >
+          <div class="mc-main">
+            <div class="user-avatar" :class="{ 'user-avatar--placeholder': !row.avatar }">
+              <img v-if="row.avatar" :src="row.avatar" :alt="row.userName" />
+              <span v-else>{{ row.userName?.[0]?.toUpperCase() ?? '?' }}</span>
             </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="邮箱" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span class="cell-muted">{{ row.email || '—' }}</span>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="角色" align="center">
-          <template #default="{ row }">
-            <span class="role-badge" :class="row.userRole === 1 ? 'role-badge--admin' : 'role-badge--user'">
-              {{ row.userRole === 1 ? '管理员' : '普通用户' }}
-            </span>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="状态" align="center">
-          <template #default="{ row }">
-            <span class="status-badge" :class="row.status === 1 ? 'status-badge--enabled' : 'status-badge--disabled'">
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </span>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="注册时间">
-          <template #default="{ row }">
-            <el-tooltip :content="row.createTime" placement="top">
-              <span class="cell-muted">{{ relativeTime(row.createTime) }}</span>
-            </el-tooltip>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="" width="52" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-dropdown trigger="hover" @command="(cmd: string) => handleCommand(cmd, row)">
-              <button class="more-btn">
-                <el-icon><MoreFilled /></el-icon>
-              </button>
-              <template #dropdown>
-                <el-dropdown-menu v-if="activeTab !== 'deleted'">
-                  <el-dropdown-item command="detail">用户信息</el-dropdown-item>
-                  <el-tooltip
-                    :content="row.userId === userInfo?.userId ? '不能操作当前登录账号' : ''"
-                    :disabled="row.userId !== userInfo?.userId"
-                    placement="left"
-                  >
-                    <el-dropdown-item command="toggleStatus" divided :disabled="row.userId === userInfo?.userId">
-                      {{ row.status === 1 ? '禁用' : '启用' }}
-                    </el-dropdown-item>
-                  </el-tooltip>
-                  <el-dropdown-item command="resetPassword">重置密码</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">删除</el-dropdown-item>
-                </el-dropdown-menu>
-                <el-dropdown-menu v-else>
-                  <el-dropdown-item command="detail">用户信息</el-dropdown-item>
-                  <el-dropdown-item command="restore" divided>恢复</el-dropdown-item>
-                  <el-dropdown-item command="permanentDelete" style="color: var(--el-color-danger)">彻底删除</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </template>
-        </el-table-column>
-
-        <template #empty>
-          <el-empty :description="activeTab === 'deleted' ? '没有已删除的用户' : '暂无用户'" :image-size="80" />
-        </template>
-      </el-table>
+            <div class="mc-info">
+              <div class="mc-name-row">
+                <span class="user-name">{{ row.userName }}</span>
+                <span class="role-badge" :class="row.userRole === 1 ? 'role-badge--admin' : 'role-badge--user'">
+                  {{ row.userRole === 1 ? '管理员' : '普通用户' }}
+                </span>
+                <span class="status-badge" :class="row.status === 1 ? 'status-badge--enabled' : 'status-badge--disabled'">
+                  {{ row.status === 1 ? '启用' : '禁用' }}
+                </span>
+              </div>
+              <span class="cell-muted mc-email">{{ row.email || '暂无邮箱' }}</span>
+              <span class="cell-muted mc-time">注册于 {{ relativeTime(row.createTime) }}</span>
+            </div>
+          </div>
+          <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd, row)">
+            <button class="more-btn">
+              <el-icon><MoreFilled /></el-icon>
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu v-if="activeTab !== 'deleted'">
+                <el-dropdown-item command="detail">用户信息</el-dropdown-item>
+                <el-dropdown-item command="toggleStatus" divided :disabled="row.userId === userInfo?.userId">
+                  {{ row.status === 1 ? '禁用' : '启用' }}
+                </el-dropdown-item>
+                <el-dropdown-item command="resetPassword">重置密码</el-dropdown-item>
+                <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">删除</el-dropdown-item>
+              </el-dropdown-menu>
+              <el-dropdown-menu v-else>
+                <el-dropdown-item command="detail">用户信息</el-dropdown-item>
+                <el-dropdown-item command="restore" divided>恢复</el-dropdown-item>
+                <el-dropdown-item command="permanentDelete" style="color: var(--el-color-danger)">彻底删除</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </div>
 
       <div class="pagination-bar">
         <el-pagination
@@ -521,7 +585,7 @@ onMounted(() => {
           v-model:page-size="pagination.pageSize"
           :total="pageData.totalElements"
           :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
+          :layout="isMobile ? 'prev, pager, next' : 'total, sizes, prev, pager, next'"
           background
           @current-change="handlePageChange"
           @size-change="handleSizeChange"
@@ -531,7 +595,7 @@ onMounted(() => {
   </div>
 
   <!-- 密码重置结果弹窗 -->
-  <el-dialog v-model="passwordDialogVisible" width="360px" :show-close="false" align-center>
+  <el-dialog v-model="passwordDialogVisible" width="min(360px, 92vw)" :show-close="false" align-center>
     <template #header><span /></template>
     <div class="pwd-dialog-inner">
       <div class="pwd-dialog-icon">✓</div>
@@ -1035,5 +1099,136 @@ onMounted(() => {
   color: #1f2937;
   font-weight: 500;
   word-break: break-all;
+}
+
+/* ── Table scroll wrapper ───────────────────────────────────── */
+.table-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Mobile card list ───────────────────────────────────────── */
+.mobile-list {
+  min-height: 120px;
+}
+
+.mobile-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  gap: 12px;
+}
+
+.mobile-card:last-child {
+  border-bottom: none;
+}
+
+.mc-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.mc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mc-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mc-email {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.mc-time {
+  font-size: 12px;
+}
+
+/* ── Mobile responsive ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Card header: stack tabs above actions */
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0 12px;
+    gap: 0;
+  }
+
+  .view-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .view-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .view-tab {
+    flex-shrink: 0;
+    margin-right: 12px;
+    height: 42px;
+    font-size: 13px;
+  }
+
+  .header-actions {
+    padding: 8px 0;
+    flex-wrap: wrap;
+  }
+
+  .header-actions .el-input {
+    width: 100% !important;
+    flex: 1 1 120px;
+  }
+
+  /* Selection bar */
+  .selection-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .sel-actions {
+    flex-wrap: wrap;
+  }
+
+  .sel-cancel {
+    margin-left: 0;
+  }
+
+  /* Pagination */
+  .pagination-bar {
+    padding: 12px;
+    justify-content: center;
+  }
+
+  /* Detail dialog: full width on mobile */
+  :global(.user-detail-dialog) {
+    --el-dialog-width: 92vw !important;
+  }
+
+  .dg-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dg-banner {
+    padding: 20px 16px;
+    gap: 14px;
+  }
 }
 </style>
