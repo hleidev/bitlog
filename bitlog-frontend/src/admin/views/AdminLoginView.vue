@@ -16,6 +16,14 @@ async function handleLogin() {
     errorMsg.value = '请输入用户名和密码'
     return
   }
+  if (!/^[a-zA-Z0-9_-]{4,16}$/.test(form.username)) {
+    errorMsg.value = '用户名为 4-16 位字母、数字、下划线或连字符'
+    return
+  }
+  if (!/^[a-zA-Z0-9_@#%&!$*-]{8,20}$/.test(form.password)) {
+    errorMsg.value = '密码为 8-20 位，可包含字母、数字及 _@#%&!$*- 符号'
+    return
+  }
   loading.value = true
   errorMsg.value = ''
   try {
@@ -49,6 +57,7 @@ async function handleLogin() {
             placeholder="用户名"
             size="large"
             :prefix-icon="User"
+            :maxlength="16"
             autocomplete="username"
             @keyup.enter="handleLogin"
           />

@@ -31,6 +31,26 @@ async function handleSubmit() {
     ElMessage.warning('用户名为 4-16 位字母、数字、下划线或连字符')
     return
   }
+  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    ElMessage.warning('邮箱格式不正确')
+    return
+  }
+  if (form.email && form.email.length > 128) {
+    ElMessage.warning('邮箱最长 128 个字符')
+    return
+  }
+  if (form.position.length > 64) {
+    ElMessage.warning('职位最长 64 个字符')
+    return
+  }
+  if (form.company.length > 64) {
+    ElMessage.warning('公司最长 64 个字符')
+    return
+  }
+  if (form.profile.length > 500) {
+    ElMessage.warning('个人简介最长 500 个字符')
+    return
+  }
 
   submitting.value = true
   try {
@@ -47,10 +67,9 @@ async function handleSubmit() {
     // 弹窗打开后自动复制账号和密码
     copyCredentials(result)
   } catch (err: any) {
-    const code = err?.response?.data?.code
-    if (code === 42001) {
+    if (err?.code === 42001) {
       ElMessage.error('用户名已存在')
-    } else if (code === 40001) {
+    } else if (err?.code === 40001) {
       ElMessage.error('参数校验失败，请检查用户名或邮箱格式')
     } else {
       ElMessage.error('创建失败，请稍后重试')
@@ -97,11 +116,11 @@ function handleSuccessClose() {
           <div class="field-row">
             <div class="field">
               <label class="field-label">用户名 <span class="required">*</span></label>
-              <el-input v-model="form.userName" placeholder="请输入用户名" />
+              <el-input v-model="form.userName" placeholder="请输入用户名" :maxlength="16" />
             </div>
             <div class="field">
               <label class="field-label">邮箱</label>
-              <el-input v-model="form.email" placeholder="user@example.com" />
+              <el-input v-model="form.email" placeholder="user@example.com" :maxlength="128" />
             </div>
           </div>
           <div class="field" style="width: calc(50% - 6px)">
@@ -124,11 +143,11 @@ function handleSuccessClose() {
           <div class="field-row">
             <div class="field">
               <label class="field-label">职位</label>
-              <el-input v-model="form.position" placeholder="如：前端工程师" />
+              <el-input v-model="form.position" placeholder="如：前端工程师" :maxlength="64" />
             </div>
             <div class="field">
               <label class="field-label">公司</label>
-              <el-input v-model="form.company" placeholder="如：Acme Inc." />
+              <el-input v-model="form.company" placeholder="如：Acme Inc." :maxlength="64" />
             </div>
           </div>
           <div class="field">
@@ -138,6 +157,8 @@ function handleSuccessClose() {
               type="textarea"
               :rows="3"
               placeholder="简单介绍一下这个用户…"
+              :maxlength="500"
+              show-word-limit
             />
           </div>
         </div>
