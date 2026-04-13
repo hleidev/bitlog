@@ -57,6 +57,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserVO getUserById(Long userId) {
+        if (userId == null) {
+            return null;
+        }
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
         if (userInfo == null) {
             return null;
@@ -67,7 +70,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserVO> getUserBatchByIds(List<Long> userIds) {
-        if (userIds.isEmpty()) {
+        if (userIds == null || userIds.isEmpty()) {
             return List.of();
         }
         List<UserInfoDO> userInfoList = userInfoDAO.listByUserIds(userIds);
@@ -94,6 +97,9 @@ public class UserServiceImpl implements UserService {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
         UserDO user = userDAO.getById(userInfo.getUserId());
+        if (user == null) {
+            ResultCode.USER_NOT_EXISTS.throwException();
+        }
         return userConverter.toDetailVO(userInfo, user);
     }
 
@@ -104,7 +110,7 @@ public class UserServiceImpl implements UserService {
         if (userInfo == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        userInfoDAO.updateInfo(userId, req.getUserName(), req.getProfile(), req.getPosition(), req.getCompany());
+        userInfoDAO.updateInfo(userId, req.getNickname(), req.getProfile(), req.getPosition(), req.getCompany());
         log.info("更新用户基本信息 userId={}", userId);
     }
 
@@ -116,6 +122,9 @@ public class UserServiceImpl implements UserService {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
         UserDO user = userDAO.getById(userInfo.getUserId());
+        if (user == null) {
+            ResultCode.USER_NOT_EXISTS.throwException();
+        }
 
         if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
             ResultCode.USERNAME_OR_PASSWORD_ERROR.throwException();
