@@ -15,7 +15,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const { userInfo, isAdmin } = storeToRefs(userStore)
 
-const displayName = computed(() => userInfo.value?.userName ?? '')
+const displayName = computed(() => userInfo.value?.nickname ?? '')
 const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase() || '?')
 
 function close() {
@@ -50,7 +50,7 @@ async function handleLogout() {
       <span v-else class="ud-avatar ud-avatar--placeholder">{{ avatarLetter }}</span>
       <div class="ud-profile-info">
         <span class="ud-name">{{ displayName }}</span>
-        <span v-if="userInfo?.position" class="ud-position">{{ userInfo.position }}</span>
+        <span v-if="userInfo?.username" class="ud-position">{{ userInfo.username }}</span>
       </div>
     </div>
 

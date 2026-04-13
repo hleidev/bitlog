@@ -26,7 +26,7 @@ const avatarError = ref(false)
 
 // 基本信息表单
 const basicForm = reactive({
-  userName: '',
+  nickname: '',
   position: '',
   company: '',
   profile: '',
@@ -57,7 +57,7 @@ async function loadProfile() {
 
 function syncBasicForm() {
   if (!profile.value) return
-  basicForm.userName = profile.value.userName
+  basicForm.nickname = profile.value.nickname
   basicForm.position = profile.value.position || ''
   basicForm.company = profile.value.company || ''
   basicForm.profile = profile.value.profile || ''
@@ -93,12 +93,12 @@ async function handleFileChange(e: Event) {
 // ── 基本信息 ──────────────────────────────────────────────────────────────────
 
 async function saveBasicInfo() {
-  if (!basicForm.userName.trim()) {
-    ElMessage.warning('用户名不能为空')
+  if (!basicForm.nickname.trim()) {
+    ElMessage.warning('别名不能为空')
     return
   }
-  if (!/^[a-zA-Z0-9_-]{4,16}$/.test(basicForm.userName)) {
-    ElMessage.warning('用户名为 4-16 位字母、数字、下划线或连字符')
+  if (basicForm.nickname.length > 64) {
+    ElMessage.warning('别名最长 64 个字符')
     return
   }
   if (basicForm.position.length > 64) {
@@ -116,7 +116,7 @@ async function saveBasicInfo() {
   basicSaving.value = true
   try {
     await updateUserInfo({
-      userName: basicForm.userName.trim(),
+      nickname: basicForm.nickname.trim(),
       position: basicForm.position.trim() || undefined,
       company: basicForm.company.trim() || undefined,
       profile: basicForm.profile.trim() || undefined,
@@ -195,7 +195,7 @@ function formatDate(dateStr: string) {
           @click="triggerAvatarInput"
         >
           <img v-if="profile?.avatar && !avatarError" :src="profile.avatar" class="avatar-img" alt="avatar" @error="avatarError = true" />
-          <div v-else class="avatar-fallback">{{ profile?.userName?.[0]?.toUpperCase() ?? '?' }}</div>
+          <div v-else class="avatar-fallback">{{ profile?.nickname?.[0]?.toUpperCase() ?? '?' }}</div>
           <div class="avatar-overlay">
             <el-icon v-if="avatarUploading" class="is-loading"><Loading /></el-icon>
             <el-icon v-else><Upload /></el-icon>
@@ -211,7 +211,7 @@ function formatDate(dateStr: string) {
         />
 
         <div class="overview-info">
-          <div class="overview-name">{{ profile?.userName ?? '—' }}</div>
+          <div class="overview-name">{{ profile?.nickname ?? '—' }}</div>
           <div class="overview-meta">
             <el-tag
               :type="profile?.userRole === 1 ? 'danger' : 'info'"
@@ -235,8 +235,12 @@ function formatDate(dateStr: string) {
       </div>
       <div class="card-body">
         <div class="field">
-          <label class="field-label">用户名</label>
-          <el-input v-model="basicForm.userName" placeholder="请输入用户名" :maxlength="16" />
+          <label class="field-label">登录账号</label>
+          <el-input :model-value="profile?.username ?? ''" readonly />
+        </div>
+        <div class="field">
+          <label class="field-label">别名</label>
+          <el-input v-model="basicForm.nickname" placeholder="请输入别名" :maxlength="64" />
         </div>
         <div class="field-row">
           <div class="field">
