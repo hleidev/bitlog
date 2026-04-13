@@ -6,7 +6,7 @@ import { useUserStore } from '@/stores/useUserStore'
 import { storeToRefs } from 'pinia'
 import UserDropdown from '@/components/common/UserDropdown.vue'
 
-defineProps<{ collapsed: boolean }>()
+defineProps<{ collapsed: boolean; isMobile?: boolean }>()
 const emit = defineEmits<{ toggle: [] }>()
 
 const route = useRoute()
@@ -46,7 +46,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
             :alt="displayName"
           />
           <span v-else class="trigger-avatar trigger-avatar--placeholder">{{ avatarLetter }}</span>
-          <span class="trigger-name">{{ displayName }}</span>
+          <span class="trigger-name trigger-name--desktop">{{ displayName }}</span>
         </button>
 
         <Transition name="dropdown">
@@ -130,6 +130,12 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
   font-size: 14px;
   color: #262626;
   font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .trigger-name--desktop {
+    display: none;
+  }
 }
 
 /* Dropdown */
