@@ -3,10 +3,12 @@ package top.harrylei.bitlog.article.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import top.harrylei.bitlog.api.model.article.req.TagSaveRequest;
 import top.harrylei.bitlog.api.model.article.req.TagUpdateRequest;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import top.harrylei.bitlog.article.converter.ArticleConverter;
+import top.harrylei.bitlog.article.repository.dao.ArticleTagDAO;
 import top.harrylei.bitlog.article.repository.dao.TagDAO;
 import top.harrylei.bitlog.article.repository.entity.TagDO;
 import top.harrylei.bitlog.article.service.TagService;
@@ -27,11 +29,12 @@ import java.util.List;
 public class TagServiceImpl implements TagService {
 
     private final TagDAO tagDAO;
+    private final ArticleTagDAO articleTagDAO;
     private final ArticleConverter articleConverter;
 
     @Override
-    public List<TagVO> listAll() {
-        return articleConverter.toTagVOList(tagDAO.listAllOrderByArticleCount());
+    public List<TagVO> listAll(String name) {
+        return articleConverter.toTagVOList(tagDAO.listAll(name));
     }
 
     @Override
@@ -100,13 +103,15 @@ public class TagServiceImpl implements TagService {
         return tag.getId();
     }
 
+    @Transactional
     @Override
-    public void delete(Long tagId) {
-        TagDO tag = tagDAO.getById(tagId);
-        if (tag == null || DeleteStatusEnum.DELETED.equals(tag.getDeleted())) {
+    public void batchDelete(List<Long> ids) {
+        List<TagDO> tags = tagDAO.listByIds(ids);
+        if (tags.size() != ids.size()) {
             ResultCode.TAG_NOT_EXISTS.throwException();
         }
-        tagDAO.delete(tagId);
-        log.info("删除标签 tagId={}", tagId);
+        tagDAO.batchDelete(ids);
+        articleTagDAO.removeByTagIds(ids);
+        log.info("批量删除标签 ids={}", ids);
     }
 }

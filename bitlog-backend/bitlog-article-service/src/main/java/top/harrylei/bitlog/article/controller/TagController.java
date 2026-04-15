@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import top.harrylei.bitlog.api.model.article.req.TagBatchDeleteRequest;
 import top.harrylei.bitlog.api.model.article.req.TagSaveRequest;
 import top.harrylei.bitlog.api.model.article.req.TagUpdateRequest;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
@@ -29,10 +30,10 @@ public class TagController {
 
     private final TagService tagService;
 
-    @Operation(summary = "查询所有标签（按使用频率降序）")
+    @Operation(summary = "查询所有标签")
     @GetMapping
-    public Result<List<TagVO>> listAll() {
-        return Result.success(tagService.listAll());
+    public Result<List<TagVO>> listAll(@RequestParam(required = false) String name) {
+        return Result.success(tagService.listAll(name));
     }
 
     @RequiresLogin
@@ -58,10 +59,10 @@ public class TagController {
     }
 
     @RequiresAdmin
-    @Operation(summary = "删除标签")
-    @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable Long id) {
-        tagService.delete(id);
+    @Operation(summary = "批量删除标签")
+    @DeleteMapping
+    public Result<Void> batchDelete(@Valid @RequestBody TagBatchDeleteRequest req) {
+        tagService.batchDelete(req.getIds());
         return Result.success();
     }
 }

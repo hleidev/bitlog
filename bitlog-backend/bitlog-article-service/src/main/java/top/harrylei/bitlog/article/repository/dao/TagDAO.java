@@ -37,11 +37,14 @@ public class TagDAO extends ServiceImpl<TagMapper, TagDO> {
     }
 
     /**
-     * 按使用频率降序查询所有未删除标签
+     * 按使用频率降序查询所有未删除标签，支持按名称模糊搜索
+     *
+     * @param name 标签名称关键字，为空时返回全量
      */
-    public List<TagDO> listAllOrderByArticleCount() {
+    public List<TagDO> listAll(String name) {
         return lambdaQuery()
                 .eq(TagDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .like(name != null && !name.isBlank(), TagDO::getName, name)
                 .orderByDesc(TagDO::getArticleCount)
                 .list();
     }
@@ -78,6 +81,13 @@ public class TagDAO extends ServiceImpl<TagMapper, TagDO> {
 
     public void delete(Long id) {
         updateDeletedStatus(id, DeleteStatusEnum.DELETED);
+    }
+
+    public void batchDelete(List<Long> ids) {
+        lambdaUpdate()
+                .in(TagDO::getId, ids)
+                .set(TagDO::getDeleted, DeleteStatusEnum.DELETED)
+                .update();
     }
 
     public void restore(Long id) {

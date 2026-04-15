@@ -14,8 +14,12 @@ import java.util.List;
  */
 public interface TagService {
 
-    /** 查询所有标签，按使用频率降序 */
-    List<TagVO> listAll();
+    /**
+     * 查询所有未删除标签，按使用频率降序
+     *
+     * @param name 标签名称关键字，为空时返回全量
+     */
+    List<TagVO> listAll(String name);
 
     /**
      * 查询或创建标签（按名称）
@@ -29,6 +33,9 @@ public interface TagService {
     /** 更新标签名称 */
     void update(Long tagId, TagUpdateRequest req);
 
-    /** 删除标签（软删除） */
-    void delete(Long tagId);
+    /**
+     * 批量删除标签（软删除）并清理文章关联
+     * 任意 ID 不存在则整体回滚
+     */
+    void batchDelete(List<Long> ids);
 }
