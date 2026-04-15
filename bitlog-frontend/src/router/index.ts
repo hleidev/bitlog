@@ -42,7 +42,7 @@ const router = createRouter({
         {
           path: 'tags',
           component: () => import('@/admin/views/TagsView.vue'),
-          meta: { title: '标签', parent: '文章', requiresAdmin: true },
+          meta: { title: '标签管理', parent: '文章', requiresAdmin: true },
         },
         // 评论（admin only）
         {

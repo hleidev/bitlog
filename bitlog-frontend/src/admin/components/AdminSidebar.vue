@@ -38,7 +38,7 @@ const adminMenus: MenuItem[] = [
     children: [
       { title: '文章管理', icon: Document, path: '/admin/articles' },
       { title: '分类', icon: Folder, path: '/admin/categories' },
-      { title: '标签', icon: CollectionTag, path: '/admin/tags' },
+      { title: '标签管理', icon: CollectionTag, path: '/admin/tags' },
     ],
   },
   { title: '评论', icon: ChatLineRound, path: '/admin/comments' },
