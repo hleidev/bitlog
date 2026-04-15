@@ -41,4 +41,18 @@ public class ArticleTagDAO extends ServiceImpl<ArticleTagMapper, ArticleTagDO> {
                 .eq(ArticleTagDO::getArticleId, articleId)
                 .remove();
     }
+
+    /**
+     * 删除指定标签的所有文章关联
+     *
+     * @param tagIds 标签 ID 列表
+     */
+    public void removeByTagIds(List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return;
+        }
+        lambdaUpdate()
+                .in(ArticleTagDO::getTagId, tagIds)
+                .remove();
+    }
 }
