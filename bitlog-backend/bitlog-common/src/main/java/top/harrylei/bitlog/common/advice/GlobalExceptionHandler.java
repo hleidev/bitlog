@@ -2,6 +2,7 @@ package top.harrylei.bitlog.common.advice;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -49,6 +50,16 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining("; "));
         log.warn("参数校验失败: {}", message);
         return Result.fail(ResultCode.INVALID_PARAMETER.getCode(), message);
+    }
+
+    /**
+     * 权限不足：@RequiresAdmin / @RequiresLogin 校验失败
+     */
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public Result<Void> handleAuthorizationDenied(AuthorizationDeniedException e) {
+        log.warn("权限不足: {}", e.getMessage());
+        return Result.fail(ResultCode.FORBIDDEN);
     }
 
     /**

@@ -63,18 +63,12 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
 
-        if (isWhitelisted(path)) {
-            return chain.filter(exchange);
-        }
-
+        boolean whitelisted = isWhitelisted(path);
         String token = extractToken(exchange.getRequest());
-        if (!StringUtils.hasText(token)) {
-            return unauthorized(exchange);
-        }
+        Claims claims = StringUtils.hasText(token) ? parseClaims(token) : null;
 
-        Claims claims = parseClaims(token);
         if (claims == null) {
-            return unauthorized(exchange);
+            return whitelisted ? chain.filter(exchange) : unauthorized(exchange);
         }
 
         Object roleObj = claims.get("role");
