@@ -192,11 +192,11 @@ async function handleBatchDelete() {
           <span v-if="tag.articleCount > 0" class="tag-count">{{ tag.articleCount }}</span>
 
           <!-- hover 操作按钮 -->
-          <span class="tag-actions" @click.stop>
-            <button class="tag-action-btn" title="编辑" @click="openEdit(tag)">
+          <span class="tag-actions">
+            <button class="tag-action-btn" title="编辑" @click.stop="openEdit(tag)">
               <el-icon><Edit /></el-icon>
             </button>
-            <button class="tag-action-btn tag-action-btn--danger" title="删除" @click="handleDelete(tag)">
+            <button class="tag-action-btn tag-action-btn--danger" title="删除" @click.stop="handleDelete(tag)">
               <el-icon><Delete /></el-icon>
             </button>
           </span>
@@ -323,6 +323,7 @@ async function handleBatchDelete() {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
+  min-width: 80px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   background: #fafafa;
@@ -339,8 +340,8 @@ async function handleBatchDelete() {
 }
 
 .tag-item:hover .tag-actions {
+  max-width: 52px;
   opacity: 1;
-  pointer-events: auto;
 }
 
 .tag-item--selected {
@@ -398,18 +399,13 @@ async function handleBatchDelete() {
 
 /* Hover action buttons */
 .tag-actions {
-  position: absolute;
-  inset: -1px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 2px;
-  padding: 0 6px;
-  border-radius: 8px;
-  background: linear-gradient(to right, transparent 20%, #f0eeff 50%);
+  max-width: 0;
+  overflow: hidden;
   opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s;
+  transition: max-width 0.2s ease, opacity 0.15s;
 }
 
 .tag-action-btn {
