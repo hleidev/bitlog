@@ -10,6 +10,7 @@ import top.harrylei.bitlog.api.model.article.req.TagSaveRequest;
 import top.harrylei.bitlog.api.model.article.req.TagUpdateRequest;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import top.harrylei.bitlog.article.converter.ArticleConverter;
+import top.harrylei.bitlog.article.repository.dao.ArticleTagDAO;
 import top.harrylei.bitlog.article.repository.dao.TagDAO;
 import top.harrylei.bitlog.article.repository.entity.TagDO;
 import top.harrylei.bitlog.article.service.impl.TagServiceImpl;
@@ -34,6 +35,9 @@ class TagServiceImplTest {
     private TagDAO tagDAO;
 
     @Mock
+    private ArticleTagDAO articleTagDAO;
+
+    @Mock
     private ArticleConverter articleConverter;
 
     @InjectMocks
@@ -42,17 +46,31 @@ class TagServiceImplTest {
     // ==================== listAll ====================
 
     @Test
-    @DisplayName("listAll_正常查询_返回标签列表")
-    void listAll_normal_returnsTagVOList() {
+    @DisplayName("listAll_无搜索词_返回全量标签列表")
+    void listAll_noName_returnsAllTags() {
         List<TagDO> dos = List.of(buildTag(1L, "Java", false));
         List<TagVO> vos = List.of(new TagVO());
-        when(tagDAO.listAllOrderByArticleCount()).thenReturn(dos);
+        when(tagDAO.listAll(null)).thenReturn(dos);
         when(articleConverter.toTagVOList(dos)).thenReturn(vos);
 
-        List<TagVO> result = tagService.listAll();
+        List<TagVO> result = tagService.listAll(null);
 
         assertThat(result).hasSize(1);
         verify(articleConverter).toTagVOList(dos);
+    }
+
+    @Test
+    @DisplayName("listAll_带搜索词_按名称模糊过滤")
+    void listAll_withName_filtersResults() {
+        List<TagDO> dos = List.of(buildTag(1L, "Java", false));
+        List<TagVO> vos = List.of(new TagVO());
+        when(tagDAO.listAll("Java")).thenReturn(dos);
+        when(articleConverter.toTagVOList(dos)).thenReturn(vos);
+
+        List<TagVO> result = tagService.listAll("Java");
+
+        assertThat(result).hasSize(1);
+        verify(tagDAO).listAll("Java");
     }
 
     // ==================== getOrCreate ====================
@@ -229,36 +247,47 @@ class TagServiceImplTest {
         verify(tagDAO).updateById(any(TagDO.class));
     }
 
-    // ==================== delete ====================
+    // ==================== batchDelete ====================
 
     @Test
-    @DisplayName("delete_标签不存在_抛出BusinessException")
-    void delete_tagNotExists_throwsBusinessException() {
-        when(tagDAO.getById(1L)).thenReturn(null);
+    @DisplayName("batchDelete_部分ID不存在_抛出BusinessException并整体回滚")
+    void batchDelete_someIdsNotFound_throwsBusinessException() {
+        List<Long> ids = List.of(1L, 2L);
+        when(tagDAO.listByIds(ids)).thenReturn(List.of(buildTag(1L, "Java", false)));
 
-        assertThatThrownBy(() -> tagService.delete(1L))
+        assertThatThrownBy(() -> tagService.batchDelete(ids))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("标签不存在");
+
+        verify(tagDAO, never()).delete(any());
+        verify(articleTagDAO, never()).removeByTagIds(any());
     }
 
     @Test
-    @DisplayName("delete_标签已删除_抛出BusinessException")
-    void delete_tagAlreadyDeleted_throwsBusinessException() {
-        when(tagDAO.getById(1L)).thenReturn(buildTag(1L, "Java", true));
+    @DisplayName("batchDelete_所有ID存在_软删除标签并清理关联")
+    void batchDelete_allIdsExist_softDeletesAndClearsAssociations() {
+        List<Long> ids = List.of(1L, 2L);
+        when(tagDAO.listByIds(ids)).thenReturn(List.of(
+                buildTag(1L, "Java", false),
+                buildTag(2L, "Go", false)
+        ));
 
-        assertThatThrownBy(() -> tagService.delete(1L))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("标签不存在");
+        tagService.batchDelete(ids);
+
+        verify(tagDAO).batchDelete(ids);
+        verify(articleTagDAO).removeByTagIds(ids);
     }
 
     @Test
-    @DisplayName("delete_标签存在且未删除_正常软删除")
-    void delete_tagExistsAndActive_softDeletes() {
-        when(tagDAO.getById(1L)).thenReturn(buildTag(1L, "Java", false));
+    @DisplayName("batchDelete_单个ID_与批量接口行为一致")
+    void batchDelete_singleId_behavesLikeBatch() {
+        List<Long> ids = List.of(1L);
+        when(tagDAO.listByIds(ids)).thenReturn(List.of(buildTag(1L, "Java", false)));
 
-        tagService.delete(1L);
+        tagService.batchDelete(ids);
 
-        verify(tagDAO).delete(1L);
+        verify(tagDAO).batchDelete(ids);
+        verify(articleTagDAO).removeByTagIds(ids);
     }
 
     // ==================== 辅助方法 ====================

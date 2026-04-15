@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import top.harrylei.bitlog.api.model.article.req.TagBatchDeleteRequest;
 import top.harrylei.bitlog.api.model.article.req.TagSaveRequest;
 import top.harrylei.bitlog.api.model.article.req.TagUpdateRequest;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
@@ -21,6 +22,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,16 +57,30 @@ class TagControllerTest {
     // ==================== GET /api/v1/tag ====================
 
     @Test
-    @DisplayName("listAll_正常查询_返回标签列表")
-    void listAll_normal_returnsTagList() throws Exception {
+    @DisplayName("listAll_无搜索词_返回全量标签列表")
+    void listAll_noName_returnsAllTags() throws Exception {
         TagVO vo = new TagVO().setId(1L).setName("Java").setArticleCount(10);
-        when(tagService.listAll()).thenReturn(List.of(vo));
+        when(tagService.listAll(isNull())).thenReturn(List.of(vo));
 
         mockMvc.perform(get("/api/v1/tag"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data[0].id").value(1))
                 .andExpect(jsonPath("$.data[0].name").value("Java"));
+    }
+
+    @Test
+    @DisplayName("listAll_带搜索词_按名称模糊过滤")
+    void listAll_withName_filtersResults() throws Exception {
+        TagVO vo = new TagVO().setId(1L).setName("Java").setArticleCount(10);
+        when(tagService.listAll("Java")).thenReturn(List.of(vo));
+
+        mockMvc.perform(get("/api/v1/tag").param("name", "Java"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data[0].name").value("Java"));
+
+        verify(tagService).listAll("Java");
     }
 
     // ==================== POST /api/v1/tag/get-or-create ====================
@@ -134,18 +150,31 @@ class TagControllerTest {
                 .andExpect(jsonPath("$.data").isEmpty());
     }
 
-    // ==================== DELETE /api/v1/tag/{id} ====================
+    // ==================== DELETE /api/v1/tag ====================
 
     @Test
-    @DisplayName("delete_正常请求_返回成功")
-    void delete_normal_returnsSuccess() throws Exception {
-        doNothing().when(tagService).delete(1L);
+    @DisplayName("batchDelete_合法请求_返回成功")
+    void batchDelete_validRequest_returnsSuccess() throws Exception {
+        doNothing().when(tagService).batchDelete(List.of(1L, 2L));
 
-        mockMvc.perform(delete("/api/v1/tag/1"))
+        mockMvc.perform(delete("/api/v1/tag")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(batchDeleteRequest(List.of(1L, 2L)))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
-        verify(tagService).delete(1L);
+        verify(tagService).batchDelete(List.of(1L, 2L));
+    }
+
+    @Test
+    @DisplayName("batchDelete_ids为空_返回参数校验失败")
+    void batchDelete_emptyIds_returnsValidationError() throws Exception {
+        mockMvc.perform(delete("/api/v1/tag")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(batchDeleteRequest(List.of()))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(40000))
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 
     // ==================== 辅助方法 ====================
@@ -159,6 +188,12 @@ class TagControllerTest {
     private TagUpdateRequest updateRequest(String name) {
         TagUpdateRequest req = new TagUpdateRequest();
         req.setName(name);
+        return req;
+    }
+
+    private TagBatchDeleteRequest batchDeleteRequest(List<Long> ids) {
+        TagBatchDeleteRequest req = new TagBatchDeleteRequest();
+        req.setIds(ids);
         return req;
     }
 
