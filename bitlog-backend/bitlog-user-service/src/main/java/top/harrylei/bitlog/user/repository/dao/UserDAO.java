@@ -1,6 +1,7 @@
 package top.harrylei.bitlog.user.repository.dao;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
@@ -82,8 +83,13 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
         return getBaseMapper().selectUserStats();
     }
 
-    public IPage<UserDetailDTO> pageUsers(UserPageQuery queryParam, IPage<UserDetailDTO> page) {
-        return getBaseMapper().pageUsers(page, queryParam);
+    public IPage<UserDetailDTO> pageUsers(UserPageQuery queryParam) {
+        Long total = getBaseMapper().pageUsersCount(queryParam);
+        Page<UserDetailDTO> page = new Page<>(queryParam.getPageNum(), queryParam.getPageSize());
+        page.setSearchCount(false);
+        IPage<UserDetailDTO> result = getBaseMapper().pageUsers(page, queryParam);
+        result.setTotal(total == null ? 0L : total);
+        return result;
     }
 
     public UserDetailDTO getUserDetail(Long userId) {

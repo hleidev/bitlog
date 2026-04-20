@@ -1,7 +1,6 @@
 package top.harrylei.bitlog.user.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -229,7 +228,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public PageVO<UserListVO> pageQuery(UserPageQuery query) {
-        IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query, new Page<>(query.getPageNum(), query.getPageSize()));
+        IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query);
 
         List<UserListVO> voList = resultPage.getRecords().stream()
                 .map(userConverter::toListVO)
