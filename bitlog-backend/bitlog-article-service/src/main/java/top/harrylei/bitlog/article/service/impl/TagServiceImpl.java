@@ -12,7 +12,6 @@ import top.harrylei.bitlog.article.repository.dao.ArticleTagDAO;
 import top.harrylei.bitlog.article.repository.dao.TagDAO;
 import top.harrylei.bitlog.article.repository.entity.TagDO;
 import top.harrylei.bitlog.article.service.TagService;
-import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
 
 import java.util.List;
@@ -45,10 +44,7 @@ public class TagServiceImpl implements TagService {
         String trimmed = name.trim();
         TagDO existing = tagDAO.getByName(trimmed);
         if (existing != null) {
-            if (DeleteStatusEnum.NOT_DELETED.equals(existing.getDeleted())) {
-                return existing.getId();
-            }
-            return restoreTag(existing);
+            return existing.getId();
         }
         return createTag(trimmed);
     }
@@ -56,12 +52,8 @@ public class TagServiceImpl implements TagService {
     @Override
     public Long save(TagSaveRequest req) {
         String name = req.getName().trim();
-        TagDO existing = tagDAO.getByName(name);
-        if (existing != null) {
-            if (DeleteStatusEnum.NOT_DELETED.equals(existing.getDeleted())) {
-                ResultCode.TAG_ALREADY_EXISTS.throwException(name);
-            }
-            return restoreTag(existing);
+        if (tagDAO.getByName(name) != null) {
+            ResultCode.TAG_ALREADY_EXISTS.throwException(name);
         }
         return createTag(name);
     }
@@ -69,15 +61,14 @@ public class TagServiceImpl implements TagService {
     @Override
     public void update(Long tagId, TagUpdateRequest req) {
         TagDO tag = tagDAO.getById(tagId);
-        if (tag == null || DeleteStatusEnum.DELETED.equals(tag.getDeleted())) {
+        if (tag == null) {
             ResultCode.TAG_NOT_EXISTS.throwException();
         }
         String name = req.getName().trim();
         if (name.equals(tag.getName())) {
             return;
         }
-        TagDO conflict = tagDAO.getByName(name);
-        if (conflict != null && DeleteStatusEnum.NOT_DELETED.equals(conflict.getDeleted())) {
+        if (tagDAO.getByName(name) != null) {
             ResultCode.TAG_ALREADY_EXISTS.throwException(name);
         }
         tag.setName(name);
@@ -85,33 +76,20 @@ public class TagServiceImpl implements TagService {
         log.info("更新标签 tagId={} name={}", tagId, name);
     }
 
-    // 恢复已删除的同名标签
-    private Long restoreTag(TagDO tag) {
-        tagDAO.restore(tag.getId());
-        log.info("恢复已删除标签 name={} id={}", tag.getName(), tag.getId());
-        return tag.getId();
-    }
-
-    // 新建标签
-    private Long createTag(String name) {
-        TagDO tag = new TagDO()
-                .setName(name)
-                .setArticleCount(0)
-                .setDeleted(DeleteStatusEnum.NOT_DELETED);
-        tagDAO.save(tag);
-        log.info("创建标签 name={} id={}", name, tag.getId());
-        return tag.getId();
-    }
-
     @Transactional
     @Override
     public void batchDelete(List<Long> ids) {
-        List<TagDO> tags = tagDAO.listByIds(ids);
-        if (tags.size() != ids.size()) {
-            ResultCode.TAG_NOT_EXISTS.throwException();
-        }
-        tagDAO.batchDelete(ids);
+        tagDAO.removeByIds(ids);
         articleTagDAO.removeByTagIds(ids);
         log.info("批量删除标签 ids={}", ids);
+    }
+
+    private Long createTag(String name) {
+        TagDO tag = new TagDO()
+                .setName(name)
+                .setArticleCount(0);
+        tagDAO.save(tag);
+        log.info("创建标签 name={} id={}", name, tag.getId());
+        return tag.getId();
     }
 }

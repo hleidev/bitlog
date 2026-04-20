@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import top.harrylei.bitlog.article.repository.entity.TagDO;
 import top.harrylei.bitlog.article.repository.mapper.TagMapper;
-import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 
 import java.util.List;
 
@@ -32,18 +31,14 @@ public class TagDAO extends ServiceImpl<TagMapper, TagDO> {
     public List<TagDO> listByIds(List<Long> tagIds) {
         return lambdaQuery()
                 .in(TagDO::getId, tagIds)
-                .eq(TagDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
                 .list();
     }
 
     /**
-     * 按使用频率降序查询所有未删除标签，支持按名称模糊搜索
-     *
-     * @param name 标签名称关键字，为空时返回全量
+     * 按使用频率降序查询所有标签，支持按名称模糊搜索
      */
     public List<TagDO> listAll(String name) {
         return lambdaQuery()
-                .eq(TagDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
                 .like(name != null && !name.isBlank(), TagDO::getName, name)
                 .orderByDesc(TagDO::getArticleCount)
                 .list();
@@ -79,25 +74,4 @@ public class TagDAO extends ServiceImpl<TagMapper, TagDO> {
         );
     }
 
-    public void delete(Long id) {
-        updateDeletedStatus(id, DeleteStatusEnum.DELETED);
-    }
-
-    public void batchDelete(List<Long> ids) {
-        lambdaUpdate()
-                .in(TagDO::getId, ids)
-                .set(TagDO::getDeleted, DeleteStatusEnum.DELETED)
-                .update();
-    }
-
-    public void restore(Long id) {
-        updateDeletedStatus(id, DeleteStatusEnum.NOT_DELETED);
-    }
-
-    private void updateDeletedStatus(Long id, DeleteStatusEnum status) {
-        lambdaUpdate()
-                .eq(TagDO::getId, id)
-                .set(TagDO::getDeleted, status)
-                .update();
-    }
 }
