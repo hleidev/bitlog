@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
-import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.model.BaseDO;
 
 import java.io.Serial;
@@ -39,11 +38,8 @@ public class CategoryDO extends BaseDO {
      */
     private Integer sortOrder;
 
-    /** 关联文章数 */
-    private Integer articleCount;
-
     /**
-     * 是否删除：0-未删除，1-已删除
+     * 关联文章数
      */
-    private DeleteStatusEnum deleted;
+    private Integer articleCount;
 }

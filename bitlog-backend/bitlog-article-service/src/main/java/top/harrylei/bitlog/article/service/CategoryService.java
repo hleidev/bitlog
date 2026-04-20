@@ -13,7 +13,9 @@ import java.util.List;
  */
 public interface CategoryService {
 
-    /** 查询所有分类，按使用频率降序 */
+    /**
+     * 查询所有分类，按使用频率降序
+     */
     List<CategoryVO> listAll();
 
     /**
@@ -22,12 +24,18 @@ public interface CategoryService {
      */
     Long getOrCreate(String name);
 
-    /** 保存分类 */
+    /**
+     * 保存分类
+     */
     Long save(CategorySaveRequest req);
 
-    /** 更新分类 */
+    /**
+     * 更新分类
+     */
     void update(Long categoryId, CategorySaveRequest req);
 
-    /** 删除分类（软删除） */
+    /**
+     * 删除分类
+     */
     void delete(Long categoryId);
 }
