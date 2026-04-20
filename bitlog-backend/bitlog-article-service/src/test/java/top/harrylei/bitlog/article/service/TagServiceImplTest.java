@@ -14,7 +14,6 @@ import top.harrylei.bitlog.article.repository.dao.ArticleTagDAO;
 import top.harrylei.bitlog.article.repository.dao.TagDAO;
 import top.harrylei.bitlog.article.repository.entity.TagDO;
 import top.harrylei.bitlog.article.service.impl.TagServiceImpl;
-import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.exception.BusinessException;
 
 import java.util.List;
@@ -48,7 +47,7 @@ class TagServiceImplTest {
     @Test
     @DisplayName("listAll_无搜索词_返回全量标签列表")
     void listAll_noName_returnsAllTags() {
-        List<TagDO> dos = List.of(buildTag(1L, "Java", false));
+        List<TagDO> dos = List.of(buildTag(1L, "Java"));
         List<TagVO> vos = List.of(new TagVO());
         when(tagDAO.listAll(null)).thenReturn(dos);
         when(articleConverter.toTagVOList(dos)).thenReturn(vos);
@@ -62,7 +61,7 @@ class TagServiceImplTest {
     @Test
     @DisplayName("listAll_带搜索词_按名称模糊过滤")
     void listAll_withName_filtersResults() {
-        List<TagDO> dos = List.of(buildTag(1L, "Java", false));
+        List<TagDO> dos = List.of(buildTag(1L, "Java"));
         List<TagVO> vos = List.of(new TagVO());
         when(tagDAO.listAll("Java")).thenReturn(dos);
         when(articleConverter.toTagVOList(dos)).thenReturn(vos);
@@ -90,25 +89,13 @@ class TagServiceImplTest {
     }
 
     @Test
-    @DisplayName("getOrCreate_标签已存在且未删除_直接返回已有ID")
-    void getOrCreate_tagExistsAndActive_returnsExistingId() {
-        when(tagDAO.getByName("Java")).thenReturn(buildTag(1L, "Java", false));
+    @DisplayName("getOrCreate_标签已存在_直接返回已有ID")
+    void getOrCreate_tagExists_returnsExistingId() {
+        when(tagDAO.getByName("Java")).thenReturn(buildTag(1L, "Java"));
 
         Long id = tagService.getOrCreate("Java");
 
         assertThat(id).isEqualTo(1L);
-        verify(tagDAO, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("getOrCreate_标签已存在但已删除_恢复并返回ID")
-    void getOrCreate_tagExistsAndDeleted_restoresAndReturnsId() {
-        when(tagDAO.getByName("Java")).thenReturn(buildTag(1L, "Java", true));
-
-        Long id = tagService.getOrCreate("Java");
-
-        assertThat(id).isEqualTo(1L);
-        verify(tagDAO).restore(1L);
         verify(tagDAO, never()).save(any());
     }
 
@@ -131,7 +118,7 @@ class TagServiceImplTest {
     @Test
     @DisplayName("getOrCreate_name包含前后空格_trim后查询")
     void getOrCreate_nameWithSpaces_trimBeforeQuery() {
-        when(tagDAO.getByName("Java")).thenReturn(buildTag(1L, "Java", false));
+        when(tagDAO.getByName("Java")).thenReturn(buildTag(1L, "Java"));
 
         Long id = tagService.getOrCreate("  Java  ");
 
@@ -139,12 +126,12 @@ class TagServiceImplTest {
         verify(tagDAO).getByName("Java");
     }
 
-    // ==================== create ====================
+    // ==================== save ====================
 
     @Test
-    @DisplayName("create_标签已存在且未删除_抛出BusinessException")
-    void save_tagExistsAndActive_throwsBusinessException() {
-        when(tagDAO.getByName("Java")).thenReturn(buildTag(1L, "Java", false));
+    @DisplayName("save_标签名已存在_抛出BusinessException")
+    void save_tagExists_throwsBusinessException() {
+        when(tagDAO.getByName("Java")).thenReturn(buildTag(1L, "Java"));
 
         assertThatThrownBy(() -> tagService.save(buildSaveRequest("Java")))
                 .isInstanceOf(BusinessException.class)
@@ -152,19 +139,7 @@ class TagServiceImplTest {
     }
 
     @Test
-    @DisplayName("create_标签已存在但已删除_恢复并返回ID")
-    void save_tagExistsAndDeleted_restoresAndReturnsId() {
-        when(tagDAO.getByName("Java")).thenReturn(buildTag(1L, "Java", true));
-
-        Long id = tagService.save(buildSaveRequest("Java"));
-
-        assertThat(id).isEqualTo(1L);
-        verify(tagDAO).restore(1L);
-        verify(tagDAO, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("create_标签不存在_新建并返回ID")
+    @DisplayName("save_标签不存在_新建并返回ID")
     void save_tagNotExists_createsAndReturnsId() {
         when(tagDAO.getByName("Java")).thenReturn(null);
         doAnswer(invocation -> {
@@ -192,19 +167,9 @@ class TagServiceImplTest {
     }
 
     @Test
-    @DisplayName("update_标签已删除_抛出BusinessException")
-    void update_tagDeleted_throwsBusinessException() {
-        when(tagDAO.getById(1L)).thenReturn(buildTag(1L, "Java", true));
-
-        assertThatThrownBy(() -> tagService.update(1L, buildUpdateRequest("新名称")))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("标签不存在");
-    }
-
-    @Test
     @DisplayName("update_新名称与旧名称相同_跳过更新")
     void update_nameUnchanged_skipsUpdate() {
-        when(tagDAO.getById(1L)).thenReturn(buildTag(1L, "Java", false));
+        when(tagDAO.getById(1L)).thenReturn(buildTag(1L, "Java"));
 
         tagService.update(1L, buildUpdateRequest("Java"));
 
@@ -213,10 +178,10 @@ class TagServiceImplTest {
     }
 
     @Test
-    @DisplayName("update_新名称被其他未删除标签占用_抛出BusinessException")
-    void update_newNameConflictsWithActiveTag_throwsBusinessException() {
-        when(tagDAO.getById(1L)).thenReturn(buildTag(1L, "Java", false));
-        when(tagDAO.getByName("Python")).thenReturn(buildTag(2L, "Python", false));
+    @DisplayName("update_新名称被其他标签占用_抛出BusinessException")
+    void update_newNameConflicts_throwsBusinessException() {
+        when(tagDAO.getById(1L)).thenReturn(buildTag(1L, "Java"));
+        when(tagDAO.getByName("Python")).thenReturn(buildTag(2L, "Python"));
 
         assertThatThrownBy(() -> tagService.update(1L, buildUpdateRequest("Python")))
                 .isInstanceOf(BusinessException.class)
@@ -224,21 +189,9 @@ class TagServiceImplTest {
     }
 
     @Test
-    @DisplayName("update_新名称与已删除标签同名_允许更新")
-    void update_newNameConflictsWithDeletedTag_updatesSuccessfully() {
-        when(tagDAO.getById(1L)).thenReturn(buildTag(1L, "Java", false));
-        when(tagDAO.getByName("Python")).thenReturn(buildTag(2L, "Python", true));
-        when(tagDAO.updateById(any())).thenReturn(true);
-
-        tagService.update(1L, buildUpdateRequest("Python"));
-
-        verify(tagDAO).updateById(any(TagDO.class));
-    }
-
-    @Test
     @DisplayName("update_新名称无冲突_正常更新")
     void update_newNameNoConflict_updatesSuccessfully() {
-        when(tagDAO.getById(1L)).thenReturn(buildTag(1L, "Java", false));
+        when(tagDAO.getById(1L)).thenReturn(buildTag(1L, "Java"));
         when(tagDAO.getByName("Go")).thenReturn(null);
         when(tagDAO.updateById(any())).thenReturn(true);
 
@@ -250,54 +203,34 @@ class TagServiceImplTest {
     // ==================== batchDelete ====================
 
     @Test
-    @DisplayName("batchDelete_部分ID不存在_抛出BusinessException并整体回滚")
-    void batchDelete_someIdsNotFound_throwsBusinessException() {
+    @DisplayName("batchDelete_正常删除_物理删除标签并清理关联")
+    void batchDelete_normal_deletesAndClearsAssociations() {
         List<Long> ids = List.of(1L, 2L);
-        when(tagDAO.listByIds(ids)).thenReturn(List.of(buildTag(1L, "Java", false)));
-
-        assertThatThrownBy(() -> tagService.batchDelete(ids))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("标签不存在");
-
-        verify(tagDAO, never()).delete(any());
-        verify(articleTagDAO, never()).removeByTagIds(any());
-    }
-
-    @Test
-    @DisplayName("batchDelete_所有ID存在_软删除标签并清理关联")
-    void batchDelete_allIdsExist_softDeletesAndClearsAssociations() {
-        List<Long> ids = List.of(1L, 2L);
-        when(tagDAO.listByIds(ids)).thenReturn(List.of(
-                buildTag(1L, "Java", false),
-                buildTag(2L, "Go", false)
-        ));
 
         tagService.batchDelete(ids);
 
-        verify(tagDAO).batchDelete(ids);
+        verify(tagDAO).removeByIds(ids);
         verify(articleTagDAO).removeByTagIds(ids);
     }
 
     @Test
-    @DisplayName("batchDelete_单个ID_与批量接口行为一致")
-    void batchDelete_singleId_behavesLikeBatch() {
+    @DisplayName("batchDelete_单个ID_正常删除")
+    void batchDelete_singleId_deletesSuccessfully() {
         List<Long> ids = List.of(1L);
-        when(tagDAO.listByIds(ids)).thenReturn(List.of(buildTag(1L, "Java", false)));
 
         tagService.batchDelete(ids);
 
-        verify(tagDAO).batchDelete(ids);
+        verify(tagDAO).removeByIds(ids);
         verify(articleTagDAO).removeByTagIds(ids);
     }
 
     // ==================== 辅助方法 ====================
 
-    private TagDO buildTag(Long id, String name, boolean deleted) {
+    private TagDO buildTag(Long id, String name) {
         TagDO tag = new TagDO();
         tag.setId(id);
         tag.setName(name);
         tag.setArticleCount(0);
-        tag.setDeleted(deleted ? DeleteStatusEnum.DELETED : DeleteStatusEnum.NOT_DELETED);
         return tag;
     }
 

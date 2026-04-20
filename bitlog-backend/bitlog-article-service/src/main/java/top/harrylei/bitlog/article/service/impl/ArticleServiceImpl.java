@@ -324,7 +324,7 @@ public class ArticleServiceImpl implements ArticleService {
         }
 
         if (article.getCategoryId() != null) {
-            CategoryDO category = categoryDAO.getByIdAndNotDeleted(article.getCategoryId());
+            CategoryDO category = categoryDAO.getById(article.getCategoryId());
             if (category != null) {
                 vo.setCategoryName(category.getName());
             }
@@ -376,7 +376,7 @@ public class ArticleServiceImpl implements ArticleService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         Map<Long, String> categoryNameMap = categoryIds.isEmpty() ? Map.of() :
-                categoryDAO.listByIdAndNotDeleted(categoryIds).stream()
+                categoryDAO.listByIds(categoryIds).stream()
                         .collect(Collectors.toMap(CategoryDO::getId, CategoryDO::getName));
 
         List<Long> articleIds = articles.stream().map(ArticleDO::getId).toList();

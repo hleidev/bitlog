@@ -237,7 +237,7 @@ class ArticleServiceImplTest {
         ArticleDetailVO expectedVO = new ArticleDetailVO();
 
         when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
-        when(articleVersionDAO.getById(200L)).thenReturn(version);
+        when(articleVersionDAO.getVersionById(200L)).thenReturn(version);
         when(articleConverter.toDetailVO(any(), any())).thenReturn(expectedVO);
         when(articleTagDAO.listTagIdsByArticleId(anyLong())).thenReturn(List.of());
         when(articleStatisticsDAO.getByArticleId(anyLong())).thenReturn(null);
@@ -350,7 +350,7 @@ class ArticleServiceImplTest {
     void rollbackVersion_versionNotExists_throwsBusinessException() {
         ArticleDO article = buildArticle(1L, 1L);
         when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
-        when(articleVersionDAO.getById(200L)).thenReturn(null);
+        when(articleVersionDAO.getVersionById(200L)).thenReturn(null);
 
         assertThatThrownBy(() -> articleService.rollbackVersion(1L, 1L, 200L))
                 .isInstanceOf(BusinessException.class)
@@ -364,7 +364,7 @@ class ArticleServiceImplTest {
         ArticleVersionDO version = buildVersion(200L, 99L); // 属于文章 99，不是文章 1
 
         when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
-        when(articleVersionDAO.getById(200L)).thenReturn(version);
+        when(articleVersionDAO.getVersionById(200L)).thenReturn(version);
 
         assertThatThrownBy(() -> articleService.rollbackVersion(1L, 1L, 200L))
                 .isInstanceOf(BusinessException.class)
@@ -406,7 +406,7 @@ class ArticleServiceImplTest {
         stats.setCommentCount(5);
 
         when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
-        when(articleVersionDAO.getById(200L)).thenReturn(version);
+        when(articleVersionDAO.getVersionById(200L)).thenReturn(version);
         when(articleConverter.toDTO(article, version)).thenReturn(expectedDTO);
         when(articleStatisticsDAO.getByArticleId(1L)).thenReturn(stats);
 
