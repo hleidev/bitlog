@@ -38,6 +38,10 @@ public enum ResultCode implements IResultCode {
     ARTICLE_VERSION_NOT_EXISTS(43004, "文章版本不存在"),
     CATEGORY_NOT_EXISTS(43101, "分类不存在"),
     CATEGORY_ALREADY_EXISTS(43102, "分类已存在"),
+    CATEGORY_HAS_CHILDREN(43103, "该分类下存在子分类，请先删除子分类"),
+    CATEGORY_HAS_ARTICLES(43104, "该分类下存在文章，请先移除文章"),
+    CATEGORY_PARENT_INVALID(43105, "父分类不存在或不是顶级分类"),
+    CATEGORY_CANNOT_MOVE(43106, "存在子分类，不可修改归属"),
     TAG_NOT_EXISTS(43201, "标签不存在"),
     TAG_ALREADY_EXISTS(43202, "标签已存在"),
 
