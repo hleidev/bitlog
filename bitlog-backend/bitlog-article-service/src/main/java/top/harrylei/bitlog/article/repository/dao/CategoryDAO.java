@@ -2,6 +2,7 @@ package top.harrylei.bitlog.article.repository.dao;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.article.repository.entity.CategoryDO;
 import top.harrylei.bitlog.article.repository.mapper.CategoryMapper;
 
@@ -17,21 +18,32 @@ import java.util.List;
 public class CategoryDAO extends ServiceImpl<CategoryMapper, CategoryDO> {
 
     /**
-     * 根据名称查询分类
+     * 根据名称和父分类 ID 查询分类（用于同级唯一性校验）
      */
-    public CategoryDO getByName(String name) {
+    public CategoryDO getByName(String name, Long parentId) {
         return lambdaQuery()
                 .eq(CategoryDO::getName, name)
+                .eq(CategoryDO::getParentId, parentId)
                 .one();
     }
 
     /**
-     * 按使用频率降序查询所有分类
+     * 查询所有分类，支持按名称模糊搜索，按文章数降序
      */
-    public List<CategoryDO> listAllOrderByArticleCount() {
+    public List<CategoryDO> listAll(String name) {
         return lambdaQuery()
+                .like(StringUtils.hasText(name), CategoryDO::getName, name)
                 .orderByDesc(CategoryDO::getArticleCount)
                 .list();
+    }
+
+    /**
+     * 是否存在子分类
+     */
+    public boolean hasChildren(Long categoryId) {
+        return lambdaQuery()
+                .eq(CategoryDO::getParentId, categoryId)
+                .exists();
     }
 
     /**
