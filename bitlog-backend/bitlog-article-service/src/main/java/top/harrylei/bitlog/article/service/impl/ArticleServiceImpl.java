@@ -15,6 +15,7 @@ import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
+import top.harrylei.bitlog.common.util.FileUrlHelper;
 import top.harrylei.bitlog.article.converter.ArticleConverter;
 import top.harrylei.bitlog.article.repository.dao.ArticleDAO;
 import top.harrylei.bitlog.article.repository.dao.ArticleStatisticsDAO;
@@ -58,6 +59,7 @@ public class ArticleServiceImpl implements ArticleService {
     private final CategoryDAO categoryDAO;
     private final TagDAO tagDAO;
     private final ArticleConverter articleConverter;
+    private final FileUrlHelper fileUrlHelper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -158,6 +160,12 @@ public class ArticleServiceImpl implements ArticleService {
     public void unpublishArticle(Long userId, Long articleId) {
         ArticleDO article = getArticleOrThrow(articleId);
         checkOwner(article, userId);
+        if (article.getPublishedVersionId() == null) {
+            return;
+        }
+        List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(articleId);
+        tagDAO.decrementArticleCount(tagIds);
+        categoryDAO.decrementArticleCount(article.getCategoryId());
         articleDAO.unpublish(articleId);
         log.info("取消发布文章 articleId={}", articleId);
     }
@@ -168,9 +176,10 @@ public class ArticleServiceImpl implements ArticleService {
         ArticleDO article = getArticleOrThrow(articleId);
         checkOwner(article, userId);
 
-        List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(articleId);
-        tagDAO.decrementArticleCount(tagIds);
-        if (article.getCategoryId() != null) {
+        // 只有已发布的文章才需要更新计数，草稿和已取消发布的文章不影响计数
+        if (article.getPublishedVersionId() != null) {
+            List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(articleId);
+            tagDAO.decrementArticleCount(tagIds);
             categoryDAO.decrementArticleCount(article.getCategoryId());
         }
 
@@ -316,6 +325,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     private ArticleDetailVO buildDetailVO(ArticleDO article, ArticleVersionDO version) {
         ArticleDetailVO vo = articleConverter.toDetailVO(article, version);
+        vo.setCover(fileUrlHelper.buildUrl(vo.getCover()));
         vo.setTopping(article.getTopping());
         vo.setUpdateTime(article.getUpdateTime());
 
@@ -397,6 +407,7 @@ public class ArticleServiceImpl implements ArticleService {
                     }
 
                     ArticleVO vo = articleConverter.toVO(a, v);
+                    vo.setCover(fileUrlHelper.buildUrl(vo.getCover()));
                     vo.setTopping(a.getTopping());
                     vo.setUpdateTime(a.getUpdateTime());
                     if (a.getPublishedVersionId() != null) {
@@ -425,4 +436,5 @@ public class ArticleServiceImpl implements ArticleService {
         pageVO.setContent(voList);
         return pageVO;
     }
+
 }
