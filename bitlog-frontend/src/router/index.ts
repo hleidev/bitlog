@@ -37,7 +37,7 @@ const router = createRouter({
         {
           path: 'categories',
           component: () => import('@/admin/views/CategoriesView.vue'),
-          meta: { title: '分类', parent: '文章', requiresAdmin: true },
+          meta: { title: '分类管理', parent: '文章', requiresAdmin: true },
         },
         {
           path: 'tags',

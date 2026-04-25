@@ -9,8 +9,8 @@ import {
   ChatLineRound,
   User,
   UserFilled,
-  Postcard,
   Avatar,
+  List,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/useUserStore'
 import { storeToRefs } from 'pinia'
@@ -37,7 +37,7 @@ const adminMenus: MenuItem[] = [
     defaultPath: '/admin/articles',
     children: [
       { title: '文章管理', icon: Document, path: '/admin/articles' },
-      { title: '分类', icon: Folder, path: '/admin/categories' },
+      { title: '分类管理', icon: Folder, path: '/admin/categories' },
       { title: '标签管理', icon: CollectionTag, path: '/admin/tags' },
     ],
   },
@@ -48,8 +48,8 @@ const adminMenus: MenuItem[] = [
     key: 'users',
     defaultPath: '/admin/users',
     children: [
-      { title: '用户管理', icon: UserFilled, path: '/admin/users' },
-      { title: '个人资料', icon: Postcard, path: '/admin/profile' },
+      { title: '用户管理', icon: List, path: '/admin/users' },
+      { title: '个人资料', icon: UserFilled, path: '/admin/profile' },
     ],
   },
 ]
