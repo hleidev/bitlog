@@ -712,6 +712,10 @@ onMounted(() => {
   padding: 10px 0;
 }
 
+.header-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
 /* Tabs */
 .view-tabs {
   display: flex;
