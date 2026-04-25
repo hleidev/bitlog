@@ -21,6 +21,7 @@ import top.harrylei.bitlog.api.model.user.vo.UserVO;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.PageVO;
+import top.harrylei.bitlog.common.util.FileUrlHelper;
 import top.harrylei.bitlog.user.converter.UserConverter;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
@@ -53,6 +54,7 @@ public class UserServiceImpl implements UserService {
     private final UserInfoDAO userInfoDAO;
     private final UserConverter userConverter;
     private final PasswordEncoder passwordEncoder;
+    private final FileUrlHelper fileUrlHelper;
 
     @Override
     public UserVO getUserById(Long userId) {
@@ -64,7 +66,9 @@ public class UserServiceImpl implements UserService {
             return null;
         }
         UserDO user = userDAO.getById(userInfo.getUserId());
-        return userConverter.toVO(userInfo, user);
+        UserVO vo = userConverter.toVO(userInfo, user);
+        vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+        return vo;
     }
 
     @Override
@@ -85,7 +89,11 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toMap(UserDO::getId, Function.identity()));
 
         return userInfoList.stream()
-                .map(info -> userConverter.toVO(info, userMap.get(info.getUserId())))
+                .map(info -> {
+                    UserVO vo = userConverter.toVO(info, userMap.get(info.getUserId()));
+                    vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+                    return vo;
+                })
                 .toList();
     }
 
@@ -99,7 +107,9 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        return userConverter.toDetailVO(userInfo, user);
+        UserDetailVO vo = userConverter.toDetailVO(userInfo, user);
+        vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+        return vo;
     }
 
     @Override
@@ -231,7 +241,11 @@ public class UserServiceImpl implements UserService {
         IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query);
 
         List<UserListVO> voList = resultPage.getRecords().stream()
-                .map(userConverter::toListVO)
+                .map(dto -> {
+                    UserListVO vo = userConverter.toListVO(dto);
+                    vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+                    return vo;
+                })
                 .toList();
 
         PageVO<UserListVO> pageVO = new PageVO<>();
