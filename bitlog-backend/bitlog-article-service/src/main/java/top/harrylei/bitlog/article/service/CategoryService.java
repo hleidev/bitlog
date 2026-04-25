@@ -1,6 +1,7 @@
 package top.harrylei.bitlog.article.service;
 
-import top.harrylei.bitlog.api.model.article.req.CategorySaveRequest;
+import top.harrylei.bitlog.api.model.article.req.CategoryCreateRequest;
+import top.harrylei.bitlog.api.model.article.req.CategoryUpdateRequest;
 import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
 
 import java.util.List;
@@ -14,28 +15,22 @@ import java.util.List;
 public interface CategoryService {
 
     /**
-     * 查询所有分类，按使用频率降序
+     * 查询所有分类，支持按名称模糊搜索，按文章数降序
      */
-    List<CategoryVO> listAll();
+    List<CategoryVO> listAll(String name);
 
     /**
-     * 查询或创建分类（按名称）
-     * 存在则返回已有 ID，不存在则新建后返回新 ID
+     * 创建分类
      */
-    Long getOrCreate(String name);
+    Long save(CategoryCreateRequest req);
 
     /**
-     * 保存分类
+     * 更新分类名称
      */
-    Long save(CategorySaveRequest req);
+    void update(Long categoryId, CategoryUpdateRequest req);
 
     /**
-     * 更新分类
-     */
-    void update(Long categoryId, CategorySaveRequest req);
-
-    /**
-     * 删除分类
+     * 删除分类（有子分类或有文章时拒绝）
      */
     void delete(Long categoryId);
 }
