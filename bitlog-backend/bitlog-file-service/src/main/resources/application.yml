@@ -16,7 +16,7 @@ storage:
   access-key: ${STORAGE_ACCESS_KEY:admin}
   secret-key: ${STORAGE_SECRET_KEY:}
   bucket: ${STORAGE_BUCKET:media}
-  public-url: ${STORAGE_PUBLIC_URL:http://localhost/files}
+  public-url: ${STORAGE_PUBLIC_URL:http://localhost:8001/files}
 
 app:
   exception:

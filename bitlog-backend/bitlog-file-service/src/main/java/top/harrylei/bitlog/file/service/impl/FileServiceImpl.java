@@ -64,9 +64,8 @@ public class FileServiceImpl implements FileService {
             ResultCode.INTERNAL_ERROR.throwException("文件上传失败");
         }
 
-        String fileUrl = props.getPublicUrl() + "/" + key;
         log.info("文件上传成功 scene={} userId={} key={}", scene, userId, key);
 
-        return new UploadVO().setFileUrl(fileUrl);
+        return new UploadVO().setFileKey(key);
     }
 }
