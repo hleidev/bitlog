@@ -306,7 +306,7 @@ async function handleBatchDelete() {
   flex-wrap: wrap;
   gap: 10px;
   padding: 24px 20px;
-  min-height: 160px;
+  min-height: 200px;
   align-content: flex-start;
   justify-content: flex-start;
 }
@@ -323,7 +323,6 @@ async function handleBatchDelete() {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  min-width: 80px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   background: #fafafa;
