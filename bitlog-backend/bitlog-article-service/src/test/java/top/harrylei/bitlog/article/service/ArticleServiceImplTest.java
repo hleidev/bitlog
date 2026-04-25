@@ -25,6 +25,7 @@ import top.harrylei.bitlog.article.repository.entity.ArticleVersionDO;
 import top.harrylei.bitlog.article.service.impl.ArticleServiceImpl;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.exception.BusinessException;
+import top.harrylei.bitlog.common.util.FileUrlHelper;
 
 import java.util.List;
 
@@ -36,6 +37,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,6 +65,9 @@ class ArticleServiceImplTest {
 
     @Mock
     private ArticleConverter articleConverter;
+
+    @Mock
+    private FileUrlHelper fileUrlHelper;
 
     @InjectMocks
     private ArticleServiceImpl articleService;
@@ -182,6 +187,33 @@ class ArticleServiceImplTest {
                 .hasMessageContaining("无权操作该文章");
     }
 
+    @Test
+    @DisplayName("unpublishArticle_文章未发布_直接返回不执行任何DB操作")
+    void unpublishArticle_articleNotPublished_returnsEarlyWithNoDbOps() {
+        ArticleDO article = buildArticle(1L, 1L); // publishedVersionId 默认为 null
+        when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
+
+        articleService.unpublishArticle(1L, 1L);
+
+        verify(articleDAO, never()).unpublish(anyLong());
+        verify(categoryDAO, never()).decrementArticleCount(any());
+    }
+
+    @Test
+    @DisplayName("unpublishArticle_已发布文章_取消发布并减少分类和标签计数")
+    void unpublishArticle_publishedArticle_unpublishesAndDecrementsAllCounts() {
+        ArticleDO article = buildPublishedArticle(1L, 1L, 200L);
+        article.setCategoryId(5L);
+        when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
+        when(articleTagDAO.listTagIdsByArticleId(1L)).thenReturn(List.of(10L, 11L));
+
+        articleService.unpublishArticle(1L, 1L);
+
+        verify(tagDAO).decrementArticleCount(List.of(10L, 11L));
+        verify(categoryDAO).decrementArticleCount(5L);
+        verify(articleDAO).unpublish(1L);
+    }
+
     // ==================== deleteArticle ====================
 
     @Test
@@ -203,6 +235,48 @@ class ArticleServiceImplTest {
         assertThatThrownBy(() -> articleService.deleteArticle(1L, 1L))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("无权操作该文章");
+    }
+
+    @Test
+    @DisplayName("deleteArticle_已发布文章_减少分类和标签计数后删除")
+    void deleteArticle_publishedArticle_decrementsCountsAndDeletes() {
+        ArticleDO article = buildPublishedArticle(1L, 1L, 200L);
+        article.setCategoryId(5L);
+        when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
+        when(articleTagDAO.listTagIdsByArticleId(1L)).thenReturn(List.of(10L, 11L));
+
+        articleService.deleteArticle(1L, 1L);
+
+        verify(tagDAO).decrementArticleCount(List.of(10L, 11L));
+        verify(categoryDAO).decrementArticleCount(5L);
+        verify(articleDAO).delete(1L);
+    }
+
+    @Test
+    @DisplayName("deleteArticle_草稿文章_跳过计数更新直接删除")
+    void deleteArticle_draftArticle_skipCountsAndDeletes() {
+        ArticleDO article = buildArticle(1L, 1L); // publishedVersionId 默认为 null
+        when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
+
+        articleService.deleteArticle(1L, 1L);
+
+        verify(tagDAO, never()).decrementArticleCount(anyList());
+        verify(categoryDAO, never()).decrementArticleCount(any());
+        verify(articleDAO).delete(1L);
+    }
+
+    @Test
+    @DisplayName("deleteArticle_已取消发布文章_跳过计数更新直接删除")
+    void deleteArticle_unpublishedArticle_skipCountsAndDeletes() {
+        ArticleDO article = buildArticle(1L, 1L);
+        article.setCategoryId(5L); // categoryId 仍有值，但 publishedVersionId 为 null
+        when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
+
+        articleService.deleteArticle(1L, 1L);
+
+        verify(tagDAO, never()).decrementArticleCount(anyList());
+        verify(categoryDAO, never()).decrementArticleCount(any());
+        verify(articleDAO).delete(1L);
     }
 
     // ==================== getPublishedDetail ====================
