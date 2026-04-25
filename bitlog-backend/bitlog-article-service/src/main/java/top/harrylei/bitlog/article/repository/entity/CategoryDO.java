@@ -24,19 +24,14 @@ public class CategoryDO extends BaseDO {
     private static final long serialVersionUID = 1L;
 
     /**
+     * 父分类ID，0 表示顶级分类
+     */
+    private Long parentId;
+
+    /**
      * 分类名称
      */
     private String name;
-
-    /**
-     * 分类描述
-     */
-    private String description;
-
-    /**
-     * 排序权重，越大越靠前
-     */
-    private Integer sortOrder;
 
     /**
      * 关联文章数

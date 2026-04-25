@@ -14,14 +14,13 @@ CREATE TABLE `tag`
 CREATE TABLE `category`
 (
     `id`            bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `parent_id`     bigint unsigned NOT NULL DEFAULT 0 COMMENT '父分类ID，0 表示顶级分类',
     `name`          varchar(64)     NOT NULL DEFAULT '' COMMENT '分类名称',
-    `description`   varchar(256)    NOT NULL DEFAULT '' COMMENT '分类描述',
-    `sort_order`    int             NOT NULL DEFAULT 0 COMMENT '排序权重，越大越靠前',
     `article_count` int unsigned    NOT NULL DEFAULT 0 COMMENT '关联文章数',
     `create_time`   timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time`   timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_name` (`name`)
+    UNIQUE KEY `uk_parent_name` (`parent_id`, `name`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='文章分类表';
