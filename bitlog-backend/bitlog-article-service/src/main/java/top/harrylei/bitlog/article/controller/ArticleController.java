@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -13,9 +14,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageQuery;
+import top.harrylei.bitlog.api.model.article.req.ArticleBatchDeleteRequest;
+import top.harrylei.bitlog.api.model.article.req.ArticleBatchStatusUpdateRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.article.service.ArticleService;
@@ -64,18 +68,26 @@ public class ArticleController {
     }
 
     @RequiresLogin
-    @Operation(summary = "取消发布文章")
-    @PostMapping("/{id}/unpublish")
-    public Result<Void> unpublish(@PathVariable Long id) {
-        articleService.unpublishArticle(ReqInfoContext.getContext().getUserId(), id);
-        return Result.success();
-    }
-
-    @RequiresLogin
     @Operation(summary = "删除文章")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         articleService.deleteArticle(ReqInfoContext.getContext().getUserId(), id);
+        return Result.success();
+    }
+
+    @RequiresLogin
+    @Operation(summary = "批量切换文章状态（传单个 ID 即为单篇操作）")
+    @PatchMapping("/batch/status")
+    public Result<Void> batchUpdateStatus(@Valid @RequestBody ArticleBatchStatusUpdateRequest req) {
+        articleService.batchUpdateStatus(ReqInfoContext.getContext().getUserId(), req.getIds(), req.getStatus());
+        return Result.success();
+    }
+
+    @RequiresLogin
+    @Operation(summary = "批量删除文章")
+    @DeleteMapping("/batch")
+    public Result<Void> batchDelete(@Valid @RequestBody ArticleBatchDeleteRequest req) {
+        articleService.batchDelete(ReqInfoContext.getContext().getUserId(), req.getIds());
         return Result.success();
     }
 
@@ -114,9 +126,9 @@ public class ArticleController {
     }
 
     @RequiresLogin
-    @Operation(summary = "分页查询我的文章列表（含草稿）")
+    @Operation(summary = "分页查询我的文章列表（含草稿及状态计数）")
     @GetMapping("/my")
-    public Result<PageVO<ArticleVO>> myArticles(@Valid ArticlePageQuery query) {
+    public Result<ArticleListVO> myArticles(@Valid ArticlePageQuery query) {
         return Result.success(articleService.pageMyArticles(ReqInfoContext.getContext().getUserId(), query));
     }
 }
