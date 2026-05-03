@@ -3,8 +3,10 @@ package top.harrylei.bitlog.api.model.article.vo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 文章列表视图对象（不含正文内容）
@@ -32,11 +34,17 @@ public class ArticleVO {
     @Schema(description = "文章摘要")
     private String summary;
 
+    @Schema(description = "文章状态")
+    private ArticleStatusEnum status;
+
     @Schema(description = "分类 ID")
     private Long categoryId;
 
     @Schema(description = "分类名称")
     private String categoryName;
+
+    @Schema(description = "标签名称列表")
+    private List<String> tags;
 
     @Schema(description = "是否置顶：0-否，1-是")
     private Integer topping;

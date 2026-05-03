@@ -5,8 +5,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
-import java.util.List;
-
 /**
  * 文章详情视图对象（含正文内容及版本信息）
  *
@@ -27,7 +25,4 @@ public class ArticleDetailVO extends ArticleVO {
 
     @Schema(description = "当前版本号")
     private Integer version;
-
-    @Schema(description = "标签列表")
-    private List<String> tags;
 }
