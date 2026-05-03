@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageQuery;
 import top.harrylei.bitlog.article.repository.entity.ArticleDO;
@@ -66,6 +67,14 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
                 .update();
     }
 
+    /** 重新发布：将 publishedVersionId 更新为指定版本 */
+    public void updatePublishedVersionId(Long articleId, Long versionId) {
+        lambdaUpdate()
+                .eq(ArticleDO::getId, articleId)
+                .set(ArticleDO::getPublishedVersionId, versionId)
+                .update();
+    }
+
     /** 软删除文章 */
     public void delete(Long articleId) {
         lambdaUpdate()
@@ -74,17 +83,38 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
                 .update();
     }
 
-    /** 分页查询已发布文章 */
+    /** 统计用户全部未删除文章数 */
+    public long countByUser(Long userId) {
+        return lambdaQuery()
+                .eq(ArticleDO::getUserId, userId)
+                .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .count();
+    }
+
+    /** 统计用户指定状态的文章数 */
+    public long countByUserAndStatus(Long userId, ArticleStatusEnum status) {
+        return lambdaQuery()
+                .eq(ArticleDO::getUserId, userId)
+                .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .isNotNull(ArticleStatusEnum.PUBLISHED == status, ArticleDO::getPublishedVersionId)
+                .isNull(ArticleStatusEnum.DRAFT == status, ArticleDO::getPublishedVersionId)
+                .count();
+    }
+
+    /** 分页查询已发布文章，关键词过滤下推到 SQL */
     public IPage<ArticleDO> pagePublished(ArticlePageQuery query, Page<ArticleDO> page) {
         return lambdaQuery()
                 .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
                 .isNotNull(ArticleDO::getPublishedVersionId)
                 .eq(query.getUserId() != null, ArticleDO::getUserId, query.getUserId())
                 .eq(query.getCategoryId() != null, ArticleDO::getCategoryId, query.getCategoryId())
+                .apply(StringUtils.hasText(query.getKeyword()),
+                        "EXISTS (SELECT 1 FROM article_version WHERE id = published_version_id AND title LIKE CONCAT('%', {0}, '%'))",
+                        query.getKeyword())
                 .page(page);
     }
 
-    /** 分页查询用户文章（支持草稿/发布状态过滤） */
+    /** 分页查询用户文章（支持状态过滤），关键词过滤下推到 SQL */
     public IPage<ArticleDO> pageByUser(Long userId, ArticlePageQuery query, Page<ArticleDO> page) {
         ArticleStatusEnum status = query.getStatus();
         return lambdaQuery()
@@ -93,6 +123,9 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
                 .isNotNull(ArticleStatusEnum.PUBLISHED == status, ArticleDO::getPublishedVersionId)
                 .isNull(ArticleStatusEnum.DRAFT == status, ArticleDO::getPublishedVersionId)
                 .eq(query.getCategoryId() != null, ArticleDO::getCategoryId, query.getCategoryId())
+                .apply(StringUtils.hasText(query.getKeyword()),
+                        "EXISTS (SELECT 1 FROM article_version WHERE id = latest_version_id AND title LIKE CONCAT('%', {0}, '%'))",
+                        query.getKeyword())
                 .page(page);
     }
 }
