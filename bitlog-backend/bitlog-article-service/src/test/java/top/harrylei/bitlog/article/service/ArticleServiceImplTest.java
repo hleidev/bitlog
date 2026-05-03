@@ -7,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
@@ -164,54 +165,81 @@ class ArticleServiceImplTest {
                 .hasMessageContaining("文章版本不存在");
     }
 
-    // ==================== unpublishArticle ====================
+    // ==================== updateStatus ====================
 
     @Test
-    @DisplayName("unpublishArticle_文章不存在_抛出BusinessException")
-    void unpublishArticle_articleNotExists_throwsBusinessException() {
+    @DisplayName("updateStatus_文章不存在_抛出BusinessException")
+    void updateStatus_articleNotExists_throwsBusinessException() {
         when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(null);
 
-        assertThatThrownBy(() -> articleService.unpublishArticle(1L, 1L))
+        assertThatThrownBy(() -> articleService.updateStatus(1L, 1L, ArticleStatusEnum.DRAFT))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("文章不存在");
     }
 
     @Test
-    @DisplayName("unpublishArticle_非作者操作_抛出BusinessException")
-    void unpublishArticle_notOwner_throwsBusinessException() {
+    @DisplayName("updateStatus_非作者操作_抛出BusinessException")
+    void updateStatus_notOwner_throwsBusinessException() {
         ArticleDO article = buildArticle(1L, 999L);
         when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
 
-        assertThatThrownBy(() -> articleService.unpublishArticle(1L, 1L))
+        assertThatThrownBy(() -> articleService.updateStatus(1L, 1L, ArticleStatusEnum.DRAFT))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("无权操作该文章");
     }
 
     @Test
-    @DisplayName("unpublishArticle_文章未发布_直接返回不执行任何DB操作")
-    void unpublishArticle_articleNotPublished_returnsEarlyWithNoDbOps() {
-        ArticleDO article = buildArticle(1L, 1L); // publishedVersionId 默认为 null
+    @DisplayName("updateStatus_草稿切换为草稿_幂等不执行任何DB操作")
+    void updateStatus_draftToDraft_isIdempotent() {
+        ArticleDO article = buildArticle(1L, 1L); // publishedVersionId = null
         when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
 
-        articleService.unpublishArticle(1L, 1L);
+        articleService.updateStatus(1L, 1L, ArticleStatusEnum.DRAFT);
 
         verify(articleDAO, never()).unpublish(anyLong());
         verify(categoryDAO, never()).decrementArticleCount(any());
     }
 
     @Test
-    @DisplayName("unpublishArticle_已发布文章_取消发布并减少分类和标签计数")
-    void unpublishArticle_publishedArticle_unpublishesAndDecrementsAllCounts() {
+    @DisplayName("updateStatus_已发布切换为草稿_取消发布并减少分类和标签计数")
+    void updateStatus_publishedToDraft_unpublishesAndDecrementsAllCounts() {
         ArticleDO article = buildPublishedArticle(1L, 1L, 200L);
         article.setCategoryId(5L);
         when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
         when(articleTagDAO.listTagIdsByArticleId(1L)).thenReturn(List.of(10L, 11L));
 
-        articleService.unpublishArticle(1L, 1L);
+        articleService.updateStatus(1L, 1L, ArticleStatusEnum.DRAFT);
 
         verify(tagDAO).decrementArticleCount(List.of(10L, 11L));
         verify(categoryDAO).decrementArticleCount(5L);
         verify(articleDAO).unpublish(1L);
+    }
+
+    @Test
+    @DisplayName("updateStatus_草稿切换为已发布_重新发布并增加分类和标签计数")
+    void updateStatus_draftToPublished_republishesAndIncrementsAllCounts() {
+        ArticleDO article = buildArticle(1L, 1L);
+        article.setLatestVersionId(100L).setCategoryId(5L);
+        when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
+        when(articleTagDAO.listTagIdsByArticleId(1L)).thenReturn(List.of(10L, 11L));
+
+        articleService.updateStatus(1L, 1L, ArticleStatusEnum.PUBLISHED);
+
+        verify(articleDAO).updatePublishedVersionId(1L, 100L);
+        verify(tagDAO).incrementArticleCount(List.of(10L, 11L));
+        verify(categoryDAO).incrementArticleCount(5L);
+    }
+
+    @Test
+    @DisplayName("updateStatus_已发布切换为已发布_幂等不执行任何DB操作")
+    void updateStatus_publishedToPublished_isIdempotent() {
+        ArticleDO article = buildPublishedArticle(1L, 1L, 200L);
+        when(articleDAO.getByIdAndNotDeleted(1L)).thenReturn(article);
+
+        articleService.updateStatus(1L, 1L, ArticleStatusEnum.PUBLISHED);
+
+        verify(articleDAO, never()).updatePublishedVersionId(anyLong(), anyLong());
+        verify(categoryDAO, never()).incrementArticleCount(any());
     }
 
     // ==================== deleteArticle ====================
