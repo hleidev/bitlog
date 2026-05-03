@@ -1,10 +1,12 @@
 package top.harrylei.bitlog.article.service;
 
+import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageQuery;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.common.model.PageVO;
@@ -47,12 +49,15 @@ public interface ArticleService {
     void publishArticle(Long userId, Long articleId, ArticlePublishRequest req);
 
     /**
-     * 取消发布文章（设为草稿状态）
+     * 切换文章状态（草稿 ↔ 已发布）
+     * <p>切换为已发布时使用现有元数据重新上线，不重新填写封面等信息；
+     * 切换为草稿时回退计数。两端均幂等。
      *
      * @param userId    操作用户 ID
      * @param articleId 文章 ID
+     * @param status    目标状态
      */
-    void unpublishArticle(Long userId, Long articleId);
+    void updateStatus(Long userId, Long articleId, ArticleStatusEnum status);
 
     /**
      * 删除文章（软删除）
@@ -106,13 +111,30 @@ public interface ArticleService {
     PageVO<ArticleVO> pagePublished(ArticlePageQuery query);
 
     /**
-     * 分页查询当前用户的文章列表（含草稿）
+     * 批量切换文章状态
+     *
+     * @param userId     操作用户 ID
+     * @param articleIds 文章 ID 列表
+     * @param status     目标状态
+     */
+    void batchUpdateStatus(Long userId, List<Long> articleIds, ArticleStatusEnum status);
+
+    /**
+     * 批量删除文章（软删除）
+     *
+     * @param userId     操作用户 ID
+     * @param articleIds 文章 ID 列表
+     */
+    void batchDelete(Long userId, List<Long> articleIds);
+
+    /**
+     * 分页查询当前用户的文章列表（含草稿），同时返回各状态计数
      *
      * @param userId 用户 ID
      * @param query  查询参数
-     * @return 分页结果
+     * @return 分页结果及状态计数
      */
-    PageVO<ArticleVO> pageMyArticles(Long userId, ArticlePageQuery query);
+    ArticleListVO pageMyArticles(Long userId, ArticlePageQuery query);
 
     /**
      * 根据文章 ID 获取文章基础信息（内部 Feign 接口使用）
