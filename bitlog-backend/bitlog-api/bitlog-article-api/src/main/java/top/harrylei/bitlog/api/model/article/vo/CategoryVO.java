@@ -18,8 +18,6 @@ import java.time.LocalDateTime;
 public class CategoryVO {
     @Schema(description = "分类 ID")
     private Long id;
-    @Schema(description = "父分类 ID，0 表示顶级分类")
-    private Long parentId;
     @Schema(description = "分类名称")
     private String name;
     @Schema(description = "关联文章数")

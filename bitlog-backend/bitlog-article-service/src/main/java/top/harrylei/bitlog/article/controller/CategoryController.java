@@ -11,6 +11,7 @@ import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
 import top.harrylei.bitlog.article.service.CategoryService;
 import top.harrylei.bitlog.common.model.Result;
 import top.harrylei.bitlog.common.security.RequiresAdmin;
+import top.harrylei.bitlog.common.security.RequiresLogin;
 
 import java.util.List;
 
@@ -32,6 +33,13 @@ public class CategoryController {
     @GetMapping
     public Result<List<CategoryVO>> listAll(@RequestParam(required = false) String name) {
         return Result.success(categoryService.listAll(name));
+    }
+
+    @RequiresLogin
+    @Operation(summary = "查询或创建顶级分类")
+    @PostMapping("/get-or-create")
+    public Result<Long> getOrCreate(@RequestParam String name) {
+        return Result.success(categoryService.getOrCreate(name));
     }
 
     @RequiresAdmin

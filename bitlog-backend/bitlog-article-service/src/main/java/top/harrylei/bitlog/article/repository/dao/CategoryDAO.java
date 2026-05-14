@@ -18,12 +18,11 @@ import java.util.List;
 public class CategoryDAO extends ServiceImpl<CategoryMapper, CategoryDO> {
 
     /**
-     * 根据名称和父分类 ID 查询分类（用于同级唯一性校验）
+     * 根据名称查询分类（用于全局唯一性校验）
      */
-    public CategoryDO getByName(String name, Long parentId) {
+    public CategoryDO getByName(String name) {
         return lambdaQuery()
                 .eq(CategoryDO::getName, name)
-                .eq(CategoryDO::getParentId, parentId)
                 .one();
     }
 
@@ -35,15 +34,6 @@ public class CategoryDAO extends ServiceImpl<CategoryMapper, CategoryDO> {
                 .like(StringUtils.hasText(name), CategoryDO::getName, name)
                 .orderByDesc(CategoryDO::getArticleCount)
                 .list();
-    }
-
-    /**
-     * 是否存在子分类
-     */
-    public boolean hasChildren(Long categoryId) {
-        return lambdaQuery()
-                .eq(CategoryDO::getParentId, categoryId)
-                .exists();
     }
 
     /**

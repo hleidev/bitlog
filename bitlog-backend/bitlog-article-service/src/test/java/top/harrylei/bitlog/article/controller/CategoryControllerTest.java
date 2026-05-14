@@ -99,23 +99,6 @@ class CategoryControllerTest {
     }
 
     @Test
-    @DisplayName("create_子分类_返回新分类ID")
-    void create_subCategory_returnsId() throws Exception {
-        when(categoryService.save(any())).thenReturn(3L);
-
-        CategoryCreateRequest req = new CategoryCreateRequest();
-        req.setName("后端");
-        req.setParentId(1L);
-
-        mockMvc.perform(post("/api/v1/category")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(req)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.data").value(3));
-    }
-
-    @Test
     @DisplayName("create_分类名为空_返回参数校验失败")
     void create_blankName_returnsValidationError() throws Exception {
         CategoryCreateRequest req = new CategoryCreateRequest();

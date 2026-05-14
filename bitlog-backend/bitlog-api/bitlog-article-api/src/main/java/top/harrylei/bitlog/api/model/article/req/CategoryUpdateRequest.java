@@ -19,7 +19,4 @@ public class CategoryUpdateRequest {
     @Schema(description = "分类名称", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
 
-    @Schema(description = "父分类 ID（不传=不改归属；0=升为顶级；正数=移到指定父分类）",
-            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-    private Long parentId;
 }

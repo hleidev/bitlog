@@ -19,6 +19,4 @@ public class CategoryCreateRequest {
     @Schema(description = "分类名称", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
 
-    @Schema(description = "父分类 ID，不传或传 0 表示顶级分类")
-    private Long parentId;
 }

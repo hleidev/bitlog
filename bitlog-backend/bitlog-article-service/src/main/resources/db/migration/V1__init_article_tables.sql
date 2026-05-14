@@ -14,13 +14,12 @@ CREATE TABLE `tag`
 CREATE TABLE `category`
 (
     `id`            bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-    `parent_id`     bigint unsigned NOT NULL DEFAULT 0 COMMENT '父分类ID，0 表示顶级分类',
     `name`          varchar(64)     NOT NULL DEFAULT '' COMMENT '分类名称',
     `article_count` int unsigned    NOT NULL DEFAULT 0 COMMENT '关联文章数',
     `create_time`   timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time`   timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_parent_name` (`parent_id`, `name`)
+    UNIQUE KEY `uk_name` (`name`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='文章分类表';
@@ -32,6 +31,7 @@ CREATE TABLE `article`
     `category_id`          bigint unsigned          DEFAULT NULL COMMENT '分类ID（逻辑关联 category.id）',
     `latest_version_id`    bigint unsigned          DEFAULT NULL COMMENT '最新版本ID（逻辑关联 article_version.id）',
     `published_version_id` bigint unsigned          DEFAULT NULL COMMENT '已发布版本ID，NULL 表示未发布',
+    `publish_time`         timestamp                NULL DEFAULT NULL COMMENT '首次发布时间，NULL 表示从未发布',
     `cover`                varchar(512)    NOT NULL DEFAULT '' COMMENT '封面图地址',
     `summary`              varchar(512)    NOT NULL DEFAULT '' COMMENT '文章摘要',
     `topping`              tinyint         NOT NULL DEFAULT 0 COMMENT '置顶：0-否，1-是',

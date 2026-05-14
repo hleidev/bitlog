@@ -20,6 +20,11 @@ public interface CategoryService {
     List<CategoryVO> listAll(String name);
 
     /**
+     * 查询或创建顶级分类（存在则返回 ID，不存在则新建后返回 ID）
+     */
+    Long getOrCreate(String name);
+
+    /**
      * 创建分类
      */
     Long save(CategoryCreateRequest req);
