@@ -23,3 +23,7 @@ export function updateTag(id: number, name: string): Promise<void> {
 export function deleteTags(ids: number[]): Promise<void> {
   return request.delete('/v1/tag', { data: { ids } })
 }
+
+export function getOrCreateTag(name: string): Promise<number> {
+  return request.post<never, number>('/v1/tag/get-or-create', null, { params: { name } })
+}
