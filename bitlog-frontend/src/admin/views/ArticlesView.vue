@@ -311,14 +311,12 @@ function formatViews(n: number) {
             </template>
           </el-table-column>
 
-          <el-table-column label="状态" width="88" align="center">
+          <el-table-column label="状态" width="130">
             <template #default="{ row }">
-              <span
-                class="status-badge"
-                :class="row.status === 'PUBLISHED' ? 'status-badge--published' : 'status-badge--draft'"
-              >
-                {{ row.status === 'PUBLISHED' ? '已发布' : '草稿' }}
-              </span>
+              <div class="status-cell">
+                <span v-if="row.publishedVersionId !== null" class="status-badge status-badge--published">已发布</span>
+                <span v-if="row.latestVersionId !== row.publishedVersionId" class="status-badge status-badge--draft">草稿</span>
+              </div>
             </template>
           </el-table-column>
 
@@ -598,7 +596,15 @@ function formatViews(n: number) {
   font-weight: 500;
 }
 
-/* Status badge */
+/* Status */
+.status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -611,6 +617,7 @@ function formatViews(n: number) {
 .status-badge--published {
   background: #f0fdf4;
   color: #16a34a;
+  border: 1px solid #bbf7d0;
 }
 
 .status-badge--draft {
@@ -618,6 +625,7 @@ function formatViews(n: number) {
   color: #6b7280;
   border: 1px solid #e5e7eb;
 }
+
 
 /* Misc */
 .cell-muted {
