@@ -1,159 +1,413 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Fold, Expand, Picture, ArrowRight } from '@element-plus/icons-vue'
+import { ArrowLeft, Fold, Expand, Picture, ArrowRight, Loading } from '@element-plus/icons-vue'
+import { MdEditor } from 'md-editor-v3'
+import type { ToolbarNames } from 'md-editor-v3'
+import 'md-editor-v3/lib/style.css'
+import { diffLines, diffWords } from 'diff'
+import {
+  createArticle,
+  updateArticleDraft,
+  getArticleDraft,
+  publishArticle,
+  getArticleVersions,
+  getArticleVersionDetail,
+  rollbackVersion,
+  type ArticleVersionVO,
+  type ArticleVersionDetailVO,
+} from '@/api/admin/article'
+import { getCategories, getOrCreateCategory, type Category } from '@/api/admin/category'
+import { getTags, getOrCreateTag, type Tag } from '@/api/admin/tag'
+import { uploadFile } from '@/api/file'
+import { ApiError } from '@/utils/request'
 
 const route  = useRoute()
 const router = useRouter()
 
-const articleId = computed(() => (route.params.id ? Number(route.params.id) : null))
-const isEdit    = computed(() => articleId.value !== null)
+const currentId = ref<number | null>(route.params.id ? Number(route.params.id) : null)
+const isEdit    = computed(() => currentId.value !== null)
 
-// ── Mock preset for edit mode ─────────────────────────────────────────────────
-const MOCK_ARTICLE = {
-  title: 'Vue 3 Composition API 深度解析',
-  content: `Vue 3 的 Composition API 是一套全新的逻辑组织和代码复用方式，它解决了 Options API 在大型组件中遇到的可维护性问题。
+// ── Editor state ───────────────────────────────────────────────────────────────
+const title   = ref('')
+const content = ref('')
 
-## 为什么需要 Composition API？
+// ── Article metadata (populated from draft detail) ─────────────────────────────
+const latestVersionId    = ref<number | null>(null)
+const publishedVersionId = ref<number | null>(null)
 
-在 Vue 2 中，随着组件逻辑变得复杂，相关的逻辑代码被拆散在 data、methods、computed、watch 各个选项中，让代码的理解和维护变得困难。Composition API 允许我们按照逻辑关注点来组织代码，而不是按照选项类型。
+const isPublished = computed(() => publishedVersionId.value !== null)
 
-## setup() 函数
+// ── Toolbar config ─────────────────────────────────────────────────────────────
+const toolbars: ToolbarNames[] = [
+  'bold', 'italic', 'strikeThrough', '-',
+  'title', 'quote', '-',
+  'unorderedList', 'orderedList', 'task', '-',
+  'codeRow', 'code', 'link', 'image', 'table',
+  '=',
+  'revoke', 'next', '-',
+  'preview', 'pageFullscreen',
+]
 
-setup() 是 Composition API 的入口，在组件实例创建之前执行。它接收两个参数：props 和 context。
+// ── Publish dialog ─────────────────────────────────────────────────────────────
+const publishDialogVisible = ref(false)
+const publishing           = ref(false)
 
-\`\`\`ts
-import { ref, onMounted } from 'vue'
+const publishForm = ref({
+  cover:      null as string | null,
+  summary:    '',
+  categoryId: null as number | null,
+  tagIds:     [] as number[],
+})
 
-export default {
-  setup() {
-    const count = ref(0)
-    onMounted(() => console.log('mounted'))
-    return { count }
+// ── Cover upload ───────────────────────────────────────────────────────────────
+const coverDisplayUrl = ref<string | null>(null)
+const coverUploading  = ref(false)
+const coverInputRef   = ref<HTMLInputElement | null>(null)
+
+async function handleCoverSelect(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const prevUrl = coverDisplayUrl.value
+  coverDisplayUrl.value = URL.createObjectURL(file)
+  if (prevUrl?.startsWith('blob:')) URL.revokeObjectURL(prevUrl)
+  coverUploading.value = true
+  try {
+    const res = await uploadFile(file, 'article_cover')
+    publishForm.value.cover = res.fileKey
+  } catch {
+    ElMessage.error('封面图上传失败')
+    URL.revokeObjectURL(coverDisplayUrl.value!)
+    coverDisplayUrl.value   = null
+    publishForm.value.cover = null
+  } finally {
+    coverUploading.value = false
+    if (coverInputRef.value) coverInputRef.value.value = ''
   }
 }
-\`\`\`
 
-## 响应式 API
+// Separate select models to handle allow-create string phase before API resolves
+const categorySelectVal = ref<number | string | null>(null)
+const tagSelectVals     = ref<(number | string)[]>([])
+const creatingMeta      = ref(false)
 
-- \`ref()\` 适合包装基本类型值，通过 .value 访问
-- \`reactive()\` 适合包装对象，直接访问属性
-- \`computed()\` 创建依赖其他响应式数据的计算属性
-- \`watch()\` / \`watchEffect()\` 监听响应式数据变化
+const categoryOptions = ref<Category[]>([])
+const tagOptions      = ref<Tag[]>([])
 
-## 生命周期钩子
-
-在 setup 中，生命周期钩子需要加上 on 前缀，例如 onMounted、onUpdated、onUnmounted。`,
-  status: 'published' as const,
-  pinned: true,
-  categoryId: 1,
-  tags: ['Vue', 'JavaScript', 'Composition API'],
-  summary: 'Vue 3 Composition API 的核心概念与实践，深入解析 setup、ref、reactive 等核心 API 的使用方式和最佳实践。',
+async function loadCategoriesAndTags() {
+  try {
+    const [cats, tags] = await Promise.all([getCategories(), getTags()])
+    categoryOptions.value = cats
+    tagOptions.value      = tags
+  } catch {
+    // non-critical
+  }
 }
 
-// ── Form state ─────────────────────────────────────────────────────────────────
-const title    = ref(isEdit.value ? MOCK_ARTICLE.title : '')
-const content  = ref(isEdit.value ? MOCK_ARTICLE.content : '')
-const status   = ref<'draft' | 'published'>(isEdit.value ? MOCK_ARTICLE.status : 'draft')
-const pinned   = ref(isEdit.value ? MOCK_ARTICLE.pinned : false)
-const category = ref<number | null>(isEdit.value ? MOCK_ARTICLE.categoryId : null)
-const tags     = ref<string[]>(isEdit.value ? [...MOCK_ARTICLE.tags] : [])
-const summary  = ref(isEdit.value ? MOCK_ARTICLE.summary : '')
+async function handleCategoryChange(val: number | string | null) {
+  if (typeof val !== 'string') {
+    publishForm.value.categoryId = val as number | null
+    return
+  }
+  const name = val.trim()
+  if (!name) {
+    categorySelectVal.value      = null
+    publishForm.value.categoryId = null
+    return
+  }
+  creatingMeta.value = true
+  try {
+    const id = await getOrCreateCategory(name)
+    categorySelectVal.value      = id
+    publishForm.value.categoryId = id
+    // Add to local options if newly created so the label shows correctly
+    if (!categoryOptions.value.find(c => c.id === id)) {
+      categoryOptions.value = [...categoryOptions.value, { id, name, articleCount: 0, createTime: '' }]
+    }
+  } catch {
+    categorySelectVal.value      = null
+    publishForm.value.categoryId = null
+    ElMessage.error('创建分类失败')
+  } finally {
+    creatingMeta.value = false
+  }
+}
 
-// ── Options ────────────────────────────────────────────────────────────────────
-const categoryOptions = [
-  { id: 1, name: '前端' },
-  { id: 2, name: '后端' },
-  { id: 3, name: '数据库' },
-  { id: 4, name: '运维' },
-]
-
-const tagOptions = ['Vue', 'React', 'TypeScript', 'JavaScript', 'CSS', 'Java', 'Spring Boot', 'Docker', 'Kubernetes', 'Redis', 'MySQL', 'PostgreSQL', 'Rust', 'Go']
+async function handleTagsChange(vals: (number | string)[]) {
+  const existingIds = vals.filter((v): v is number => typeof v === 'number')
+  const newNames    = vals.filter((v): v is string => typeof v === 'string').map(s => s.trim()).filter(Boolean)
+  if (!newNames.length) {
+    publishForm.value.tagIds = existingIds
+    return
+  }
+  creatingMeta.value = true
+  try {
+    const newIds = await Promise.all(newNames.map(name => getOrCreateTag(name)))
+    for (let i = 0; i < newNames.length; i++) {
+      if (!tagOptions.value.find(t => t.id === newIds[i])) {
+        tagOptions.value = [...tagOptions.value, { id: newIds[i], name: newNames[i], articleCount: 0, createTime: '', updateTime: '' }]
+      }
+    }
+    const merged = [...new Set([...existingIds, ...newIds])]
+    tagSelectVals.value      = merged
+    publishForm.value.tagIds = merged
+  } catch {
+    tagSelectVals.value      = existingIds
+    publishForm.value.tagIds = existingIds
+    ElMessage.error('创建标签失败')
+  } finally {
+    creatingMeta.value = false
+  }
+}
 
 // ── Sidebar & versions ─────────────────────────────────────────────────────────
-const sidebarOpen       = ref(true)
-const versionsExpanded  = ref(false)
+const sidebarOpen      = ref(isEdit.value)
+const versionsExpanded = ref(true)
+const versions         = ref<ArticleVersionVO[]>([])
 
-const MOCK_VERSIONS = [
-  { id: 3, label: '版本 3（当前）', time: '2026-05-01 10:00', isCurrent: true  },
-  { id: 2, label: '版本 2',         time: '2026-04-28 09:30', isCurrent: false },
-  { id: 1, label: '版本 1',         time: '2026-04-25 14:20', isCurrent: false },
-]
+async function loadVersions() {
+  if (!currentId.value) return
+  try {
+    const data = await getArticleVersions(currentId.value)
+    versions.value = data
+    const latest = data.find(v => v.latest)
+    if (latest) latestVersionId.value = latest.id
+  } catch {
+    // non-critical
+  }
+}
+
+// ── Diff state ─────────────────────────────────────────────────────────────────
+const diffMode    = ref(false)
+const diffVersion = ref<ArticleVersionDetailVO | null>(null)
+const diffLoading = ref(false)
+
+const hasTitleDiff = computed(() =>
+  !!diffVersion.value && diffVersion.value.title !== title.value
+)
+
+const titleDiff = computed(() => {
+  if (!diffVersion.value) return []
+  return diffWords(diffVersion.value.title, title.value)
+})
+
+const renderedContentLines = computed(() => {
+  if (!diffVersion.value) return []
+  const changes = diffLines(diffVersion.value.content, content.value)
+  const lines: { text: string; added: boolean; removed: boolean }[] = []
+  for (const part of changes) {
+    const parts = part.value.split('\n')
+    if (parts[parts.length - 1] === '') parts.pop()
+    for (const text of parts) {
+      lines.push({ text, added: !!part.added, removed: !!part.removed })
+    }
+  }
+  return lines
+})
+
+async function enterDiff(v: ArticleVersionVO) {
+  if (diffLoading.value || !currentId.value) return
+  diffLoading.value = true
+  try {
+    const detail = await getArticleVersionDetail(currentId.value, v.id)
+    diffVersion.value = detail
+    diffMode.value    = true
+  } catch {
+    ElMessage.error('加载版本内容失败')
+  } finally {
+    diffLoading.value = false
+  }
+}
+
+function exitDiff() {
+  diffMode.value    = false
+  diffVersion.value = null
+}
 
 // ── Save state ─────────────────────────────────────────────────────────────────
-const saveState = ref<'idle' | 'saving' | 'saved'>('saved')
+const saveState = ref<'idle' | 'saving' | 'saved'>(isEdit.value ? 'saved' : 'idle')
+const saving    = ref(false)
 let saveTimer: ReturnType<typeof setTimeout> | undefined
+let autoSaveTimer: ReturnType<typeof setTimeout> | undefined
 
-onUnmounted(() => clearTimeout(saveTimer))
+onUnmounted(() => {
+  clearTimeout(saveTimer)
+  clearTimeout(autoSaveTimer)
+  if (coverDisplayUrl.value?.startsWith('blob:')) URL.revokeObjectURL(coverDisplayUrl.value)
+})
 
 const saveStateText = computed(() => {
   if (saveState.value === 'saving') return '保存中...'
-  if (saveState.value === 'saved' && isEdit.value) return '已保存'
+  if (saveState.value === 'saved')  return '已保存'
   return ''
 })
 
-// ── Word count ─────────────────────────────────────────────────────────────────
-const wordCount = computed(() =>
-  (title.value + content.value).replace(/\s/g, '').length
-)
-
-// ── Textarea auto-resize ───────────────────────────────────────────────────────
-const contentRef = ref<HTMLTextAreaElement>()
-
-function autoResize() {
-  const el = contentRef.value
-  if (!el) return
-  el.style.height = 'auto'
-  el.style.height = `${el.scrollHeight}px`
+async function performSave() {
+  if (!title.value.trim() || saving.value) return
+  saving.value    = true
+  saveState.value = 'saving'
+  try {
+    if (currentId.value === null) {
+      const newId = await createArticle({ title: title.value, content: content.value })
+      currentId.value = newId
+      router.replace(`/admin/write/${newId}`)
+      sidebarOpen.value = true
+      const [data, versionData] = await Promise.all([getArticleDraft(newId), getArticleVersions(newId)])
+      latestVersionId.value    = data.latestVersionId
+      publishedVersionId.value = data.publishedVersionId
+      versions.value           = versionData
+    } else {
+      await updateArticleDraft(currentId.value, { title: title.value, content: content.value })
+      loadVersions()
+    }
+    saveState.value = 'saved'
+    clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => {
+      if (saveState.value === 'saved') saveState.value = 'idle'
+    }, 3000)
+  } catch (err) {
+    saveState.value = 'idle'
+    handleError(err, '保存失败')
+  } finally {
+    saving.value = false
+  }
 }
 
-onMounted(() => nextTick(autoResize))
+// ── Auto-save (debounced 2.5s) ─────────────────────────────────────────────────
+let suppressAutoSave = false
+
+watch([title, content], () => {
+  if (suppressAutoSave) return
+  if (!title.value.trim()) return
+  saveState.value = 'idle'
+  clearTimeout(autoSaveTimer)
+  autoSaveTimer = setTimeout(performSave, 2500)
+})
+
+// ── Load draft ─────────────────────────────────────────────────────────────────
+const pageLoading = ref(false)
+
+async function loadDraft() {
+  if (!currentId.value) return
+  pageLoading.value  = true
+  suppressAutoSave   = true
+  try {
+    const data = await getArticleDraft(currentId.value)
+    title.value              = data.title
+    content.value            = data.content
+    latestVersionId.value    = data.latestVersionId
+    publishedVersionId.value = data.publishedVersionId
+    coverDisplayUrl.value    = data.cover
+    publishForm.value = {
+      cover:      data.cover,
+      summary:    data.summary ?? '',
+      categoryId: data.categoryId,
+      tagIds:     [...data.tagIds],
+    }
+    categorySelectVal.value = data.categoryId
+    tagSelectVals.value     = [...data.tagIds]
+    await loadVersions()
+    // Wait for Vue to flush the watchers triggered by title/content assignment
+    // before re-enabling auto-save, so the load itself never triggers a save.
+    await nextTick()
+    saveState.value = 'saved'
+  } catch (err) {
+    handleError(err, '加载文章失败')
+  } finally {
+    suppressAutoSave  = false
+    pageLoading.value = false
+  }
+}
+
+onMounted(() => {
+  if (isEdit.value) loadDraft()
+  loadCategoriesAndTags()
+})
+
+// ── Error helper ───────────────────────────────────────────────────────────────
+function handleError(err: unknown, fallback = '操作失败') {
+  const msg = err instanceof ApiError ? err.message : null
+  ElMessage.error(msg || fallback)
+}
 
 // ── Actions ────────────────────────────────────────────────────────────────────
-function handleSaveDraft() {
+async function handleSave() {
   if (!title.value.trim()) {
     ElMessage.warning('请先输入文章标题')
     return
   }
-  saveState.value = 'saving'
-  saveTimer = setTimeout(() => {
-    saveState.value = 'saved'
-    status.value = 'draft'
-    ElMessage.success('草稿已保存')
-  }, 500)
+  clearTimeout(autoSaveTimer)
+  await performSave()
 }
 
-function handlePublish() {
+async function openPublishDialog() {
   if (!title.value.trim()) {
     ElMessage.warning('请先输入文章标题')
     return
   }
-  status.value = 'published'
-  ElMessage.success(isEdit.value ? '已更新发布' : '文章已发布')
+  if (!content.value.trim()) {
+    ElMessage.warning('请先输入文章内容')
+    return
+  }
+  // Ensure the article is created/saved before opening publish dialog
+  if (currentId.value === null || saveState.value !== 'saved') {
+    clearTimeout(autoSaveTimer)
+    await performSave()
+    if (!currentId.value) return
+  }
+  publishDialogVisible.value = true
 }
 
-async function handleUnpublish() {
+async function handlePublishConfirm() {
+  if (!currentId.value) return
+  if (!publishForm.value.categoryId) {
+    ElMessage.warning('请选择文章分类')
+    return
+  }
+  publishing.value = true
+  const wasPublished = isPublished.value
   try {
-    await ElMessageBox.confirm(
-      '取消发布后读者将无法查看该文章，确认继续？',
-      '取消发布',
-      { confirmButtonText: '取消发布', cancelButtonText: '留下' },
-    )
-  } catch { return }
-  status.value = 'draft'
-  ElMessage.success('已取消发布，文章已变为草稿')
+    await publishArticle(currentId.value, {
+      cover:      publishForm.value.cover || null,
+      summary:    publishForm.value.summary || null,
+      categoryId: publishForm.value.categoryId,
+      tagIds:     publishForm.value.tagIds,
+    })
+    publishedVersionId.value   = latestVersionId.value
+    publishDialogVisible.value = false
+    ElMessage.success(wasPublished ? '发布信息已更新' : '文章已发布')
+    loadVersions()
+  } catch (err) {
+    handleError(err, '发布失败')
+  } finally {
+    publishing.value = false
+  }
 }
 
-async function handleRollback(v: (typeof MOCK_VERSIONS)[0]) {
+async function handleRollback(v: ArticleVersionDetailVO) {
   try {
     await ElMessageBox.confirm(
-      `回滚到「${v.label}」（${v.time}）？这将基于该版本创建一个新草稿。`,
+      `回滚到版本 ${v.version}？将基于该版本创建新草稿。`,
       '回滚版本',
-      { confirmButtonText: '回滚', cancelButtonText: '取消' },
+      { confirmButtonText: '确认回滚', cancelButtonText: '取消' },
     )
   } catch { return }
-  ElMessage.success(`已回滚至 ${v.label}`)
+  try {
+    await rollbackVersion(currentId.value!, v.id)
+    exitDiff()
+    await loadDraft()
+    ElMessage.success(`已回滚至版本 ${v.version}`)
+  } catch (err) {
+    handleError(err, '回滚失败')
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function shortTime(d: string) {
+  return new Date(d)
+    .toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    .replace(/\//g, '-')
 }
 </script>
 
@@ -168,26 +422,19 @@ async function handleRollback(v: (typeof MOCK_VERSIONS)[0]) {
           <span>文章列表</span>
         </button>
         <div class="tb-sep" />
-        <span class="status-pill" :class="`status-pill--${status}`">
-          {{ status === 'published' ? '已发布' : '草稿' }}
+        <span class="status-pill" :class="isPublished ? 'status-pill--published' : 'status-pill--draft'">
+          {{ isPublished ? '已发布' : '草稿' }}
         </span>
       </div>
 
       <div class="tb-right">
         <span v-if="saveStateText" class="save-hint">{{ saveStateText }}</span>
-        <span class="word-count">{{ wordCount }} 字</span>
 
-        <template v-if="status === 'draft'">
-          <el-button size="small" @click="handleSaveDraft">保存草稿</el-button>
-          <el-button size="small" type="primary" @click="handlePublish">发布</el-button>
-        </template>
-        <template v-else>
-          <el-button size="small" @click="handleSaveDraft">保存修改</el-button>
-          <el-button size="small" type="danger" plain @click="handleUnpublish">取消发布</el-button>
-          <el-button size="small" type="primary" @click="handlePublish">更新发布</el-button>
-        </template>
+        <el-button size="small" :loading="saving" @click="handleSave">保存</el-button>
+        <el-button size="small" type="primary" @click="openPublishDialog">发布</el-button>
 
         <button
+          v-if="isEdit"
           class="sidebar-toggle"
           :title="sidebarOpen ? '收起侧栏' : '展开侧栏'"
           @click="sidebarOpen = !sidebarOpen"
@@ -200,99 +447,110 @@ async function handleRollback(v: (typeof MOCK_VERSIONS)[0]) {
     <!-- ── Body ───────────────────────────────────────────────────────────── -->
     <div class="write-body">
 
-      <!-- Editor -->
-      <div class="editor-wrap">
-        <div class="editor-inner">
+      <!-- Editor area -->
+      <div class="editor-area" v-loading="pageLoading">
+
+        <!-- Title -->
+        <div class="title-section">
           <input
             v-model="title"
             class="title-input"
             placeholder="文章标题..."
             maxlength="200"
+            :disabled="diffMode"
           />
-          <div class="editor-divider" />
-          <textarea
-            ref="contentRef"
+        </div>
+
+        <!-- Diff mode banner -->
+        <Transition name="diff-banner">
+          <div v-if="diffMode && diffVersion" class="diff-banner">
+            <div class="diff-banner-left">
+              <span class="diff-badge">对比模式</span>
+              <span class="diff-desc">
+                版本 {{ diffVersion.version }}（{{ shortTime(diffVersion.createTime) }}）↔ 当前版本
+              </span>
+            </div>
+            <div class="diff-banner-right">
+              <el-button size="small" @click="exitDiff">退出对比</el-button>
+              <el-button size="small" type="primary" @click="handleRollback(diffVersion)">
+                回滚到此版本
+              </el-button>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- Editor (hidden in diff mode) -->
+        <div v-show="!diffMode" class="md-wrap">
+          <MdEditor
             v-model="content"
-            class="content-textarea"
-            placeholder="开始写作..."
-            @input="autoResize"
+            editor-id="write-editor"
+            :toolbars="toolbars"
+            preview-theme="github"
+            code-theme="atom"
+            :show-code-row-number="true"
+            style="height: 100%"
+            @save="handleSave"
           />
+        </div>
+
+        <!-- Diff view -->
+        <div v-if="diffMode" class="diff-view">
+
+          <!-- Title diff -->
+          <div v-if="hasTitleDiff" class="diff-section">
+            <div class="diff-section-label">标题变更</div>
+            <div class="diff-title-row diff-title-row--removed">
+              <span class="diff-marker">−</span>
+              <span class="diff-title-text">{{ diffVersion!.title }}</span>
+            </div>
+            <div class="diff-title-row diff-title-row--added">
+              <span class="diff-marker">+</span>
+              <span class="diff-title-text">
+                <span
+                  v-for="(part, i) in titleDiff"
+                  :key="i"
+                  :class="{
+                    'diff-word--added':   part.added,
+                    'diff-word--removed': part.removed,
+                  }"
+                >{{ part.value }}</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Content diff -->
+          <div class="diff-section diff-section--content">
+            <div class="diff-section-label">正文变更</div>
+            <div class="diff-lines">
+              <div
+                v-for="(line, i) in renderedContentLines"
+                :key="i"
+                class="diff-line"
+                :class="{
+                  'diff-line--added':     line.added,
+                  'diff-line--removed':   line.removed,
+                  'diff-line--unchanged': !line.added && !line.removed,
+                }"
+              >
+                <span class="diff-marker">{{ line.added ? '+' : line.removed ? '−' : ' ' }}</span>
+                <span class="diff-line-text">{{ line.text || ' ' }}</span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
-      <!-- Sidebar -->
-      <div class="meta-sidebar" :class="{ 'meta-sidebar--closed': !sidebarOpen }">
+      <!-- Sidebar (edit mode only) -->
+      <div
+        v-if="isEdit"
+        class="meta-sidebar"
+        :class="{ 'meta-sidebar--closed': !sidebarOpen }"
+      >
         <div class="sidebar-scroll">
 
-          <!-- Cover -->
+          <!-- Version history -->
           <div class="sidebar-section">
-            <div class="section-label">封面图</div>
-            <div class="cover-upload">
-              <el-icon class="cover-icon"><Picture /></el-icon>
-              <span class="cover-tip">点击上传封面图</span>
-              <span class="cover-hint">建议尺寸 1200 × 630</span>
-            </div>
-          </div>
-
-          <!-- Summary -->
-          <div class="sidebar-section">
-            <div class="section-label">摘要</div>
-            <el-input
-              v-model="summary"
-              type="textarea"
-              :rows="3"
-              placeholder="文章简短描述，将显示在列表页..."
-              :maxlength="200"
-              show-word-limit
-              resize="none"
-            />
-          </div>
-
-          <!-- Category -->
-          <div class="sidebar-section">
-            <div class="section-label">分类</div>
-            <el-select v-model="category" placeholder="选择分类" clearable style="width: 100%">
-              <el-option
-                v-for="opt in categoryOptions"
-                :key="opt.id"
-                :label="opt.name"
-                :value="opt.id"
-              />
-            </el-select>
-          </div>
-
-          <!-- Tags -->
-          <div class="sidebar-section">
-            <div class="section-label">标签</div>
-            <el-select
-              v-model="tags"
-              multiple
-              filterable
-              allow-create
-              collapse-tags
-              collapse-tags-tooltip
-              :reserve-keyword="false"
-              placeholder="输入标签，回车创建"
-              style="width: 100%"
-            >
-              <el-option v-for="t in tagOptions" :key="t" :label="t" :value="t" />
-            </el-select>
-          </div>
-
-          <!-- Settings -->
-          <div class="sidebar-section">
-            <div class="section-label">其他设置</div>
-            <div class="setting-row">
-              <div class="setting-info">
-                <span class="setting-name">置顶文章</span>
-                <span class="setting-desc">在列表顶部展示</span>
-              </div>
-              <el-switch v-model="pinned" />
-            </div>
-          </div>
-
-          <!-- Version history (edit only) -->
-          <div v-if="isEdit" class="sidebar-section">
             <button class="version-header" @click="versionsExpanded = !versionsExpanded">
               <span class="section-label" style="margin-bottom: 0">历史版本</span>
               <el-icon
@@ -306,17 +564,28 @@ async function handleRollback(v: (typeof MOCK_VERSIONS)[0]) {
             <Transition name="version-list">
               <div v-if="versionsExpanded" class="version-list">
                 <div
-                  v-for="v in MOCK_VERSIONS"
+                  v-for="v in versions"
                   :key="v.id"
                   class="version-item"
-                  :class="{ 'version-item--current': v.isCurrent }"
+                  :class="{
+                    'version-item--current': v.latest,
+                    'version-item--active':  diffMode && diffVersion?.id === v.id,
+                  }"
                 >
                   <div class="version-info">
-                    <span class="version-label">{{ v.label }}</span>
-                    <span class="version-time">{{ v.time }}</span>
+                    <span class="version-label">版本 {{ v.version }}{{ v.latest ? '（当前）' : '' }}</span>
+                    <span class="version-time">{{ shortTime(v.createTime) }}</span>
                   </div>
-                  <span v-if="v.isCurrent" class="current-dot" />
-                  <button v-else class="rollback-btn" @click="handleRollback(v)">回滚</button>
+                  <span v-if="v.latest" class="current-dot" />
+                  <button
+                    v-else
+                    class="compare-btn"
+                    :class="{ 'compare-btn--active': diffMode && diffVersion?.id === v.id }"
+                    :disabled="diffLoading"
+                    @click="enterDiff(v)"
+                  >
+                    {{ diffMode && diffVersion?.id === v.id ? '对比中' : '对比' }}
+                  </button>
                 </div>
               </div>
             </Transition>
@@ -325,11 +594,116 @@ async function handleRollback(v: (typeof MOCK_VERSIONS)[0]) {
         </div>
       </div>
     </div>
+
+    <!-- ── Publish Dialog ──────────────────────────────────────────────────── -->
+    <el-dialog
+      v-model="publishDialogVisible"
+      :title="isPublished ? '更新发布信息' : '发布文章'"
+      width="540px"
+      :close-on-click-modal="false"
+    >
+      <div class="publish-form">
+
+        <div class="pf-item">
+          <div class="pf-label">封面图 <span class="pf-optional">可选</span></div>
+          <div
+            class="cover-upload"
+            :class="{ 'cover-upload--has-image': coverDisplayUrl }"
+            @click="coverInputRef?.click()"
+          >
+            <template v-if="coverDisplayUrl">
+              <img :src="coverDisplayUrl" class="cover-preview" />
+              <div class="cover-overlay">
+                <el-icon v-if="coverUploading" class="is-loading cover-overlay-icon"><Loading /></el-icon>
+                <span v-else class="cover-change-tip">点击更换</span>
+              </div>
+            </template>
+            <template v-else>
+              <el-icon v-if="coverUploading" class="is-loading" style="font-size: 24px; color: #9ca3af"><Loading /></el-icon>
+              <template v-else>
+                <el-icon class="cover-icon"><Picture /></el-icon>
+                <span class="cover-tip">点击上传封面图</span>
+                <span class="cover-hint">建议尺寸 1200 × 630</span>
+              </template>
+            </template>
+          </div>
+          <input
+            ref="coverInputRef"
+            type="file"
+            accept="image/*"
+            style="display: none"
+            @change="handleCoverSelect"
+          />
+        </div>
+
+        <div class="pf-item">
+          <div class="pf-label">摘要 <span class="pf-optional">可选</span></div>
+          <el-input
+            v-model="publishForm.summary"
+            type="textarea"
+            :rows="3"
+            placeholder="留空则自动截取正文前 200 字..."
+            :maxlength="512"
+            show-word-limit
+            resize="none"
+          />
+        </div>
+
+        <div class="pf-item">
+          <div class="pf-label">
+            分类
+            <span class="pf-required">必填</span>
+          </div>
+          <el-select
+            v-model="categorySelectVal"
+            filterable
+            allow-create
+            clearable
+            :disabled="creatingMeta"
+            placeholder="搜索或输入分类名称，按 Enter 创建"
+            style="width: 100%"
+            @change="handleCategoryChange"
+          >
+            <el-option
+              v-for="cat in categoryOptions"
+              :key="cat.id"
+              :label="cat.name"
+              :value="cat.id"
+            />
+          </el-select>
+        </div>
+
+        <div class="pf-item">
+          <div class="pf-label">标签 <span class="pf-optional">可选</span></div>
+          <el-select
+            v-model="tagSelectVals"
+            multiple
+            filterable
+            allow-create
+            :disabled="creatingMeta"
+            placeholder="搜索或输入标签名称，按 Enter 创建"
+            style="width: 100%"
+            @change="handleTagsChange"
+          >
+            <el-option v-for="t in tagOptions" :key="t.id" :label="t.name" :value="t.id" />
+          </el-select>
+        </div>
+
+      </div>
+
+      <template #footer>
+        <el-button @click="publishDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="publishing" @click="handlePublishConfirm">
+          {{ isPublished ? '更新' : '立即发布' }}
+        </el-button>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
 <style scoped>
-/* ── Layout: escape admin-main padding ───────────────────────────────────────── */
+/* ── Layout ──────────────────────────────────────────────────────────────────── */
 .write-view {
   margin: -24px;
   height: calc(100vh - var(--admin-header-height));
@@ -349,14 +723,12 @@ async function handleRollback(v: (typeof MOCK_VERSIONS)[0]) {
   border-bottom: 1px solid #f0f0f0;
   flex-shrink: 0;
   gap: 12px;
+  z-index: 10;
 }
 
-.tb-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
+.tb-left  { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.tb-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.tb-right :deep(.el-button + .el-button) { margin-left: 0; }
 
 .back-btn {
   display: inline-flex;
@@ -372,374 +744,298 @@ async function handleRollback(v: (typeof MOCK_VERSIONS)[0]) {
   white-space: nowrap;
   transition: color 0.15s, background 0.15s;
 }
+.back-btn:hover { color: #111827; background: #f3f4f6; }
 
-.back-btn:hover {
-  color: #111827;
-  background: #f3f4f6;
-}
+.tb-sep { width: 1px; height: 18px; background: #e5e7eb; flex-shrink: 0; }
 
-.tb-sep {
-  width: 1px;
-  height: 18px;
-  background: #e5e7eb;
-  flex-shrink: 0;
-}
+.status-pill { font-size: 12px; font-weight: 500; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+.status-pill--published { background: #f0fdf4; color: #16a34a; }
+.status-pill--draft     { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
 
-.status-pill {
-  font-size: 12px;
-  font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.status-pill--published {
-  background: #f0fdf4;
-  color: #16a34a;
-}
-
-.status-pill--draft {
-  background: #f9fafb;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
-}
-
-.tb-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.tb-right :deep(.el-button + .el-button) {
-  margin-left: 0;
-}
-
-.save-hint {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.word-count {
-  font-size: 12px;
-  color: #9ca3af;
-}
+.save-hint { font-size: 12px; color: #9ca3af; }
 
 .sidebar-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: transparent;
-  color: #6b7280;
-  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  border: 1px solid #e5e7eb; border-radius: 6px;
+  background: transparent; color: #6b7280; cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
-
-.sidebar-toggle:hover {
-  border-color: #c7d2fe;
-  background: #f5f3ff;
-  color: #4338ca;
-}
+.sidebar-toggle:hover { border-color: #c7d2fe; background: #f5f3ff; color: #4338ca; }
 
 /* ── Body ────────────────────────────────────────────────────────────────────── */
-.write-body {
+.write-body { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+
+/* ── Editor area ─────────────────────────────────────────────────────────────── */
+.editor-area {
   flex: 1;
   display: flex;
+  flex-direction: column;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 
-/* ── Editor ──────────────────────────────────────────────────────────────────── */
-.editor-wrap {
-  flex: 1;
-  overflow-y: auto;
-  padding: 52px 0 80px;
-  min-width: 0;
-}
-
-.editor-inner {
-  max-width: 740px;
-  margin: 0 auto;
-  padding: 0 48px;
-}
+.title-section { padding: 24px 48px 14px; flex-shrink: 0; }
 
 .title-input {
-  display: block;
-  width: 100%;
-  font-size: 30px;
-  font-weight: 700;
-  color: #111827;
-  border: none;
-  outline: none;
-  background: transparent;
-  line-height: 1.3;
-  padding: 0;
-  margin-bottom: 20px;
-  font-family: inherit;
+  display: block; width: 100%;
+  font-size: 28px; font-weight: 700; color: #111827;
+  border: none; outline: none; background: transparent;
+  line-height: 1.35; padding: 0; font-family: inherit;
 }
+.title-input::placeholder { color: #d1d5db; }
+.title-input:disabled     { opacity: 1; cursor: default; }
 
-.title-input::placeholder {
-  color: #d1d5db;
-}
-
-.editor-divider {
-  height: 1px;
-  background: #f0f0f0;
-  margin-bottom: 24px;
-}
-
-.content-textarea {
-  display: block;
-  width: 100%;
-  font-size: 16px;
-  line-height: 1.875;
-  color: #374151;
-  border: none;
-  outline: none;
-  background: transparent;
-  resize: none;
-  min-height: 480px;
-  font-family: inherit;
-  overflow: hidden;
-}
-
-.content-textarea::placeholder {
-  color: #d1d5db;
-}
-
-/* ── Sidebar ─────────────────────────────────────────────────────────────────── */
-.meta-sidebar {
-  width: 300px;
+/* ── Diff banner ─────────────────────────────────────────────────────────────── */
+.diff-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 48px;
+  background: #fffbeb;
+  border-top: 1px solid #fde68a;
+  border-bottom: 1px solid #fde68a;
   flex-shrink: 0;
-  border-left: 1px solid #f0f0f0;
-  background: #fafafa;
-  transition: width 0.25s ease, opacity 0.2s ease;
-  overflow: hidden;
 }
 
-.meta-sidebar--closed {
-  width: 0;
-  opacity: 0;
+.diff-banner-enter-active,
+.diff-banner-leave-active { transition: opacity 0.2s, transform 0.2s; }
+.diff-banner-enter-from,
+.diff-banner-leave-to     { opacity: 0; transform: translateY(-6px); }
+
+.diff-banner-left  { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.diff-banner-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.diff-banner-right :deep(.el-button + .el-button) { margin-left: 0; }
+
+.diff-badge {
+  font-size: 11px; font-weight: 600;
+  color: #92400e; background: #fde68a;
+  padding: 2px 8px; border-radius: 4px;
+  white-space: nowrap; flex-shrink: 0;
 }
 
-.sidebar-scroll {
-  width: 300px;
-  height: 100%;
+.diff-desc {
+  font-size: 13px; color: #78350f;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── md-editor-v3 ────────────────────────────────────────────────────────────── */
+.md-wrap { flex: 1; min-height: 0; overflow: hidden; }
+
+:deep(.md-editor)                   { border: none !important; border-radius: 0; font-family: inherit; }
+:deep(.md-editor-toolbar-wrapper)   { border-bottom: 1px solid #f0f0f0; background: #fafafa; }
+:deep(.md-editor-toolbar)           { padding: 0 48px; }
+:deep(.md-editor-input-wrapper)     { background: #fff; }
+:deep(.md-editor-input)             { font-size: 15px; line-height: 1.8; color: #374151; padding: 28px 48px !important; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+:deep(.md-editor-preview-wrapper)   { background: #fff; }
+:deep(.md-editor-preview)           { padding: 28px 48px !important; }
+:deep(.md-editor-preview h1),
+:deep(.md-editor-preview h2)        { border-bottom: 1px solid #f0f0f0; padding-bottom: 0.3em; }
+:deep(.md-editor-preview code:not(pre code)) { background: #f3f4f6; color: #e53e3e; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
+:deep(.md-editor-preview pre)       { border-radius: 8px; font-size: 14px; }
+
+/* ── Diff view ───────────────────────────────────────────────────────────────── */
+.diff-view {
+  flex: 1;
   overflow-y: auto;
+  padding: 28px 48px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: #fff;
 }
 
-/* ── Sidebar sections ────────────────────────────────────────────────────────── */
-.sidebar-section {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
-}
+.diff-section { display: flex; flex-direction: column; gap: 0; }
 
-.section-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
+.diff-section-label {
+  font-size: 11px; font-weight: 600;
+  color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px;
   margin-bottom: 10px;
 }
 
-/* Cover upload */
-.cover-upload {
+/* Title diff */
+.diff-title-row {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  height: 96px;
-  border: 2px dashed #e5e7eb;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.cover-upload:hover {
-  border-color: #c7d2fe;
-  background: #f5f3ff;
-}
-
-.cover-icon {
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 4px;
   font-size: 22px;
-  color: #9ca3af;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.diff-title-row--removed { background: #fff5f5; }
+.diff-title-row--added   { background: #f0fdf4; }
+
+.diff-title-text { flex: 1; }
+
+/* Word-level highlighting inside title added row */
+.diff-word--added   { background: #bbf7d0; border-radius: 2px; }
+.diff-word--removed { background: #fecdd3; text-decoration: line-through; border-radius: 2px; }
+
+/* Content diff */
+.diff-section--content { flex: 1; }
+
+.diff-lines {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.cover-tip {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.cover-hint {
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-/* Settings */
-.setting-row {
+.diff-line {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.setting-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.setting-name {
-  font-size: 13px;
-  color: #374151;
-  font-weight: 500;
-}
-
-.setting-desc {
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-/* Version history */
-.version-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-}
-
-.chevron {
-  color: #9ca3af;
-  transition: transform 0.2s ease;
-}
-
-.version-list {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
+  align-items: baseline;
   gap: 0;
+  padding: 1px 0;
+  min-height: 24px;
 }
+
+.diff-line--added     { background: #f0fdf4; }
+.diff-line--removed   { background: #fff5f5; }
+.diff-line--unchanged { background: #fff; }
+
+.diff-marker {
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.diff-line--added   .diff-marker { color: #16a34a; }
+.diff-line--removed .diff-marker { color: #dc2626; }
+.diff-line--unchanged .diff-marker { color: #d1d5db; }
+
+.diff-line-text {
+  flex: 1;
+  padding: 0 16px 0 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #374151;
+}
+.diff-line--added   .diff-line-text { color: #166534; }
+.diff-line--removed .diff-line-text { color: #991b1b; }
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────────── */
+.meta-sidebar {
+  width: 260px; flex-shrink: 0;
+  border-left: 1px solid #f0f0f0; background: #fafafa;
+  transition: width 0.25s ease, opacity 0.2s ease;
+  overflow: hidden;
+}
+.meta-sidebar--closed { width: 0; opacity: 0; }
+
+.sidebar-scroll { width: 260px; height: 100%; overflow-y: auto; }
+
+.sidebar-section { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
+
+.section-label {
+  font-size: 11px; font-weight: 600; color: #9ca3af;
+  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;
+}
+
+.version-header {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; background: transparent; border: none; cursor: pointer; padding: 0;
+}
+
+.chevron { color: #9ca3af; transition: transform 0.2s ease; }
+
+.version-list { margin-top: 12px; display: flex; flex-direction: column; }
 
 .version-list-enter-active,
-.version-list-leave-active {
-  transition: opacity 0.2s, transform 0.2s;
-}
-
+.version-list-leave-active { transition: opacity 0.2s, transform 0.2s; }
 .version-list-enter-from,
-.version-list-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
+.version-list-leave-to     { opacity: 0; transform: translateY(-6px); }
 
 .version-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #f3f4f6;
-  gap: 8px;
-}
-
-.version-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.version-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.version-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #374151;
-}
-
-.version-time {
-  font-size: 11px;
-  color: #9ca3af;
-}
-
-.current-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #16a34a;
-  flex-shrink: 0;
-}
-
-.rollback-btn {
-  flex-shrink: 0;
-  font-size: 12px;
-  color: #4338ca;
-  background: transparent;
-  border: 1px solid #c7d2fe;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid #f3f4f6; gap: 8px;
   border-radius: 4px;
-  padding: 3px 10px;
-  cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background 0.15s;
 }
+.version-item:last-child { border-bottom: none; padding-bottom: 0; }
+.version-item--active    { background: #f5f3ff; margin: 0 -4px; padding-left: 4px; padding-right: 4px; }
 
-.rollback-btn:hover {
-  background: #ede9fe;
-  border-color: #a5b4fc;
+.version-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.version-label { font-size: 13px; font-weight: 500; color: #374151; }
+.version-time  { font-size: 11px; color: #9ca3af; }
+
+.current-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; flex-shrink: 0; }
+
+.compare-btn {
+  flex-shrink: 0; font-size: 12px; color: #4338ca;
+  background: transparent; border: 1px solid #c7d2fe;
+  border-radius: 4px; padding: 3px 10px; cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
 }
+.compare-btn:hover       { background: #ede9fe; border-color: #a5b4fc; }
+.compare-btn--active     { background: #4338ca; border-color: #4338ca; color: #fff; }
+.compare-btn--active:hover { background: #3730a3; border-color: #3730a3; }
+.compare-btn:disabled    { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Publish dialog ───────────────────────────────────────────────────────────── */
+.publish-form { display: flex; flex-direction: column; gap: 20px; }
+.pf-item      { display: flex; flex-direction: column; gap: 8px; }
+.pf-label     { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151; }
+.pf-optional  { font-size: 11px; font-weight: 400; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 3px; }
+.pf-required  { font-size: 11px; font-weight: 500; color: #dc2626; background: #fef2f2; padding: 1px 6px; border-radius: 3px; }
+
+.cover-upload {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; height: 120px;
+  border: 2px dashed #e5e7eb; border-radius: 8px; cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cover-upload:hover { border-color: #c7d2fe; background: #f5f3ff; }
+.cover-upload--has-image { border-style: solid; padding: 0; }
+.cover-upload--has-image:hover { background: transparent; }
+
+.cover-icon { font-size: 24px; color: #9ca3af; }
+.cover-tip  { font-size: 13px; color: #6b7280; }
+.cover-hint { font-size: 11px; color: #9ca3af; }
+
+.cover-preview { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.cover-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.cover-upload--has-image:hover .cover-overlay { opacity: 1; }
+.cover-change-tip   { font-size: 13px; font-weight: 500; color: #fff; }
+.cover-overlay-icon { font-size: 24px; color: #fff; }
 
 /* ── Mobile ──────────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .write-view {
-    margin: -16px -12px;
-  }
-
-  .write-toolbar {
-    padding: 0 12px;
-    gap: 8px;
-  }
-
-  .save-hint,
-  .word-count {
-    display: none;
-  }
-
-  .editor-inner {
-    padding: 0 20px;
-  }
-
-  .editor-wrap {
-    padding: 28px 0 60px;
-  }
-
-  .title-input {
-    font-size: 22px;
-  }
+  .write-view     { margin: -16px -12px; }
+  .write-toolbar  { padding: 0 12px; gap: 8px; }
+  .save-hint, .word-count { display: none; }
+  .title-section  { padding: 24px 20px 14px; }
+  .title-input    { font-size: 22px; }
+  .diff-banner    { padding: 10px 20px; }
+  .diff-view      { padding: 20px 20px 40px; }
+  :deep(.md-editor-toolbar) { padding: 0 12px; }
+  :deep(.md-editor-input)   { padding: 20px !important; }
+  :deep(.md-editor-preview) { padding: 20px !important; }
 
   .meta-sidebar {
-    position: fixed;
-    top: var(--admin-header-height);
-    right: 0;
-    height: calc(100vh - var(--admin-header-height));
-    z-index: 100;
+    position: fixed; top: var(--admin-header-height); right: 0;
+    height: calc(100vh - var(--admin-header-height)); z-index: 100;
     box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
   }
-
-  .meta-sidebar--closed {
-    width: 0;
-    opacity: 0;
-    box-shadow: none;
-  }
+  .meta-sidebar--closed { width: 0; opacity: 0; box-shadow: none; }
 }
 </style>
