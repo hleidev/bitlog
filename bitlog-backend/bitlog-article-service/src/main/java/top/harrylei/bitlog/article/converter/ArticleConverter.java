@@ -4,6 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
@@ -30,11 +31,14 @@ public interface ArticleConverter {
     @Mapping(target = "id", source = "version.articleId")
     @Mapping(target = "userId", source = "article.userId")
     @Mapping(target = "categoryId", source = "article.categoryId")
+    @Mapping(target = "latestVersionId", source = "article.latestVersionId")
+    @Mapping(target = "publishedVersionId", source = "article.publishedVersionId")
     @Mapping(target = "createTime", source = "article.createTime")
     @Mapping(target = "readCount", ignore = true)
     @Mapping(target = "commentCount", ignore = true)
     @Mapping(target = "categoryName", ignore = true)
     @Mapping(target = "status", ignore = true)
+    @Mapping(target = "tagIds", ignore = true)
     @Mapping(target = "tags", ignore = true)
     @Mapping(target = "topping", ignore = true)
     @Mapping(target = "publishTime", ignore = true)
@@ -48,11 +52,14 @@ public interface ArticleConverter {
     @Mapping(target = "versionId", source = "version.id")
     @Mapping(target = "userId", source = "article.userId")
     @Mapping(target = "categoryId", source = "article.categoryId")
+    @Mapping(target = "latestVersionId", source = "article.latestVersionId")
+    @Mapping(target = "publishedVersionId", source = "article.publishedVersionId")
     @Mapping(target = "createTime", source = "article.createTime")
     @Mapping(target = "readCount", ignore = true)
     @Mapping(target = "commentCount", ignore = true)
     @Mapping(target = "categoryName", ignore = true)
     @Mapping(target = "status", ignore = true)
+    @Mapping(target = "tagIds", ignore = true)
     @Mapping(target = "tags", ignore = true)
     @Mapping(target = "topping", ignore = true)
     @Mapping(target = "publishTime", ignore = true)
@@ -60,14 +67,20 @@ public interface ArticleConverter {
     ArticleDetailVO toDetailVO(ArticleDO article, ArticleVersionDO version);
 
     /**
-     * ArticleVersionDO → ArticleVersionVO（版本历史列表条目）
+     * ArticleVersionDO → ArticleVersionVO（版本历史列表条目，latest 由服务层填充）
      */
+    @Mapping(target = "latest", ignore = true)
     ArticleVersionVO toVersionVO(ArticleVersionDO version);
 
     /**
      * List<ArticleVersionDO> → List<ArticleVersionVO>
      */
     List<ArticleVersionVO> toVersionVOList(List<ArticleVersionDO> list);
+
+    /**
+     * ArticleVersionDO → ArticleVersionDetailVO（含正文，用于版本对比）
+     */
+    ArticleVersionDetailVO toVersionDetailVO(ArticleVersionDO version);
 
     TagVO toTagVO(TagDO tag);
 

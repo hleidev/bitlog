@@ -20,6 +20,7 @@ import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.article.service.ArticleService;
@@ -109,6 +110,13 @@ public class ArticleController {
     @GetMapping("/{id}/versions")
     public Result<List<ArticleVersionVO>> versions(@PathVariable Long id) {
         return Result.success(articleService.listVersions(ReqInfoContext.getContext().getUserId(), id));
+    }
+
+    @RequiresLogin
+    @Operation(summary = "获取指定版本详情（含正文，用于版本对比）")
+    @GetMapping("/{id}/versions/{versionId}")
+    public Result<ArticleVersionDetailVO> versionDetail(@PathVariable Long id, @PathVariable Long versionId) {
+        return Result.success(articleService.getVersionDetail(ReqInfoContext.getContext().getUserId(), id, versionId));
     }
 
     @RequiresLogin

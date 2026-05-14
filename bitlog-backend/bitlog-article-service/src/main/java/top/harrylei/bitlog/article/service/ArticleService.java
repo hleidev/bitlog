@@ -7,6 +7,7 @@ import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.common.model.PageVO;
@@ -101,6 +102,16 @@ public interface ArticleService {
      * @param versionId 要回滚的版本 ID
      */
     void rollbackVersion(Long userId, Long articleId, Long versionId);
+
+    /**
+     * 获取指定版本详情（含正文，用于版本对比）
+     *
+     * @param userId    操作用户 ID
+     * @param articleId 文章 ID
+     * @param versionId 版本 ID
+     * @return 版本详情
+     */
+    ArticleVersionDetailVO getVersionDetail(Long userId, Long articleId, Long versionId);
 
     /**
      * 分页查询已发布文章列表（公开）

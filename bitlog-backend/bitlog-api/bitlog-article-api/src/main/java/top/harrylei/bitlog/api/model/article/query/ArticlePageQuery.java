@@ -1,6 +1,7 @@
 package top.harrylei.bitlog.api.model.article.query;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -22,6 +23,7 @@ public class ArticlePageQuery extends BasePage {
     @Schema(description = "分类 ID")
     private Long categoryId;
 
+    @Size(max = 50, message = "关键词长度不能超过 50")
     @Schema(description = "关键词（搜索标题）")
     private String keyword;
 

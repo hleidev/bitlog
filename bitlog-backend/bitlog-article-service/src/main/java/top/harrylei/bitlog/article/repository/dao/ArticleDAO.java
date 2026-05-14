@@ -11,6 +11,10 @@ import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.article.repository.mapper.ArticleMapper;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+
 /**
  * 文章主表数据访问对象
  *
@@ -28,6 +32,17 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
                 .eq(ArticleDO::getId, articleId)
                 .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
                 .one();
+    }
+
+    /** 批量查询未删除文章 */
+    public List<ArticleDO> listByIdsAndNotDeleted(Collection<Long> articleIds) {
+        if (articleIds == null || articleIds.isEmpty()) {
+            return List.of();
+        }
+        return lambdaQuery()
+                .in(ArticleDO::getId, articleIds)
+                .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .list();
     }
 
     /** 新建草稿后设置首个版本 ID 和版本计数 */
@@ -48,14 +63,23 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
                 .update();
     }
 
-    /** 发布文章：更新封面、摘要、分类和已发布版本 ID */
-    public void publish(Long articleId, String cover, String summary, Long categoryId, Long publishedVersionId) {
+    /** 发布文章：更新封面、摘要、分类、已发布版本 ID 和发布时间 */
+    public void publish(Long articleId, String cover, String summary, Long categoryId, Long publishedVersionId, LocalDateTime publishTime) {
         lambdaUpdate()
                 .eq(ArticleDO::getId, articleId)
                 .set(ArticleDO::getCover, cover)
                 .set(ArticleDO::getSummary, summary)
                 .set(ArticleDO::getCategoryId, categoryId)
                 .set(ArticleDO::getPublishedVersionId, publishedVersionId)
+                .set(ArticleDO::getPublishTime, publishTime)
+                .update();
+    }
+
+    /** 设置首次发布时间（仅在 publishTime 为 null 时由 updateStatus 重新发布路径调用） */
+    public void setPublishTime(Long articleId, LocalDateTime publishTime) {
+        lambdaUpdate()
+                .eq(ArticleDO::getId, articleId)
+                .set(ArticleDO::getPublishTime, publishTime)
                 .update();
     }
 

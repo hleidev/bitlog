@@ -8,6 +8,7 @@ import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.model.BaseDO;
 
 import java.io.Serial;
+import java.time.LocalDateTime;
 
 /**
  * 文章主表实体
@@ -43,6 +44,11 @@ public class ArticleDO extends BaseDO {
      * 是否置顶：0-否，1-是
      */
     private Integer topping;
+
+    /**
+     * 首次发布时间，null 表示从未发布
+     */
+    private LocalDateTime publishTime;
 
     /**
      * 封面图地址

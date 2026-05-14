@@ -20,6 +20,7 @@ import java.util.List;
  * 标签业务服务实现
  *
  * @author harry
+ * 
  * @since 0.0.1
  */
 @Slf4j
@@ -36,6 +37,7 @@ public class TagServiceImpl implements TagService {
         return articleConverter.toTagVOList(tagDAO.listAll(name));
     }
 
+    @Transactional
     @Override
     public Long getOrCreate(String name) {
         if (name == null || name.isBlank()) {
@@ -85,9 +87,7 @@ public class TagServiceImpl implements TagService {
     }
 
     private Long createTag(String name) {
-        TagDO tag = new TagDO()
-                .setName(name)
-                .setArticleCount(0);
+        TagDO tag = new TagDO().setName(name).setArticleCount(0);
         tagDAO.save(tag);
         log.info("创建标签 name={} id={}", name, tag.getId());
         return tag.getId();

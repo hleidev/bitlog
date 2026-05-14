@@ -37,11 +37,20 @@ public class ArticleVO {
     @Schema(description = "文章状态")
     private ArticleStatusEnum status;
 
+    @Schema(description = "最新草稿版本 ID（article_version.id）")
+    private Long latestVersionId;
+
+    @Schema(description = "已发布版本 ID（article_version.id），null 表示从未发布")
+    private Long publishedVersionId;
+
     @Schema(description = "分类 ID")
     private Long categoryId;
 
     @Schema(description = "分类名称")
     private String categoryName;
+
+    @Schema(description = "标签 ID 列表")
+    private List<Long> tagIds;
 
     @Schema(description = "标签名称列表")
     private List<String> tags;
