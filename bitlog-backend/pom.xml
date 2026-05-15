@@ -15,17 +15,14 @@
     <artifactId>bitlog-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>bitlog-backend</name>
-    <description>BitLog 博客微服务</description>
+    <description>BitLog 博客平台</description>
 
     <modules>
-        <!-- 已创建的模块，随开发进度逐步追加 -->
-        <module>bitlog-common-core</module>
         <module>bitlog-common</module>
-        <module>bitlog-api</module>
-        <module>bitlog-user-service</module>
-        <module>bitlog-article-service</module>
-        <module>bitlog-file-service</module>
-        <module>bitlog-gateway</module>
+        <module>bitlog-user</module>
+        <module>bitlog-article</module>
+        <module>bitlog-file</module>
+        <module>bitlog-server</module>
     </modules>
 
     <properties>
@@ -33,10 +30,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-
-        <!-- Spring Cloud -->
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
-        <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
 
         <!-- 与单体版本保持一致的三方依赖 -->
         <guava.version>32.0.1-android</guava.version>
@@ -64,57 +57,6 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- ===== Spring Cloud Alibaba 全家桶 BOM ===== -->
-            <dependency>
-                <groupId>com.alibaba.cloud</groupId>
-                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
-                <version>${spring-cloud-alibaba.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <!-- Spring Cloud BOM（Gateway、OpenFeign、LoadBalancer） -->
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <!-- ===== 内部公共模块 ===== -->
-            <dependency>
-                <groupId>top.harrylei.bitlog</groupId>
-                <artifactId>bitlog-common-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.harrylei.bitlog</groupId>
-                <artifactId>bitlog-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.harrylei.bitlog</groupId>
-                <artifactId>bitlog-common-web</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <!-- bitlog-api 子模块 -->
-            <dependency>
-                <groupId>top.harrylei.bitlog</groupId>
-                <artifactId>bitlog-user-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.harrylei.bitlog</groupId>
-                <artifactId>bitlog-article-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.harrylei.bitlog</groupId>
-                <artifactId>bitlog-interaction-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
             <!-- ===== 三方依赖版本锁定 ===== -->
             <dependency>
                 <groupId>com.google.guava</groupId>

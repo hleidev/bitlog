@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
  * 认证服务实现
  *
  * @author harry
+ * 
  * @since 0.0.1
  */
 @Slf4j
@@ -73,30 +74,21 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String password = generateRandomPassword();
-        doCreateUser(req.getUsername(), req.getEmail(), password, req.getUserRole(),
-                req.getPosition(), req.getCompany(), req.getProfile());
+        doCreateUser(req.getUsername(), req.getEmail(), password, req.getUserRole(), req.getPosition(),
+                req.getCompany(), req.getProfile());
         log.info("管理员创建用户成功 username={}", req.getUsername());
         return new UserCreatedVO().setUsername(req.getUsername()).setInitialPassword(password);
     }
 
-    private void doCreateUser(String username, String email, String rawPassword, UserRoleEnum role,
-                              String position, String company, String profile) {
-        UserDO newUser = new UserDO()
-                .setUsername(username)
-                .setEmail(email)
-                .setPassword(passwordEncoder.encode(rawPassword))
-                .setThirdAccountId("")
+    private void doCreateUser(String username, String email, String rawPassword, UserRoleEnum role, String position,
+            String company, String profile) {
+        UserDO newUser = new UserDO().setUsername(username).setEmail(email)
+                .setPassword(passwordEncoder.encode(rawPassword)).setThirdAccountId("")
                 .setLoginType(LoginTypeEnum.USERNAME_PASSWORD);
         userDAO.save(newUser);
 
-        UserInfoDO userInfo = new UserInfoDO()
-                .setUserId(newUser.getId())
-                .setNickname(username)
-                .setAvatar("")
-                .setUserRole(role)
-                .setPosition(position)
-                .setCompany(company)
-                .setProfile(profile);
+        UserInfoDO userInfo = new UserInfoDO().setUserId(newUser.getId()).setNickname(username).setAvatar("")
+                .setUserRole(role).setPosition(position).setCompany(company).setProfile(profile);
         userInfoDAO.save(userInfo);
     }
 
@@ -172,12 +164,8 @@ public class AuthServiceImpl implements AuthService {
         String refreshToken = UUID.randomUUID().toString();
         String redisValue = userId + ":" + role.name();
 
-        redisTemplate.opsForValue().set(
-                RedisKeyConstants.getUserRefreshTokenKey(refreshToken),
-                redisValue,
-                jwtProperties.getRefreshTokenExpire().getSeconds(),
-                TimeUnit.SECONDS
-        );
+        redisTemplate.opsForValue().set(RedisKeyConstants.getUserRefreshTokenKey(refreshToken), redisValue,
+                jwtProperties.getRefreshTokenExpire().getSeconds(), TimeUnit.SECONDS);
 
         log.info("颁发 Token 对 userId={}", userId);
         return new LoginResult(accessToken, refreshToken);

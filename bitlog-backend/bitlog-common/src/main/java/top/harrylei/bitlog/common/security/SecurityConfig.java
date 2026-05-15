@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import top.harrylei.bitlog.common.config.JwtProperties;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.Result;
 
@@ -22,29 +23,25 @@ import java.util.List;
 /**
  * 通用 Spring Security 配置
  * <p>
- * 预置公共白名单：内部接口、Actuator、Swagger。
- * 各服务通过 security.additional-whitelist 追加自己的公开路径。
+ * 预置公共白名单：内部接口、Actuator、Swagger。 各服务通过 security.additional-whitelist 追加自己的公开路径。
  * </p>
  *
  * @author harry
+ * 
  * @since 0.0.1
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
-@EnableConfigurationProperties(SecurityProperties.class)
+@EnableConfigurationProperties({ SecurityProperties.class, JwtProperties.class })
 public class SecurityConfig {
 
     /** 所有服务通用的白名单 */
-    private static final List<String> BASE_WHITELIST = List.of(
-            "/api/v1/internal/**",
-            "/actuator/**",
-            "/swagger-ui/**",
-            "/v3/api-docs/**"
-    );
+    private static final List<String> BASE_WHITELIST = List.of("/api/v1/internal/**", "/actuator/**", "/swagger-ui/**",
+            "/v3/api-docs/**");
 
-    private final GatewayAuthenticationFilter gatewayAuthenticationFilter;
+    private final JwtAuthFilter jwtAuthFilter;
     private final ObjectMapper objectMapper;
     private final SecurityProperties securityProperties;
 
@@ -53,35 +50,24 @@ public class SecurityConfig {
         List<String> whitelist = new ArrayList<>(BASE_WHITELIST);
         whitelist.addAll(securityProperties.getAdditionalWhitelist());
 
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(whitelist.toArray(String[]::new)).permitAll()
-                        .anyRequest().authenticated()
-                )
-                .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable)
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, e) -> {
-                            try {
-                                writeJson(response, HttpServletResponse.SC_UNAUTHORIZED,
-                                        Result.fail(ResultCode.TOKEN_INVALID));
-                            } catch (Exception ex2) {
-                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-                            }
-                        })
-                        .accessDeniedHandler((request, response, e) -> {
-                            try {
-                                writeJson(response, HttpServletResponse.SC_FORBIDDEN,
-                                        Result.fail(ResultCode.FORBIDDEN));
-                            } catch (Exception ex2) {
-                                response.sendError(HttpServletResponse.SC_FORBIDDEN);
-                            }
-                        })
-                )
-                .addFilterBefore(gatewayAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth.requestMatchers(whitelist.toArray(String[]::new)).permitAll()
+                        .anyRequest().authenticated())
+                .formLogin(AbstractHttpConfigurer::disable).httpBasic(AbstractHttpConfigurer::disable)
+                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, e) -> {
+                    try {
+                        writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, Result.fail(ResultCode.TOKEN_INVALID));
+                    } catch (Exception ex2) {
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                    }
+                }).accessDeniedHandler((request, response, e) -> {
+                    try {
+                        writeJson(response, HttpServletResponse.SC_FORBIDDEN, Result.fail(ResultCode.FORBIDDEN));
+                    } catch (Exception ex2) {
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                    }
+                })).addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

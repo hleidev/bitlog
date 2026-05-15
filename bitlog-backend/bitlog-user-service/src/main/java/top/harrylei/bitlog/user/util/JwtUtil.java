@@ -16,6 +16,7 @@ import java.util.Date;
  * JWT 工具类
  *
  * @author harry
+ * 
  * @since 0.0.1
  */
 @Component
@@ -34,8 +35,11 @@ public class JwtUtil {
     /**
      * 生成 Access Token
      *
-     * @param userId 用户 ID
-     * @param role   用户角色
+     * @param userId
+     *            用户 ID
+     * @param role
+     *            用户角色
+     * 
      * @return JWT 字符串（有效期由 jwt.access-token-expire 配置决定）
      */
     public String generateToken(Long userId, UserRoleEnum role) {
@@ -44,13 +48,8 @@ public class JwtUtil {
         }
         long now = System.currentTimeMillis();
         Date expiryDate = new Date(now + jwtProperties.getAccessTokenExpire().toMillis());
-        return Jwts.builder()
-                .setSubject(String.valueOf(userId))
-                .claim("role", role)
-                .setIssuer(jwtProperties.getIssuer())
-                .setIssuedAt(new Date(now))
-                .setExpiration(expiryDate)
-                .signWith(secretKey, SignatureAlgorithm.HS256)
-                .compact();
+        return Jwts.builder().setSubject(String.valueOf(userId)).claim("role", role)
+                .setIssuer(jwtProperties.getIssuer()).setIssuedAt(new Date(now)).setExpiration(expiryDate)
+                .signWith(secretKey, SignatureAlgorithm.HS256).compact();
     }
 }

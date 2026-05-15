@@ -9,25 +9,38 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>bitlog-common-web</artifactId>
-    <name>bitlog-common-web</name>
-    <description>Web 基础设施：Spring MVC、Security、MyBatis-Plus、Redis 相关配置</description>
+    <artifactId>bitlog-common</artifactId>
+    <name>bitlog-common</name>
+    <description>公共基础设施：POJO、枚举、工具类、异常体系、Security、MyBatis-Plus、Redis 配置</description>
 
     <dependencies>
-        <!-- 核心基础模块（POJO、枚举、工具类、异常体系） -->
         <dependency>
-            <groupId>top.harrylei.bitlog</groupId>
-            <artifactId>bitlog-common-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
-
-        <!-- Redis（optional：仅在使用 Redis 的服务中生效） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
             <optional>true</optional>
         </dependency>
-
-        <!-- MyBatis-Plus（MybatisPlusConfig 分页插件，BaseDO @TableId，optional：仅在使用 DB 的服务中生效） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
@@ -38,36 +51,45 @@
             <artifactId>mybatis-plus-jsqlparser</artifactId>
             <optional>true</optional>
         </dependency>
-
-        <!-- Spring Security（SecurityConfig、GatewayAuthenticationFilter） -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-            <optional>true</optional>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
         </dependency>
-
-        <!-- Spring Web MVC（GlobalExceptionHandler 的 @RestControllerAdvice 等注解） -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-            <!-- 各服务本身也会引入 web starter，common 只做编译依赖，不额外打包 Tomcat -->
-            <optional>true</optional>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
         </dependency>
-
-        <!-- Bean Validation（StringToDeleteStatusEnumConverter） -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
         </dependency>
-
-        <!-- Lombok（编译期代码生成，provided 不打入 jar） -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>transmittable-thread-local</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
-
-        <!-- ===== 测试 ===== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
