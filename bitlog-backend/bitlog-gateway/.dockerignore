@@ -1,4 +1,0 @@
-src/
-*.md
-*.xml
-!target/bytelogs-gateway-*.jar
