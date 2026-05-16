@@ -75,7 +75,7 @@ async function handleCoverSelect(e: Event) {
   coverUploading.value = true
   try {
     const res = await uploadFile(file, 'article_cover')
-    publishForm.value.cover = res.fileKey
+    publishForm.value.cover = res.fileUrl
   } catch {
     ElMessage.error('封面图上传失败')
     URL.revokeObjectURL(coverDisplayUrl.value!)

@@ -2,6 +2,7 @@ import request from '@/utils/request'
 
 export interface UploadRes {
   fileKey: string
+  fileUrl: string
 }
 
 export function uploadFile(file: File, scene: string): Promise<UploadRes> {
