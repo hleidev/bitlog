@@ -65,7 +65,7 @@ const toggleTheme = () => {
                 :alt="userInfo?.userName"
               />
               <span v-else class="header__avatar header__avatar--placeholder">
-                {{ userInfo?.userName?.[0]?.toUpperCase() ?? '?' }}
+                {{ (userInfo?.nickname || userInfo?.username)?.[0]?.toUpperCase() ?? '?' }}
               </span>
             </button>
             <Transition name="dropdown">
