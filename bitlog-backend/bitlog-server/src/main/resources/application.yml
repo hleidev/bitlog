@@ -1,20 +1,12 @@
-server:
-  port: 8080
-
 spring:
   application:
     name: bitlog-server
+  profiles:
+    active: dev
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:3306/${DB_NAME:bitlog}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      database: ${REDIS_DB:0}
-      password: ${REDIS_PASSWORD:}
       timeout: 10s
       lettuce:
         pool:
@@ -35,16 +27,8 @@ mybatis-plus:
 
 jwt:
   issuer: bitlog
-  secret: ${JWT_SECRET:bitlog-default-secret-key-please-change-in-production-env}
   access-token-expire: 15m
   refresh-token-expire: 30d
-
-storage:
-  endpoint: ${STORAGE_ENDPOINT:http://minio:9000}
-  access-key: ${STORAGE_ACCESS_KEY:admin}
-  secret-key: ${STORAGE_SECRET_KEY:}
-  bucket: ${STORAGE_BUCKET:media}
-  public-url: ${STORAGE_PUBLIC_URL:http://localhost:8001/files}
 
 security:
   additional-whitelist:
@@ -56,15 +40,8 @@ security:
     - /api/v1/tag
     - /api/v1/category
 
-cookie:
-  secure: true
-
 user:
   default-password: bitlog@123
-
-app:
-  exception:
-    print-stack-trace: false
 
 redis:
   health:

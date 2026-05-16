@@ -7,12 +7,13 @@ import top.harrylei.bitlog.article.repository.entity.CategoryDO;
 import top.harrylei.bitlog.article.repository.mapper.CategoryMapper;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 文章分类数据访问对象
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-02
  */
 @Repository
 public class CategoryDAO extends ServiceImpl<CategoryMapper, CategoryDO> {
@@ -21,19 +22,15 @@ public class CategoryDAO extends ServiceImpl<CategoryMapper, CategoryDO> {
      * 根据名称查询分类（用于全局唯一性校验）
      */
     public CategoryDO getByName(String name) {
-        return lambdaQuery()
-                .eq(CategoryDO::getName, name)
-                .one();
+        return lambdaQuery().eq(CategoryDO::getName, name).one();
     }
 
     /**
      * 查询所有分类，支持按名称模糊搜索，按文章数降序
      */
     public List<CategoryDO> listAll(String name) {
-        return lambdaQuery()
-                .like(StringUtils.hasText(name), CategoryDO::getName, name)
-                .orderByDesc(CategoryDO::getArticleCount)
-                .list();
+        return lambdaQuery().like(StringUtils.hasText(name), CategoryDO::getName, name)
+                .orderByDesc(CategoryDO::getArticleCount).list();
     }
 
     /**
@@ -43,10 +40,7 @@ public class CategoryDAO extends ServiceImpl<CategoryMapper, CategoryDO> {
         if (categoryId == null) {
             return;
         }
-        lambdaUpdate()
-                .eq(CategoryDO::getId, categoryId)
-                .setIncrBy(CategoryDO::getArticleCount, 1)
-                .update();
+        lambdaUpdate().eq(CategoryDO::getId, categoryId).setIncrBy(CategoryDO::getArticleCount, 1).update();
     }
 
     /**
@@ -56,10 +50,19 @@ public class CategoryDAO extends ServiceImpl<CategoryMapper, CategoryDO> {
         if (categoryId == null) {
             return;
         }
-        lambdaUpdate()
-                .eq(CategoryDO::getId, categoryId)
-                .setSql("article_count = GREATEST(article_count - 1, 0)")
+        lambdaUpdate().eq(CategoryDO::getId, categoryId).setSql("article_count = GREATEST(article_count - 1, 0)")
                 .update();
+    }
+
+    /**
+     * 按指定数量批量减少分类文章计数（批量删除场景）
+     */
+    public void decrementArticleCountBatch(Map<Long, Long> categoryIdCountMap) {
+        if (categoryIdCountMap == null || categoryIdCountMap.isEmpty()) {
+            return;
+        }
+        categoryIdCountMap.forEach((categoryId, count) -> lambdaUpdate().eq(CategoryDO::getId, categoryId)
+                .setSql("article_count = GREATEST(article_count - {0}, 0)", count).update());
     }
 
 }

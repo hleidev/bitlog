@@ -50,9 +50,8 @@ import java.util.stream.Collectors;
 /**
  * 文章业务服务实现
  *
- * @author harry
- * 
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Slf4j
 @Service
@@ -99,7 +98,7 @@ public class ArticleServiceImpl implements ArticleService {
         checkOwner(article, userId);
 
         // 创建新版本（仅保存标题和正文）
-        int nextVersion = articleVersionDAO.getMaxVersion(articleId) + 1;
+        int nextVersion = getNextVersion(articleId);
         ArticleVersionDO version = buildVersion(articleId, nextVersion, req);
         articleVersionDAO.save(version);
 
@@ -197,24 +196,32 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void batchDelete(Long userId, List<Long> articleIds) {
-        articleIds.forEach(id -> deleteArticle(userId, id));
-    }
+        List<ArticleDO> articles = articleDAO.listByIdsAndNotDeleted(articleIds);
+        if (articles.isEmpty()) {
+            return;
+        }
+        articles.forEach(a -> checkOwner(a, userId));
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void deleteArticle(Long userId, Long articleId) {
-        ArticleDO article = getArticleOrThrow(articleId);
-        checkOwner(article, userId);
-
-        // 只有已发布的文章才需要更新计数，草稿和已取消发布的文章不影响计数
-        if (article.getPublishedVersionId() != null) {
-            List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(articleId);
-            tagDAO.decrementArticleCount(tagIds);
-            categoryDAO.decrementArticleCount(article.getCategoryId());
+        List<ArticleDO> publishedArticles = articles.stream().filter(a -> a.getPublishedVersionId() != null).toList();
+        if (!publishedArticles.isEmpty()) {
+            List<Long> publishedIds = publishedArticles.stream().map(ArticleDO::getId).toList();
+            List<ArticleTagDO> articleTags = articleTagDAO
+                    .list(Wrappers.lambdaQuery(ArticleTagDO.class).in(ArticleTagDO::getArticleId, publishedIds));
+            if (!articleTags.isEmpty()) {
+                Map<Long, Long> tagCountMap = articleTags.stream()
+                        .collect(Collectors.groupingBy(ArticleTagDO::getTagId, Collectors.counting()));
+                tagDAO.decrementArticleCountBatch(tagCountMap);
+            }
+            Map<Long, Long> categoryCountMap = publishedArticles.stream().filter(a -> a.getCategoryId() != null)
+                    .collect(Collectors.groupingBy(ArticleDO::getCategoryId, Collectors.counting()));
+            if (!categoryCountMap.isEmpty()) {
+                categoryDAO.decrementArticleCountBatch(categoryCountMap);
+            }
         }
 
-        articleDAO.delete(articleId);
-        log.info("删除文章 articleId={}", articleId);
+        List<Long> existingIds = articles.stream().map(ArticleDO::getId).toList();
+        articleDAO.batchDelete(existingIds);
+        log.info("批量删除文章 articleIds={}", existingIds);
     }
 
     @Override
@@ -278,7 +285,7 @@ public class ArticleServiceImpl implements ArticleService {
             ResultCode.ARTICLE_VERSION_NOT_EXISTS.throwException();
         }
 
-        int nextVersion = articleVersionDAO.getMaxVersion(articleId) + 1;
+        int nextVersion = getNextVersion(articleId);
         ArticleVersionDO newVersion = new ArticleVersionDO().setArticleId(articleId).setVersion(nextVersion)
                 .setTitle(target.getTitle()).setContent(target.getContent());
         articleVersionDAO.save(newVersion);
@@ -356,6 +363,10 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     // ==================== 私有方法 ====================
+
+    private int getNextVersion(Long articleId) {
+        return articleVersionDAO.getMaxVersion(articleId) + 1;
+    }
 
     private record ArticleTagsData(Map<Long, List<String>> namesByArticle, Map<Long, List<Long>> idsByArticle) {
     }

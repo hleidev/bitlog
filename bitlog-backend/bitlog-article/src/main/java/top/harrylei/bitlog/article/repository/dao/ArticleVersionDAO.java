@@ -11,8 +11,8 @@ import java.util.List;
 /**
  * 文章版本数据访问对象
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Repository
 public class ArticleVersionDAO extends ServiceImpl<ArticleVersionMapper, ArticleVersionDO> {
@@ -20,7 +20,9 @@ public class ArticleVersionDAO extends ServiceImpl<ArticleVersionMapper, Article
     /**
      * 查询文章的最新版本号，不存在时返回 0
      *
-     * @param articleId 文章 ID
+     * @param articleId
+     *            文章 ID
+     * 
      * @return 最大版本号
      */
     public int getMaxVersion(Long articleId) {
@@ -30,13 +32,13 @@ public class ArticleVersionDAO extends ServiceImpl<ArticleVersionMapper, Article
     /**
      * 查询文章的所有版本列表（按版本号降序）
      *
-     * @param articleId 文章 ID
+     * @param articleId
+     *            文章 ID
+     * 
      * @return 版本列表
      */
     public List<ArticleVersionDO> listByArticleId(Long articleId) {
-        return lambdaQuery()
-                .eq(ArticleVersionDO::getArticleId, articleId)
-                .orderByDesc(ArticleVersionDO::getVersion)
+        return lambdaQuery().eq(ArticleVersionDO::getArticleId, articleId).orderByDesc(ArticleVersionDO::getVersion)
                 .list();
     }
 

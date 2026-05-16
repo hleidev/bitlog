@@ -6,12 +6,13 @@ import top.harrylei.bitlog.article.repository.entity.TagDO;
 import top.harrylei.bitlog.article.repository.mapper.TagMapper;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 标签数据访问对象
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-02
  */
 @Repository
 public class TagDAO extends ServiceImpl<TagMapper, TagDO> {
@@ -20,28 +21,22 @@ public class TagDAO extends ServiceImpl<TagMapper, TagDO> {
      * 根据名称查询标签
      */
     public TagDO getByName(String name) {
-        return lambdaQuery()
-                .eq(TagDO::getName, name)
-                .one();
+        return lambdaQuery().eq(TagDO::getName, name).one();
     }
 
     /**
      * 根据 ID 列表批量查询标签
      */
     public List<TagDO> listByIds(List<Long> tagIds) {
-        return lambdaQuery()
-                .in(TagDO::getId, tagIds)
-                .list();
+        return lambdaQuery().in(TagDO::getId, tagIds).list();
     }
 
     /**
      * 按使用频率降序查询所有标签，支持按名称模糊搜索
      */
     public List<TagDO> listAll(String name) {
-        return lambdaQuery()
-                .like(name != null && !name.isBlank(), TagDO::getName, name)
-                .orderByDesc(TagDO::getArticleCount)
-                .list();
+        return lambdaQuery().like(name != null && !name.isBlank(), TagDO::getName, name)
+                .orderByDesc(TagDO::getArticleCount).list();
     }
 
     /**
@@ -51,12 +46,7 @@ public class TagDAO extends ServiceImpl<TagMapper, TagDO> {
         if (tagIds == null || tagIds.isEmpty()) {
             return;
         }
-        tagIds.forEach(tagId ->
-                lambdaUpdate()
-                        .eq(TagDO::getId, tagId)
-                        .setIncrBy(TagDO::getArticleCount, 1)
-                        .update()
-        );
+        tagIds.forEach(tagId -> lambdaUpdate().eq(TagDO::getId, tagId).setIncrBy(TagDO::getArticleCount, 1).update());
     }
 
     /**
@@ -66,12 +56,19 @@ public class TagDAO extends ServiceImpl<TagMapper, TagDO> {
         if (tagIds == null || tagIds.isEmpty()) {
             return;
         }
-        tagIds.forEach(tagId ->
-                lambdaUpdate()
-                        .eq(TagDO::getId, tagId)
-                        .setSql("article_count = GREATEST(article_count - 1, 0)")
-                        .update()
-        );
+        tagIds.forEach(tagId -> lambdaUpdate().eq(TagDO::getId, tagId)
+                .setSql("article_count = GREATEST(article_count - 1, 0)").update());
+    }
+
+    /**
+     * 按指定数量批量减少标签文章计数（批量删除场景，每个标签减少被删除文章中引用该标签的次数）
+     */
+    public void decrementArticleCountBatch(Map<Long, Long> tagIdCountMap) {
+        if (tagIdCountMap == null || tagIdCountMap.isEmpty()) {
+            return;
+        }
+        tagIdCountMap.forEach((tagId, count) -> lambdaUpdate().eq(TagDO::getId, tagId)
+                .setSql("article_count = GREATEST(article_count - {0}, 0)", count).update());
     }
 
 }

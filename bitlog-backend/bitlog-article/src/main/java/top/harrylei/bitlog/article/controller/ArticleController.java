@@ -34,8 +34,8 @@ import java.util.List;
 /**
  * 文章接口
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Tag(name = "文章接口")
 @RestController
@@ -65,14 +65,6 @@ public class ArticleController {
     @PostMapping("/{id}/publish")
     public Result<Void> publish(@PathVariable Long id, @Valid @RequestBody ArticlePublishRequest req) {
         articleService.publishArticle(ReqInfoContext.getContext().getUserId(), id, req);
-        return Result.success();
-    }
-
-    @RequiresLogin
-    @Operation(summary = "删除文章")
-    @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable Long id) {
-        articleService.deleteArticle(ReqInfoContext.getContext().getUserId(), id);
         return Result.success();
     }
 
