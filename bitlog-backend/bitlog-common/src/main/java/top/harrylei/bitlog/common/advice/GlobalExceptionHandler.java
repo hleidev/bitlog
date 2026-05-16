@@ -18,20 +18,16 @@ import java.util.stream.Collectors;
 /**
  * 全局异常处理器
  * <p>
- * 放在 bitlog-common，各微服务通过扩大 ComponentScan 范围自动生效，无需重复定义。
- * 如需覆盖某类异常，在具体服务中再声明一个 @RestControllerAdvice 即可。
+ * 放在 bitlog-common，各微服务通过扩大 ComponentScan 范围自动生效，无需重复定义。 如需覆盖某类异常，在具体服务中再声明一个 @RestControllerAdvice 即可。
  * </p>
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-21
  */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /**
-     * 业务异常：由 ResultCode.throwException() 主动抛出
-     */
     @ExceptionHandler(BusinessException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleBusinessException(BusinessException e) {
@@ -39,22 +35,15 @@ public class GlobalExceptionHandler {
         return Result.fail(e.getCode(), e.getMessage());
     }
 
-    /**
-     * 参数校验失败：@Valid 触发
-     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleValidationException(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
+        String message = e.getBindingResult().getFieldErrors().stream().map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining("; "));
         log.warn("参数校验失败: {}", message);
         return Result.fail(ResultCode.INVALID_PARAMETER.getCode(), message);
     }
 
-    /**
-     * 权限不足：@RequiresAdmin / @RequiresLogin 校验失败
-     */
     @ExceptionHandler(AuthorizationDeniedException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleAuthorizationDenied(AuthorizationDeniedException e) {
@@ -62,18 +51,12 @@ public class GlobalExceptionHandler {
         return Result.fail(ResultCode.FORBIDDEN);
     }
 
-    /**
-     * 404：请求路径不存在
-     */
     @ExceptionHandler(NoResourceFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Result<Void> handleNoResourceFound(NoResourceFoundException e) {
         return Result.fail(ResultCode.RESOURCE_NOT_FOUND.getCode(), e.getMessage());
     }
 
-    /**
-     * 兜底：未预期异常
-     */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Void> handleException(Exception e) {

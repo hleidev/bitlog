@@ -15,8 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Redis 健康状态检查器，定时心跳检测连接是否可用
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-17
  */
 @Slf4j
 @Component
@@ -37,18 +37,22 @@ public class RedisHealthMonitor {
 
     @Scheduled(fixedRateString = "${redis.health.check.interval:30000}")
     public void performHealthCheck() {
-        if (!healthCheckEnabled) return;
+        if (!healthCheckEnabled)
+            return;
         try {
             stringRedisTemplate.opsForValue().set(HEALTH_CHECK_KEY, HEALTH_CHECK_VALUE);
             String result = stringRedisTemplate.opsForValue().get(HEALTH_CHECK_KEY);
             boolean currentHealthy = HEALTH_CHECK_VALUE.equals(result);
             boolean previousHealthy = healthy.getAndSet(currentHealthy);
             if (previousHealthy != currentHealthy) {
-                if (currentHealthy) log.info("Redis 健康状态恢复正常");
-                else log.error("Redis 健康状态异常，连接不可用");
+                if (currentHealthy)
+                    log.info("Redis 健康状态恢复正常");
+                else
+                    log.error("Redis 健康状态异常，连接不可用");
             }
         } catch (Exception e) {
-            if (healthy.getAndSet(false)) log.error("Redis 健康检查失败，连接异常", e);
+            if (healthy.getAndSet(false))
+                log.error("Redis 健康检查失败，连接异常", e);
         }
     }
 

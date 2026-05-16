@@ -8,7 +8,7 @@ import java.lang.annotation.*;
  * 需要登录才能访问
  *
  * @author harry
- * @since 0.0.1
+ * @since 2026-04-09
  */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)

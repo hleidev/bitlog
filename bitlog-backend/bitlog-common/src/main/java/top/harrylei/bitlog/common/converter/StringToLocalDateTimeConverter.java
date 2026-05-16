@@ -9,8 +9,8 @@ import java.time.LocalDateTime;
 /**
  * 全局参数转换器：将前端传入的字符串转换为 LocalDateTime，支持多种日期格式。
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-17
  */
 @Component
 public class StringToLocalDateTimeConverter implements Converter<String, LocalDateTime> {
