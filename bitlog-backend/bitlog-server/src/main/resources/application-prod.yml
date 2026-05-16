@@ -1,0 +1,38 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/bitlog?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: ENC(REMOVED)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      password: ENC(REMOVED)
+  flyway:
+    clean-disabled: true
+
+jwt:
+  secret: ENC(REMOVED)
+
+storage:
+  endpoint: http://minio:9000
+  access-key: admin
+  secret-key: ENC(REMOVED)
+  bucket: media
+  public-url: http://localhost/files
+
+cookie:
+  secure: true
+
+app:
+  exception:
+    print-stack-trace: false
+
+logging:
+  level:
+    root: warn
+    top.harrylei.bitlog: info
