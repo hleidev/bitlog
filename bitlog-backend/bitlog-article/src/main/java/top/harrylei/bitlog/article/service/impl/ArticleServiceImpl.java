@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
  * 文章业务服务实现
  *
  * @author Harry
+ * 
  * @since 2026-04-09
  */
 @Slf4j
@@ -127,7 +128,7 @@ public class ArticleServiceImpl implements ArticleService {
 
         // 更新文章主表：封面、摘要、分类、已发布版本；首次发布时写入 publishTime
         LocalDateTime publishTime = article.getPublishTime() != null ? article.getPublishTime() : LocalDateTime.now();
-        articleDAO.publish(articleId, req.getCover() != null ? req.getCover() : "",
+        articleDAO.publish(articleId, req.getCover() != null ? fileUrlHelper.extractKey(req.getCover()) : "",
                 req.getSummary() != null ? req.getSummary() : "", newCategoryId, article.getLatestVersionId(),
                 publishTime);
 
@@ -372,11 +373,8 @@ public class ArticleServiceImpl implements ArticleService {
     private record ArticleTagsData(Map<Long, List<String>> namesByArticle, Map<Long, List<Long>> idsByArticle) {
     }
 
-    private record PageLoadData(
-            Map<Long, ArticleVersionDO> versionMap,
-            Map<Long, String> categoryNameMap,
-            Map<Long, ArticleStatisticsDO> statsMap,
-            ArticleTagsData tagsData) {
+    private record PageLoadData(Map<Long, ArticleVersionDO> versionMap, Map<Long, String> categoryNameMap,
+            Map<Long, ArticleStatisticsDO> statsMap, ArticleTagsData tagsData) {
     }
 
     private ArticleTagsData buildTagsData(List<Long> articleIds) {
@@ -402,8 +400,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     private PageLoadData loadPageData(List<ArticleDO> articles, boolean isDraft) {
-        List<Long> versionIds = articles.stream()
-                .map(a -> isDraft ? a.getLatestVersionId() : a.getPublishedVersionId())
+        List<Long> versionIds = articles.stream().map(a -> isDraft ? a.getLatestVersionId() : a.getPublishedVersionId())
                 .filter(Objects::nonNull).toList();
         Map<Long, ArticleVersionDO> versionMap = articleVersionDAO.listByVersionIds(versionIds).stream()
                 .collect(Collectors.toMap(ArticleVersionDO::getId, Function.identity()));
