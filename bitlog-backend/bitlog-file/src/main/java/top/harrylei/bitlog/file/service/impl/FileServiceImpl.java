@@ -2,6 +2,7 @@ package top.harrylei.bitlog.file.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -63,5 +64,19 @@ public class FileServiceImpl implements FileService {
         log.info("文件上传成功 scene={} userId={} key={}", scene, userId, key);
 
         return new UploadVO().setFileKey(key).setFileUrl(fileUrlHelper.buildUrl(key));
+    }
+
+    @Async
+    @Override
+    public void delete(String key) {
+        if (!StringUtils.hasText(key)) {
+            return;
+        }
+        try {
+            s3Client.deleteObject(builder -> builder.bucket(props.getBucket()).key(key).build());
+            log.info("文件删除成功 key={}", key);
+        } catch (Exception e) {
+            log.warn("文件删除失败 key={}", key, e);
+        }
     }
 }

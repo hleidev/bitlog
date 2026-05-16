@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
@@ -22,6 +23,8 @@ import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.util.FileUrlHelper;
+import top.harrylei.bitlog.file.model.UploadScene;
+import top.harrylei.bitlog.file.service.FileService;
 import top.harrylei.bitlog.user.converter.UserConverter;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
@@ -39,6 +42,7 @@ import java.util.stream.Collectors;
  * 用户业务服务实现
  *
  * @author Harry
+ * 
  * @since 2026-03-28
  */
 @Slf4j
@@ -51,6 +55,7 @@ public class UserServiceImpl implements UserService {
     private final UserConverter userConverter;
     private final PasswordEncoder passwordEncoder;
     private final FileUrlHelper fileUrlHelper;
+    private final FileService fileService;
 
     @Override
     public UserVO getUserById(Long userId) {
@@ -135,14 +140,22 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void updateAvatar(Long userId, String avatar) {
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
         if (userInfo == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        userInfoDAO.updateAvatar(userId, avatar);
+        String key = fileUrlHelper.extractKey(avatar);
+        String ownerPrefix = "bitlog/" + UploadScene.avatar + "/" + userId + "/";
+        if (!key.startsWith(ownerPrefix)) {
+            ResultCode.INVALID_PARAMETER.throwException("无效的头像地址");
+        }
+        String oldAvatar = userInfo.getAvatar();
+        userInfoDAO.updateAvatar(userId, key);
         log.info("更新用户头像 userId={}", userId);
+        if (StringUtils.hasText(oldAvatar) && oldAvatar.startsWith(ownerPrefix)) {
+            fileService.delete(oldAvatar);
+        }
     }
 
     @Override

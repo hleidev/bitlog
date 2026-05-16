@@ -6,9 +6,12 @@ import org.springframework.util.StringUtils;
 
 /**
  * 文件 URL 构建工具
- * <p>DB 只存储文件 key，对外返回时通过本类拼接公共访问前缀。</p>
+ * <p>
+ * DB 只存储文件 key，对外返回时通过本类拼接公共访问前缀。
+ * </p>
  *
  * @author Harry
+ * 
  * @since 2026-04-25
  */
 @Component
@@ -22,7 +25,7 @@ public class FileUrlHelper {
      *
      * @param key
      *            文件存储路径（如 bitlog/avatar/1/2026/04/xxx.jpeg）
-     * 
+     *
      * @return 完整 URL，key 为空时原样返回
      */
     public String buildUrl(String key) {
@@ -30,5 +33,24 @@ public class FileUrlHelper {
             return key;
         }
         return publicUrl + "/" + key;
+    }
+
+    /**
+     * 从完整 URL 中提取文件 key；若传入的已是 key 则原样返回
+     *
+     * @param urlOrKey
+     *            完整 URL 或文件 key
+     * 
+     * @return 文件 key
+     */
+    public String extractKey(String urlOrKey) {
+        if (!StringUtils.hasText(urlOrKey)) {
+            return urlOrKey;
+        }
+        String prefix = publicUrl + "/";
+        if (urlOrKey.startsWith(prefix)) {
+            return urlOrKey.substring(prefix.length());
+        }
+        return urlOrKey;
     }
 }
