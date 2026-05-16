@@ -28,8 +28,8 @@ import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
 import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 import top.harrylei.bitlog.user.service.UserService;
+import top.harrylei.bitlog.user.util.PasswordUtil;
 
-import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -38,17 +38,13 @@ import java.util.stream.Collectors;
 /**
  * 用户业务服务实现
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-28
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
-    private static final String PASSWORD_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final int PASSWORD_LENGTH = 12;
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserDAO userDAO;
     private final UserInfoDAO userInfoDAO;
@@ -81,20 +77,15 @@ public class UserServiceImpl implements UserService {
             return List.of();
         }
 
-        List<Long> accountIds = userInfoList.stream()
-                .map(UserInfoDO::getUserId)
-                .toList();
+        List<Long> accountIds = userInfoList.stream().map(UserInfoDO::getUserId).toList();
         List<UserDO> userList = userDAO.listByUserIds(accountIds);
-        Map<Long, UserDO> userMap = userList.stream()
-                .collect(Collectors.toMap(UserDO::getId, Function.identity()));
+        Map<Long, UserDO> userMap = userList.stream().collect(Collectors.toMap(UserDO::getId, Function.identity()));
 
-        return userInfoList.stream()
-                .map(info -> {
-                    UserVO vo = userConverter.toVO(info, userMap.get(info.getUserId()));
-                    vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
-                    return vo;
-                })
-                .toList();
+        return userInfoList.stream().map(info -> {
+            UserVO vo = userConverter.toVO(info, userMap.get(info.getUserId()));
+            vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+            return vo;
+        }).toList();
     }
 
     @Override
@@ -203,7 +194,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        String newPassword = generateRandomPassword();
+        String newPassword = PasswordUtil.generateRandomPassword();
         userDAO.updatePassword(userId, passwordEncoder.encode(newPassword));
         log.info("管理员重置用户密码 userId={}", userId);
         // TODO: 发送邮件通知用户新密码
@@ -221,32 +212,21 @@ public class UserServiceImpl implements UserService {
         // TODO: 后续支持分级管理员后，改为只拦同级或更高权限账号
         // TODO: 检查是否为最后一个管理员，防止系统失去管理员
         List<UserInfoDO> userInfoList = userInfoDAO.listByUserIds(userIds);
-        boolean hasAdmin = userInfoList.stream()
-                .anyMatch(info -> UserRoleEnum.ADMIN.equals(info.getUserRole()));
+        boolean hasAdmin = userInfoList.stream().anyMatch(info -> UserRoleEnum.ADMIN.equals(info.getUserRole()));
         if (hasAdmin) {
             ResultCode.OPERATION_NOT_ALLOWED.throwException("不能操作管理员账号");
         }
-    }
-
-    private String generateRandomPassword() {
-        StringBuilder sb = new StringBuilder(PASSWORD_LENGTH);
-        for (int i = 0; i < PASSWORD_LENGTH; i++) {
-            sb.append(PASSWORD_CHARS.charAt(SECURE_RANDOM.nextInt(PASSWORD_CHARS.length())));
-        }
-        return sb.toString();
     }
 
     @Override
     public PageVO<UserListVO> pageQuery(UserPageQuery query) {
         IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query);
 
-        List<UserListVO> voList = resultPage.getRecords().stream()
-                .map(dto -> {
-                    UserListVO vo = userConverter.toListVO(dto);
-                    vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
-                    return vo;
-                })
-                .toList();
+        List<UserListVO> voList = resultPage.getRecords().stream().map(dto -> {
+            UserListVO vo = userConverter.toListVO(dto);
+            vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+            return vo;
+        }).toList();
 
         PageVO<UserListVO> pageVO = new PageVO<>();
         pageVO.setPageNum(resultPage.getCurrent());

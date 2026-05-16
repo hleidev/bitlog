@@ -7,8 +7,8 @@ import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 /**
  * 全局参数转换器：将前端传入的字符串转换为 DeleteStatusEnum。
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-10
  */
 @Component
 public class StringToDeleteStatusEnumConverter implements Converter<String, DeleteStatusEnum> {

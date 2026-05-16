@@ -23,25 +23,21 @@ import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 import top.harrylei.bitlog.user.service.AuthService;
 import top.harrylei.bitlog.user.service.LoginResult;
 import top.harrylei.bitlog.user.util.JwtUtil;
+import top.harrylei.bitlog.user.util.PasswordUtil;
 
-import java.security.SecureRandom;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
  * 认证服务实现
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-20
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
-
-    private static final String PASSWORD_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final int PASSWORD_LENGTH = 12;
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserDAO userDAO;
     private final UserInfoDAO userInfoDAO;
@@ -72,40 +68,23 @@ public class AuthServiceImpl implements AuthService {
             ResultCode.USER_ALREADY_EXISTS.throwException(req.getUsername());
         }
 
-        String password = generateRandomPassword();
-        doCreateUser(req.getUsername(), req.getEmail(), password, req.getUserRole(),
-                req.getPosition(), req.getCompany(), req.getProfile());
+        String password = PasswordUtil.generateRandomPassword();
+        doCreateUser(req.getUsername(), req.getEmail(), password, req.getUserRole(), req.getPosition(),
+                req.getCompany(), req.getProfile());
         log.info("管理员创建用户成功 username={}", req.getUsername());
         return new UserCreatedVO().setUsername(req.getUsername()).setInitialPassword(password);
     }
 
-    private void doCreateUser(String username, String email, String rawPassword, UserRoleEnum role,
-                              String position, String company, String profile) {
-        UserDO newUser = new UserDO()
-                .setUsername(username)
-                .setEmail(email)
-                .setPassword(passwordEncoder.encode(rawPassword))
-                .setThirdAccountId("")
+    private void doCreateUser(String username, String email, String rawPassword, UserRoleEnum role, String position,
+            String company, String profile) {
+        UserDO newUser = new UserDO().setUsername(username).setEmail(email)
+                .setPassword(passwordEncoder.encode(rawPassword)).setThirdAccountId("")
                 .setLoginType(LoginTypeEnum.USERNAME_PASSWORD);
         userDAO.save(newUser);
 
-        UserInfoDO userInfo = new UserInfoDO()
-                .setUserId(newUser.getId())
-                .setNickname(username)
-                .setAvatar("")
-                .setUserRole(role)
-                .setPosition(position)
-                .setCompany(company)
-                .setProfile(profile);
+        UserInfoDO userInfo = new UserInfoDO().setUserId(newUser.getId()).setNickname(username).setAvatar("")
+                .setUserRole(role).setPosition(position).setCompany(company).setProfile(profile);
         userInfoDAO.save(userInfo);
-    }
-
-    private String generateRandomPassword() {
-        StringBuilder sb = new StringBuilder(PASSWORD_LENGTH);
-        for (int i = 0; i < PASSWORD_LENGTH; i++) {
-            sb.append(PASSWORD_CHARS.charAt(SECURE_RANDOM.nextInt(PASSWORD_CHARS.length())));
-        }
-        return sb.toString();
     }
 
     @Override
@@ -164,20 +143,13 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    /**
-     * 颁发双 Token：生成 Access Token + Refresh Token 并将 Refresh Token 存入 Redis
-     */
     private LoginResult issueTokenPair(Long userId, UserRoleEnum role) {
         String accessToken = jwtUtil.generateToken(userId, role);
         String refreshToken = UUID.randomUUID().toString();
         String redisValue = userId + ":" + role.name();
 
-        redisTemplate.opsForValue().set(
-                RedisKeyConstants.getUserRefreshTokenKey(refreshToken),
-                redisValue,
-                jwtProperties.getRefreshTokenExpire().getSeconds(),
-                TimeUnit.SECONDS
-        );
+        redisTemplate.opsForValue().set(RedisKeyConstants.getUserRefreshTokenKey(refreshToken), redisValue,
+                jwtProperties.getRefreshTokenExpire().getSeconds(), TimeUnit.SECONDS);
 
         log.info("颁发 Token 对 userId={}", userId);
         return new LoginResult(accessToken, refreshToken);

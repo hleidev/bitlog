@@ -14,15 +14,12 @@ import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 /**
  * 用户对象转换器
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-28
  */
 @Mapper(componentModel = "spring")
 public interface UserConverter {
 
-    /**
-     * UserInfoDO + UserDO → UserVO（合并两个源）
-     */
     @Mapping(source = "userInfo.userId", target = "userId")
     @Mapping(source = "userInfo.nickname", target = "nickname")
     @Mapping(source = "userInfo.avatar", target = "avatar")
@@ -33,9 +30,6 @@ public interface UserConverter {
     @Mapping(source = "user.email", target = "email")
     UserVO toVO(UserInfoDO userInfo, UserDO user);
 
-    /**
-     * UserInfoDO → UserVO（只有 info，email 为空）
-     */
     @Mapping(source = "userId", target = "userId")
     @Mapping(source = "nickname", target = "nickname")
     @Mapping(source = "avatar", target = "avatar")
@@ -46,9 +40,6 @@ public interface UserConverter {
     @Mapping(target = "email", ignore = true)
     UserVO toVO(UserInfoDO userInfo);
 
-    /**
-     * UserInfoDO + UserDO → UserDetailVO（含基础信息）
-     */
     @Mapping(source = "userInfo.userId", target = "userId")
     @Mapping(source = "user.username", target = "username")
     @Mapping(source = "userInfo.nickname", target = "nickname")
@@ -64,9 +55,6 @@ public interface UserConverter {
     @Mapping(source = "user.updateTime", target = "updateTime")
     UserDetailVO toDetailVO(UserInfoDO userInfo, UserDO user);
 
-    /**
-     * UserInfoDO + UserDO → UserListVO
-     */
     @Mapping(source = "userInfo.userId", target = "userId")
     @Mapping(source = "user.username", target = "username")
     @Mapping(source = "userInfo.nickname", target = "nickname")
@@ -79,23 +67,14 @@ public interface UserConverter {
     @Mapping(source = "user.updateTime", target = "updateTime")
     UserListVO toListVO(UserInfoDO userInfo, UserDO user);
 
-    /**
-     * UserDetailDTO → UserListVO
-     */
     @Mapping(source = "createTime", target = "createTime")
     @Mapping(source = "updateTime", target = "updateTime")
     UserListVO toListVO(UserDetailDTO dto);
 
-    /**
-     * UserStatusEnum → Integer（供 MapStruct 自动使用）
-     */
     default Integer map(UserStatusEnum status) {
         return status == null ? null : status.getCode();
     }
 
-    /**
-     * UserUpdateRequest → UserInfoDO（用于部分更新）
-     */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "userRole", ignore = true)

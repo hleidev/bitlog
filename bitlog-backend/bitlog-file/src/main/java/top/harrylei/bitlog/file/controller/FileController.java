@@ -18,8 +18,8 @@ import top.harrylei.bitlog.file.service.FileService;
 /**
  * 文件上传接口
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Tag(name = "文件上传接口")
 @RestController
@@ -32,9 +32,7 @@ public class FileController {
     @RequiresLogin
     @Operation(summary = "上传文件")
     @PostMapping("/upload")
-    public Result<UploadVO> upload(
-            @RequestParam UploadScene scene,
-            @RequestParam MultipartFile file) {
+    public Result<UploadVO> upload(@RequestParam UploadScene scene, @RequestParam MultipartFile file) {
         Long userId = ReqInfoContext.getContext().getUserId();
         return Result.success(fileService.upload(userId, scene, file));
     }

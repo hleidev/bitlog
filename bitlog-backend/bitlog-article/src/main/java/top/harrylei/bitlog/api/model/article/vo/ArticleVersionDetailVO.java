@@ -9,8 +9,8 @@ import java.time.LocalDateTime;
 /**
  * 文章版本详情视图对象（含正文内容，用于版本对比）
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Data
 @Accessors(chain = true)

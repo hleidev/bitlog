@@ -11,8 +11,8 @@ import java.io.Serial;
 /**
  * 文章分类实体
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

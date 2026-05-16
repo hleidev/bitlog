@@ -12,8 +12,8 @@ import java.util.List;
 /**
  * 文章批量状态更新请求
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-05-03
  */
 @Data
 @Schema(description = "文章批量状态更新请求")

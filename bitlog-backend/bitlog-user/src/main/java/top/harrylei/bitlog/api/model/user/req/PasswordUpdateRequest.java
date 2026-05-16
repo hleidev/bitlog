@@ -7,8 +7,8 @@ import lombok.Data;
 /**
  * 用户密码更新请求
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-17
  */
 @Data
 public class PasswordUpdateRequest {

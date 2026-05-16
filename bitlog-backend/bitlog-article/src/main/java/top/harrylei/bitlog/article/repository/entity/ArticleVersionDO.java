@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 /**
  * 文章版本实体（只追加，无 updateTime、deleted）
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Data
 @Accessors(chain = true)

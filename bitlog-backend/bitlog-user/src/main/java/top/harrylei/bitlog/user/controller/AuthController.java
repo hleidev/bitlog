@@ -22,9 +22,8 @@ import top.harrylei.bitlog.user.service.LoginResult;
 /**
  * 认证接口
  *
- * @author harry
- * 
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-21
  */
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -38,18 +37,12 @@ public class AuthController {
     private final JwtProperties jwtProperties;
     private final CookieProperties cookieProperties;
 
-    /**
-     * 用户注册
-     */
     @PostMapping("/register")
     public Result<Void> register(@Valid @RequestBody LoginRequest request) {
         authService.register(request.getUsername(), request.getPassword(), UserRoleEnum.NORMAL);
         return Result.success();
     }
 
-    /**
-     * 登录
-     */
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         LoginResult result = authService.login(request.getUsername(), request.getPassword());
@@ -57,11 +50,6 @@ public class AuthController {
         return Result.success(new LoginVO(result.accessToken()));
     }
 
-    /**
-     * 刷新 Token
-     * <p>
-     * 使用 HttpOnly Cookie 中的 Refresh Token 换取新的 Access Token，同时轮换 Refresh Token。
-     */
     @PostMapping("/refresh")
     public Result<LoginVO> refresh(@CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) String refreshToken,
             HttpServletResponse response) {
@@ -73,11 +61,6 @@ public class AuthController {
         return Result.success(new LoginVO(result.accessToken()));
     }
 
-    /**
-     * 退出登录
-     * <p>
-     * 仅凭 HttpOnly Cookie 中的 Refresh Token 操作，无需 Access Token， 确保 Access Token 已过期的用户也能正常退出并撤销会话。
-     */
     @PostMapping("/logout")
     public Result<Void> logout(@CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) String refreshToken,
             HttpServletResponse response) {
@@ -86,9 +69,6 @@ public class AuthController {
         return Result.success();
     }
 
-    /**
-     * 管理员新建账号
-     */
     @RequiresAdmin
     @PostMapping("/admin/create")
     public Result<Void> createUser(@Valid @RequestBody UserCreateRequest request) {

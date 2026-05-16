@@ -14,21 +14,20 @@ import java.util.stream.Collectors;
 /**
  * 删除标识枚举
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-17
  */
 @Getter
 @AllArgsConstructor
 public enum DeleteStatusEnum {
-    NOT_DELETED(0, "未删除"),
-    DELETED(1, "已删除");
+    NOT_DELETED(0, "未删除"), DELETED(1, "已删除");
 
     @EnumValue
     private final Integer code;
     private final String label;
 
-    private static final Map<Integer, DeleteStatusEnum> CODE_MAP =
-            Arrays.stream(values()).collect(Collectors.toMap(DeleteStatusEnum::getCode, Function.identity()));
+    private static final Map<Integer, DeleteStatusEnum> CODE_MAP = Arrays.stream(values())
+            .collect(Collectors.toMap(DeleteStatusEnum::getCode, Function.identity()));
 
     @JsonValue
     public Integer getCode() {

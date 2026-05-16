@@ -9,8 +9,8 @@ import lombok.experimental.Accessors;
 /**
  * 文章保存请求（仅草稿：标题 + 正文）
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Data
 @Accessors(chain = true)

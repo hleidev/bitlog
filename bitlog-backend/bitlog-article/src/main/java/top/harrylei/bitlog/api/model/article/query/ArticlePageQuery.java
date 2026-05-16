@@ -11,8 +11,8 @@ import top.harrylei.bitlog.common.model.BasePage;
 /**
  * 文章列表查询参数
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

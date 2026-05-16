@@ -9,8 +9,8 @@ import java.util.List;
 /**
  * 用户 ID 列表请求
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-10
  */
 @Data
 @Schema(description = "用户 ID 列表请求")

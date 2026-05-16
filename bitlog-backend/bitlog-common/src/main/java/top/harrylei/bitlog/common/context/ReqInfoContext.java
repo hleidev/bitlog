@@ -18,8 +18,8 @@ import java.util.List;
  * 各服务拦截器从 Header 读取并存入此上下文，不再持有完整的 UserInfoDTO。
  * 需要完整用户信息时，通过 Feign 调用用户服务获取。
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-17
  */
 @Slf4j
 public class ReqInfoContext {
@@ -62,9 +62,8 @@ public class ReqInfoContext {
         private Long userId;
 
         /**
-         * 用户角色列表，存储角色字符串（如 "ROLE_ADMIN"）。
-         * 不使用 SimpleGrantedAuthority，避免 bitlog-common 依赖 Spring Security，
-         * 防止 Servlet 栈与 WebFlux 栈（Gateway）之间的类路径冲突。
+         * 用户角色列表，存储角色字符串（如 "ROLE_ADMIN"）。 不使用 SimpleGrantedAuthority，避免 bitlog-common 依赖 Spring Security， 防止 Servlet 栈与
+         * WebFlux 栈（Gateway）之间的类路径冲突。
          */
         private List<String> authorities = new ArrayList<>();
 

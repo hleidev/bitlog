@@ -11,8 +11,8 @@ import top.harrylei.bitlog.common.model.BaseDTO;
 /**
  * 用户完整信息 DTO
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-17
  */
 @Data
 @Schema(description = "用户完整信息DTO")

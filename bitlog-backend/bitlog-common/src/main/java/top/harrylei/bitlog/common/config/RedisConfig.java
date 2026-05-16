@@ -10,8 +10,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 /**
  * Redis 配置：提供 RedisTemplate<String, Object>
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-17
  */
 @Configuration
 @ConditionalOnClass(name = "org.springframework.data.redis.connection.RedisConnectionFactory")

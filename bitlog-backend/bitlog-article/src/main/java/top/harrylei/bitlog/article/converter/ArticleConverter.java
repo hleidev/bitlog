@@ -19,8 +19,8 @@ import java.util.List;
 /**
  * 文章对象转换器
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Mapper(componentModel = "spring")
 public interface ArticleConverter {

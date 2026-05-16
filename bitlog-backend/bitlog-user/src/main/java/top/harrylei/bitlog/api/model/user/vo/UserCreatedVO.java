@@ -7,8 +7,8 @@ import lombok.experimental.Accessors;
 /**
  * 管理员创建用户结果展示对象
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-10
  */
 @Data
 @Accessors(chain = true)

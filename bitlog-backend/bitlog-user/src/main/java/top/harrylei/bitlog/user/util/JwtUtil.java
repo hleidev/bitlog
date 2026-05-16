@@ -15,8 +15,8 @@ import java.util.Date;
 /**
  * JWT 工具类
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-20
  */
 @Component
 @RequiredArgsConstructor

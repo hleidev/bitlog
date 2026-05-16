@@ -15,8 +15,8 @@ import java.text.SimpleDateFormat;
 /**
  * JSON 工具类
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-17
  */
 @Slf4j
 public class JsonUtil {
@@ -35,7 +35,8 @@ public class JsonUtil {
     }
 
     public static String toJson(Object obj) {
-        if (obj == null) return null;
+        if (obj == null)
+            return null;
         try {
             return MAPPER.writeValueAsString(obj);
         } catch (Exception e) {
@@ -45,7 +46,8 @@ public class JsonUtil {
     }
 
     public static <T> T fromJson(String jsonStr, Class<T> clazz) {
-        if (StringUtils.isBlank(jsonStr) || clazz == null) return null;
+        if (StringUtils.isBlank(jsonStr) || clazz == null)
+            return null;
         try {
             return MAPPER.readValue(jsonStr, clazz);
         } catch (Exception e) {
@@ -55,7 +57,8 @@ public class JsonUtil {
     }
 
     public static <T> T fromJson(String jsonStr, TypeReference<T> typeReference) {
-        if (StringUtils.isBlank(jsonStr) || typeReference == null) return null;
+        if (StringUtils.isBlank(jsonStr) || typeReference == null)
+            return null;
         try {
             return MAPPER.readValue(jsonStr, typeReference);
         } catch (Exception e) {
@@ -70,7 +73,8 @@ public class JsonUtil {
     }
 
     public static <T> T fromBytes(byte[] bytes, Class<T> clazz) {
-        if (bytes == null || bytes.length == 0 || clazz == null) return null;
+        if (bytes == null || bytes.length == 0 || clazz == null)
+            return null;
         try {
             return fromJson(new String(bytes, StandardCharsets.UTF_8), clazz);
         } catch (Exception e) {
@@ -80,7 +84,8 @@ public class JsonUtil {
     }
 
     public static <T> T fromBytes(byte[] bytes, TypeReference<T> typeReference) {
-        if (bytes == null || bytes.length == 0 || typeReference == null) return null;
+        if (bytes == null || bytes.length == 0 || typeReference == null)
+            return null;
         try {
             return fromJson(new String(bytes, StandardCharsets.UTF_8), typeReference);
         } catch (Exception e) {
@@ -90,7 +95,8 @@ public class JsonUtil {
     }
 
     public static JsonNode parseToNode(String jsonStr) {
-        if (StringUtils.isBlank(jsonStr)) return null;
+        if (StringUtils.isBlank(jsonStr))
+            return null;
         try {
             return MAPPER.readTree(jsonStr);
         } catch (Exception e) {

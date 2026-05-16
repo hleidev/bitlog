@@ -8,7 +8,7 @@ import top.harrylei.bitlog.file.model.UploadVO;
  * 文件服务接口
  *
  * @author harry
- * @since 0.0.1
+ * @since 2026-04-09
  */
 public interface FileService {
 

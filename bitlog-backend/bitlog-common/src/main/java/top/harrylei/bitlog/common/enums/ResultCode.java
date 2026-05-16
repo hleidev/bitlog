@@ -6,46 +6,32 @@ import top.harrylei.bitlog.common.exception.BusinessException;
 /**
  * 全局响应码
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-18
  */
 @Getter
 public enum ResultCode implements IResultCode {
 
     // ========== 通用 40xxx ==========
-    INVALID_PARAMETER(40000, "参数错误"),
-    TOKEN_INVALID(40001, "Token 无效或已过期"),
-    FORBIDDEN(40003, "权限不足"),
-    RESOURCE_NOT_FOUND(40004, "资源不存在"),
-    METHOD_NOT_ALLOWED(40005, "请求方法不支持"),
-    ALREADY_EXISTS(40009, "资源已存在"),
+    INVALID_PARAMETER(40000, "参数错误"), TOKEN_INVALID(40001, "Token 无效或已过期"), FORBIDDEN(40003, "权限不足"),
+    RESOURCE_NOT_FOUND(40004, "资源不存在"), METHOD_NOT_ALLOWED(40005, "请求方法不支持"), ALREADY_EXISTS(40009, "资源已存在"),
     OPERATION_NOT_ALLOWED(40010, "操作不被允许"),
 
     // ========== 认证 41xxx ==========
-    PASSWORD_FORMAT_ERROR(41001, "密码格式不符合要求"),
-    USERNAME_OR_PASSWORD_ERROR(41002, "用户名或密码错误"),
+    PASSWORD_FORMAT_ERROR(41001, "密码格式不符合要求"), USERNAME_OR_PASSWORD_ERROR(41002, "用户名或密码错误"),
     REFRESH_TOKEN_INVALID(41003, "Refresh Token 无效或已过期"),
 
     // ========== 用户 42xxx ==========
-    USER_NOT_EXISTS(42001, "用户不存在"),
-    USER_ALREADY_EXISTS(42002, "用户已存在"),
-    USER_DISABLED(42003, "用户已被禁用"),
+    USER_NOT_EXISTS(42001, "用户不存在"), USER_ALREADY_EXISTS(42002, "用户已存在"), USER_DISABLED(42003, "用户已被禁用"),
 
     // ========== 文章 43xxx ==========
-    ARTICLE_NOT_EXISTS(43001, "文章不存在"),
-    ARTICLE_NOT_PUBLISHED(43002, "文章未发布"),
-    ARTICLE_NO_PERMISSION(43003, "无权操作该文章"),
-    ARTICLE_VERSION_NOT_EXISTS(43004, "文章版本不存在"),
-    CATEGORY_NOT_EXISTS(43101, "分类不存在"),
-    CATEGORY_ALREADY_EXISTS(43102, "分类已存在"),
-    CATEGORY_HAS_ARTICLES(43104, "该分类下存在文章，请先移除文章"),
-    TAG_NOT_EXISTS(43201, "标签不存在"),
-    TAG_ALREADY_EXISTS(43202, "标签已存在"),
+    ARTICLE_NOT_EXISTS(43001, "文章不存在"), ARTICLE_NOT_PUBLISHED(43002, "文章未发布"), ARTICLE_NO_PERMISSION(43003, "无权操作该文章"),
+    ARTICLE_VERSION_NOT_EXISTS(43004, "文章版本不存在"), CATEGORY_NOT_EXISTS(43101, "分类不存在"),
+    CATEGORY_ALREADY_EXISTS(43102, "分类已存在"), CATEGORY_HAS_ARTICLES(43104, "该分类下存在文章，请先移除文章"),
+    TAG_NOT_EXISTS(43201, "标签不存在"), TAG_ALREADY_EXISTS(43202, "标签已存在"),
 
     // ========== 系统 50xxx ==========
-    INTERNAL_ERROR(50000, "系统内部错误"),
-    SERVICE_UNAVAILABLE(50003, "服务暂不可用"),
-    DATABASE_ERROR(50010, "数据库操作异常");
+    INTERNAL_ERROR(50000, "系统内部错误"), SERVICE_UNAVAILABLE(50003, "服务暂不可用"), DATABASE_ERROR(50010, "数据库操作异常");
 
     private final int code;
     private final String message;

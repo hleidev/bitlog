@@ -17,8 +17,8 @@ import java.net.URI;
  * MinIO 必须启用 pathStyleAccessEnabled，否则会走虚拟主机寻址导致请求失败
  * </p>
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Configuration
 @EnableConfigurationProperties(StorageProperties.class)
@@ -26,14 +26,10 @@ public class StorageConfig {
 
     @Bean
     public S3Client s3Client(StorageProperties props) {
-        return S3Client.builder()
-                .endpointOverride(URI.create(props.getEndpoint()))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey())))
+        return S3Client.builder().endpointOverride(URI.create(props.getEndpoint()))
+                .credentialsProvider(StaticCredentialsProvider
+                        .create(AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey())))
                 .region(Region.US_EAST_1)
-                .serviceConfiguration(S3Configuration.builder()
-                        .pathStyleAccessEnabled(true)
-                        .build())
-                .build();
+                .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build()).build();
     }
 }

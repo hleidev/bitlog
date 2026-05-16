@@ -11,8 +11,8 @@ import java.util.List;
 /**
  * 文章列表视图对象（不含正文内容）
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Data
 @Accessors(chain = true)

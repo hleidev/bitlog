@@ -7,8 +7,8 @@ import top.harrylei.bitlog.article.repository.entity.ArticleTagDO;
 /**
  * 文章标签关联 Mapper
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Mapper
 public interface ArticleTagMapper extends BaseMapper<ArticleTagDO> {

@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 /**
  * 用户列表查询参数
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-17
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

@@ -4,8 +4,7 @@ package top.harrylei.bitlog.file.model;
  * 文件上传场景
  *
  * @author harry
- * 
- * @since 0.0.1
+ * @since 2026-04-09
  */
 public enum UploadScene {
 

@@ -13,8 +13,8 @@ import java.io.Serial;
 /**
  * 用户个人信息实体
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-18
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -25,43 +25,19 @@ public class UserInfoDO extends BaseDO {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /**
-     * 用户 ID
-     */
     private Long userId;
 
-    /**
-     * 昵称
-     */
     private String nickname;
 
-    /**
-     * 头像
-     */
     private String avatar;
 
-    /**
-     * 职位
-     */
     private String position;
 
-    /**
-     * 公司
-     */
     private String company;
 
-    /**
-     * 个人简介
-     */
     private String profile;
 
-    /**
-     * 删除标记
-     */
     private DeleteStatusEnum deleted;
 
-    /**
-     * 用户角色：0-普通用户，1-超级管理员
-     */
     private UserRoleEnum userRole;
 }

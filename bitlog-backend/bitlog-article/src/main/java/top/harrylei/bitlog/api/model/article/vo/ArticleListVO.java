@@ -8,8 +8,8 @@ import top.harrylei.bitlog.common.model.PageVO;
 /**
  * 文章管理列表响应（含状态计数和分页数据）
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-05-03
  */
 @Data
 @Accessors(chain = true)

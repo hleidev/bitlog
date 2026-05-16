@@ -8,8 +8,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 /**
  * 密码加密配置
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Configuration
 public class PasswordEncoderConfig {

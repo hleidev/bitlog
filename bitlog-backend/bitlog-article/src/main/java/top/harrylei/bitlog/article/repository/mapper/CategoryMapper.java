@@ -7,8 +7,8 @@ import top.harrylei.bitlog.article.repository.entity.CategoryDO;
 /**
  * 文章分类 Mapper
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Mapper
 public interface CategoryMapper extends BaseMapper<CategoryDO> {

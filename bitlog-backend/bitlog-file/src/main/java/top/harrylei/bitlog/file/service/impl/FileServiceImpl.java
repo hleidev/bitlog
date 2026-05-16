@@ -21,8 +21,8 @@ import java.util.UUID;
 /**
  * 文件服务实现
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Slf4j
 @Service
@@ -44,21 +44,14 @@ public class FileServiceImpl implements FileService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        String key = String.format("bitlog/%s/%d/%d/%02d/%s.%s",
-                scene, userId,
-                now.getYear(), now.getMonthValue(),
+        String key = String.format("bitlog/%s/%d/%d/%02d/%s.%s", scene, userId, now.getYear(), now.getMonthValue(),
                 UUID.randomUUID(), ext);
 
         try {
             s3Client.putObject(
-                    PutObjectRequest.builder()
-                            .bucket(props.getBucket())
-                            .key(key)
-                            .contentType(file.getContentType())
-                            .contentLength(file.getSize())
-                            .build(),
-                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
-            );
+                    PutObjectRequest.builder().bucket(props.getBucket()).key(key).contentType(file.getContentType())
+                            .contentLength(file.getSize()).build(),
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
         } catch (IOException e) {
             log.error("文件上传失败 scene={} userId={} key={}", scene, userId, key, e);
             ResultCode.INTERNAL_ERROR.throwException("文件上传失败");

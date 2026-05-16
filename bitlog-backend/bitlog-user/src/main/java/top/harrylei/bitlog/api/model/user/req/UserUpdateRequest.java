@@ -9,8 +9,8 @@ import lombok.experimental.Accessors;
 /**
  * 用户信息更新请求
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-17
  */
 @Data
 @Schema(description = "用户信息更新请求")

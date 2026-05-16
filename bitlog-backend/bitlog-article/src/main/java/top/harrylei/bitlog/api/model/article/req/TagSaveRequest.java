@@ -8,8 +8,8 @@ import lombok.Data;
 /**
  * 标签创建请求
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-02
  */
 @Data
 @Schema(description = "标签创建请求")

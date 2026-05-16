@@ -6,8 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * 对象存储配置属性
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Data
 @ConfigurationProperties(prefix = "storage")

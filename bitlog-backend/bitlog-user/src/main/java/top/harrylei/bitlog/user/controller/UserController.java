@@ -23,8 +23,8 @@ import top.harrylei.bitlog.user.service.UserService;
 /**
  * 用户接口
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-28
  */
 @Tag(name = "用户接口")
 @RequiresLogin
@@ -35,18 +35,12 @@ public class UserController {
 
     private final UserService userService;
 
-    /**
-     * 获取当前用户详情
-     */
     @Operation(summary = "获取当前用户详情")
     @GetMapping("/profile")
     public Result<UserDetailVO> getProfile() {
         return Result.success(userService.getUserDetail(ReqInfoContext.getContext().getUserId()));
     }
 
-    /**
-     * 更新当前用户基本信息
-     */
     @Operation(summary = "更新用户基本信息")
     @PutMapping("/info")
     public Result<Void> updateInfo(@Valid @RequestBody UserUpdateRequest req) {
@@ -54,9 +48,6 @@ public class UserController {
         return Result.success();
     }
 
-    /**
-     * 修改密码
-     */
     @Operation(summary = "修改密码")
     @PutMapping("/password")
     public Result<Void> updatePassword(@Valid @RequestBody PasswordUpdateRequest req) {
@@ -64,9 +55,6 @@ public class UserController {
         return Result.success();
     }
 
-    /**
-     * 更新头像
-     */
     @Operation(summary = "更新头像")
     @PutMapping("/avatar")
     public Result<Void> updateAvatar(@RequestParam @NotBlank(message = "头像地址不能为空") @Size(max = 256, message = "头像地址过长") String avatar) {

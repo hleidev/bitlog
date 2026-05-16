@@ -14,22 +14,21 @@ import java.util.stream.Collectors;
 /**
  * 状态枚举
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-17
  */
 @Getter
 @AllArgsConstructor
 public enum StatusEnum {
 
-    DISABLED(0, "禁用"),
-    ENABLED(1, "启用");
+    DISABLED(0, "禁用"), ENABLED(1, "启用");
 
     @EnumValue
     private final Integer code;
     private final String label;
 
-    private static final Map<Integer, StatusEnum> CODE_MAP =
-            Arrays.stream(values()).collect(Collectors.toMap(StatusEnum::getCode, Function.identity()));
+    private static final Map<Integer, StatusEnum> CODE_MAP = Arrays.stream(values())
+            .collect(Collectors.toMap(StatusEnum::getCode, Function.identity()));
 
     @JsonValue
     public Integer getCode() {

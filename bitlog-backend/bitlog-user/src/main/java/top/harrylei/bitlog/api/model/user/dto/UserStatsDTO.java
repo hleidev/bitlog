@@ -5,8 +5,8 @@ import lombok.Data;
 /**
  * 用户数量统计 DTO
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-10
  */
 @Data
 public class UserStatsDTO {

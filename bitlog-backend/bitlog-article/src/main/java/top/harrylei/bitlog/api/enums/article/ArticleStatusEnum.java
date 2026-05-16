@@ -14,22 +14,21 @@ import java.util.stream.Collectors;
 /**
  * 文章状态枚举
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-09
  */
 @Getter
 @AllArgsConstructor
 public enum ArticleStatusEnum {
 
-    DRAFT(0, "草稿"),
-    PUBLISHED(1, "已发布");
+    DRAFT(0, "草稿"), PUBLISHED(1, "已发布");
 
     @EnumValue
     private final Integer code;
     private final String label;
 
-    private static final Map<Integer, ArticleStatusEnum> CODE_MAP =
-            Arrays.stream(values()).collect(Collectors.toMap(ArticleStatusEnum::getCode, Function.identity()));
+    private static final Map<Integer, ArticleStatusEnum> CODE_MAP = Arrays.stream(values())
+            .collect(Collectors.toMap(ArticleStatusEnum::getCode, Function.identity()));
 
     @JsonValue
     public Integer getCode() {

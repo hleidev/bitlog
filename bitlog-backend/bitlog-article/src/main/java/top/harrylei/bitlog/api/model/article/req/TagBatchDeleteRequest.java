@@ -9,8 +9,8 @@ import java.util.List;
 /**
  * 标签批量删除请求
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-04-15
  */
 @Data
 @Schema(description = "标签批量删除请求")

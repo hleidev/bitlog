@@ -32,6 +32,9 @@ import java.util.List;
  * 从 Authorization: Bearer {token} 提取并验证 JWT， 构建 Spring Security 上下文和 ReqInfoContext，供下游业务直接使用。 替代微服务架构中 Gateway +
  * GatewayAuthenticationFilter 的组合。
  * </p>
+ * 
+ * @author Harry
+ * @since 2026-05-15
  */
 @Slf4j
 @Component
@@ -39,6 +42,9 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
+    private static final String ROLE_NORMAL = "ROLE_NORMAL";
+    private static final String ADMIN_ROLE_CODE = "1";
 
     private final JwtProperties jwtProperties;
     private SecretKey secretKey;
@@ -71,7 +77,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             Long userId = Long.parseLong(claims.getSubject());
             Object roleObj = claims.get("role");
             String roleCode = roleObj != null ? String.valueOf(roleObj) : "";
-            String roleAuthority = "1".equals(roleCode) ? "ROLE_ADMIN" : "ROLE_NORMAL";
+            String roleAuthority = ADMIN_ROLE_CODE.equals(roleCode) ? ROLE_ADMIN : ROLE_NORMAL;
 
             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userId, null,
                     List.of(new SimpleGrantedAuthority(roleAuthority)));

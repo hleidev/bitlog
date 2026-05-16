@@ -11,8 +11,8 @@ import java.util.List;
 /**
  * 用户信息数据访问对象
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-20
  */
 @Repository
 public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {

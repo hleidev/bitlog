@@ -7,8 +7,8 @@ import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 /**
  * 用户信息 Mapper
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-03-20
  */
 @Mapper
 public interface UserInfoMapper extends BaseMapper<UserInfoDO> {

@@ -7,8 +7,8 @@ import lombok.experimental.Accessors;
 /**
  * 文章各状态数量统计
  *
- * @author harry
- * @since 0.0.1
+ * @author Harry
+ * @since 2026-05-03
  */
 @Data
 @Accessors(chain = true)
