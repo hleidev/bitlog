@@ -3,11 +3,8 @@ package top.harrylei.bitlog.common.config;
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import javax.sql.DataSource;
 
 /**
  * MyBatis-Plus 配置：分页插件
@@ -16,7 +13,6 @@ import javax.sql.DataSource;
  * @since 2026-03-17
  */
 @Configuration
-@ConditionalOnBean(DataSource.class)
 public class MybatisPlusConfig {
 
     @Bean

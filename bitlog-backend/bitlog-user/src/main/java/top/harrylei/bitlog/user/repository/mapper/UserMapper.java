@@ -20,8 +20,6 @@ public interface UserMapper extends BaseMapper<UserDO> {
 
     IPage<UserDetailDTO> pageUsers(@Param("page") IPage<UserDetailDTO> page, @Param("queryParam") UserPageQuery queryParam);
 
-    Long pageUsersCount(@Param("queryParam") UserPageQuery queryParam);
-
     UserDetailDTO selectUserDetail(Long userId);
 
     UserStatsDTO selectUserStats();

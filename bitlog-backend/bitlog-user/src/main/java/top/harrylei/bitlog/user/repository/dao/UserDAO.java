@@ -84,12 +84,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
     }
 
     public IPage<UserDetailDTO> pageUsers(UserPageQuery queryParam) {
-        Long total = getBaseMapper().pageUsersCount(queryParam);
-        Page<UserDetailDTO> page = new Page<>(queryParam.getPageNum(), queryParam.getPageSize());
-        page.setSearchCount(false);
-        IPage<UserDetailDTO> result = getBaseMapper().pageUsers(page, queryParam);
-        result.setTotal(total == null ? 0L : total);
-        return result;
+        return getBaseMapper().pageUsers(new Page<>(queryParam.getPageNum(), queryParam.getPageSize()), queryParam);
     }
 
     public UserDetailDTO getUserDetail(Long userId) {

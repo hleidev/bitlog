@@ -39,21 +39,6 @@
         order by a.create_time desc
     </select>
 
-    <select id="pageUsersCount" resultType="Long">
-        select count(a.id)
-        from user_account a
-        left join user_info b on a.id = b.user_id
-        <where>
-            <if test="queryParam.status != null">and a.status = #{queryParam.status}</if>
-            <if test="queryParam.deleted != null">and a.deleted = #{queryParam.deleted}</if>
-            <if test="queryParam.startTime != null">and a.create_time &gt;= #{queryParam.startTime}</if>
-            <if test="queryParam.endTime != null">and a.create_time &lt;= #{queryParam.endTime}</if>
-            <if test="queryParam.username != null and queryParam.username != ''">
-                and a.username like concat('%', #{queryParam.username}, '%')
-            </if>
-        </where>
-    </select>
-
     <select id="selectUserStats" resultType="top.harrylei.bitlog.api.model.user.dto.UserStatsDTO">
         select
             COALESCE(SUM(deleted = 0),                0) AS total,
