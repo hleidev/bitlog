@@ -1,17 +1,26 @@
 <script setup lang="ts">
-const categories = [
-  { name: '前端开发', count: 24 },
-  { name: '后端技术', count: 18 },
-  { name: 'Java', count: 15 },
-  { name: '系统设计', count: 9 },
-  { name: '工具效率', count: 7 },
-]
+import { ref, onMounted } from 'vue'
+import { getCategories } from '@/api/admin/category'
+import { getTags } from '@/api/admin/tag'
 
-const tags = [
-  'Vue', 'TypeScript', 'Spring Boot', 'MySQL', 'Redis',
-  'Docker', 'Linux', 'Git', 'Vite', 'Kafka',
-]
+interface CategoryItem {
+  id: number
+  name: string
+  articleCount: number
+}
 
+interface TagItem {
+  id: number
+  name: string
+}
+
+const categories = ref<CategoryItem[]>([])
+const tags = ref<TagItem[]>([])
+
+onMounted(async () => {
+  categories.value = await getCategories()
+  tags.value = await getTags()
+})
 </script>
 
 <template>
@@ -25,7 +34,7 @@ const tags = [
             <span class="sidebar-category__dot"></span>
             <span class="sidebar-category__name">{{ cat.name }}</span>
           </a>
-          <span class="sidebar-category__count">{{ cat.count }}</span>
+          <span class="sidebar-category__count">{{ cat.articleCount }}</span>
         </li>
       </ul>
     </div>
@@ -34,8 +43,8 @@ const tags = [
     <div class="sidebar-widget">
       <h3 class="sidebar-widget__title">标签</h3>
       <div class="sidebar-tags">
-        <a v-for="tag in tags" :key="tag" :href="`/tag/${tag}`" class="sidebar-tag">
-          {{ tag }}
+        <a v-for="tag in tags" :key="tag.id" :href="`/tag/${tag.name}`" class="sidebar-tag">
+          {{ tag.name }}
         </a>
       </div>
     </div>

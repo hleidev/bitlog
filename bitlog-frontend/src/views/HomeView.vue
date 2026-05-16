@@ -1,64 +1,22 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import HeroSection from '@/components/home/HeroSection.vue'
 import ArticleCard from '@/components/home/ArticleCard.vue'
 import HomeSidebar from '@/components/home/HomeSidebar.vue'
+import { getArticlePage, type ArticleItemVO } from '@/api/article'
 
-const articles = [
-  {
-    id: 1,
-    title: '深入理解 Java 虚拟机：从字节码到 JIT 编译器',
-    summary: '本文从字节码层面出发，系统分析 JVM 的类加载机制、内存模型、垃圾回收算法，以及 JIT 编译器的工作原理和热点代码优化策略。',
-    cover: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=480&q=80',
-    category: 'Java',
-    date: '2024-12-01',
-    views: 3842,
-    likes: 126,
-  },
-  {
-    id: 2,
-    title: 'Vue 3 响应式原理深度解析：Proxy 与依赖追踪',
-    summary: '深入探讨 Vue 3 响应式系统的实现原理，包括 Proxy 的工作机制、effect 函数的依赖收集与触发、以及与 Vue 2 的对比分析。',
-    cover: 'https://images.unsplash.com/photo-1555099962-4199c345e5dd?w=480&q=80',
-    category: '前端开发',
-    date: '2024-11-28',
-    views: 2917,
-    likes: 98,
-    readTime: 10,
-  },
-  {
-    id: 3,
-    title: 'MySQL 索引优化实战：从执行计划到查询调优',
-    summary: '结合实际案例分析 MySQL 索引的工作机制，通过 EXPLAIN 解读执行计划，掌握覆盖索引、最左前缀原则等优化技巧。',
-    cover: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=480&q=80',
-    category: '后端技术',
-    date: '2024-11-20',
-    views: 4201,
-    likes: 155,
-    readTime: 15,
-  },
-  {
-    id: 4,
-    title: 'Docker 容器化实践：从开发到生产的完整流程',
-    summary: '分享在实际项目中使用 Docker 进行容器化改造的完整经验，涵盖多阶段构建、Compose 编排、以及生产环境下的最佳实践。',
-    cover: 'https://images.unsplash.com/photo-1605745341112-85968b19335b?w=480&q=80',
-    category: '工具效率',
-    date: '2024-11-15',
-    views: 2156,
-    likes: 84,
-    readTime: 8,
-  },
-  {
-    id: 5,
-    title: 'Redis 分布式锁：设计原理与实现细节',
-    summary: '从分布式场景下的并发问题出发，详细介绍基于 Redis 的分布式锁实现方案，分析 SETNX、Lua 脚本、Redisson 等方案的优缺点。',
-    cover: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=480&q=80',
-    category: '后端技术',
-    date: '2024-11-10',
-    views: 3105,
-    likes: 112,
-    readTime: 11,
-  },
-]
+const articles = ref<ArticleItemVO[]>([])
+const loading = ref(false)
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const res = await getArticlePage({ pageNum: 1, pageSize: 5 })
+    articles.value = res.content
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>
