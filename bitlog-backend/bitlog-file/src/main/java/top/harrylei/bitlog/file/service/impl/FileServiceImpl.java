@@ -9,6 +9,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import top.harrylei.bitlog.common.enums.ResultCode;
+import top.harrylei.bitlog.common.util.FileUrlHelper;
 import top.harrylei.bitlog.file.config.StorageProperties;
 import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.model.UploadVO;
@@ -22,6 +23,7 @@ import java.util.UUID;
  * 文件服务实现
  *
  * @author Harry
+ * 
  * @since 2026-04-09
  */
 @Slf4j
@@ -31,6 +33,7 @@ public class FileServiceImpl implements FileService {
 
     private final S3Client s3Client;
     private final StorageProperties props;
+    private final FileUrlHelper fileUrlHelper;
 
     @Override
     public UploadVO upload(Long userId, UploadScene scene, MultipartFile file) {
@@ -59,6 +62,6 @@ public class FileServiceImpl implements FileService {
 
         log.info("文件上传成功 scene={} userId={} key={}", scene, userId, key);
 
-        return new UploadVO().setFileKey(key);
+        return new UploadVO().setFileKey(key).setFileUrl(fileUrlHelper.buildUrl(key));
     }
 }
