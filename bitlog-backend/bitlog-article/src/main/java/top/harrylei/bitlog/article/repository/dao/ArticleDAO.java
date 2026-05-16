@@ -1,6 +1,7 @@
 package top.harrylei.bitlog.article.repository.dao;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
@@ -102,26 +103,29 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
 
     /** 分页查询已发布文章，关键词过滤下推到 SQL */
     public IPage<ArticleDO> pagePublished(ArticlePageQuery query, Page<ArticleDO> page) {
-        return lambdaQuery().eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+        return page(page, Wrappers.<ArticleDO>lambdaQuery()
+                .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
                 .isNotNull(ArticleDO::getPublishedVersionId)
                 .eq(query.getUserId() != null, ArticleDO::getUserId, query.getUserId())
                 .eq(query.getCategoryId() != null, ArticleDO::getCategoryId, query.getCategoryId())
                 .apply(StringUtils.hasText(query.getKeyword()),
                         "EXISTS (SELECT 1 FROM article_version WHERE id = published_version_id AND title LIKE CONCAT('%', {0}, '%'))",
                         query.getKeyword())
-                .page(page);
+                .orderByDesc(ArticleDO::getCreateTime));
     }
 
     /** 分页查询用户文章（支持状态过滤），关键词过滤下推到 SQL */
     public IPage<ArticleDO> pageByUser(Long userId, ArticlePageQuery query, Page<ArticleDO> page) {
         ArticleStatusEnum status = query.getStatus();
-        return lambdaQuery().eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED).eq(ArticleDO::getUserId, userId)
+        return page(page, Wrappers.<ArticleDO>lambdaQuery()
+                .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .eq(ArticleDO::getUserId, userId)
                 .isNotNull(ArticleStatusEnum.PUBLISHED == status, ArticleDO::getPublishedVersionId)
                 .isNull(ArticleStatusEnum.DRAFT == status, ArticleDO::getPublishedVersionId)
                 .eq(query.getCategoryId() != null, ArticleDO::getCategoryId, query.getCategoryId())
                 .apply(StringUtils.hasText(query.getKeyword()),
                         "EXISTS (SELECT 1 FROM article_version WHERE id = latest_version_id AND title LIKE CONCAT('%', {0}, '%'))",
                         query.getKeyword())
-                .page(page);
+                .orderByDesc(ArticleDO::getCreateTime));
     }
 }

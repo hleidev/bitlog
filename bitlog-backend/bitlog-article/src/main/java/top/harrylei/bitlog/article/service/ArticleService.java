@@ -9,6 +9,7 @@ import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.common.model.PageVO;
 
@@ -140,7 +141,7 @@ public interface ArticleService {
      * 
      * @return 分页结果
      */
-    PageVO<ArticleVO> pagePublished(ArticlePageQuery query);
+    PageVO<ArticlePublicVO> pagePublished(ArticlePageQuery query);
 
     /**
      * 批量切换文章状态

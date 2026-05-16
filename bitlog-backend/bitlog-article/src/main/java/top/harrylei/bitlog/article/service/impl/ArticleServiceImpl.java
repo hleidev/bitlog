@@ -15,6 +15,7 @@ import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
 import top.harrylei.bitlog.api.model.article.vo.ArticleCountVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
@@ -296,9 +297,9 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageVO<ArticleVO> pagePublished(ArticlePageQuery query) {
+    public PageVO<ArticlePublicVO> pagePublished(ArticlePageQuery query) {
         IPage<ArticleDO> page = articleDAO.pagePublished(query, buildPage(query));
-        return toArticlePageVO(page, false, query);
+        return toPublicArticlePageVO(page);
     }
 
     @Override
@@ -309,7 +310,7 @@ public class ArticleServiceImpl implements ArticleService {
         long published = articleDAO.countByUserAndStatus(userId, ArticleStatusEnum.PUBLISHED);
         ArticleCountVO counts = new ArticleCountVO().setTotal(total).setPublished(published)
                 .setDraft(total - published);
-        return new ArticleListVO().setCounts(counts).setPage(toArticlePageVO(page, true, query));
+        return new ArticleListVO().setCounts(counts).setPage(toArticlePageVO(page, true));
     }
 
     @Override
@@ -371,6 +372,13 @@ public class ArticleServiceImpl implements ArticleService {
     private record ArticleTagsData(Map<Long, List<String>> namesByArticle, Map<Long, List<Long>> idsByArticle) {
     }
 
+    private record PageLoadData(
+            Map<Long, ArticleVersionDO> versionMap,
+            Map<Long, String> categoryNameMap,
+            Map<Long, ArticleStatisticsDO> statsMap,
+            ArticleTagsData tagsData) {
+    }
+
     private ArticleTagsData buildTagsData(List<Long> articleIds) {
         if (articleIds == null || articleIds.isEmpty()) {
             return new ArticleTagsData(Map.of(), Map.of());
@@ -391,6 +399,25 @@ public class ArticleServiceImpl implements ArticleService {
             idsByArticle.computeIfAbsent(at.getArticleId(), k -> new ArrayList<>()).add(at.getTagId());
         }
         return new ArticleTagsData(namesByArticle, idsByArticle);
+    }
+
+    private PageLoadData loadPageData(List<ArticleDO> articles, boolean isDraft) {
+        List<Long> versionIds = articles.stream()
+                .map(a -> isDraft ? a.getLatestVersionId() : a.getPublishedVersionId())
+                .filter(Objects::nonNull).toList();
+        Map<Long, ArticleVersionDO> versionMap = articleVersionDAO.listByVersionIds(versionIds).stream()
+                .collect(Collectors.toMap(ArticleVersionDO::getId, Function.identity()));
+
+        Set<Long> categoryIds = articles.stream().map(ArticleDO::getCategoryId).filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> categoryNameMap = categoryIds.isEmpty() ? Map.of() : categoryDAO.listByIds(categoryIds)
+                .stream().collect(Collectors.toMap(CategoryDO::getId, CategoryDO::getName));
+
+        List<Long> articleIds = articles.stream().map(ArticleDO::getId).toList();
+        Map<Long, ArticleStatisticsDO> statsMap = articleStatisticsDAO.listByArticleIds(articleIds).stream()
+                .collect(Collectors.toMap(ArticleStatisticsDO::getArticleId, Function.identity()));
+
+        return new PageLoadData(versionMap, categoryNameMap, statsMap, buildTagsData(articleIds));
     }
 
     private ArticleDO getArticleOrThrow(Long articleId) {
@@ -451,44 +478,20 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     private Page<ArticleDO> buildPage(ArticlePageQuery query) {
-        Page<ArticleDO> page = new Page<>(query.getPageNum(), query.getPageSize());
-        page.addOrder(com.baomidou.mybatisplus.core.metadata.OrderItem.desc("create_time"));
-        return page;
+        return new Page<>(query.getPageNum(), query.getPageSize());
     }
 
-    private PageVO<ArticleVO> toArticlePageVO(IPage<ArticleDO> page, boolean isDraft, ArticlePageQuery query) {
+    private PageVO<ArticleVO> toArticlePageVO(IPage<ArticleDO> page, boolean isDraft) {
         List<ArticleDO> articles = page.getRecords();
         if (articles.isEmpty()) {
-            PageVO<ArticleVO> empty = new PageVO<>();
-            empty.setPageNum(page.getCurrent());
-            empty.setPageSize(page.getSize());
-            empty.setTotalElements(page.getTotal());
-            empty.setTotalPages(page.getPages());
-            empty.setHasPrevious(page.getCurrent() > 1);
-            empty.setHasNext(page.getCurrent() < page.getPages());
-            empty.setContent(List.of());
-            return empty;
+            return PageVO.of(page, List.of());
         }
 
-        List<Long> versionIds = articles.stream().map(a -> isDraft ? a.getLatestVersionId() : a.getPublishedVersionId())
-                .filter(Objects::nonNull).toList();
-        Map<Long, ArticleVersionDO> versionMap = articleVersionDAO.listByVersionIds(versionIds).stream()
-                .collect(Collectors.toMap(ArticleVersionDO::getId, Function.identity()));
-
-        Set<Long> categoryIds = articles.stream().map(ArticleDO::getCategoryId).filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        Map<Long, String> categoryNameMap = categoryIds.isEmpty() ? Map.of() : categoryDAO.listByIds(categoryIds)
-                .stream().collect(Collectors.toMap(CategoryDO::getId, CategoryDO::getName));
-
-        List<Long> articleIds = articles.stream().map(ArticleDO::getId).toList();
-        Map<Long, ArticleStatisticsDO> statsMap = articleStatisticsDAO.listByArticleIds(articleIds).stream()
-                .collect(Collectors.toMap(ArticleStatisticsDO::getArticleId, Function.identity()));
-
-        ArticleTagsData tagsData = buildTagsData(articleIds);
+        PageLoadData data = loadPageData(articles, isDraft);
 
         List<ArticleVO> voList = articles.stream().map(a -> {
             Long vId = isDraft ? a.getLatestVersionId() : a.getPublishedVersionId();
-            ArticleVersionDO v = vId != null ? versionMap.get(vId) : null;
+            ArticleVersionDO v = vId != null ? data.versionMap().get(vId) : null;
             if (v == null) {
                 return null;
             }
@@ -500,11 +503,11 @@ public class ArticleServiceImpl implements ArticleService {
             vo.setUpdateTime(a.getUpdateTime());
             vo.setPublishTime(a.getPublishTime());
             if (a.getCategoryId() != null) {
-                vo.setCategoryName(categoryNameMap.get(a.getCategoryId()));
+                vo.setCategoryName(data.categoryNameMap().get(a.getCategoryId()));
             }
-            vo.setTagIds(tagsData.idsByArticle().getOrDefault(a.getId(), List.of()));
-            vo.setTags(tagsData.namesByArticle().getOrDefault(a.getId(), List.of()));
-            ArticleStatisticsDO stats = statsMap.get(a.getId());
+            vo.setTagIds(data.tagsData().idsByArticle().getOrDefault(a.getId(), List.of()));
+            vo.setTags(data.tagsData().namesByArticle().getOrDefault(a.getId(), List.of()));
+            ArticleStatisticsDO stats = data.statsMap().get(a.getId());
             if (stats != null) {
                 vo.setReadCount(stats.getReadCount());
                 vo.setCommentCount(stats.getCommentCount());
@@ -512,15 +515,39 @@ public class ArticleServiceImpl implements ArticleService {
             return vo;
         }).filter(Objects::nonNull).toList();
 
-        PageVO<ArticleVO> pageVO = new PageVO<>();
-        pageVO.setPageNum(page.getCurrent());
-        pageVO.setPageSize(page.getSize());
-        pageVO.setTotalElements(page.getTotal());
-        pageVO.setTotalPages(page.getPages());
-        pageVO.setHasPrevious(page.getCurrent() > 1);
-        pageVO.setHasNext(page.getCurrent() < page.getPages());
-        pageVO.setContent(voList);
-        return pageVO;
+        return PageVO.of(page, voList);
+    }
+
+    private PageVO<ArticlePublicVO> toPublicArticlePageVO(IPage<ArticleDO> page) {
+        List<ArticleDO> articles = page.getRecords();
+        if (articles.isEmpty()) {
+            return PageVO.of(page, List.of());
+        }
+
+        PageLoadData data = loadPageData(articles, false);
+
+        List<ArticlePublicVO> voList = articles.stream().map(a -> {
+            ArticleVersionDO v = data.versionMap().get(a.getPublishedVersionId());
+            if (v == null) {
+                return null;
+            }
+            ArticlePublicVO vo = articleConverter.toPublicVO(a, v);
+            vo.setCover(fileUrlHelper.buildUrl(vo.getCover()));
+            vo.setTopping(a.getTopping());
+            vo.setPublishTime(a.getPublishTime());
+            if (a.getCategoryId() != null) {
+                vo.setCategoryName(data.categoryNameMap().get(a.getCategoryId()));
+            }
+            vo.setTags(data.tagsData().namesByArticle().getOrDefault(a.getId(), List.of()));
+            ArticleStatisticsDO stats = data.statsMap().get(a.getId());
+            if (stats != null) {
+                vo.setReadCount(stats.getReadCount());
+                vo.setCommentCount(stats.getCommentCount());
+            }
+            return vo;
+        }).filter(Objects::nonNull).toList();
+
+        return PageVO.of(page, voList);
     }
 
 }

@@ -4,6 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
@@ -81,6 +82,18 @@ public interface ArticleConverter {
      * ArticleVersionDO → ArticleVersionDetailVO（含正文，用于版本对比）
      */
     ArticleVersionDetailVO toVersionDetailVO(ArticleVersionDO version);
+
+    /**
+     * ArticleDO + ArticleVersionDO → ArticlePublicVO（公开列表接口使用，不含内部字段）
+     */
+    @Mapping(target = "id", source = "version.articleId")
+    @Mapping(target = "readCount", ignore = true)
+    @Mapping(target = "commentCount", ignore = true)
+    @Mapping(target = "categoryName", ignore = true)
+    @Mapping(target = "tags", ignore = true)
+    @Mapping(target = "topping", ignore = true)
+    @Mapping(target = "publishTime", ignore = true)
+    ArticlePublicVO toPublicVO(ArticleDO article, ArticleVersionDO version);
 
     TagVO toTagVO(TagDO tag);
 

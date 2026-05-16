@@ -4,25 +4,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageQuery;
 import top.harrylei.bitlog.api.model.article.req.ArticleBatchDeleteRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleBatchStatusUpdateRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
-import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
+import top.harrylei.bitlog.api.model.article.vo.*;
 import top.harrylei.bitlog.article.service.ArticleService;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.model.PageVO;
@@ -121,7 +109,7 @@ public class ArticleController {
 
     @Operation(summary = "分页查询已发布文章列表（公开）")
     @GetMapping("/page")
-    public Result<PageVO<ArticleVO>> pagePublished(@Valid ArticlePageQuery query) {
+    public Result<PageVO<ArticlePublicVO>> pagePublished(@Valid ArticlePageQuery query) {
         return Result.success(articleService.pagePublished(query));
     }
 
