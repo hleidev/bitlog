@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,9 +25,11 @@ import top.harrylei.bitlog.user.service.UserService;
  * 用户接口
  *
  * @author Harry
+ * 
  * @since 2026-03-28
  */
 @Tag(name = "用户接口")
+@Validated
 @RequiresLogin
 @RestController
 @RequestMapping("/api/v1/user")
@@ -57,7 +60,8 @@ public class UserController {
 
     @Operation(summary = "更新头像")
     @PutMapping("/avatar")
-    public Result<Void> updateAvatar(@RequestParam @NotBlank(message = "头像地址不能为空") @Size(max = 256, message = "头像地址过长") String avatar) {
+    public Result<Void> updateAvatar(
+            @RequestParam @NotBlank(message = "头像地址不能为空") @Size(max = 256, message = "头像地址过长") String avatar) {
         userService.updateAvatar(ReqInfoContext.getContext().getUserId(), avatar);
         return Result.success();
     }

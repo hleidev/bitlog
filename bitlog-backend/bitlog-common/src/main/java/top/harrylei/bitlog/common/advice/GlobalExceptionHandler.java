@@ -1,10 +1,12 @@
 package top.harrylei.bitlog.common.advice;
 
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
  * </p>
  *
  * @author Harry
+ * 
  * @since 2026-03-21
  */
 @Slf4j
@@ -39,6 +42,22 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleValidationException(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream().map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining("; "));
+        log.warn("参数校验失败: {}", message);
+        return Result.fail(ResultCode.INVALID_PARAMETER.getCode(), message);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public Result<Void> handleMissingParam(MissingServletRequestParameterException e) {
+        log.warn("缺少请求参数: {}", e.getParameterName());
+        return Result.fail(ResultCode.INVALID_PARAMETER.getCode(), "缺少参数: " + e.getParameterName());
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public Result<Void> handleConstraintViolation(ConstraintViolationException e) {
+        String message = e.getConstraintViolations().stream().map(v -> v.getMessage())
                 .collect(Collectors.joining("; "));
         log.warn("参数校验失败: {}", message);
         return Result.fail(ResultCode.INVALID_PARAMETER.getCode(), message);
