@@ -14,7 +14,7 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
 const SUCCESS_CODES = new Set([0, 200])
 
 const request = axios.create({
-  baseURL: '/api',
+  baseURL: (import.meta.env.VITE_API_BASE_URL ?? '') + '/api',
   timeout: 10000,
 })
 
