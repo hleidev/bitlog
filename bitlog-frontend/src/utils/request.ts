@@ -16,6 +16,7 @@ const SUCCESS_CODES = new Set([0, 200])
 const request = axios.create({
   baseURL: (import.meta.env.VITE_API_BASE_URL ?? '') + '/api',
   timeout: 10000,
+  withCredentials: true,
 })
 
 // 不需要携带 Access Token 的端点（login/register/refresh 靠 Cookie 或无需认证）
