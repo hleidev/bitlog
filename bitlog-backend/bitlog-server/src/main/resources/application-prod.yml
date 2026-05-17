@@ -23,7 +23,7 @@ storage:
   access-key: admin
   secret-key: ENC(REMOVED)
   bucket: media
-  public-url: http://localhost/media
+  public-url: https://api.harrylei.top/media
 
 cookie:
   secure: true
