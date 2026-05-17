@@ -83,8 +83,8 @@ async function handleFileChange(e: Event) {
     profile.value = userInfo.value
     avatarError.value = false
     ElMessage.success('头像已更新')
-  } catch {
-    ElMessage.error('头像上传失败，请重试')
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '头像上传失败，请重试')
   } finally {
     avatarUploading.value = false
   }
@@ -205,7 +205,7 @@ function formatDate(dateStr: string) {
         <input
           ref="fileInputRef"
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           style="display: none"
           @change="handleFileChange"
         />

@@ -69,6 +69,7 @@ const coverInputRef   = ref<HTMLInputElement | null>(null)
 async function handleCoverSelect(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
+  if (coverInputRef.value) coverInputRef.value.value = ''
   const prevUrl = coverDisplayUrl.value
   coverDisplayUrl.value = URL.createObjectURL(file)
   if (prevUrl?.startsWith('blob:')) URL.revokeObjectURL(prevUrl)
@@ -76,14 +77,13 @@ async function handleCoverSelect(e: Event) {
   try {
     const res = await uploadFile(file, 'article_cover')
     publishForm.value.cover = res.fileUrl
-  } catch {
-    ElMessage.error('封面图上传失败')
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '封面图上传失败')
     URL.revokeObjectURL(coverDisplayUrl.value!)
     coverDisplayUrl.value   = null
     publishForm.value.cover = null
   } finally {
     coverUploading.value = false
-    if (coverInputRef.value) coverInputRef.value.value = ''
   }
 }
 
@@ -630,7 +630,7 @@ function shortTime(d: string) {
           <input
             ref="coverInputRef"
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             style="display: none"
             @change="handleCoverSelect"
           />
