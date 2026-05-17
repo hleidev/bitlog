@@ -14,6 +14,10 @@
 - [ ] PageVO 工厂方法：`ArticleServiceImpl.toArticlePageVO` 中手动赋 7 个字段且重复两次，提取 `PageVO.from(IPage<?>, List<T>)` 静态工厂方法消除样板代码。
 - [ ] FileUrlHelper 移到 converter 层：`buildDetailVO` 和 `toArticlePageVO` 中的 `fileUrlHelper.buildUrl()` 是展示层转换，应由 `ArticleConverter` 负责，消除 service 对 `FileUrlHelper` 的依赖。
 
+## 搜索
+
+- [ ] 文章正文全文检索：当前关键词搜索仅匹配标题和摘要，正文内容（`article_version.content`）未纳入。`LIKE` 无法走索引，正文搜索需引入 MySQL FULLTEXT 或 Elasticsearch。
+
 ## 评论功能
 
 - [ ] 评论功能实现
