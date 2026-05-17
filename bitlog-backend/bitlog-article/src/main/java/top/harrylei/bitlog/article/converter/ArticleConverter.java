@@ -4,6 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticlePublicDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
@@ -83,9 +84,7 @@ public interface ArticleConverter {
      */
     ArticleVersionDetailVO toVersionDetailVO(ArticleVersionDO version);
 
-    /**
-     * ArticleDO + ArticleVersionDO → ArticlePublicVO（公开列表接口使用，不含内部字段）
-     */
+    // topping and publishTime live on ArticleDO, not ArticleVersionDO — ignored here, set by the caller after mapping.
     @Mapping(target = "id", source = "version.articleId")
     @Mapping(target = "readCount", ignore = true)
     @Mapping(target = "commentCount", ignore = true)
@@ -94,6 +93,15 @@ public interface ArticleConverter {
     @Mapping(target = "topping", ignore = true)
     @Mapping(target = "publishTime", ignore = true)
     ArticlePublicVO toPublicVO(ArticleDO article, ArticleVersionDO version);
+
+    @Mapping(target = "id", source = "version.articleId")
+    @Mapping(target = "readCount", ignore = true)
+    @Mapping(target = "commentCount", ignore = true)
+    @Mapping(target = "categoryName", ignore = true)
+    @Mapping(target = "tags", ignore = true)
+    @Mapping(target = "topping", ignore = true)
+    @Mapping(target = "publishTime", ignore = true)
+    ArticlePublicDetailVO toPublicDetailVO(ArticleDO article, ArticleVersionDO version);
 
     TagVO toTagVO(TagDO tag);
 

@@ -15,6 +15,7 @@ import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
 import top.harrylei.bitlog.api.model.article.vo.ArticleCountVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticlePublicDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
@@ -52,7 +53,6 @@ import java.util.stream.Collectors;
  * 文章业务服务实现
  *
  * @author Harry
- * 
  * @since 2026-04-09
  */
 @Slf4j
@@ -227,7 +227,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
-    public ArticleDetailVO getPublishedDetail(Long articleId) {
+    public ArticlePublicDetailVO getPublishedDetail(Long articleId) {
         ArticleDO article = getArticleOrThrow(articleId);
         if (article.getPublishedVersionId() == null) {
             ResultCode.ARTICLE_NOT_PUBLISHED.throwException();
@@ -237,7 +237,7 @@ public class ArticleServiceImpl implements ArticleService {
             ResultCode.ARTICLE_VERSION_NOT_EXISTS.throwException();
         }
         articleStatisticsDAO.incrementReadCount(articleId);
-        return buildDetailVO(article, version);
+        return buildPublicDetailVO(article, version);
     }
 
     @Override
@@ -462,6 +462,32 @@ public class ArticleServiceImpl implements ArticleService {
 
         List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(article.getId());
         vo.setTagIds(tagIds);
+        if (!tagIds.isEmpty()) {
+            vo.setTags(tagDAO.listByIds(tagIds).stream().map(TagDO::getName).toList());
+        }
+
+        ArticleStatisticsDO stats = articleStatisticsDAO.getByArticleId(article.getId());
+        if (stats != null) {
+            vo.setReadCount(stats.getReadCount());
+            vo.setCommentCount(stats.getCommentCount());
+        }
+        return vo;
+    }
+
+    private ArticlePublicDetailVO buildPublicDetailVO(ArticleDO article, ArticleVersionDO version) {
+        ArticlePublicDetailVO vo = articleConverter.toPublicDetailVO(article, version);
+        vo.setCover(fileUrlHelper.buildUrl(vo.getCover()));
+        vo.setTopping(article.getTopping());
+        vo.setPublishTime(article.getPublishTime());
+
+        if (article.getCategoryId() != null) {
+            CategoryDO category = categoryDAO.getById(article.getCategoryId());
+            if (category != null) {
+                vo.setCategoryName(category.getName());
+            }
+        }
+
+        List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(article.getId());
         if (!tagIds.isEmpty()) {
             vo.setTags(tagDAO.listByIds(tagIds).stream().map(TagDO::getName).toList());
         }

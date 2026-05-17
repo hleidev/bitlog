@@ -7,9 +7,10 @@ import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticlePublicDetailVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.common.model.PageVO;
 
@@ -78,10 +79,10 @@ public interface ArticleService {
      *
      * @param articleId
      *            文章 ID
-     * 
+     *
      * @return 文章详情
      */
-    ArticleDetailVO getPublishedDetail(Long articleId);
+    ArticlePublicDetailVO getPublishedDetail(Long articleId);
 
     /**
      * 获取文章草稿详情（最新版本，供作者编辑）

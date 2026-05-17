@@ -10,7 +10,12 @@ import top.harrylei.bitlog.api.model.article.req.ArticleBatchDeleteRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleBatchStatusUpdateRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
-import top.harrylei.bitlog.api.model.article.vo.*;
+import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticlePublicDetailVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.article.service.ArticleService;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.model.PageVO;
@@ -74,7 +79,7 @@ public class ArticleController {
 
     @Operation(summary = "获取文章详情（已发布，读者视角）")
     @GetMapping("/{id}")
-    public Result<ArticleDetailVO> detail(@PathVariable Long id) {
+    public Result<ArticlePublicDetailVO> detail(@PathVariable Long id) {
         return Result.success(articleService.getPublishedDetail(id));
     }
 
