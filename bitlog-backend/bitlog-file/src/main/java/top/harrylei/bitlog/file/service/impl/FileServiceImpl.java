@@ -15,6 +15,7 @@ import top.harrylei.bitlog.file.config.StorageProperties;
 import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.model.UploadVO;
 import top.harrylei.bitlog.file.service.FileService;
+import top.harrylei.bitlog.file.util.ImageProcessor;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -24,7 +25,6 @@ import java.util.UUID;
  * 文件服务实现
  *
  * @author Harry
- * 
  * @since 2026-04-09
  */
 @Slf4j
@@ -42,21 +42,41 @@ public class FileServiceImpl implements FileService {
             ResultCode.INVALID_PARAMETER.throwException("文件不能为空");
         }
 
+        String contentType = file.getContentType() != null ? file.getContentType().toLowerCase() : null;
+        if (!scene.isAllowedType(contentType)) {
+            ResultCode.FILE_TYPE_NOT_ALLOWED.throwException(contentType);
+        }
+
+        if (scene.isSizeExceeded(file.getSize())) {
+            ResultCode.FILE_SIZE_EXCEEDED.throwException("最大允许 " + scene.readableMaxSize());
+        }
+
         String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
         if (ext == null || ext.isBlank()) {
             ResultCode.INVALID_PARAMETER.throwException("文件名缺少扩展名");
         }
 
+        byte[] fileBytes;
+        try {
+            fileBytes = ImageProcessor.stripExif(file.getBytes(), contentType);
+        } catch (IOException e) {
+            log.error("图片处理失败 scene={} userId={}", scene, userId, e);
+            ResultCode.INTERNAL_ERROR.throwException("图片处理失败");
+            throw new IllegalStateException("unreachable");
+        }
+
+        if (scene.isSizeExceeded(fileBytes.length)) {
+            ResultCode.FILE_SIZE_EXCEEDED.throwException("最大允许 " + scene.readableMaxSize());
+        }
+
         LocalDateTime now = LocalDateTime.now();
         String key = String.format("bitlog/%s/%d/%d/%02d/%s.%s", scene, userId, now.getYear(), now.getMonthValue(),
-                UUID.randomUUID(), ext);
+            UUID.randomUUID(), ext);
 
         try {
-            s3Client.putObject(
-                    PutObjectRequest.builder().bucket(props.getBucket()).key(key).contentType(file.getContentType())
-                            .contentLength(file.getSize()).build(),
-                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-        } catch (IOException e) {
+            s3Client.putObject(PutObjectRequest.builder().bucket(props.getBucket()).key(key).contentType(contentType)
+                .contentLength((long)fileBytes.length).build(), RequestBody.fromBytes(fileBytes));
+        } catch (Exception e) {
             log.error("文件上传失败 scene={} userId={} key={}", scene, userId, key, e);
             ResultCode.INTERNAL_ERROR.throwException("文件上传失败");
         }

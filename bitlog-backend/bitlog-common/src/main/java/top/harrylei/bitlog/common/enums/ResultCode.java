@@ -30,6 +30,9 @@ public enum ResultCode implements IResultCode {
     CATEGORY_ALREADY_EXISTS(43102, "分类已存在"), CATEGORY_HAS_ARTICLES(43104, "该分类下存在文章，请先移除文章"),
     TAG_NOT_EXISTS(43201, "标签不存在"), TAG_ALREADY_EXISTS(43202, "标签已存在"),
 
+    // ========== 文件 44xxx ==========
+    FILE_TYPE_NOT_ALLOWED(44001, "不支持的文件类型"), FILE_SIZE_EXCEEDED(44002, "文件大小超出限制"),
+
     // ========== 系统 50xxx ==========
     INTERNAL_ERROR(50000, "系统内部错误"), SERVICE_UNAVAILABLE(50003, "服务暂不可用"), DATABASE_ERROR(50010, "数据库操作异常");
 
