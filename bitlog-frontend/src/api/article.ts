@@ -4,6 +4,7 @@ export interface ArticlePageParams {
   pageNum?: number
   pageSize?: number
   categoryId?: number
+  tagIds?: number[]
   keyword?: string
 }
 
@@ -14,7 +15,7 @@ export interface ArticleItemVO {
   cover: string | null
   categoryName: string | null
   tags: string[]
-  topping: boolean
+  topping: 0 | 1
   publishTime: string
   readCount: number
   commentCount: number

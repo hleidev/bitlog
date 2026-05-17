@@ -7,12 +7,14 @@ NProgress.configure({ showSpinner: false })
 
 const router = createRouter({
   history: createWebHistory(),
+  scrollBehavior: () => ({ top: 0 }),
   routes: [
     {
       path: '/',
       component: () => import('@/layouts/PublicLayout.vue'),
       children: [
         { path: '', component: () => import('@/views/HomeView.vue') },
+        { path: 'articles', component: () => import('@/views/ArticleListView.vue') },
         { path: 'article/:id(\\d+)', component: () => import('@/views/ArticleDetailView.vue') },
       ],
     },

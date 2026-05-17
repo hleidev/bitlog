@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import HeroSection from '@/components/home/HeroSection.vue'
 import ArticleCard from '@/components/home/ArticleCard.vue'
 import HomeSidebar from '@/components/home/HomeSidebar.vue'
@@ -28,7 +29,7 @@ onMounted(async () => {
         <section class="home-content__main">
           <div class="section-header">
             <span class="section-title">最新文章</span>
-            <a href="/articles" class="section-more">查看全部 →</a>
+            <RouterLink to="/articles" class="section-more">查看全部 →</RouterLink>
           </div>
           <div class="article-list">
             <ArticleCard v-for="article in articles" :key="article.id" :article="article" />

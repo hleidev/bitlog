@@ -1,25 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getCategories } from '@/api/admin/category'
-import { getTags } from '@/api/admin/tag'
+import { RouterLink } from 'vue-router'
+import { getCategories, type CategoryVO } from '@/api/category'
+import { getTags, type TagVO } from '@/api/tag'
 
-interface CategoryItem {
-  id: number
-  name: string
-  articleCount: number
-}
-
-interface TagItem {
-  id: number
-  name: string
-}
-
-const categories = ref<CategoryItem[]>([])
-const tags = ref<TagItem[]>([])
+const categories = ref<CategoryVO[]>([])
+const tags = ref<TagVO[]>([])
 
 onMounted(async () => {
-  categories.value = await getCategories()
-  tags.value = await getTags()
+  const [cats, tgs] = await Promise.all([getCategories(), getTags()])
+  categories.value = cats
+  tags.value = tgs
 })
 </script>
 
@@ -29,11 +20,14 @@ onMounted(async () => {
     <div class="sidebar-widget">
       <h3 class="sidebar-widget__title">分类</h3>
       <ul class="sidebar-widget__list">
-        <li v-for="cat in categories" :key="cat.name" class="sidebar-category">
-          <a :href="`/category/${cat.name}`" class="sidebar-category__link">
+        <li v-for="cat in categories" :key="cat.id" class="sidebar-category">
+          <RouterLink
+            :to="{ path: '/articles', query: { categoryId: cat.id, categoryName: cat.name } }"
+            class="sidebar-category__link"
+          >
             <span class="sidebar-category__dot"></span>
             <span class="sidebar-category__name">{{ cat.name }}</span>
-          </a>
+          </RouterLink>
           <span class="sidebar-category__count">{{ cat.articleCount }}</span>
         </li>
       </ul>
@@ -43,9 +37,14 @@ onMounted(async () => {
     <div class="sidebar-widget">
       <h3 class="sidebar-widget__title">标签</h3>
       <div class="sidebar-tags">
-        <a v-for="tag in tags" :key="tag.id" :href="`/tag/${tag.name}`" class="sidebar-tag">
+        <RouterLink
+          v-for="tag in tags"
+          :key="tag.id"
+          :to="{ path: '/articles', query: { tagId: tag.id, tagName: tag.name } }"
+          class="sidebar-tag"
+        >
           {{ tag.name }}
-        </a>
+        </RouterLink>
       </div>
     </div>
 
