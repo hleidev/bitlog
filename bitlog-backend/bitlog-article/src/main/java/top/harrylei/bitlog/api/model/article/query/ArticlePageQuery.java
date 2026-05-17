@@ -8,6 +8,8 @@ import lombok.experimental.Accessors;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.common.model.BasePage;
 
+import java.util.List;
+
 /**
  * 文章列表查询参数
  *
@@ -32,4 +34,7 @@ public class ArticlePageQuery extends BasePage {
 
     @Schema(description = "作者用户 ID")
     private Long userId;
+
+    @Schema(description = "标签 ID 列表（AND 逻辑，文章需同时包含所有选中标签）")
+    private List<Long> tagIds;
 }

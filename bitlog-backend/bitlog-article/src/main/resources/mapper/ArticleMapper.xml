@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.harrylei.bitlog.article.repository.mapper.ArticleMapper">
+
+    <select id="pagePublished" resultType="top.harrylei.bitlog.article.repository.entity.ArticleDO">
+        SELECT *
+        FROM article a
+        WHERE a.deleted = 0
+          AND a.published_version_id IS NOT NULL
+          <if test="query.categoryId != null">
+              AND a.category_id = #{query.categoryId}
+          </if>
+          <if test="query.keyword != null and query.keyword.trim() != ''">
+              AND (
+                  EXISTS (SELECT 1 FROM article_version WHERE id = a.published_version_id AND title LIKE CONCAT('%', #{query.keyword}, '%'))
+                  OR a.summary LIKE CONCAT('%', #{query.keyword}, '%')
+              )
+          </if>
+          <if test="query.tagIds != null and query.tagIds.size() > 0">
+              AND a.id IN (
+                  SELECT article_id
+                  FROM article_tag
+                  WHERE tag_id IN
+                  <foreach collection="query.tagIds" item="tagId" open="(" separator="," close=")">
+                      #{tagId}
+                  </foreach>
+                  GROUP BY article_id
+                  HAVING COUNT(DISTINCT tag_id) = ${query.tagIds.size()}
+              )
+          </if>
+        ORDER BY a.topping DESC, a.publish_time DESC
+    </select>
+
+</mapper>
