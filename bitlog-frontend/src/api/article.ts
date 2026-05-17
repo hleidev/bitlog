@@ -30,6 +30,14 @@ export interface PageResult<T> {
   content: T[]
 }
 
+export interface ArticleDetailVO extends ArticleItemVO {
+  content: string
+}
+
 export function getArticlePage(params?: ArticlePageParams): Promise<PageResult<ArticleItemVO>> {
   return request.get('/v1/article/page', { params })
+}
+
+export function getArticleDetail(id: number): Promise<ArticleDetailVO> {
+  return request.get(`/v1/article/${id}`)
 }

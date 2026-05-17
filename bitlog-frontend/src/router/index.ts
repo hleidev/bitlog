@@ -11,7 +11,10 @@ const router = createRouter({
     {
       path: '/',
       component: () => import('@/layouts/PublicLayout.vue'),
-      children: [{ path: '', component: () => import('@/views/HomeView.vue') }],
+      children: [
+        { path: '', component: () => import('@/views/HomeView.vue') },
+        { path: 'article/:id(\\d+)', component: () => import('@/views/ArticleDetailView.vue') },
+      ],
     },
     {
       path: '/admin/login',
