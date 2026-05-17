@@ -2,7 +2,7 @@
   <footer class="footer">
     <div class="footer__inner">
       <p class="footer__name">BitLog</p>
-      <p class="footer__copy">© 2024 BitLog · 用心记录，用代码表达</p>
+      <p class="footer__copy">© 2026 BitLog · 落笔有痕，代码留迹。</p>
     </div>
   </footer>
 </template>
