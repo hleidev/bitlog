@@ -30,7 +30,7 @@ import java.util.List;
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
-@EnableConfigurationProperties({ SecurityProperties.class, JwtProperties.class })
+@EnableConfigurationProperties({SecurityProperties.class, JwtProperties.class})
 public class SecurityConfig {
 
     /** 所有服务通用的白名单 */
@@ -46,14 +46,13 @@ public class SecurityConfig {
         whitelist.addAll(securityProperties.getAdditionalWhitelist());
 
         http.csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers(whitelist.toArray(String[]::new)).permitAll()
-                        .anyRequest().authenticated())
-                .formLogin(AbstractHttpConfigurer::disable).httpBasic(AbstractHttpConfigurer::disable)
-                .exceptionHandling(
-                        ex -> ex.authenticationEntryPoint((request, response, e) -> handleUnauthorized(response))
-                                .accessDeniedHandler((request, response, e) -> handleForbidden(response)))
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(
+                auth -> auth.requestMatchers(whitelist.toArray(String[]::new)).permitAll().anyRequest().authenticated())
+            .formLogin(AbstractHttpConfigurer::disable).httpBasic(AbstractHttpConfigurer::disable)
+            .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, e) -> handleUnauthorized(response))
+                .accessDeniedHandler((request, response, e) -> handleForbidden(response)))
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
