@@ -13,7 +13,7 @@ spring:
       database: 12
       password: ENC(REMOVED)
   flyway:
-    clean-disabled: false
+    clean-disabled: true
 
 jwt:
   secret: ENC(REMOVED)

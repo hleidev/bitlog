@@ -1,8 +1,6 @@
 spring:
   application:
     name: bitlog-server
-  profiles:
-    active: dev
   servlet:
     multipart:
       max-file-size: 10MB
@@ -15,7 +13,7 @@ spring:
       lettuce:
         pool:
           max-active: 8
-          max-wait: -1ms
+          max-wait: 5000ms
           max-idle: 8
           min-idle: 0
   flyway:
@@ -43,9 +41,6 @@ security:
     - /api/v1/article/*
     - /api/v1/tag
     - /api/v1/category
-
-user:
-  default-password: bitlog@123
 
 redis:
   health:
