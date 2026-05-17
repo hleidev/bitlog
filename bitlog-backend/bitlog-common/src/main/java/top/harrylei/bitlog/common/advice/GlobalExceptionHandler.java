@@ -4,7 +4,6 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authorization.AuthorizationDeniedException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -24,7 +23,6 @@ import java.util.stream.Collectors;
  * </p>
  *
  * @author Harry
- * 
  * @since 2026-03-21
  */
 @Slf4j
@@ -41,10 +39,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleValidationException(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream().map(FieldError::getDefaultMessage)
-                .collect(Collectors.joining("; "));
-        log.warn("参数校验失败: {}", message);
-        return Result.fail(ResultCode.INVALID_PARAMETER.getCode(), message);
+        log.warn("参数校验失败: {}", e.getMessage());
+        return Result.fail(ResultCode.INVALID_PARAMETER);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
@@ -57,8 +53,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleConstraintViolation(ConstraintViolationException e) {
-        String message = e.getConstraintViolations().stream().map(v -> v.getMessage())
-                .collect(Collectors.joining("; "));
+        String message =
+            e.getConstraintViolations().stream().map(v -> v.getMessage()).collect(Collectors.joining("; "));
         log.warn("参数校验失败: {}", message);
         return Result.fail(ResultCode.INVALID_PARAMETER.getCode(), message);
     }
@@ -73,7 +69,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Result<Void> handleNoResourceFound(NoResourceFoundException e) {
-        return Result.fail(ResultCode.RESOURCE_NOT_FOUND.getCode(), e.getMessage());
+        log.warn("资源不存在: {}", e.getMessage());
+        return Result.fail(ResultCode.RESOURCE_NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)
