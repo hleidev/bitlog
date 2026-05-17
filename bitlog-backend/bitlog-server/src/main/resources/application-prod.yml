@@ -31,8 +31,3 @@ cookie:
 app:
   exception:
     print-stack-trace: false
-
-logging:
-  level:
-    root: warn
-    top.harrylei.bitlog: info

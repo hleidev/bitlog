@@ -31,7 +31,3 @@ storage:
   secret-key: ENC(REMOVED)
   bucket: media
   public-url: http://localhost:19000/media
-
-logging:
-  level:
-    top.harrylei.bitlog: debug
