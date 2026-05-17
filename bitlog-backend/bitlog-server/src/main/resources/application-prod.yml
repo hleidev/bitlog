@@ -28,6 +28,10 @@ storage:
 cookie:
   secure: true
 
+security:
+  allowed-origins:
+    - https://blog.harrylei.top
+
 app:
   exception:
     print-stack-trace: false

@@ -23,4 +23,9 @@ public class SecurityProperties {
      * 各服务追加的额外白名单路径
      */
     private List<String> additionalWhitelist = new ArrayList<>();
+
+    /**
+     * CORS 允许的来源
+     */
+    private List<String> allowedOrigins = new ArrayList<>();
 }

@@ -41,6 +41,8 @@ security:
     - /api/v1/article/*
     - /api/v1/tag
     - /api/v1/category
+  allowed-origins:
+    - http://localhost:5173
 
 redis:
   health:
