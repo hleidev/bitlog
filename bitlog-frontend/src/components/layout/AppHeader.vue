@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, nextTick } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useHeaderScroll } from '@/composables/useHeaderScroll'
 import { useModalStore } from '@/stores/useModalStore'
@@ -10,11 +10,15 @@ import UserDropdown from '@/components/common/UserDropdown.vue'
 const { isScrolled } = useHeaderScroll()
 const modalStore = useModalStore()
 const userStore = useUserStore()
+const router = useRouter()
 const { userInfo, isLoggedIn } = storeToRefs(userStore)
 
 const isDark = ref(false)
 const mobileMenuOpen = ref(false)
 const dropdownOpen = ref(false)
+const searchOpen = ref(false)
+const searchKeyword = ref('')
+const searchInputRef = ref<HTMLInputElement | null>(null)
 
 const closeDropdown = () => {
   dropdownOpen.value = false
@@ -24,65 +28,108 @@ const toggleTheme = () => {
   isDark.value = !isDark.value
   document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
 }
+
+const openSearch = async () => {
+  searchOpen.value = true
+  await nextTick()
+  searchInputRef.value?.focus()
+}
+
+const closeSearch = () => {
+  searchOpen.value = false
+  searchKeyword.value = ''
+}
+
+const doSearch = () => {
+  const kw = searchKeyword.value.trim()
+  if (!kw) return
+  router.push({ path: '/articles', query: { keyword: kw } })
+  closeSearch()
+}
 </script>
 
 <template>
-  <header class="header" :class="{ 'header--scrolled': isScrolled }">
+  <header class="header" :class="{ 'header--scrolled': isScrolled, 'header--search': searchOpen }">
     <div class="header__inner">
-      <RouterLink to="/" class="header__logo">
-        <img src="@/assets/images/logo.jpeg" class="header__logo-icon" alt="Bitlog Logo" />
-        <span class="header__logo-text">BitLog</span>
-      </RouterLink>
-
-      <nav class="header__nav">
-        <RouterLink to="/" class="header__nav-link">首页</RouterLink>
-        <RouterLink to="/about" class="header__nav-link">关于</RouterLink>
-        <RouterLink to="/friends" class="header__nav-link">友链</RouterLink>
-      </nav>
-
-      <div class="header__actions">
-        <svg class="header__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Search mode -->
+      <div v-if="searchOpen" class="header__search-mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <!-- 主题切换 -->
-        <button class="header__theme-btn" @click="toggleTheme" :aria-label="isDark ? '切换亮色' : '切换暗色'">
-          <svg v-if="!isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-          </svg>
-          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        <input
+          ref="searchInputRef"
+          v-model="searchKeyword"
+          class="header__search-input"
+          placeholder="搜索文章..."
+          @keyup.enter="doSearch"
+          @keyup.escape="closeSearch"
+        />
+        <button class="header__search-close" @click="closeSearch" aria-label="关闭搜索">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
-        <!-- 登录按钮 / 用户头像 -->
-        <button v-if="!isLoggedIn" class="header__login-btn" @click="modalStore.open('login')">登录</button>
-        <template v-else>
-          <div class="header__user" @mouseenter="dropdownOpen = true" @mouseleave="dropdownOpen = false">
-            <button class="header__avatar-btn" aria-label="用户菜单">
-              <img
-                v-if="userInfo?.avatar"
-                :src="userInfo.avatar"
-                class="header__avatar"
-                :alt="userInfo?.userName"
-              />
-              <span v-else class="header__avatar header__avatar--placeholder">
-                {{ (userInfo?.nickname || userInfo?.username)?.[0]?.toUpperCase() ?? '?' }}
-              </span>
-            </button>
-            <Transition name="dropdown">
-              <UserDropdown
-                v-if="dropdownOpen"
-                show-admin-links
-                class="header__dropdown"
-              />
-            </Transition>
-          </div>
-        </template>
       </div>
 
-      <!-- Mobile hamburger -->
-      <button class="header__hamburger" @click="mobileMenuOpen = !mobileMenuOpen" aria-label="菜单">
-        <span></span><span></span><span></span>
-      </button>
+      <!-- Normal mode -->
+      <template v-else>
+        <RouterLink to="/" class="header__logo">
+          <img src="@/assets/images/logo.jpeg" class="header__logo-icon" alt="Bitlog Logo" />
+          <span class="header__logo-text">BitLog</span>
+        </RouterLink>
+
+        <nav class="header__nav">
+          <RouterLink to="/" class="header__nav-link">首页</RouterLink>
+          <RouterLink to="/about" class="header__nav-link">关于</RouterLink>
+          <RouterLink to="/friends" class="header__nav-link">友链</RouterLink>
+        </nav>
+
+        <div class="header__actions">
+          <button class="header__search-btn" @click="openSearch" aria-label="搜索">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+          <!-- 主题切换 -->
+          <button class="header__theme-btn" @click="toggleTheme" :aria-label="isDark ? '切换亮色' : '切换暗色'">
+            <svg v-if="!isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <!-- 登录按钮 / 用户头像 -->
+          <button v-if="!isLoggedIn" class="header__login-btn" @click="modalStore.open('login')">登录</button>
+          <template v-else>
+            <div class="header__user" @mouseenter="dropdownOpen = true" @mouseleave="dropdownOpen = false">
+              <button class="header__avatar-btn" aria-label="用户菜单">
+                <img
+                  v-if="userInfo?.avatar"
+                  :src="userInfo.avatar"
+                  class="header__avatar"
+                  :alt="userInfo?.userName"
+                />
+                <span v-else class="header__avatar header__avatar--placeholder">
+                  {{ (userInfo?.nickname || userInfo?.username)?.[0]?.toUpperCase() ?? '?' }}
+                </span>
+              </button>
+              <Transition name="dropdown">
+                <UserDropdown
+                  v-if="dropdownOpen"
+                  show-admin-links
+                  class="header__dropdown"
+                />
+              </Transition>
+            </div>
+          </template>
+        </div>
+
+        <!-- Mobile hamburger -->
+        <button class="header__hamburger" @click="mobileMenuOpen = !mobileMenuOpen" aria-label="菜单">
+          <span></span><span></span><span></span>
+        </button>
+      </template>
     </div>
 
     <!-- Mobile drawer -->
@@ -204,17 +251,93 @@ const toggleTheme = () => {
   margin-left: auto;
 }
 
-.header__search-icon {
+.header__search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 20px;
   height: 20px;
-  cursor: pointer;
   color: rgba(255, 255, 255, 0.9);
-  transition: color var(--transition-header);
+  transition: color var(--transition-header), transform var(--transition-base);
   flex-shrink: 0;
 }
 
-.header--scrolled .header__search-icon {
+.header__search-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.header__search-btn:hover {
+  transform: scale(1.1);
+}
+
+.header--scrolled .header__search-btn {
   color: #374151;
+}
+
+/* Search mode */
+.header--search {
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom-color: var(--color-border) !important;
+  box-shadow: 0 1px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme='dark'] .header--search {
+  background: rgba(15, 17, 23, 0.96) !important;
+}
+
+.header__search-mode {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.header__search-mode svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.header__search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+.header__search-input::placeholder {
+  color: var(--color-text-faint);
+}
+
+.header__search-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.header__search-close:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.header__search-close svg {
+  width: 15px;
+  height: 15px;
 }
 
 .header__theme-btn {
