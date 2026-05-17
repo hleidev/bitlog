@@ -21,3 +21,7 @@
 ## 传输对象
 
 - [ ] 统一传输对象命名：入参 *Param，出参 *VO，模块间 *DTO，数据库实体 *DO；将现有 *Request 重命名为 *Param，*PageQuery 重命名为 *PageParam
+
+## 数据库迁移
+
+- [ ] 生产首次部署前，将 V1__init_user_tables.sql 和 V2__init_article_tables.sql 合并为单个初始化文件
