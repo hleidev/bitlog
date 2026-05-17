@@ -13,3 +13,11 @@
 
 - [ ] PageVO 工厂方法：`ArticleServiceImpl.toArticlePageVO` 中手动赋 7 个字段且重复两次，提取 `PageVO.from(IPage<?>, List<T>)` 静态工厂方法消除样板代码。
 - [ ] FileUrlHelper 移到 converter 层：`buildDetailVO` 和 `toArticlePageVO` 中的 `fileUrlHelper.buildUrl()` 是展示层转换，应由 `ArticleConverter` 负责，消除 service 对 `FileUrlHelper` 的依赖。
+
+## 评论功能
+
+- [ ] 评论功能实现
+
+## 传输对象
+
+- [ ] 统一传输对象命名：入参 *Param，出参 *VO，模块间 *DTO，数据库实体 *DO；将现有 *Request 重命名为 *Param，*PageQuery 重命名为 *PageParam
