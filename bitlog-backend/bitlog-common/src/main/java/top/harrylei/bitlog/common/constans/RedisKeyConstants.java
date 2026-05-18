@@ -25,6 +25,8 @@ public class RedisKeyConstants {
     public static final String DISTRIBUTED_LOCK = LOCK + "distributed:";
     public static final String DUPLICATE_LOCK = LOCK + "duplicate:";
     public static final String HEALTH_CHECK = GLOBAL_PREFIX + "health:check";
+    public static final String LOGIN_FAIL_IP = GLOBAL_PREFIX + "login:fail:ip:";
+    public static final String LOGIN_FAIL_USER = GLOBAL_PREFIX + "login:fail:user:";
 
     // ===== Key 构建方法 =====
 
@@ -42,5 +44,13 @@ public class RedisKeyConstants {
 
     public static String getDuplicateLockKey(String lockKey) {
         return DUPLICATE_LOCK + lockKey;
+    }
+
+    public static String getLoginFailIpKey(String ip) {
+        return LOGIN_FAIL_IP + ip;
+    }
+
+    public static String getLoginFailUserKey(String username) {
+        return LOGIN_FAIL_USER + username;
     }
 }

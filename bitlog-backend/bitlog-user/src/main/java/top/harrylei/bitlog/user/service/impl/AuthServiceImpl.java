@@ -16,6 +16,7 @@ import top.harrylei.bitlog.common.constans.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.config.JwtProperties;
+import top.harrylei.bitlog.user.component.LoginRateLimiter;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
@@ -45,6 +46,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProperties jwtProperties;
     private final PasswordEncoder passwordEncoder;
     private final StringRedisTemplate redisTemplate;
+    private final LoginRateLimiter loginRateLimiter;
 
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -70,33 +72,39 @@ public class AuthServiceImpl implements AuthService {
 
         String password = PasswordUtil.generateRandomPassword();
         doCreateUser(req.getUsername(), req.getEmail(), password, req.getUserRole(), req.getPosition(),
-                req.getCompany(), req.getProfile());
+            req.getCompany(), req.getProfile());
         log.info("管理员创建用户成功 username={}", req.getUsername());
         return new UserCreatedVO().setUsername(req.getUsername()).setInitialPassword(password);
     }
 
     private void doCreateUser(String username, String email, String rawPassword, UserRoleEnum role, String position,
-            String company, String profile) {
-        UserDO newUser = new UserDO().setUsername(username).setEmail(email)
-                .setPassword(passwordEncoder.encode(rawPassword)).setThirdAccountId("")
-                .setLoginType(LoginTypeEnum.USERNAME_PASSWORD);
+        String company, String profile) {
+        UserDO newUser =
+            new UserDO().setUsername(username).setEmail(email).setPassword(passwordEncoder.encode(rawPassword))
+                .setThirdAccountId("").setLoginType(LoginTypeEnum.USERNAME_PASSWORD);
         userDAO.save(newUser);
 
         UserInfoDO userInfo = new UserInfoDO().setUserId(newUser.getId()).setNickname(username).setAvatar("")
-                .setUserRole(role).setPosition(position).setCompany(company).setProfile(profile);
+            .setUserRole(role).setPosition(position).setCompany(company).setProfile(profile);
         userInfoDAO.save(userInfo);
     }
 
     @Override
     public LoginResult login(String username, String password) {
+        String clientIp = ReqInfoContext.getContext().getClientIp();
+        loginRateLimiter.check(clientIp, username);
+
         UserDO user = userDAO.getByUsername(username);
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+            loginRateLimiter.increment(clientIp, username);
             ResultCode.USERNAME_OR_PASSWORD_ERROR.throwException();
         }
 
         if (!UserStatusEnum.ENABLED.equals(user.getStatus())) {
             ResultCode.USER_DISABLED.throwException(username);
         }
+
+        loginRateLimiter.reset(clientIp, username);
 
         Long userId = user.getId();
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
@@ -149,7 +157,7 @@ public class AuthServiceImpl implements AuthService {
         String redisValue = userId + ":" + role.name();
 
         redisTemplate.opsForValue().set(RedisKeyConstants.getUserRefreshTokenKey(refreshToken), redisValue,
-                jwtProperties.getRefreshTokenExpire().getSeconds(), TimeUnit.SECONDS);
+            jwtProperties.getRefreshTokenExpire().getSeconds(), TimeUnit.SECONDS);
 
         log.info("颁发 Token 对 userId={}", userId);
         return new LoginResult(accessToken, refreshToken);
