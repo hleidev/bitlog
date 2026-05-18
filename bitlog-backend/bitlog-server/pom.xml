@@ -28,6 +28,13 @@
             <groupId>top.harrylei.bitlog</groupId>
             <artifactId>bitlog-file</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <!-- httpclient 传递引入 commons-logging，与 spring-jcl 冲突 -->
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.mysql</groupId>
