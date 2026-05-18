@@ -78,6 +78,7 @@ public interface UserConverter {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "userRole", ignore = true)
+    @Mapping(target = "avatar", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createTime", ignore = true)
     @Mapping(target = "updateTime", ignore = true)
