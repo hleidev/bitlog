@@ -1,7 +1,8 @@
 FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /build
 COPY . .
-RUN mvn clean package -DskipTests -q
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn clean package -DskipTests -q
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
