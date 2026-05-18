@@ -37,7 +37,7 @@ import java.util.List;
 @EnableConfigurationProperties({SecurityProperties.class, JwtProperties.class})
 public class SecurityConfig {
 
-    private static final List<String> BASE_WHITELIST = List.of("/swagger-ui/**", "/v3/api-docs/**");
+    private static final List<String> BASE_WHITELIST = List.of("/swagger-ui/**", "/v3/api-docs/**", "/actuator/health");
 
     private final JwtAuthFilter jwtAuthFilter;
     private final ObjectMapper objectMapper;

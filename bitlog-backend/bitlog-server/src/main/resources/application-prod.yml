@@ -32,6 +32,15 @@ security:
   allowed-origins:
     - https://bitlog.harrylei.top
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 app:
   exception:
     print-stack-trace: false
