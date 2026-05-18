@@ -30,7 +30,7 @@ cookie:
 
 security:
   allowed-origins:
-    - https://blog.harrylei.top
+    - https://bitlog.harrylei.top
 
 app:
   exception:
