@@ -56,8 +56,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain) throws ServletException, IOException {
+        @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
+            ReqInfoContext.setContext(
+                new ReqInfoContext.ReqInfo().setClientIp(getClientIp(request)).setPath(request.getRequestURI()));
+
             String token = extractToken(request);
             if (StringUtils.hasText(token)) {
                 Claims claims = parseClaims(token);
@@ -80,12 +83,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String roleAuthority = ADMIN_ROLE_CODE.equals(roleCode) ? ROLE_ADMIN : ROLE_NORMAL;
 
             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userId, null,
-                    List.of(new SimpleGrantedAuthority(roleAuthority)));
+                List.of(new SimpleGrantedAuthority(roleAuthority)));
             SecurityContextHolder.getContext().setAuthentication(auth);
 
             ReqInfoContext
-                    .setContext(new ReqInfoContext.ReqInfo().setUserId(userId).setAuthorities(List.of(roleAuthority))
-                            .setClientIp(getClientIp(request)).setPath(request.getRequestURI()));
+                .setContext(new ReqInfoContext.ReqInfo().setUserId(userId).setAuthorities(List.of(roleAuthority))
+                    .setClientIp(getClientIp(request)).setPath(request.getRequestURI()));
         } catch (Exception e) {
             log.debug("JWT context 构建失败: {}", e.getMessage());
         }
