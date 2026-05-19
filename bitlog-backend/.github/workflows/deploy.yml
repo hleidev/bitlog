@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -21,13 +25,7 @@ jobs:
         with:
           java-version: '21'
           distribution: temurin
-
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+          cache: maven
 
       - name: Build with Maven
         run: mvn clean package -DskipTests -q
@@ -57,18 +55,25 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GITHUB_SHA
           script: |
             cd /opt/bitlog
-            docker compose pull app
-            docker compose up -d app
-            docker image prune -f
+            PREV_VERSION=$(cat .version 2>/dev/null || echo "latest")
+
+            APP_VERSION=$GITHUB_SHA docker compose pull app
+            APP_VERSION=$GITHUB_SHA docker compose up -d app
+
             for i in $(seq 1 30); do
               if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
                 echo "App is healthy"
+                echo "$GITHUB_SHA" > .version
+                docker image prune -f
                 exit 0
               fi
               echo "Waiting... ($i/30)"
               sleep 3
             done
-            echo "App failed to become healthy after 90s"
+
+            echo "Health check failed, rolling back to $PREV_VERSION..."
+            APP_VERSION=$PREV_VERSION docker compose up -d app
             exit 1
