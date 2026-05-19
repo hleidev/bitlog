@@ -22,8 +22,8 @@ storage:
   endpoint: http://minio:9000
   access-key: admin
   secret-key: ENC(REMOVED)
-  bucket: media
-  public-url: https://api.harrylei.top/media
+  bucket: bitlog
+  public-url: https://api.harrylei.top/assets
 
 cookie:
   secure: true
