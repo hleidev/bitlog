@@ -21,9 +21,12 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@types/markdown-it": "^14.1.2",
     "axios": "^1.14.0",
     "diff": "^9.0.0",
     "element-plus": "^2.13.6",
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.1.1",
     "md-editor-v3": "^6.5.0",
     "nprogress": "^0.2.0",
     "pinia": "^3.0.4",
