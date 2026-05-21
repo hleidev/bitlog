@@ -220,7 +220,7 @@ onUnmounted(() => {
           <RouterLink
             v-for="(tag, i) in article.tags"
             :key="tag"
-            :to="{ path: '/articles', query: { tagId: article.tagIds[i] } }"
+            :to="{ path: '/articles', query: { tagId: article.tagIds?.[i] } }"
             class="article-tag"
           >{{ tag }}</RouterLink>
         </div>
@@ -233,7 +233,7 @@ onUnmounted(() => {
             <RouterLink
               v-for="(tag, i) in article.tags"
               :key="tag"
-              :to="{ path: '/articles', query: { tagId: article.tagIds[i] } }"
+              :to="{ path: '/articles', query: { tagId: article.tagIds?.[i] } }"
               class="footer-tag"
             >{{ tag }}</RouterLink>
           </div>

@@ -33,6 +33,7 @@ export interface PageResult<T> {
 
 export interface ArticleDetailVO extends ArticleItemVO {
   content: string
+  tagIds: number[]
 }
 
 export function getArticlePage(params?: ArticlePageParams): Promise<PageResult<ArticleItemVO>> {
