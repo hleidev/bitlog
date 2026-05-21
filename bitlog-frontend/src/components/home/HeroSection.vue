@@ -33,6 +33,7 @@ import { RouterLink } from 'vue-router'
   display: flex;
   align-items: flex-end;
   position: relative;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .hero__after {

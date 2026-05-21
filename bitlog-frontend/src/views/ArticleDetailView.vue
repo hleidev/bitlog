@@ -383,6 +383,7 @@ onUnmounted(() => {
 .article-header {
   background: var(--color-hero-bg);
   padding-top: var(--spacing-header-height);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .article-header__inner {

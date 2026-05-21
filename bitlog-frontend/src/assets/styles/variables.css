@@ -42,10 +42,11 @@
   --color-bg:            #0e0c0b;
   --color-bg-card:       #161210;
   --color-bg-hover:      #1e1814;
+  --color-hero-bg:       #050403;
   --color-text-primary:  #f0ede8;
-  --color-text-secondary:#a09890;
-  --color-text-muted:    #6b6258;
-  --color-text-faint:    #4a4038;
-  --color-border:        rgba(255, 255, 255, 0.08);
-  --color-border-light:  rgba(255, 255, 255, 0.05);
+  --color-text-secondary:#c0b8b0;
+  --color-text-muted:    #8a8278;
+  --color-text-faint:    #6b6258;
+  --color-border:        rgba(255, 255, 255, 0.10);
+  --color-border-light:  rgba(255, 255, 255, 0.06);
 }
