@@ -1,50 +1,51 @@
 :root {
-  /* Colors - Light */
-  --color-bg: #f9f8f5;
-  --color-bg-card: #ffffff;
-  --color-bg-hover: #f3f4f6;
-  --color-text-primary: #1a1a1a;
-  --color-text-secondary: #374151;
-  --color-text-muted: #6b7280;
-  --color-text-faint: #9ca3af;
-  --color-accent: #4a8db7;
-  --color-accent-dark: #2d6a9f;
-  --color-border: #e5e7eb;
-  --color-border-light: #f3f4f6;
+  /* ── Colors ── */
+  --color-bg:            #faf9f7;
+  --color-bg-card:       #f4f2ef;
+  --color-bg-hover:      #f0ede9;
+  --color-hero-bg:       #0e0c0b;
+  --color-text-primary:  #1a1610;
+  --color-text-secondary:#5a5248;
+  --color-text-muted:    #b0a89e;
+  --color-text-faint:    #ccc5bc;
+  --color-accent:        #b85c38;
+  --color-accent-dark:   #924530;
+  --color-border:        #e8e4de;
+  --color-border-light:  #f0ede9;
 
-  /* Typography */
-  --font-sans: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-serif: 'Playfair Display', Georgia, serif;
-  --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  /* ── Typography ── */
+  --font-sans:  'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-serif: 'Lora', 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  --font-mono:  'SF Mono', 'Fira Code', 'Consolas', monospace;
 
-  /* Spacing */
-  --spacing-container: 1100px;
-  --spacing-header-height: 64px;
+  /* ── Layout ── */
+  --spacing-container:   1280px;
+  --spacing-header-height: 48px;
+  --spacing-page-padding: 48px;
 
-  /* Shadows */
-  --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.06);
-  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.12);
+  /* ── Shadows: none by design ── */
+  --shadow-card:       none;
+  --shadow-card-hover: none;
 
-  /* Radius */
-  --radius-card: 16px;
-  --radius-badge: 20px;
-  --radius-tag: 20px;
+  /* ── Radius: minimal ── */
+  --radius-card:  0px;
+  --radius-badge: 4px;
+  --radius-tag:   4px;
 
-  /* Transitions */
-  --transition-base: 0.2s ease;
-  --transition-header: 0.35s ease;
+  /* ── Transitions ── */
+  --transition-base:   0.2s ease;
+  --transition-header: 0.4s ease;
+  --transition-sweep:  0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme='dark'] {
-  --color-bg: #0f1117;
-  --color-bg-card: #161b27;
-  --color-bg-hover: #1e2436;
-  --color-text-primary: #e2e8f0;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
-  --color-text-faint: #4a5568;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-light: rgba(255, 255, 255, 0.05);
-  --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.25);
-  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --color-bg:            #0e0c0b;
+  --color-bg-card:       #161210;
+  --color-bg-hover:      #1e1814;
+  --color-text-primary:  #f0ede8;
+  --color-text-secondary:#a09890;
+  --color-text-muted:    #6b6258;
+  --color-text-faint:    #4a4038;
+  --color-border:        rgba(255, 255, 255, 0.08);
+  --color-border-light:  rgba(255, 255, 255, 0.05);
 }
