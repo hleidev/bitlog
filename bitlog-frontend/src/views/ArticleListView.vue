@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
-import ArticleCard from '@/components/home/ArticleCard.vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { getArticlePage, type ArticleItemVO } from '@/api/article'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { getTags, type TagVO } from '@/api/tag'
@@ -63,7 +62,19 @@ function updateIndicator() {
 
 // ── Article list ──────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 8
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function formatMonth(iso: string | null): string {
+  if (!iso) return '—'
+  return MONTHS[new Date(iso).getMonth()]
+}
+
+function formatYear(iso: string | null): string {
+  if (!iso) return ''
+  return String(new Date(iso).getFullYear())
+}
+
+const PAGE_SIZE = 12
 const pageNum = ref(1)
 const loading = ref(false)
 const articles = ref<ArticleItemVO[]>([])
@@ -88,7 +99,6 @@ async function fetchArticles() {
   }
 }
 
-// Debounce search input; category/tag changes fetch immediately
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 watch(filterSearch, () => {
@@ -225,18 +235,34 @@ onMounted(async () => {
       <Transition name="fade" mode="out-in">
         <div v-if="!loading && articles.length === 0" key="empty" class="empty-state">
           <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="8" y="12" width="48" height="40" rx="4" />
+            <rect x="8" y="12" width="48" height="40" rx="2" />
             <line x1="20" y1="24" x2="44" y2="24" />
             <line x1="20" y1="32" x2="36" y2="32" />
           </svg>
           <p>暂无相关文章</p>
         </div>
 
-        <!-- Article list with enter/leave animation -->
         <div v-else key="list" :class="{ 'list--loading': loading }">
-          <TransitionGroup name="article" tag="div" class="article-list">
-            <ArticleCard v-for="a in articles" :key="a.id" :article="a" />
-          </TransitionGroup>
+          <!-- Article list -->
+          <div class="article-list">
+            <RouterLink
+              v-for="article in articles"
+              :key="article.id"
+              :to="`/article/${article.id}`"
+              class="article-row"
+            >
+              <div class="article-date">
+                {{ formatMonth(article.publishTime) }}<span class="article-year">{{ formatYear(article.publishTime) }}</span>
+              </div>
+              <div class="article-body">
+                <span class="article-title">{{ article.title }}</span>
+                <span v-if="article.summary" class="article-excerpt">{{ article.summary }}</span>
+              </div>
+              <div class="article-right">
+                <span class="article-tag">{{ article.categoryName ?? article.tags[0] ?? '' }}</span>
+              </div>
+            </RouterLink>
+          </div>
 
           <!-- Pagination -->
           <div v-if="totalPages > 1" class="pagination">
@@ -269,7 +295,6 @@ onMounted(async () => {
 <style scoped>
 .articles-page {
   min-height: 100vh;
-  background: var(--color-bg);
   padding-top: var(--spacing-header-height);
 }
 
@@ -279,14 +304,14 @@ onMounted(async () => {
   position: sticky;
   top: var(--spacing-header-height);
   z-index: 100;
-  background: rgba(249, 248, 245, 0.88);
+  background: rgba(250, 249, 247, 0.92);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--color-border-light);
 }
 
 [data-theme='dark'] .filter-bar {
-  background: rgba(15, 17, 23, 0.88);
+  background: rgba(14, 12, 11, 0.92);
 }
 
 .filter-bar__row {
@@ -304,17 +329,16 @@ onMounted(async () => {
   gap: 8px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 4px;
   padding: 7px 12px;
   width: 180px;
-  transition: width 0.3s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: width 0.3s ease, border-color var(--transition-base);
   flex-shrink: 0;
 }
 
 .search-wrap--focused {
   width: 240px;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(74, 141, 183, 0.12);
 }
 
 .search-wrap svg {
@@ -322,7 +346,7 @@ onMounted(async () => {
   height: 15px;
   flex-shrink: 0;
   color: var(--color-text-faint);
-  transition: color 0.2s;
+  transition: color var(--transition-base);
 }
 
 .search-wrap--focused svg {
@@ -348,7 +372,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   color: var(--color-text-faint);
-  transition: color 0.2s;
+  transition: color var(--transition-base);
   flex-shrink: 0;
 }
 
@@ -367,7 +391,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   background: var(--color-bg-hover);
-  border-radius: 10px;
+  border-radius: 4px;
   padding: 4px;
   gap: 2px;
 }
@@ -377,8 +401,8 @@ onMounted(async () => {
   top: 4px;
   bottom: 4px;
   background: var(--color-bg-card);
-  border-radius: 7px;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+  border-radius: 2px;
+  border: 1px solid var(--color-border-light);
   transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
               width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
               opacity 0.15s;
@@ -389,18 +413,18 @@ onMounted(async () => {
   position: relative;
   z-index: 1;
   padding: 6px 14px;
-  border-radius: 7px;
+  border-radius: 2px;
   font-size: 13px;
   font-family: var(--font-sans);
   color: var(--color-text-muted);
   white-space: nowrap;
-  transition: color 0.2s ease;
+  transition: color var(--transition-base);
   cursor: pointer;
 }
 
 .cat-tab--active {
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* Tag chips row */
@@ -425,12 +449,12 @@ onMounted(async () => {
   padding: 4px 12px;
   border-radius: var(--radius-tag);
   border: 1px solid var(--color-border);
-  background: var(--color-bg-card);
+  background: transparent;
   color: var(--color-text-muted);
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
   font-family: var(--font-sans);
 }
 
@@ -448,15 +472,15 @@ onMounted(async () => {
 /* ── Content ──────────────────────────────────────────────────────────────── */
 
 .page-content {
-  padding-top: 36px;
-  padding-bottom: 80px;
+  padding-top: 40px;
+  padding-bottom: 120px;
 }
 
 .result-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .result-info {
@@ -466,14 +490,14 @@ onMounted(async () => {
 }
 
 .result-num {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1;
 }
 
 .result-label {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-text-faint);
 }
 
@@ -485,35 +509,127 @@ onMounted(async () => {
 
 .clear-btn {
   font-size: 12px;
-  color: var(--color-text-faint);
-  border: 1px dashed var(--color-border);
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
   padding: 5px 12px;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
   font-family: var(--font-sans);
+  background: transparent;
 }
 
 .clear-btn:hover {
-  border-color: #e57373;
-  color: #e57373;
+  border-color: var(--color-text-muted);
+  color: var(--color-text-primary);
 }
 
-/* Article list */
+/* ── Article list ──────────────────────────────────────────────────────────── */
+
 .list--loading {
-  opacity: 0.5;
+  opacity: 0.4;
   pointer-events: none;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition-base);
 }
 
 .article-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  position: relative;
+  border-top: 1px solid var(--color-border);
 }
 
-/* Empty state */
+.article-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.article-date {
+  width: 72px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-top: 3px;
+  line-height: 1.4;
+  transition: color var(--transition-base);
+}
+
+.article-year {
+  display: block;
+  font-size: 10px;
+  margin-top: 2px;
+  opacity: 0.65;
+}
+
+.article-body {
+  flex: 1;
+  min-width: 0;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.article-title {
+  font-family: var(--font-serif);
+  font-size: 17.5px;
+  font-weight: 400;
+  color: var(--color-text-primary);
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  background-image: linear-gradient(var(--color-accent), var(--color-accent));
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  background-position: left bottom;
+  padding-bottom: 1px;
+  transition: background-size var(--transition-sweep);
+}
+
+.article-row:hover .article-title {
+  background-size: 100% 1px;
+}
+
+.article-excerpt {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.article-right {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding-top: 3px;
+}
+
+.article-tag {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  transition: color var(--transition-base);
+}
+
+.article-row:hover .article-tag {
+  color: var(--color-accent);
+}
+
+.article-row:hover .article-date {
+  color: var(--color-text-secondary);
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -524,33 +640,34 @@ onMounted(async () => {
 }
 
 .empty-state svg {
-  width: 52px;
-  height: 52px;
-  opacity: 0.35;
+  width: 48px;
+  height: 48px;
+  opacity: 0.3;
 }
 
 .empty-state p {
   font-size: 14px;
 }
 
-/* Pagination */
+/* ── Pagination ───────────────────────────────────────────────────────────── */
+
 .pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-top: 48px;
+  margin-top: 56px;
 }
 
 .page-btn {
-  min-width: 36px;
-  height: 36px;
+  min-width: 34px;
+  height: 34px;
   padding: 0 10px;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 4px;
+  font-size: 13px;
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
-  background: var(--color-bg-card);
+  background: transparent;
   cursor: pointer;
   transition: all var(--transition-base);
   font-family: var(--font-sans);
@@ -564,15 +681,15 @@ onMounted(async () => {
 .page-btn--active {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff !important;
+  color: #fff;
 }
 
 .page-btn--arrow {
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .page-btn:disabled {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
@@ -584,48 +701,16 @@ onMounted(async () => {
 
 /* ── Transitions ──────────────────────────────────────────────────────────── */
 
-/* Article list items */
-.article-enter-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.article-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  position: absolute;
-  width: 100%;
-}
-
-.article-enter-from {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.article-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
-
-.article-move {
-  transition: transform 0.3s ease;
-}
-
-/* Result number */
 .num-enter-active,
 .num-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.15s ease;
 }
 
-.num-enter-from {
-  opacity: 0;
-  transform: translateY(6px);
-}
-
+.num-enter-from,
 .num-leave-to {
   opacity: 0;
-  transform: translateY(-6px);
 }
 
-/* Generic fade */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -662,6 +747,20 @@ onMounted(async () => {
   }
 
   .cat-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .article-row {
+    gap: 20px;
+  }
+
+  .article-right {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .article-date {
     display: none;
   }
 }
