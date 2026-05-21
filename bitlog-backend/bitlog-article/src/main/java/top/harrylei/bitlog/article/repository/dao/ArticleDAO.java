@@ -105,6 +105,12 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
         return getBaseMapper().pagePublished(page, query);
     }
 
+    /** 查询所有未删除文章的封面 Key，用于 GC 扫描时排除封面 */
+    public List<String> listAllActiveCoverKeys() {
+        return lambdaQuery().select(ArticleDO::getCover).eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+            .ne(ArticleDO::getCover, "").list().stream().map(ArticleDO::getCover).toList();
+    }
+
     /** 分页查询用户文章（支持状态过滤），关键词过滤下推到 SQL */
     public IPage<ArticleDO> pageByUser(Long userId, ArticlePageQuery query, Page<ArticleDO> page) {
         ArticleStatusEnum status = query.getStatus();

@@ -9,16 +9,21 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.util.FileUrlHelper;
 import top.harrylei.bitlog.file.config.StorageProperties;
 import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.model.UploadVO;
+import top.harrylei.bitlog.file.repository.dao.ImageRecordDAO;
+import top.harrylei.bitlog.file.repository.entity.ImageRecordDO;
 import top.harrylei.bitlog.file.service.FileService;
 import top.harrylei.bitlog.file.util.ImageProcessor;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -35,6 +40,7 @@ public class FileServiceImpl implements FileService {
     private final S3Client s3Client;
     private final StorageProperties props;
     private final FileUrlHelper fileUrlHelper;
+    private final ImageRecordDAO imageRecordDAO;
 
     @Override
     public UploadVO upload(Long userId, UploadScene scene, MultipartFile file) {
@@ -83,7 +89,31 @@ public class FileServiceImpl implements FileService {
 
         log.info("文件上传成功 scene={} userId={} key={}", scene, userId, key);
 
+        if (scene == UploadScene.article_content) {
+            try {
+                recordUpload(userId, key);
+            } catch (Exception e) {
+                log.warn("内容图片记录失败 key={}", key, e);
+            }
+        }
+
         return new UploadVO().setFileKey(key).setFileUrl(fileUrlHelper.buildUrl(key));
+    }
+
+    @Override
+    public void recordUpload(Long userId, String fileKey) {
+        imageRecordDAO
+            .save(new ImageRecordDO().setUserId(userId).setFileKey(fileKey).setDeleted(DeleteStatusEnum.NOT_DELETED));
+    }
+
+    @Override
+    public List<String> getOldUndeletedContentKeys(LocalDateTime before) {
+        return imageRecordDAO.getKeysOlderThan(before);
+    }
+
+    @Override
+    public void markDeleted(Collection<String> fileKeys) {
+        imageRecordDAO.markDeleted(fileKeys);
     }
 
     @Async

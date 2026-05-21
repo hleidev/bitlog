@@ -20,9 +20,7 @@ public class ArticleVersionDAO extends ServiceImpl<ArticleVersionMapper, Article
     /**
      * 查询文章的最新版本号，不存在时返回 0
      *
-     * @param articleId
-     *            文章 ID
-     * 
+     * @param articleId 文章 ID
      * @return 最大版本号
      */
     public int getMaxVersion(Long articleId) {
@@ -32,14 +30,12 @@ public class ArticleVersionDAO extends ServiceImpl<ArticleVersionMapper, Article
     /**
      * 查询文章的所有版本列表（按版本号降序）
      *
-     * @param articleId
-     *            文章 ID
-     * 
+     * @param articleId 文章 ID
      * @return 版本列表
      */
     public List<ArticleVersionDO> listByArticleId(Long articleId) {
         return lambdaQuery().eq(ArticleVersionDO::getArticleId, articleId).orderByDesc(ArticleVersionDO::getVersion)
-                .list();
+            .list();
     }
 
     /** 根据版本 ID 查询版本（版本记录无软删除） */
@@ -50,5 +46,10 @@ public class ArticleVersionDAO extends ServiceImpl<ArticleVersionMapper, Article
     /** 批量查询版本（版本记录无软删除） */
     public List<ArticleVersionDO> listByVersionIds(Collection<Long> versionIds) {
         return listByIds(versionIds);
+    }
+
+    /** 查询所有未删除文章的版本内容，用于 GC 扫描 */
+    public List<String> listAllContentFromActiveArticles() {
+        return getBaseMapper().listAllContentFromActiveArticles();
     }
 }

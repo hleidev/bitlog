@@ -10,4 +10,12 @@
         WHERE article_id = #{articleId}
     </select>
 
+    <!-- 查询所有未删除文章的版本内容，用于 GC 扫描 -->
+    <select id="listAllContentFromActiveArticles" resultType="string">
+        SELECT av.content
+        FROM article_version av
+        INNER JOIN article a ON av.article_id = a.id
+        WHERE a.deleted = 0
+    </select>
+
 </mapper>
