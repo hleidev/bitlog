@@ -87,8 +87,8 @@ onUnmounted(() => {
 
 .modal-container {
   background: var(--color-bg-card);
-  border-radius: 20px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
   max-width: 100%;
   max-height: calc(100vh - 48px);
   overflow-y: auto;

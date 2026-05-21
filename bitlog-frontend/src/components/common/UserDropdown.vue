@@ -99,10 +99,9 @@ async function handleLogout() {
 <style scoped>
 .user-dropdown {
   width: 240px;
-  background: #ffffff;
-  border: 1px solid #e8e8e8;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
   overflow: hidden;
 }
 
@@ -132,7 +131,7 @@ async function handleLogout() {
 }
 
 .ud-avatar--placeholder {
-  background: linear-gradient(135deg, #4a8db7, #2d6a9f);
+  background: var(--color-accent);
   color: #fff;
 }
 
@@ -146,7 +145,7 @@ async function handleLogout() {
 .ud-name {
   font-size: 13px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -154,7 +153,7 @@ async function handleLogout() {
 
 .ud-position {
   font-size: 11px;
-  color: #8c8c8c;
+  color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -163,7 +162,7 @@ async function handleLogout() {
 /* Divider */
 .ud-divider {
   height: 1px;
-  background: #f0f0f0;
+  background: var(--color-border);
 }
 
 /* Items */
@@ -174,11 +173,11 @@ async function handleLogout() {
   width: 100%;
   padding: 9px 16px;
   font-size: 13px;
-  color: #3a3a3a;
+  color: var(--color-text-secondary);
   text-decoration: none;
   background: transparent;
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color var(--transition-base), color var(--transition-base);
   text-align: left;
 }
 
@@ -186,17 +185,17 @@ async function handleLogout() {
   width: 15px;
   height: 15px;
   flex-shrink: 0;
-  color: #8c8c8c;
-  transition: color 0.15s;
+  color: var(--color-text-faint);
+  transition: color var(--transition-base);
 }
 
 .ud-item:hover {
-  background-color: #f7f7f7;
-  color: #1a1a1a;
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .ud-item:hover svg {
-  color: #595959;
+  color: var(--color-text-muted);
 }
 
 .ud-item--danger:hover {

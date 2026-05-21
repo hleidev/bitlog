@@ -304,7 +304,7 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 4px;
   color: var(--color-text-faint);
   transition: all var(--transition-base);
 }
@@ -330,8 +330,8 @@ watch(
 .auth-modal__logo-icon {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #4a8db7, #2d6a9f);
+  border-radius: 4px;
+  background: var(--color-accent);
 }
 
 .auth-modal__logo-text {
@@ -415,7 +415,7 @@ watch(
   height: 44px;
   padding: 0 14px;
   border: 1.5px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 4px;
   font-size: 14px;
   color: var(--color-text-primary);
   background: var(--color-bg);
@@ -458,11 +458,11 @@ watch(
 
 .form-submit {
   height: 44px;
-  background: linear-gradient(135deg, #4a8db7, #2d6a9f);
+  background: var(--color-accent);
   color: #fff;
   font-size: 15px;
   font-weight: 500;
-  border-radius: 10px;
+  border-radius: 4px;
   transition: opacity var(--transition-base);
   margin-top: 4px;
 }
