@@ -84,22 +84,16 @@ public interface ArticleConverter {
      */
     ArticleVersionDetailVO toVersionDetailVO(ArticleVersionDO version);
 
-    // topping and publishTime live on ArticleDO, not ArticleVersionDO — ignored here, set by the caller after mapping.
+    // publishTime lives on ArticleDO, not ArticleVersionDO — ignored here, set by the caller after mapping.
     @Mapping(target = "id", source = "version.articleId")
-    @Mapping(target = "readCount", ignore = true)
-    @Mapping(target = "commentCount", ignore = true)
-    @Mapping(target = "categoryName", ignore = true)
+    @Mapping(target = "category", ignore = true)
     @Mapping(target = "tags", ignore = true)
-    @Mapping(target = "topping", ignore = true)
     @Mapping(target = "publishTime", ignore = true)
     ArticlePublicVO toPublicVO(ArticleDO article, ArticleVersionDO version);
 
     @Mapping(target = "id", source = "version.articleId")
-    @Mapping(target = "readCount", ignore = true)
-    @Mapping(target = "commentCount", ignore = true)
-    @Mapping(target = "categoryName", ignore = true)
+    @Mapping(target = "category", ignore = true)
     @Mapping(target = "tags", ignore = true)
-    @Mapping(target = "topping", ignore = true)
     @Mapping(target = "publishTime", ignore = true)
     ArticlePublicDetailVO toPublicDetailVO(ArticleDO article, ArticleVersionDO version);
 

@@ -27,24 +27,12 @@ public class ArticlePublicVO {
     @Schema(description = "文章摘要")
     private String summary;
 
-    @Schema(description = "封面图地址")
-    private String cover;
+    @Schema(description = "所属分类")
+    private CategoryVO category;
 
-    @Schema(description = "分类名称")
-    private String categoryName;
-
-    @Schema(description = "标签名称列表")
-    private List<String> tags;
-
-    @Schema(description = "是否置顶：0-否，1-是")
-    private Integer topping;
+    @Schema(description = "标签列表")
+    private List<TagVO> tags;
 
     @Schema(description = "发布时间")
     private LocalDateTime publishTime;
-
-    @Schema(description = "阅读数")
-    private Integer readCount;
-
-    @Schema(description = "评论数")
-    private Integer commentCount;
 }

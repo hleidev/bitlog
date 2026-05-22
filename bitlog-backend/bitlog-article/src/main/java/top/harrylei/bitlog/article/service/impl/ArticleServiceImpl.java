@@ -20,6 +20,9 @@ import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
+import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
+import top.harrylei.bitlog.api.model.article.vo.TagVO;
+import org.springframework.lang.NonNull;
 import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.common.util.FileUrlHelper;
 import top.harrylei.bitlog.article.converter.ArticleConverter;
@@ -135,37 +138,15 @@ public class ArticleServiceImpl implements ArticleService {
         LocalDateTime publishTime = article.getPublishTime() != null ? article.getPublishTime() : LocalDateTime.now();
         articleDAO.publish(articleId, newCoverKey, req.getSummary() != null ? req.getSummary() : "", newCategoryId,
             article.getLatestVersionId(), publishTime);
-        if (StringUtils.hasText(oldCoverKey) && !oldCoverKey.equals(newCoverKey)) {
-            fileService.delete(oldCoverKey);
-        }
+        deleteOldCoverIfChanged(oldCoverKey, newCoverKey);
 
         // 更新标签关联：删除旧的，保存新的
         articleTagDAO.removeByArticleId(articleId);
         saveArticleTags(articleId, newTagIds);
 
-        // 更新标签文章计数（仅再次发布时才需回退旧计数；首次发布无已发布记录，跳过 decrement）
-        if (article.getPublishedVersionId() != null) {
-            tagDAO.decrementArticleCount(oldTagIds);
-        }
-        if (!newTagIds.isEmpty()) {
-            tagDAO.incrementArticleCount(newTagIds);
-        }
-
-        // 更新分类文章计数（仅再次发布时才回退旧计数；首次发布或取消发布后重新发布只需增加新分类计数）
-        if (article.getPublishedVersionId() != null) {
-            if (!Objects.equals(oldCategoryId, newCategoryId)) {
-                if (oldCategoryId != null) {
-                    categoryDAO.decrementArticleCount(oldCategoryId);
-                }
-                if (newCategoryId != null) {
-                    categoryDAO.incrementArticleCount(newCategoryId);
-                }
-            }
-        } else {
-            if (newCategoryId != null) {
-                categoryDAO.incrementArticleCount(newCategoryId);
-            }
-        }
+        boolean isRepublish = article.getPublishedVersionId() != null;
+        updateTagCounts(isRepublish, oldTagIds, newTagIds);
+        updateCategoryCount(isRepublish, oldCategoryId, newCategoryId);
 
         log.info("发布文章 articleId={} categoryId={} tagCount={}", articleId, newCategoryId, newTagIds.size());
     }
@@ -173,6 +154,16 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateStatus(Long userId, Long articleId, ArticleStatusEnum status) {
+        doUpdateStatus(userId, articleId, status);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchUpdateStatus(Long userId, List<Long> articleIds, ArticleStatusEnum status) {
+        articleIds.forEach(id -> doUpdateStatus(userId, id, status));
+    }
+
+    private void doUpdateStatus(Long userId, Long articleId, ArticleStatusEnum status) {
         ArticleDO article = getArticleOrThrow(articleId);
         checkOwner(article, userId);
         boolean isPublished = article.getPublishedVersionId() != null;
@@ -194,12 +185,6 @@ public class ArticleServiceImpl implements ArticleService {
             articleDAO.unpublish(articleId);
             log.info("取消发布文章 articleId={}", articleId);
         }
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void batchUpdateStatus(Long userId, List<Long> articleIds, ArticleStatusEnum status) {
-        articleIds.forEach(id -> updateStatus(userId, id, status));
     }
 
     @Override
@@ -377,7 +362,7 @@ public class ArticleServiceImpl implements ArticleService {
         return articleVersionDAO.getMaxVersion(articleId) + 1;
     }
 
-    private record ArticleTagsData(Map<Long, List<String>> namesByArticle, Map<Long, List<Long>> idsByArticle) {
+    private record ArticleTagsData(Map<Long, List<TagVO>> tagVOsByArticle) {
     }
 
     private record PageLoadData(Map<Long, ArticleVersionDO> versionMap, Map<Long, String> categoryNameMap,
@@ -386,24 +371,22 @@ public class ArticleServiceImpl implements ArticleService {
 
     private ArticleTagsData buildTagsData(List<Long> articleIds) {
         if (articleIds == null || articleIds.isEmpty()) {
-            return new ArticleTagsData(Map.of(), Map.of());
+            return new ArticleTagsData(Map.of());
         }
         List<ArticleTagDO> articleTags =
             articleTagDAO.list(Wrappers.lambdaQuery(ArticleTagDO.class).in(ArticleTagDO::getArticleId, articleIds));
         if (articleTags.isEmpty()) {
-            return new ArticleTagsData(Map.of(), Map.of());
+            return new ArticleTagsData(Map.of());
         }
         Set<Long> tagIds = articleTags.stream().map(ArticleTagDO::getTagId).collect(Collectors.toSet());
         Map<Long, String> tagNameById =
             tagDAO.listByIds(tagIds).stream().collect(Collectors.toMap(TagDO::getId, TagDO::getName));
-        Map<Long, List<String>> namesByArticle = new HashMap<>();
-        Map<Long, List<Long>> idsByArticle = new HashMap<>();
+        Map<Long, List<TagVO>> tagVOsByArticle = new HashMap<>();
         for (ArticleTagDO at : articleTags) {
-            namesByArticle.computeIfAbsent(at.getArticleId(), k -> new ArrayList<>())
-                .add(tagNameById.getOrDefault(at.getTagId(), ""));
-            idsByArticle.computeIfAbsent(at.getArticleId(), k -> new ArrayList<>()).add(at.getTagId());
+            tagVOsByArticle.computeIfAbsent(at.getArticleId(), k -> new ArrayList<>())
+                .add(new TagVO().setId(at.getTagId()).setName(tagNameById.getOrDefault(at.getTagId(), "")));
         }
-        return new ArticleTagsData(namesByArticle, idsByArticle);
+        return new ArticleTagsData(tagVOsByArticle);
     }
 
     private PageLoadData loadPageData(List<ArticleDO> articles, boolean isDraft) {
@@ -424,10 +407,11 @@ public class ArticleServiceImpl implements ArticleService {
         return new PageLoadData(versionMap, categoryNameMap, statsMap, buildTagsData(articleIds));
     }
 
+    @NonNull
     private ArticleDO getArticleOrThrow(Long articleId) {
         ArticleDO article = articleDAO.getByIdAndNotDeleted(articleId);
         if (article == null) {
-            ResultCode.ARTICLE_NOT_EXISTS.throwException();
+            throw ResultCode.ARTICLE_NOT_EXISTS.toException();
         }
         return article;
     }
@@ -441,6 +425,39 @@ public class ArticleServiceImpl implements ArticleService {
     private ArticleVersionDO buildVersion(Long articleId, int version, ArticleSaveRequest req) {
         return new ArticleVersionDO().setArticleId(articleId).setVersion(version).setTitle(req.getTitle())
             .setContent(req.getContent());
+    }
+
+    private void deleteOldCoverIfChanged(String oldCoverKey, String newCoverKey) {
+        if (StringUtils.hasText(oldCoverKey) && !oldCoverKey.equals(newCoverKey)) {
+            fileService.delete(oldCoverKey);
+        }
+    }
+
+    private void updateTagCounts(boolean isRepublish, List<Long> oldTagIds, List<Long> newTagIds) {
+        if (isRepublish) {
+            tagDAO.decrementArticleCount(oldTagIds);
+        }
+        if (!newTagIds.isEmpty()) {
+            tagDAO.incrementArticleCount(newTagIds);
+        }
+    }
+
+    private void updateCategoryCount(boolean isRepublish, Long oldCategoryId, Long newCategoryId) {
+        if (!isRepublish) {
+            if (newCategoryId != null) {
+                categoryDAO.incrementArticleCount(newCategoryId);
+            }
+            return;
+        }
+        if (Objects.equals(oldCategoryId, newCategoryId)) {
+            return;
+        }
+        if (oldCategoryId != null) {
+            categoryDAO.decrementArticleCount(oldCategoryId);
+        }
+        if (newCategoryId != null) {
+            categoryDAO.incrementArticleCount(newCategoryId);
+        }
     }
 
     private void saveArticleTags(Long articleId, List<Long> tagIds) {
@@ -483,27 +500,20 @@ public class ArticleServiceImpl implements ArticleService {
 
     private ArticlePublicDetailVO buildPublicDetailVO(ArticleDO article, ArticleVersionDO version) {
         ArticlePublicDetailVO vo = articleConverter.toPublicDetailVO(article, version);
-        vo.setCover(fileUrlHelper.buildUrl(vo.getCover()));
-        vo.setTopping(article.getTopping());
         vo.setPublishTime(article.getPublishTime());
 
         if (article.getCategoryId() != null) {
             CategoryDO category = categoryDAO.getById(article.getCategoryId());
             if (category != null) {
-                vo.setCategoryName(category.getName());
+                vo.setCategory(articleConverter.toCategoryVO(category));
             }
         }
 
         List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(article.getId());
         if (!tagIds.isEmpty()) {
-            vo.setTags(tagDAO.listByIds(tagIds).stream().map(TagDO::getName).toList());
+            vo.setTags(articleConverter.toTagVOList(tagDAO.listByIds(tagIds)));
         }
 
-        ArticleStatisticsDO stats = articleStatisticsDAO.getByArticleId(article.getId());
-        if (stats != null) {
-            vo.setReadCount(stats.getReadCount());
-            vo.setCommentCount(stats.getCommentCount());
-        }
         return vo;
     }
 
@@ -535,8 +545,9 @@ public class ArticleServiceImpl implements ArticleService {
             if (a.getCategoryId() != null) {
                 vo.setCategoryName(data.categoryNameMap().get(a.getCategoryId()));
             }
-            vo.setTagIds(data.tagsData().idsByArticle().getOrDefault(a.getId(), List.of()));
-            vo.setTags(data.tagsData().namesByArticle().getOrDefault(a.getId(), List.of()));
+            List<TagVO> articleTags = data.tagsData().tagVOsByArticle().getOrDefault(a.getId(), List.of());
+            vo.setTagIds(articleTags.stream().map(TagVO::getId).toList());
+            vo.setTags(articleTags.stream().map(TagVO::getName).toList());
             ArticleStatisticsDO stats = data.statsMap().get(a.getId());
             if (stats != null) {
                 vo.setReadCount(stats.getReadCount());
@@ -562,18 +573,12 @@ public class ArticleServiceImpl implements ArticleService {
                 return null;
             }
             ArticlePublicVO vo = articleConverter.toPublicVO(a, v);
-            vo.setCover(fileUrlHelper.buildUrl(vo.getCover()));
-            vo.setTopping(a.getTopping());
             vo.setPublishTime(a.getPublishTime());
             if (a.getCategoryId() != null) {
-                vo.setCategoryName(data.categoryNameMap().get(a.getCategoryId()));
+                vo.setCategory(
+                    new CategoryVO().setId(a.getCategoryId()).setName(data.categoryNameMap().get(a.getCategoryId())));
             }
-            vo.setTags(data.tagsData().namesByArticle().getOrDefault(a.getId(), List.of()));
-            ArticleStatisticsDO stats = data.statsMap().get(a.getId());
-            if (stats != null) {
-                vo.setReadCount(stats.getReadCount());
-                vo.setCommentCount(stats.getCommentCount());
-            }
+            vo.setTags(data.tagsData().tagVOsByArticle().getOrDefault(a.getId(), List.of()));
             return vo;
         }).filter(Objects::nonNull).toList();
 
