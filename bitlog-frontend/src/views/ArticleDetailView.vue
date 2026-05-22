@@ -454,7 +454,7 @@ onUnmounted(() => {
   font-size: clamp(24px, 4vw, 42px);
   font-weight: 400;
   line-height: 1.35;
-  color: #f5f3ef;
+  color: var(--color-text-on-dark);
   max-width: 800px;
   letter-spacing: 0.01em;
 }
@@ -892,7 +892,7 @@ onUnmounted(() => {
   font-family: var(--font-mono);
   font-size: 0.875em;
   background: var(--color-bg-hover);
-  color: #e07b4f;
+  color: var(--color-accent-light);
   padding: 2px 6px;
   border-radius: 4px;
   border: 1px solid var(--color-border);
