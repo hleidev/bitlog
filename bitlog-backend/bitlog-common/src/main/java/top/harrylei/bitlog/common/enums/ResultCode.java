@@ -44,7 +44,7 @@ public enum ResultCode implements IResultCode {
         this.message = message;
     }
 
-    public void throwException(Object... args) {
+    public BusinessException toException(Object... args) {
         String msg = this.message;
         if (args.length > 0) {
             StringBuilder sb = new StringBuilder(msg);
@@ -53,6 +53,10 @@ public enum ResultCode implements IResultCode {
             }
             msg = sb.toString();
         }
-        throw new BusinessException(this.code, msg);
+        return new BusinessException(this.code, msg);
+    }
+
+    public void throwException(Object... args) {
+        throw toException(args);
     }
 }
