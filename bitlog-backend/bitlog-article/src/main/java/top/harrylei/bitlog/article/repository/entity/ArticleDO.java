@@ -41,11 +41,6 @@ public class ArticleDO extends BaseDO {
     private Long publishedVersionId;
 
     /**
-     * 是否置顶：0-否，1-是
-     */
-    private Integer topping;
-
-    /**
      * 首次发布时间，null 表示从未发布
      */
     private LocalDateTime publishTime;

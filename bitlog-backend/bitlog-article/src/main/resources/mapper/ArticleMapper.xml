@@ -29,7 +29,7 @@
                   HAVING COUNT(DISTINCT tag_id) = ${query.tagIds.size()}
               )
           </if>
-        ORDER BY a.topping DESC, a.publish_time DESC
+        ORDER BY a.publish_time DESC
     </select>
 
 </mapper>

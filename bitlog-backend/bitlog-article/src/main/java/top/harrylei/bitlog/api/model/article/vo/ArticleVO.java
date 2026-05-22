@@ -55,9 +55,6 @@ public class ArticleVO {
     @Schema(description = "标签名称列表")
     private List<String> tags;
 
-    @Schema(description = "是否置顶：0-否，1-是")
-    private Integer topping;
-
     @Schema(description = "发布时间")
     private LocalDateTime publishTime;
 

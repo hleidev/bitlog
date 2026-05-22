@@ -9,12 +9,12 @@ import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
-import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
+import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.article.repository.entity.ArticleVersionDO;
-import top.harrylei.bitlog.article.repository.entity.TagDO;
 import top.harrylei.bitlog.article.repository.entity.CategoryDO;
+import top.harrylei.bitlog.article.repository.entity.TagDO;
 
 import java.util.List;
 
@@ -42,7 +42,6 @@ public interface ArticleConverter {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "tagIds", ignore = true)
     @Mapping(target = "tags", ignore = true)
-    @Mapping(target = "topping", ignore = true)
     @Mapping(target = "publishTime", ignore = true)
     @Mapping(target = "updateTime", ignore = true)
     ArticleVO toVO(ArticleDO article, ArticleVersionDO version);
@@ -63,7 +62,6 @@ public interface ArticleConverter {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "tagIds", ignore = true)
     @Mapping(target = "tags", ignore = true)
-    @Mapping(target = "topping", ignore = true)
     @Mapping(target = "publishTime", ignore = true)
     @Mapping(target = "updateTime", ignore = true)
     ArticleDetailVO toDetailVO(ArticleDO article, ArticleVersionDO version);
@@ -84,13 +82,18 @@ public interface ArticleConverter {
      */
     ArticleVersionDetailVO toVersionDetailVO(ArticleVersionDO version);
 
-    // publishTime lives on ArticleDO, not ArticleVersionDO — ignored here, set by the caller after mapping.
+    /**
+     * ArticleDO + ArticleVersionDO → ArticlePublicVO（公开列表，publishTime/category/tags 由服务层填充）
+     */
     @Mapping(target = "id", source = "version.articleId")
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "tags", ignore = true)
     @Mapping(target = "publishTime", ignore = true)
     ArticlePublicVO toPublicVO(ArticleDO article, ArticleVersionDO version);
 
+    /**
+     * ArticleDO + ArticleVersionDO → ArticlePublicDetailVO（公开详情，publishTime/category/tags 由服务层填充）
+     */
     @Mapping(target = "id", source = "version.articleId")
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "tags", ignore = true)
@@ -110,7 +113,6 @@ public interface ArticleConverter {
      */
     @Mapping(target = "id", source = "version.articleId")
     @Mapping(target = "userId", source = "article.userId")
-    @Mapping(target = "topping", ignore = true)
     @Mapping(target = "publishTime", ignore = true)
     @Mapping(target = "readCount", ignore = true)
     @Mapping(target = "commentCount", ignore = true)

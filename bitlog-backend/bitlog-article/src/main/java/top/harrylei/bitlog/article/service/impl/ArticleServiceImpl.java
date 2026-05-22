@@ -79,8 +79,8 @@ public class ArticleServiceImpl implements ArticleService {
     @Transactional(rollbackFor = Exception.class)
     public Long saveArticle(Long userId, ArticleSaveRequest req) {
         // 创建文章主记录，cover/summary 初始为空字符串，发布时再填充
-        ArticleDO article = new ArticleDO().setUserId(userId).setCover("").setSummary("").setTopping(0)
-            .setVersionCount(0).setDeleted(DeleteStatusEnum.NOT_DELETED);
+        ArticleDO article = new ArticleDO().setUserId(userId).setCover("").setSummary("").setVersionCount(0)
+            .setDeleted(DeleteStatusEnum.NOT_DELETED);
         articleDAO.save(article);
 
         // 创建第一个版本（仅保存标题和正文）
@@ -317,7 +317,6 @@ public class ArticleServiceImpl implements ArticleService {
             return null;
         }
         ArticleDTO dto = articleConverter.toDTO(article, version);
-        dto.setTopping(article.getTopping());
         ArticleStatisticsDO stats = articleStatisticsDAO.getByArticleId(articleId);
         if (stats != null) {
             dto.setReadCount(stats.getReadCount());
@@ -345,7 +344,6 @@ public class ArticleServiceImpl implements ArticleService {
         return articles.stream().filter(a -> versionMap.containsKey(a.getPublishedVersionId())).map(a -> {
             ArticleVersionDO version = versionMap.get(a.getPublishedVersionId());
             ArticleDTO dto = articleConverter.toDTO(a, version);
-            dto.setTopping(a.getTopping());
             dto.setPublishTime(a.getPublishTime());
             ArticleStatisticsDO stats = statsMap.get(a.getId());
             if (stats != null) {
@@ -366,7 +364,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     private record PageLoadData(Map<Long, ArticleVersionDO> versionMap, Map<Long, String> categoryNameMap,
-        Map<Long, ArticleStatisticsDO> statsMap, ArticleTagsData tagsData) {
+        ArticleTagsData tagsData) {
     }
 
     private ArticleTagsData buildTagsData(List<Long> articleIds) {
@@ -400,11 +398,8 @@ public class ArticleServiceImpl implements ArticleService {
         Map<Long, String> categoryNameMap = categoryIds.isEmpty() ? Map.of() : categoryDAO.listByIds(categoryIds)
             .stream().collect(Collectors.toMap(CategoryDO::getId, CategoryDO::getName));
 
-        List<Long> articleIds = articles.stream().map(ArticleDO::getId).toList();
-        Map<Long, ArticleStatisticsDO> statsMap = articleStatisticsDAO.listByArticleIds(articleIds).stream()
-            .collect(Collectors.toMap(ArticleStatisticsDO::getArticleId, Function.identity()));
-
-        return new PageLoadData(versionMap, categoryNameMap, statsMap, buildTagsData(articleIds));
+        return new PageLoadData(versionMap, categoryNameMap,
+            buildTagsData(articles.stream().map(ArticleDO::getId).toList()));
     }
 
     @NonNull
@@ -473,7 +468,6 @@ public class ArticleServiceImpl implements ArticleService {
         ArticleDetailVO vo = articleConverter.toDetailVO(article, version);
         vo.setCover(fileUrlHelper.buildUrl(vo.getCover()));
         vo.setStatus(article.getPublishedVersionId() != null ? ArticleStatusEnum.PUBLISHED : ArticleStatusEnum.DRAFT);
-        vo.setTopping(article.getTopping());
         vo.setUpdateTime(article.getUpdateTime());
         vo.setPublishTime(article.getPublishTime());
 
@@ -505,13 +499,18 @@ public class ArticleServiceImpl implements ArticleService {
         if (article.getCategoryId() != null) {
             CategoryDO category = categoryDAO.getById(article.getCategoryId());
             if (category != null) {
-                vo.setCategory(articleConverter.toCategoryVO(category));
+                vo.setCategory(new CategoryVO().setId(category.getId()).setName(category.getName()));
             }
         }
 
         List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(article.getId());
         if (!tagIds.isEmpty()) {
-            vo.setTags(articleConverter.toTagVOList(tagDAO.listByIds(tagIds)));
+            Map<Long, String> tagNameById =
+                tagDAO.listByIds(tagIds).stream().collect(Collectors.toMap(TagDO::getId, TagDO::getName));
+            vo.setTags(
+                tagIds.stream().map(id -> new TagVO().setId(id).setName(tagNameById.getOrDefault(id, ""))).toList());
+        } else {
+            vo.setTags(List.of());
         }
 
         return vo;
@@ -528,6 +527,9 @@ public class ArticleServiceImpl implements ArticleService {
         }
 
         PageLoadData data = loadPageData(articles, isDraft);
+        List<Long> articleIds = articles.stream().map(ArticleDO::getId).toList();
+        Map<Long, ArticleStatisticsDO> statsMap = articleStatisticsDAO.listByArticleIds(articleIds).stream()
+            .collect(Collectors.toMap(ArticleStatisticsDO::getArticleId, Function.identity()));
 
         List<ArticleVO> voList = articles.stream().map(a -> {
             Long vId = isDraft ? a.getLatestVersionId() : a.getPublishedVersionId();
@@ -539,7 +541,6 @@ public class ArticleServiceImpl implements ArticleService {
             ArticleVO vo = articleConverter.toVO(a, v);
             vo.setCover(fileUrlHelper.buildUrl(vo.getCover()));
             vo.setStatus(a.getPublishedVersionId() != null ? ArticleStatusEnum.PUBLISHED : ArticleStatusEnum.DRAFT);
-            vo.setTopping(a.getTopping());
             vo.setUpdateTime(a.getUpdateTime());
             vo.setPublishTime(a.getPublishTime());
             if (a.getCategoryId() != null) {
@@ -548,7 +549,7 @@ public class ArticleServiceImpl implements ArticleService {
             List<TagVO> articleTags = data.tagsData().tagVOsByArticle().getOrDefault(a.getId(), List.of());
             vo.setTagIds(articleTags.stream().map(TagVO::getId).toList());
             vo.setTags(articleTags.stream().map(TagVO::getName).toList());
-            ArticleStatisticsDO stats = data.statsMap().get(a.getId());
+            ArticleStatisticsDO stats = statsMap.get(a.getId());
             if (stats != null) {
                 vo.setReadCount(stats.getReadCount());
                 vo.setCommentCount(stats.getCommentCount());

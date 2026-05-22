@@ -46,11 +46,6 @@ public class ArticleDTO {
     private Long categoryId;
 
     /**
-     * 是否置顶：0-否，1-是
-     */
-    private Integer topping;
-
-    /**
      * 发布时间
      */
     private LocalDateTime publishTime;
