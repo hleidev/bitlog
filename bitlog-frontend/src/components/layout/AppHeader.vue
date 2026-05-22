@@ -80,6 +80,7 @@ const doSearch = () => {
 
         <nav class="header__nav">
           <RouterLink to="/" class="header__nav-link">首页</RouterLink>
+          <RouterLink to="/articles" class="header__nav-link">文章</RouterLink>
         </nav>
 
         <div class="header__actions">
