@@ -18,7 +18,6 @@ import java.util.regex.Pattern;
  * Logs a structured startup summary after the application is fully ready.
  *
  * @author Harry
- * 
  * @since 2026-05-16
  */
 @Component
@@ -49,18 +48,18 @@ public class StartupInfoLogger implements ApplicationListener<ApplicationReadyEv
         String pid = String.valueOf(ProcessHandle.current().pid());
 
         log.info("""
-                \n==========================================================
-                  Application : {}
-                  Profile     : {}
-                  URL         : http://{}:{}
-                  Database    : {}
-                  Redis       : {}:{} / db{}
-                  Storage     : {}
-                  JVM         : {} | {}
-                  PID         : {}
-                  Started in  : {} ms
-                ==========================================================""", appName, profiles, host, port, db,
-                redisHost, redisPort, redisDb, storageEndpoint, jvmVersion, jvmName, pid, uptimeMs);
+            \n==========================================================
+              Application : {}
+              Profile     : {}
+              URL         : http://{}:{}
+              Database    : {}
+              Redis       : {}:{} / db{}
+              Storage     : {}
+              JVM         : {} | {}
+              PID         : {}
+              Started in  : {} ms
+            ==========================================================""", appName, profiles, host, port, db, redisHost,
+            redisPort, redisDb, storageEndpoint, jvmVersion, jvmName, pid, uptimeMs);
     }
 
     private String resolveHost() {
