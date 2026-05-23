@@ -17,7 +17,6 @@ export interface ArticleVO {
   categoryName: string | null
   tagIds: number[]
   tags: string[]
-  topping: boolean
   publishTime: string | null
   createTime: string
   updateTime: string
@@ -43,7 +42,6 @@ export interface ArticleDetailVO {
   categoryName: string | null
   tagIds: number[]
   tags: string[]
-  topping: boolean
   publishTime: string | null
   createTime: string
   updateTime: string
@@ -107,34 +105,6 @@ export interface PublishArticleParams {
   tagIds?: number[]
 }
 
-// ── Backend ↔ Frontend mapping helpers ───────────────────────────────────────
-
-function toStatusInt(s: ArticleStatus): 0 | 1 {
-  return s === 'PUBLISHED' ? 1 : 0
-}
-
-function fromStatusInt(s: number): ArticleStatus {
-  return s === 1 ? 'PUBLISHED' : 'DRAFT'
-}
-
-function mapArticleVO(raw: Record<string, unknown>): ArticleVO {
-  return {
-    ...(raw as ArticleVO),
-    status: fromStatusInt(raw.status as number),
-    topping: raw.topping === 1,
-    publishedVersionId: (raw.publishedVersionId as number | null) ?? null,
-  }
-}
-
-function mapArticleDetailVO(raw: Record<string, unknown>): ArticleDetailVO {
-  return {
-    ...(raw as ArticleDetailVO),
-    status: fromStatusInt(raw.status as number),
-    topping: raw.topping === 1,
-    publishedVersionId: (raw.publishedVersionId as number | null) ?? null,
-  }
-}
-
 // ── Draft editing ─────────────────────────────────────────────────────────────
 
 export function createArticle(data: { title: string; content: string }): Promise<number> {
@@ -146,9 +116,7 @@ export function updateArticleDraft(id: number, data: { title: string; content: s
 }
 
 export function getArticleDraft(id: number): Promise<ArticleDetailVO> {
-  return request
-    .get<never, Record<string, unknown>>(`/v1/article/${id}/draft`)
-    .then(mapArticleDetailVO)
+  return request.get<never, ArticleDetailVO>(`/v1/article/${id}/draft`)
 }
 
 export function publishArticle(id: number, params: PublishArticleParams): Promise<void> {
@@ -176,30 +144,15 @@ export function getMyArticles(params: GetMyArticlesParams): Promise<ArticleListR
     pageNum: params.pageNum,
     pageSize: params.pageSize,
   }
-  if (params.status !== undefined) apiParams.status = toStatusInt(params.status)
+  if (params.status !== undefined) apiParams.status = params.status
   if (params.keyword)              apiParams.keyword = params.keyword
   if (params.categoryId !== undefined) apiParams.categoryId = params.categoryId
 
-  return request
-    .get<never, Record<string, unknown>>('/v1/article/my', { params: apiParams })
-    .then(raw => {
-      const r = raw as { counts: ArticleCounts; page: { content: unknown[]; [k: string]: unknown } }
-      return {
-        counts: r.counts,
-        page: {
-          ...(r.page as object),
-          content: r.page.content.map(item => mapArticleVO(item as Record<string, unknown>)),
-        } as ArticleListResult['page'],
-      }
-    })
+  return request.get<never, ArticleListResult>('/v1/article/my', { params: apiParams })
 }
 
 export function updateArticlesStatus(ids: number[], status: ArticleStatus): Promise<void> {
-  return request.patch<never, void>('/v1/article/batch/status', { ids, status: toStatusInt(status) })
-}
-
-export function deleteArticle(id: number): Promise<void> {
-  return request.delete<never, void>(`/v1/article/${id}`)
+  return request.patch<never, void>('/v1/article/batch/status', { ids, status })
 }
 
 export function deleteArticles(ids: number[]): Promise<void> {

@@ -8,17 +8,23 @@ export interface ArticlePageParams {
   keyword?: string
 }
 
+export interface CategoryRef {
+  id: number
+  name: string
+}
+
+export interface TagRef {
+  id: number
+  name: string
+}
+
 export interface ArticleItemVO {
   id: number
   title: string
   summary: string | null
-  cover: string | null
-  categoryName: string | null
-  tags: string[]
-  topping: 0 | 1
+  category: CategoryRef | null
+  tags: TagRef[]
   publishTime: string
-  readCount: number
-  commentCount: number
 }
 
 export interface PageResult<T> {
@@ -31,9 +37,13 @@ export interface PageResult<T> {
   content: T[]
 }
 
-export interface ArticleDetailVO extends ArticleItemVO {
+export interface ArticleDetailVO {
+  id: number
+  title: string
   content: string
-  tagIds: number[]
+  category: CategoryRef | null
+  tags: TagRef[]
+  publishTime: string
 }
 
 export function getArticlePage(params?: ArticlePageParams): Promise<PageResult<ArticleItemVO>> {
