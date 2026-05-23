@@ -24,6 +24,7 @@ import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import org.springframework.lang.NonNull;
 import top.harrylei.bitlog.article.converter.ArticleConverter;
+import top.harrylei.bitlog.article.util.HtmlSanitizer;
 import top.harrylei.bitlog.article.repository.dao.ArticleDAO;
 import top.harrylei.bitlog.article.repository.dao.ArticleStatisticsDAO;
 import top.harrylei.bitlog.article.repository.dao.ArticleTagDAO;
@@ -408,7 +409,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     private ArticleVersionDO buildVersion(Long articleId, int version, ArticleSaveRequest req) {
         return new ArticleVersionDO().setArticleId(articleId).setVersion(version).setTitle(req.getTitle())
-            .setContent(req.getContent());
+            .setContent(HtmlSanitizer.sanitize(req.getContent()));
     }
 
     private void updateTagCounts(boolean isRepublish, List<Long> oldTagIds, List<Long> newTagIds) {
