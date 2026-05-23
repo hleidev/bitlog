@@ -137,7 +137,7 @@ public class UserServiceImpl implements UserService {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
         String key = fileUrlHelper.extractKey(avatar);
-        String ownerPrefix = "bitlog/" + UploadScene.avatar + "/" + userId + "/";
+        String ownerPrefix = UploadScene.avatar + "/" + userId + "/";
         if (!key.startsWith(ownerPrefix)) {
             ResultCode.INVALID_PARAMETER.throwException("无效的头像地址");
         }
@@ -146,7 +146,7 @@ public class UserServiceImpl implements UserService {
         log.info("更新用户头像 userId={}", userId);
         if (StringUtils.hasText(oldAvatarUrl)) {
             String oldKey = fileUrlHelper.extractKey(oldAvatarUrl);
-            if (oldKey.startsWith(ownerPrefix)) {
+            if (StringUtils.hasText(oldKey) && !oldKey.contains("://")) {
                 fileService.delete(oldKey);
             }
         }

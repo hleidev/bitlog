@@ -76,7 +76,7 @@ public class FileServiceImpl implements FileService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        String key = String.format("bitlog/%s/%d/%d/%02d/%s.%s", scene, userId, now.getYear(), now.getMonthValue(),
+        String key = String.format("%s/%d/%d/%02d/%s.%s", scene, userId, now.getYear(), now.getMonthValue(),
             UUID.randomUUID(), ext);
 
         try {

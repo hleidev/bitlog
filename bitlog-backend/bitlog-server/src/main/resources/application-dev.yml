@@ -29,5 +29,5 @@ storage:
   endpoint: http://localhost:19000
   access-key: admin
   secret-key: ENC(REMOVED)
-  bucket: media
-  public-url: http://localhost:19000/media
+  bucket: bitlog
+  public-url: http://localhost:19000/bitlog

@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 class ImageCleanupTaskTest {
 
     private static final String PUBLIC_URL = "http://localhost:8001/files";
-    private static final String CONTENT_PREFIX = "bitlog/article/";
+    private static final String CONTENT_PREFIX = "article/";
 
     @Mock
     private FileService fileService;

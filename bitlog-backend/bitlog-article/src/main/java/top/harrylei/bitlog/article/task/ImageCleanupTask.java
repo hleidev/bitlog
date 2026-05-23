@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.common.util.FileUrlHelper;
 import top.harrylei.bitlog.article.repository.dao.ArticleVersionDAO;
-import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.service.FileService;
 
 import java.time.LocalDateTime;
@@ -29,7 +28,6 @@ import java.util.regex.Pattern;
 public class ImageCleanupTask {
 
     private static final Pattern MD_IMAGE_PATTERN = Pattern.compile("!\\[.*?]\\(([^\\s)]+)");
-    private static final String CONTENT_KEY_PREFIX = "bitlog/" + UploadScene.article.name() + "/";
 
     private final FileService fileService;
     private final ArticleVersionDAO articleVersionDAO;
@@ -66,7 +64,7 @@ public class ImageCleanupTask {
         Matcher matcher = ImageCleanupTask.MD_IMAGE_PATTERN.matcher(content);
         while (matcher.find()) {
             String key = fileUrlHelper.extractKey(matcher.group(1));
-            if (StringUtils.hasText(key) && key.startsWith(CONTENT_KEY_PREFIX)) {
+            if (StringUtils.hasText(key) && !key.contains("://")) {
                 keys.add(key);
             }
         }
