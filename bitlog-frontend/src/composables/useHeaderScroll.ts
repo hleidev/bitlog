@@ -7,12 +7,15 @@ export function useHeaderScroll() {
   const route = useRoute()
 
   const handleScroll = () => {
-    const hero = document.getElementById('hero')
-    if (!hero) {
+    if (!route.meta.darkTop) {
       isScrolled.value = true
       return
     }
-    isScrolled.value = window.scrollY > hero.offsetHeight - HEADER_HEIGHT
+    const darkSection =
+      document.getElementById('hero') ??
+      document.querySelector<HTMLElement>('.article-header')
+    const threshold = darkSection ? darkSection.offsetHeight - HEADER_HEIGHT : 260
+    isScrolled.value = window.scrollY > threshold
   }
 
   watch(() => route.path, () => nextTick(handleScroll))

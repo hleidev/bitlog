@@ -7,15 +7,15 @@ NProgress.configure({ showSpinner: false })
 
 const router = createRouter({
   history: createWebHistory(),
-  scrollBehavior: () => ({ top: 0 }),
+  scrollBehavior: (_to, _from, savedPosition) => savedPosition ?? false,
   routes: [
     {
       path: '/',
       component: () => import('@/layouts/PublicLayout.vue'),
       children: [
-        { path: '', component: () => import('@/views/HomeView.vue') },
+        { path: '', component: () => import('@/views/HomeView.vue'), meta: { darkTop: true } },
         { path: 'articles', component: () => import('@/views/ArticleListView.vue') },
-        { path: 'article/:id(\\d+)', component: () => import('@/views/ArticleDetailView.vue') },
+        { path: 'article/:id(\\d+)', component: () => import('@/views/ArticleDetailView.vue'), meta: { darkTop: true } },
       ],
     },
     {
@@ -119,6 +119,7 @@ router.beforeEach(async (to) => {
 
 router.afterEach(() => {
   NProgress.done()
+  window.scrollTo(0, 0)
 })
 
 export default router
