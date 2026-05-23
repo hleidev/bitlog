@@ -66,7 +66,9 @@ public class UserServiceImpl implements UserService {
             return null;
         }
         UserDO user = userDAO.getById(userInfo.getUserId());
-        return userConverter.toVO(userInfo, user);
+        UserVO vo = userConverter.toVO(userInfo, user);
+        vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+        return vo;
     }
 
     @Override
@@ -83,7 +85,11 @@ public class UserServiceImpl implements UserService {
         List<UserDO> userList = userDAO.listByUserIds(accountIds);
         Map<Long, UserDO> userMap = userList.stream().collect(Collectors.toMap(UserDO::getId, Function.identity()));
 
-        return userInfoList.stream().map(info -> userConverter.toVO(info, userMap.get(info.getUserId()))).toList();
+        return userInfoList.stream().map(info -> {
+            UserVO vo = userConverter.toVO(info, userMap.get(info.getUserId()));
+            vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+            return vo;
+        }).toList();
     }
 
     @Override
@@ -96,7 +102,9 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        return userConverter.toDetailVO(userInfo, user);
+        UserDetailVO vo = userConverter.toDetailVO(userInfo, user);
+        vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+        return vo;
     }
 
     @Override
@@ -142,7 +150,7 @@ public class UserServiceImpl implements UserService {
             ResultCode.INVALID_PARAMETER.throwException("无效的头像地址");
         }
         String oldAvatarUrl = userInfo.getAvatar();
-        userInfoDAO.updateAvatar(userId, avatar);
+        userInfoDAO.updateAvatar(userId, key);
         log.info("更新用户头像 userId={}", userId);
         if (StringUtils.hasText(oldAvatarUrl)) {
             String oldKey = fileUrlHelper.extractKey(oldAvatarUrl);
@@ -229,7 +237,11 @@ public class UserServiceImpl implements UserService {
     public PageVO<UserListVO> pageQuery(UserPageQuery query) {
         IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query);
 
-        List<UserListVO> voList = resultPage.getRecords().stream().map(dto -> userConverter.toListVO(dto)).toList();
+        List<UserListVO> voList = resultPage.getRecords().stream().map(dto -> {
+            UserListVO vo = userConverter.toListVO(dto);
+            vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+            return vo;
+        }).toList();
 
         PageVO<UserListVO> pageVO = new PageVO<>();
         pageVO.setPageNum(resultPage.getCurrent());
