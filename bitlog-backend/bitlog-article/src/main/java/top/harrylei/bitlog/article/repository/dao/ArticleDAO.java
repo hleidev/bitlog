@@ -54,13 +54,12 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
             .setSql("version_count = version_count + 1").update();
     }
 
-    /** 发布文章：更新封面、摘要、分类、已发布版本 ID 和发布时间 */
-    public void publish(Long articleId, String cover, String summary, Long categoryId, Long publishedVersionId,
+    /** 发布文章：更新摘要、分类、已发布版本 ID 和发布时间 */
+    public void publish(Long articleId, String summary, Long categoryId, Long publishedVersionId,
         LocalDateTime publishTime) {
-        lambdaUpdate().eq(ArticleDO::getId, articleId).set(ArticleDO::getCover, cover)
-            .set(ArticleDO::getSummary, summary).set(ArticleDO::getCategoryId, categoryId)
-            .set(ArticleDO::getPublishedVersionId, publishedVersionId).set(ArticleDO::getPublishTime, publishTime)
-            .update();
+        lambdaUpdate().eq(ArticleDO::getId, articleId).set(ArticleDO::getSummary, summary)
+            .set(ArticleDO::getCategoryId, categoryId).set(ArticleDO::getPublishedVersionId, publishedVersionId)
+            .set(ArticleDO::getPublishTime, publishTime).update();
     }
 
     /** 设置首次发布时间（仅在 publishTime 为 null 时由 updateStatus 重新发布路径调用） */
@@ -103,12 +102,6 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
 
     public IPage<ArticleDO> pagePublished(ArticlePageQuery query, Page<ArticleDO> page) {
         return getBaseMapper().pagePublished(page, query);
-    }
-
-    /** 查询所有未删除文章的封面 Key，用于 GC 扫描时排除封面 */
-    public List<String> listAllActiveCoverKeys() {
-        return lambdaQuery().select(ArticleDO::getCover).eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .ne(ArticleDO::getCover, "").list().stream().map(ArticleDO::getCover).toList();
     }
 
     /** 分页查询用户文章（支持状态过滤），关键词过滤下推到 SQL */

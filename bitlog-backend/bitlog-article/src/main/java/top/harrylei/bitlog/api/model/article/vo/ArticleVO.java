@@ -28,9 +28,6 @@ public class ArticleVO {
     @Schema(description = "文章标题")
     private String title;
 
-    @Schema(description = "封面图地址")
-    private String cover;
-
     @Schema(description = "文章摘要")
     private String summary;
 

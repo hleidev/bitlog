@@ -5,7 +5,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import top.harrylei.bitlog.article.repository.dao.ArticleDAO;
 import top.harrylei.bitlog.article.repository.dao.ArticleVersionDAO;
 import top.harrylei.bitlog.common.util.FileUrlHelper;
 import top.harrylei.bitlog.file.service.FileService;
@@ -23,7 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * 图片孤儿清理定时任务单元测试
+ * 文章正文图片孤儿清理定时任务单元测试
  *
  * @author Harry
  * @since 2026-05-20
@@ -32,16 +31,13 @@ import static org.mockito.Mockito.when;
 class ImageCleanupTaskTest {
 
     private static final String PUBLIC_URL = "http://localhost:8001/files";
-    private static final String CONTENT_PREFIX = "bitlog/article_content/";
+    private static final String CONTENT_PREFIX = "bitlog/article/";
 
     @Mock
     private FileService fileService;
 
     @Mock
     private ArticleVersionDAO articleVersionDAO;
-
-    @Mock
-    private ArticleDAO articleDAO;
 
     @Mock
     private FileUrlHelper fileUrlHelper;
@@ -72,7 +68,6 @@ class ImageCleanupTaskTest {
         imageCleanupTask.cleanOrphanImages();
 
         verify(articleVersionDAO, never()).listAllContentFromActiveArticles();
-        verify(articleDAO, never()).listAllActiveCoverKeys();
         verify(fileService, never()).delete(anyString());
         verify(fileService, never()).markDeleted(anyCollection());
     }
@@ -88,9 +83,7 @@ class ImageCleanupTaskTest {
 
         stubExtractKey();
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key));
-        when(articleVersionDAO.listAllContentFromActiveArticles())
-            .thenReturn(List.of("<img src=\"" + imageUrl + "\" />"));
-        when(articleDAO.listAllActiveCoverKeys()).thenReturn(List.of());
+        when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of("![image](" + imageUrl + ")"));
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -112,8 +105,7 @@ class ImageCleanupTaskTest {
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class)))
             .thenReturn(List.of(referencedKey, orphanKey));
         when(articleVersionDAO.listAllContentFromActiveArticles())
-            .thenReturn(List.of("<img src=\"" + referencedUrl + "\" />"));
-        when(articleDAO.listAllActiveCoverKeys()).thenReturn(List.of());
+            .thenReturn(List.of("![image](" + referencedUrl + ")"));
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -123,41 +115,20 @@ class ImageCleanupTaskTest {
     }
 
     // -----------------------------------------------------------------------
-    // Cover keys are excluded from the orphan set
+    // Markdown content with multiple images → all referenced keys extracted
     // -----------------------------------------------------------------------
 
     @Test
-    void cleanOrphanImages_coverKeyExcludedFromOrphans_notDeleted() {
-        String coverKey = CONTENT_PREFIX + "1/2026/05/cover.jpg";
-        String orphanKey = CONTENT_PREFIX + "1/2026/05/orphan.png";
-
-        when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(coverKey, orphanKey));
-        when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of());
-        when(articleDAO.listAllActiveCoverKeys()).thenReturn(List.of(coverKey));
-
-        imageCleanupTask.cleanOrphanImages();
-
-        verify(fileService, times(1)).delete(orphanKey);
-        verify(fileService, never()).delete(coverKey);
-        verify(fileService, times(1)).markDeleted(argThat(col -> col.size() == 1 && col.contains(orphanKey)));
-    }
-
-    // -----------------------------------------------------------------------
-    // HTML parsing: multiple img tags in one content body
-    // -----------------------------------------------------------------------
-
-    @Test
-    void cleanOrphanImages_htmlWithMultipleImgTags_allReferencedKeysExtracted() {
+    void cleanOrphanImages_multipleImagesInContent_allReferencedKeysExtracted() {
         String key1 = CONTENT_PREFIX + "1/2026/05/img1.png";
         String key2 = CONTENT_PREFIX + "1/2026/05/img2.jpg";
         String url1 = PUBLIC_URL + "/" + key1;
         String url2 = PUBLIC_URL + "/" + key2;
-        String html = "<p>text</p><img src=\"" + url1 + "\" /><img src=\"" + url2 + "\" alt=\"x\"/>";
+        String content = "intro\n\n![first image](" + url1 + ")\n\ntext\n\n![second](" + url2 + ")";
 
         stubExtractKey();
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key1, key2));
-        when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of(html));
-        when(articleDAO.listAllActiveCoverKeys()).thenReturn(List.of());
+        when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of(content));
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -174,12 +145,10 @@ class ImageCleanupTaskTest {
         String orphanKey = CONTENT_PREFIX + "1/2026/05/orphan.png";
         String externalUrl = "https://external.example.com/photo.jpg";
 
+        stubExtractKey();
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(orphanKey));
-        // Override extractKey so that the external URL is returned as-is (no prefix match)
-        when(fileUrlHelper.extractKey(externalUrl)).thenReturn(externalUrl);
         when(articleVersionDAO.listAllContentFromActiveArticles())
-            .thenReturn(List.of("<img src=\"" + externalUrl + "\" />"));
-        when(articleDAO.listAllActiveCoverKeys()).thenReturn(List.of());
+            .thenReturn(List.of("![external](" + externalUrl + ")"));
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -197,7 +166,6 @@ class ImageCleanupTaskTest {
 
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(orphanKey));
         when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of("", "   "));
-        when(articleDAO.listAllActiveCoverKeys()).thenReturn(List.of());
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -216,7 +184,6 @@ class ImageCleanupTaskTest {
 
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key1, key2));
         when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of());
-        when(articleDAO.listAllActiveCoverKeys()).thenReturn(List.of());
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -238,8 +205,7 @@ class ImageCleanupTaskTest {
         stubExtractKey();
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(sharedKey));
         when(articleVersionDAO.listAllContentFromActiveArticles())
-            .thenReturn(List.of("<img src=\"" + sharedUrl + "\" />", "<img src=\"" + sharedUrl + "\" />"));
-        when(articleDAO.listAllActiveCoverKeys()).thenReturn(List.of());
+            .thenReturn(List.of("![img](" + sharedUrl + ")", "![img](" + sharedUrl + ")"));
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -258,11 +224,9 @@ class ImageCleanupTaskTest {
 
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key1, key2));
         when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of());
-        when(articleDAO.listAllActiveCoverKeys()).thenReturn(List.of());
 
         imageCleanupTask.cleanOrphanImages();
 
-        // delete is called once per key, markDeleted is called only once with the full list
         verify(fileService, times(2)).delete(anyString());
         verify(fileService, times(1)).markDeleted(anyCollection());
     }

@@ -89,7 +89,7 @@ public class FileServiceImpl implements FileService {
 
         log.info("文件上传成功 scene={} userId={} key={}", scene, userId, key);
 
-        if (scene == UploadScene.article_content) {
+        if (scene == UploadScene.article) {
             try {
                 recordUpload(userId, key);
             } catch (Exception e) {

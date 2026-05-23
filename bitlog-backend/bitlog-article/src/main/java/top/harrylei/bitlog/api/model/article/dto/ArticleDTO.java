@@ -31,11 +31,6 @@ public class ArticleDTO {
     private String title;
 
     /**
-     * 封面图地址
-     */
-    private String cover;
-
-    /**
      * 文章摘要
      */
     private String summary;

@@ -9,7 +9,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.util.FileUrlHelper;
 import top.harrylei.bitlog.file.config.StorageProperties;
-import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.repository.dao.ImageRecordDAO;
 import top.harrylei.bitlog.file.repository.entity.ImageRecordDO;
 import top.harrylei.bitlog.file.service.impl.FileServiceImpl;
@@ -56,7 +55,7 @@ class FileServiceImplTest {
     @Test
     void recordUpload_savesImageRecordWithCorrectFields() {
         Long userId = 42L;
-        String fileKey = "bitlog/article_content/42/2026/05/abc.png";
+        String fileKey = "bitlog/article/42/2026/05/abc.png";
         when(imageRecordDAO.save(any(ImageRecordDO.class))).thenReturn(true);
 
         fileService.recordUpload(userId, fileKey);
@@ -76,7 +75,7 @@ class FileServiceImplTest {
     @Test
     void getOldUndeletedContentKeys_delegatesToDAOAndReturnsResult() {
         LocalDateTime threshold = LocalDateTime.now().minusHours(48);
-        List<String> expected = List.of("bitlog/article_content/1/2026/05/img.png");
+        List<String> expected = List.of("bitlog/article/1/2026/05/img.png");
         when(imageRecordDAO.getKeysOlderThan(threshold)).thenReturn(expected);
 
         List<String> result = fileService.getOldUndeletedContentKeys(threshold);
@@ -101,7 +100,7 @@ class FileServiceImplTest {
 
     @Test
     void markDeleted_delegatesCollectionToDAO() {
-        List<String> keys = List.of("bitlog/article_content/1/2026/05/a.png", "bitlog/article_content/1/2026/05/b.png");
+        List<String> keys = List.of("bitlog/article/1/2026/05/a.png", "bitlog/article/1/2026/05/b.png");
 
         fileService.markDeleted(keys);
 

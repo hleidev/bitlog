@@ -13,11 +13,8 @@ public enum UploadScene {
     /** 用户头像 */
     avatar(Set.of("image/jpeg", "image/png", "image/webp"), 1L * 1024 * 1024),
 
-    /** 文章封面 */
-    article_cover(Set.of("image/jpeg", "image/png", "image/webp"), 10L * 1024 * 1024),
-
     /** 文章正文内图片 */
-    article_content(Set.of("image/jpeg", "image/png", "image/webp"), 5L * 1024 * 1024);
+    article(Set.of("image/jpeg", "image/png", "image/webp"), 5L * 1024 * 1024);
 
     private final Set<String> allowedMimeTypes;
     private final long maxSizeBytes;

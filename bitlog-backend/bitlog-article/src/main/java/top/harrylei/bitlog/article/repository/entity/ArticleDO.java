@@ -46,11 +46,6 @@ public class ArticleDO extends BaseDO {
     private LocalDateTime publishTime;
 
     /**
-     * 封面图地址
-     */
-    private String cover;
-
-    /**
      * 文章摘要
      */
     private String summary;

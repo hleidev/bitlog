@@ -23,10 +23,7 @@ import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import org.springframework.lang.NonNull;
-import org.springframework.util.StringUtils;
-import top.harrylei.bitlog.common.util.FileUrlHelper;
 import top.harrylei.bitlog.article.converter.ArticleConverter;
-import top.harrylei.bitlog.file.service.FileService;
 import top.harrylei.bitlog.article.repository.dao.ArticleDAO;
 import top.harrylei.bitlog.article.repository.dao.ArticleStatisticsDAO;
 import top.harrylei.bitlog.article.repository.dao.ArticleTagDAO;
@@ -72,14 +69,11 @@ public class ArticleServiceImpl implements ArticleService {
     private final CategoryDAO categoryDAO;
     private final TagDAO tagDAO;
     private final ArticleConverter articleConverter;
-    private final FileUrlHelper fileUrlHelper;
-    private final FileService fileService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long saveArticle(Long userId, ArticleSaveRequest req) {
-        // 创建文章主记录，cover/summary 初始为空字符串，发布时再填充
-        ArticleDO article = new ArticleDO().setUserId(userId).setCover("").setSummary("").setVersionCount(0)
+        ArticleDO article = new ArticleDO().setUserId(userId).setSummary("").setVersionCount(0)
             .setDeleted(DeleteStatusEnum.NOT_DELETED);
         articleDAO.save(article);
 
@@ -125,20 +119,15 @@ public class ArticleServiceImpl implements ArticleService {
             ResultCode.ARTICLE_VERSION_NOT_EXISTS.throwException();
         }
 
-        // 获取旧的关联数据，用于更新计数
         List<Long> oldTagIds = articleTagDAO.listTagIdsByArticleId(articleId);
         Long oldCategoryId = article.getCategoryId();
 
         List<Long> newTagIds = req.getTagIds() != null ? req.getTagIds() : List.of();
         Long newCategoryId = req.getCategoryId();
 
-        // 更新文章主表：封面、摘要、分类、已发布版本；首次发布时写入 publishTime
-        String oldCoverKey = article.getCover();
-        String newCoverKey = req.getCover() != null ? fileUrlHelper.extractKey(req.getCover()) : "";
         LocalDateTime publishTime = article.getPublishTime() != null ? article.getPublishTime() : LocalDateTime.now();
-        articleDAO.publish(articleId, newCoverKey, req.getSummary() != null ? req.getSummary() : "", newCategoryId,
+        articleDAO.publish(articleId, req.getSummary() != null ? req.getSummary() : "", newCategoryId,
             article.getLatestVersionId(), publishTime);
-        deleteOldCoverIfChanged(oldCoverKey, newCoverKey);
 
         // 更新标签关联：删除旧的，保存新的
         articleTagDAO.removeByArticleId(articleId);
@@ -422,12 +411,6 @@ public class ArticleServiceImpl implements ArticleService {
             .setContent(req.getContent());
     }
 
-    private void deleteOldCoverIfChanged(String oldCoverKey, String newCoverKey) {
-        if (StringUtils.hasText(oldCoverKey) && !oldCoverKey.equals(newCoverKey)) {
-            fileService.delete(oldCoverKey);
-        }
-    }
-
     private void updateTagCounts(boolean isRepublish, List<Long> oldTagIds, List<Long> newTagIds) {
         if (isRepublish) {
             tagDAO.decrementArticleCount(oldTagIds);
@@ -466,7 +449,6 @@ public class ArticleServiceImpl implements ArticleService {
 
     private ArticleDetailVO buildDetailVO(ArticleDO article, ArticleVersionDO version) {
         ArticleDetailVO vo = articleConverter.toDetailVO(article, version);
-        vo.setCover(fileUrlHelper.buildUrl(vo.getCover()));
         vo.setStatus(article.getPublishedVersionId() != null ? ArticleStatusEnum.PUBLISHED : ArticleStatusEnum.DRAFT);
         vo.setUpdateTime(article.getUpdateTime());
         vo.setPublishTime(article.getPublishTime());
@@ -539,7 +521,6 @@ public class ArticleServiceImpl implements ArticleService {
             }
 
             ArticleVO vo = articleConverter.toVO(a, v);
-            vo.setCover(fileUrlHelper.buildUrl(vo.getCover()));
             vo.setStatus(a.getPublishedVersionId() != null ? ArticleStatusEnum.PUBLISHED : ArticleStatusEnum.DRAFT);
             vo.setUpdateTime(a.getUpdateTime());
             vo.setPublishTime(a.getPublishTime());

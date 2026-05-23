@@ -18,10 +18,6 @@ import java.util.List;
 @Schema(description = "文章发布请求")
 public class ArticlePublishRequest {
 
-    @Size(max = 512, message = "封面图地址长度不能超过 512 个字符")
-    @Schema(description = "封面图地址")
-    private String cover;
-
     @Size(max = 512, message = "摘要长度不能超过 512 个字符")
     @Schema(description = "文章摘要")
     private String summary;
