@@ -171,6 +171,8 @@ const doSearch = () => {
 
 .header__inner {
   height: 100%;
+  max-width: var(--spacing-container);
+  margin: 0 auto;
   display: flex;
   align-items: center;
   position: relative;
