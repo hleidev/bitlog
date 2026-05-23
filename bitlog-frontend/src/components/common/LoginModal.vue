@@ -167,12 +167,6 @@ watch(
         </svg>
       </button>
 
-      <!-- Logo -->
-      <div class="auth-modal__logo">
-        <span class="auth-modal__logo-icon"></span>
-        <span class="auth-modal__logo-text">BitLog</span>
-      </div>
-
       <!-- 标题 -->
       <h2 class="auth-modal__title">{{ mode === 'login' ? '登录' : '创建账号' }}</h2>
 
@@ -319,27 +313,6 @@ watch(
   background: var(--color-bg-hover);
 }
 
-.auth-modal__logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 28px;
-}
-
-.auth-modal__logo-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
-  background: var(--color-accent);
-}
-
-.auth-modal__logo-text {
-  font-family: var(--font-serif);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
 
 .auth-modal__title {
   font-size: 20px;
