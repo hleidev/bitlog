@@ -55,7 +55,7 @@ onMounted(async () => {
             <span v-if="article.summary" class="article-excerpt">{{ article.summary }}</span>
           </div>
           <div class="article-right">
-            <span class="article-tag">{{ article.categoryName ?? article.tags[0] ?? '' }}</span>
+            <span class="article-tag">{{ article.category?.name || article.tags[0]?.name || '' }}</span>
           </div>
         </RouterLink>
       </div>

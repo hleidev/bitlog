@@ -6,7 +6,6 @@ import { Search, RefreshLeft, Plus, MoreFilled } from '@element-plus/icons-vue'
 import {
   getMyArticles,
   updateArticlesStatus,
-  deleteArticle,
   deleteArticles,
   type ArticleVO,
   type ArticleCounts,
@@ -141,7 +140,7 @@ async function handleCommand(cmd: string, row: ArticleVO) {
       })
     } catch { return }
     try {
-      await deleteArticle(row.id)
+      await deleteArticles([row.id])
       ElMessage.success('文章已删除')
       fetchArticles()
     } catch (err) {
@@ -284,7 +283,6 @@ function formatViews(n: number) {
           <el-table-column label="文章" min-width="260">
             <template #default="{ row }">
               <div class="title-cell">
-                <span v-if="row.topping" class="pin-badge">置顶</span>
                 <span
                   class="article-title"
                   :class="{ 'article-title--draft': row.status === 'DRAFT' }"

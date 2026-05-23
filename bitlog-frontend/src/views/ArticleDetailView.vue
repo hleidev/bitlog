@@ -203,8 +203,12 @@ onUnmounted(() => {
           返回
         </button>
         <div class="article-meta">
-          <span v-if="article.categoryName" class="meta-category">{{ article.categoryName }}</span>
-          <span v-if="article.categoryName" class="meta-sep">·</span>
+          <RouterLink
+            v-if="article.category"
+            :to="{ path: '/articles', query: { categoryId: article.category.id } }"
+            class="meta-category"
+          >{{ article.category.name }}</RouterLink>
+          <span v-if="article.category" class="meta-sep">·</span>
           <span class="meta-date">{{ formatDate(article.publishTime) }}</span>
         </div>
         <h1 class="article-title">{{ article.title }}</h1>
@@ -218,11 +222,11 @@ onUnmounted(() => {
         <!-- Tags -->
         <div v-if="article.tags.length" class="article-tags">
           <RouterLink
-            v-for="(tag, i) in article.tags"
-            :key="tag"
-            :to="{ path: '/articles', query: { tagId: article.tagIds?.[i] } }"
+            v-for="tag in article.tags"
+            :key="tag.id"
+            :to="{ path: '/articles', query: { tagId: tag.id } }"
             class="article-tag"
-          >{{ tag }}</RouterLink>
+          >{{ tag.name }}</RouterLink>
         </div>
 
         <div class="prose" ref="proseRef" v-html="renderedContent" />
@@ -231,11 +235,11 @@ onUnmounted(() => {
         <div class="article-footer">
           <div class="article-footer__tags">
             <RouterLink
-              v-for="(tag, i) in article.tags"
-              :key="tag"
-              :to="{ path: '/articles', query: { tagId: article.tagIds?.[i] } }"
+              v-for="tag in article.tags"
+              :key="tag.id"
+              :to="{ path: '/articles', query: { tagId: tag.id } }"
               class="footer-tag"
-            >{{ tag }}</RouterLink>
+            >{{ tag.name }}</RouterLink>
           </div>
         </div>
 
@@ -436,6 +440,17 @@ onUnmounted(() => {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-accent);
+  text-decoration: none;
+  background-image: linear-gradient(var(--color-accent), var(--color-accent));
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  background-position: left bottom;
+  padding-bottom: 1px;
+  transition: background-size var(--transition-sweep);
+}
+
+.meta-category:hover {
+  background-size: 100% 1px;
 }
 
 .meta-sep {
