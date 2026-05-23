@@ -9,7 +9,10 @@
       </div>
 
       <div class="hero__right">
-        <div class="hero__author-name">Harry</div>
+        <div class="hero__author-header">
+          <div class="hero__accent-bar"></div>
+          <div class="hero__author-name">Harry</div>
+        </div>
         <div class="hero__author-bio">后端工程师，<br>在奔波里记录生活的边角料。</div>
         <div class="hero__author-links">
           <a href="https://github.com/hleidev" target="_blank" rel="noopener noreferrer" class="hero__link">GitHub</a>
@@ -33,13 +36,29 @@ import { RouterLink } from 'vue-router'
   display: flex;
   align-items: flex-end;
   position: relative;
+  overflow: hidden;
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Noise grain texture */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='280' height='280' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 280px 280px;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
 }
 
 .hero__after {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, transparent 55%, rgba(250, 249, 247, 0.18) 100%);
+  background:
+    radial-gradient(ellipse 55% 70% at 5% 110%, rgba(184, 92, 56, 0.05) 0%, transparent 60%),
+    linear-gradient(to bottom, transparent 55%, rgba(250, 249, 247, 0.08) 100%);
   pointer-events: none;
 }
 
@@ -106,6 +125,21 @@ import { RouterLink } from 'vue-router'
   animation: fadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
 }
 
+.hero__author-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hero__accent-bar {
+  width: 2.5px;
+  height: 28px;
+  background: var(--color-accent);
+  border-radius: 2px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
 .hero__author-name {
   font-family: var(--font-serif);
   font-size: 14px;
@@ -119,6 +153,7 @@ import { RouterLink } from 'vue-router'
   line-height: 1.75;
   color: rgba(245, 243, 239, 0.3);
   letter-spacing: 0.01em;
+  padding-left: 13px;
 }
 
 .hero__author-links {
@@ -126,6 +161,7 @@ import { RouterLink } from 'vue-router'
   align-items: center;
   gap: 12px;
   margin-top: 4px;
+  padding-left: 13px;
 }
 
 .hero__link {

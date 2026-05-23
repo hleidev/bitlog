@@ -114,9 +114,15 @@ onMounted(async () => {
   display: flex;
   align-items: flex-start;
   gap: 40px;
-  padding: 28px 0;
+  padding: 28px 10px;
+  margin: 0 -10px;
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.article-row:hover {
+  background: var(--color-bg-hover);
 }
 
 .article-date {
