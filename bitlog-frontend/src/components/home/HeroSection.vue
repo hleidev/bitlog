@@ -4,7 +4,15 @@
     <div class="hero__inner">
 
       <div class="hero__left">
-        <h1 class="hero__title">BitLog<span class="hero__dot">.</span></h1>
+        <h1 class="hero__title">
+          <span class="hero__char" style="animation-delay: 0.08s">B</span>
+          <span class="hero__char" style="animation-delay: 0.14s">i</span>
+          <span class="hero__char" style="animation-delay: 0.20s">t</span>
+          <span class="hero__char" style="animation-delay: 0.26s">L</span>
+          <span class="hero__char" style="animation-delay: 0.32s">o</span>
+          <span class="hero__char" style="animation-delay: 0.38s">g</span>
+          <span class="hero__char hero__dot" style="animation-delay: 0.46s">.</span>
+        </h1>
         <p class="hero__subtitle">落笔有痕，代码留迹。</p>
       </div>
 
@@ -94,8 +102,12 @@ import { RouterLink } from 'vue-router'
   color: var(--color-text-on-dark);
   letter-spacing: 0.03em;
   margin-bottom: 24px;
+}
+
+.hero__char {
+  display: inline-block;
   opacity: 0;
-  animation: fadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+  animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .hero__dot {
