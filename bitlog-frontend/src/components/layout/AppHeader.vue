@@ -13,7 +13,10 @@ const userStore = useUserStore()
 const router = useRouter()
 const { userInfo, isLoggedIn } = storeToRefs(userStore)
 
-const isDark = ref(false)
+const savedTheme = localStorage.getItem('theme')
+const isDark = ref(savedTheme === 'dark')
+document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
+
 const mobileMenuOpen = ref(false)
 const dropdownOpen = ref(false)
 const searchOpen = ref(false)
@@ -26,7 +29,9 @@ const closeDropdown = () => {
 
 const toggleTheme = () => {
   isDark.value = !isDark.value
-  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
+  const theme = isDark.value ? 'dark' : 'light'
+  document.documentElement.setAttribute('data-theme', theme)
+  localStorage.setItem('theme', theme)
 }
 
 const openSearch = async () => {
