@@ -80,6 +80,8 @@ const loading = ref(false)
 const articles = ref<ArticleItemVO[]>([])
 const totalElements = ref(0)
 const totalPages = ref(1)
+const hasPrevious = ref(false)
+const hasNext = ref(false)
 
 async function fetchArticles() {
   loading.value = true
@@ -94,6 +96,8 @@ async function fetchArticles() {
     articles.value = res.content
     totalElements.value = res.totalElements
     totalPages.value = res.totalPages
+    hasPrevious.value = res.hasPrevious
+    hasNext.value = res.hasNext
   } finally {
     loading.value = false
   }
@@ -127,7 +131,9 @@ const visiblePages = computed(() => {
 })
 
 function changePage(p: number) {
-  if (p < 1 || p > totalPages.value || p === pageNum.value) return
+  if (p === pageNum.value) return
+  if (p < pageNum.value && !hasPrevious.value) return
+  if (p > pageNum.value && !hasNext.value) return
   pageNum.value = p
   fetchArticles()
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -268,7 +274,7 @@ onMounted(async () => {
           <div v-if="totalPages > 1" class="pagination">
             <button
               class="page-btn page-btn--arrow"
-              :disabled="pageNum <= 1"
+              :disabled="!hasPrevious"
               @click="changePage(pageNum - 1)"
             >←</button>
             <template v-for="(p, i) in visiblePages" :key="i">
@@ -282,7 +288,7 @@ onMounted(async () => {
             </template>
             <button
               class="page-btn page-btn--arrow"
-              :disabled="pageNum >= totalPages"
+              :disabled="!hasNext"
               @click="changePage(pageNum + 1)"
             >→</button>
           </div>
