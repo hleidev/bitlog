@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import HeroSection from '@/components/home/HeroSection.vue'
 import { getArticlePage, type ArticleItemVO } from '@/api/article'
 
 const articles = ref<ArticleItemVO[]>([])
 const loading = ref(false)
+const articleListRef = ref<HTMLElement | null>(null)
+
+function initRowAnimation() {
+  const rows = articleListRef.value?.querySelectorAll<HTMLElement>('.article-row')
+  if (!rows?.length) return
+  rows.forEach((row, i) => {
+    row.style.animationDelay = `${i * 55}ms`
+    row.classList.add('is-visible')
+  })
+}
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -27,11 +37,13 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  await nextTick()
+  initRowAnimation()
 })
 </script>
 
 <template>
-  <main>
+  <main class="view-enter">
     <HeroSection />
 
     <div id="content-area" class="home-main">
@@ -40,7 +52,7 @@ onMounted(async () => {
         <div class="section-rule"></div>
       </div>
 
-      <div class="article-list" :class="{ 'article-list--loading': loading }">
+      <div ref="articleListRef" class="article-list" :class="{ 'article-list--loading': loading }">
         <RouterLink
           v-for="article in articles"
           :key="article.id"
@@ -121,8 +133,23 @@ onMounted(async () => {
   transition: background var(--transition-base);
 }
 
+.article-row.is-visible {
+  animation: rowFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 .article-row:hover {
   background: var(--color-bg-hover);
+}
+
+@keyframes rowFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .article-date {
@@ -161,6 +188,8 @@ onMounted(async () => {
   color: var(--color-text-primary);
   line-height: 1.55;
   letter-spacing: 0.01em;
+  width: fit-content;
+  max-width: 100%;
   background-image: linear-gradient(var(--color-accent), var(--color-accent));
   background-repeat: no-repeat;
   background-size: 0% 1px;

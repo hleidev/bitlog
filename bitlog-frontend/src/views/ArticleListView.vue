@@ -162,7 +162,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="articles-page">
+  <div class="articles-page view-enter">
     <!-- Sticky filter bar -->
     <div class="filter-bar">
       <div class="filter-bar__row container">
@@ -588,6 +588,8 @@ onMounted(async () => {
   color: var(--color-text-primary);
   line-height: 1.55;
   letter-spacing: 0.01em;
+  width: fit-content;
+  max-width: 100%;
   background-image: linear-gradient(var(--color-accent), var(--color-accent));
   background-repeat: no-repeat;
   background-size: 0% 1px;

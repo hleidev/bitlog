@@ -88,7 +88,7 @@ import { RouterLink } from 'vue-router'
 
 .hero__title {
   font-family: var(--font-serif);
-  font-size: clamp(80px, 13vw, 200px);
+  font-size: clamp(100px, 16vw, 260px);
   font-weight: 500;
   line-height: 1;
   color: var(--color-text-on-dark);

@@ -15,6 +15,18 @@
   padding: 0 24px;
 }
 
+/* Page enter animation */
+@keyframes viewFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.view-enter,
+.page-state,
+.article-detail {
+  animation: viewFadeIn 0.18s ease both;
+}
+
 /* Visually hidden (accessibility) */
 .sr-only {
   position: absolute;
