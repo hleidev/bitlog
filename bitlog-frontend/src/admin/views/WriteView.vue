@@ -2,9 +2,10 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Fold, Expand, Picture, ArrowRight, Loading } from '@element-plus/icons-vue'
-import { MdEditor } from 'md-editor-v3'
-import type { ToolbarNames } from 'md-editor-v3'
+import { ArrowLeft, Fold, Expand, ArrowRight } from '@element-plus/icons-vue'
+import { MdEditor, NormalToolbar } from 'md-editor-v3'
+import type { ToolbarNames, ExposeParam } from 'md-editor-v3'
+import { Image as ImageIcon } from 'lucide-vue-next'
 import 'md-editor-v3/lib/style.css'
 import { diffLines, diffWords } from 'diff'
 import {
@@ -44,7 +45,7 @@ const toolbars: ToolbarNames[] = [
   'bold', 'italic', 'strikeThrough', '-',
   'title', 'quote', '-',
   'unorderedList', 'orderedList', 'task', '-',
-  'codeRow', 'code', 'link', 'image', 'table',
+  'codeRow', 'code', 'link', 0, 'table',
   '=',
   'revoke', 'next', '-',
   'preview', 'pageFullscreen',
@@ -55,35 +56,24 @@ const publishDialogVisible = ref(false)
 const publishing           = ref(false)
 
 const publishForm = ref({
-  cover:      null as string | null,
   summary:    '',
   categoryId: null as number | null,
   tagIds:     [] as number[],
 })
 
-// ── Cover upload ───────────────────────────────────────────────────────────────
-const coverDisplayUrl = ref<string | null>(null)
-const coverUploading  = ref(false)
-const coverInputRef   = ref<HTMLInputElement | null>(null)
+// ── Content image upload ──────────────────────────────────────────────────────
+const editorRef    = ref<ExposeParam>()
+const imgInputRef  = ref<HTMLInputElement | null>(null)
 
-async function handleCoverSelect(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  if (coverInputRef.value) coverInputRef.value.value = ''
-  const prevUrl = coverDisplayUrl.value
-  coverDisplayUrl.value = URL.createObjectURL(file)
-  if (prevUrl?.startsWith('blob:')) URL.revokeObjectURL(prevUrl)
-  coverUploading.value = true
+async function onImgFileChange(e: Event) {
+  const files = [...((e.target as HTMLInputElement).files ?? [])]
+  if (imgInputRef.value) imgInputRef.value.value = ''
+  if (!files.length) return
   try {
-    const res = await uploadFile(file, 'article_cover')
-    publishForm.value.cover = res.fileUrl
+    const results = await Promise.all(files.map(f => uploadFile(f, 'article')))
+    results.forEach(r => editorRef.value?.insert(() => ({ targetValue: `![](${r.fileUrl})` })))
   } catch (err) {
-    ElMessage.error(err instanceof Error ? err.message : '封面图上传失败')
-    URL.revokeObjectURL(coverDisplayUrl.value!)
-    coverDisplayUrl.value   = null
-    publishForm.value.cover = null
-  } finally {
-    coverUploading.value = false
+    ElMessage.error(err instanceof Error ? err.message : '图片上传失败')
   }
 }
 
@@ -234,7 +224,6 @@ let autoSaveTimer: ReturnType<typeof setTimeout> | undefined
 onUnmounted(() => {
   clearTimeout(saveTimer)
   clearTimeout(autoSaveTimer)
-  if (coverDisplayUrl.value?.startsWith('blob:')) URL.revokeObjectURL(coverDisplayUrl.value)
 })
 
 const saveStateText = computed(() => {
@@ -298,9 +287,7 @@ async function loadDraft() {
     content.value            = data.content
     latestVersionId.value    = data.latestVersionId
     publishedVersionId.value = data.publishedVersionId
-    coverDisplayUrl.value    = data.cover
     publishForm.value = {
-      cover:      data.cover,
       summary:    data.summary ?? '',
       categoryId: data.categoryId,
       tagIds:     [...data.tagIds],
@@ -369,7 +356,6 @@ async function handlePublishConfirm() {
   const wasPublished = isPublished.value
   try {
     await publishArticle(currentId.value, {
-      cover:      publishForm.value.cover || null,
       summary:    publishForm.value.summary || null,
       categoryId: publishForm.value.categoryId,
       tagIds:     publishForm.value.tagIds,
@@ -377,7 +363,7 @@ async function handlePublishConfirm() {
     publishedVersionId.value   = latestVersionId.value
     publishDialogVisible.value = false
     ElMessage.success(wasPublished ? '发布信息已更新' : '文章已发布')
-    loadVersions()
+    loadVersions() // fire-and-forget: refresh sidebar version list in background
   } catch (err) {
     handleError(err, '发布失败')
   } finally {
@@ -482,6 +468,7 @@ function shortTime(d: string) {
         <!-- Editor (hidden in diff mode) -->
         <div v-show="!diffMode" class="md-wrap">
           <MdEditor
+            ref="editorRef"
             v-model="content"
             editor-id="write-editor"
             :toolbars="toolbars"
@@ -490,6 +477,20 @@ function shortTime(d: string) {
             :show-code-row-number="true"
             style="height: 100%"
             @save="handleSave"
+          >
+            <template #defToolbars>
+              <NormalToolbar title="图片" @onClick="imgInputRef?.click()">
+                <ImageIcon :size="16" />
+              </NormalToolbar>
+            </template>
+          </MdEditor>
+          <input
+            ref="imgInputRef"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            style="display: none"
+            @change="onImgFileChange"
           />
         </div>
 
@@ -552,7 +553,7 @@ function shortTime(d: string) {
           <!-- Version history -->
           <div class="sidebar-section">
             <button class="version-header" @click="versionsExpanded = !versionsExpanded">
-              <span class="section-label" style="margin-bottom: 0">历史版本</span>
+              <span class="section-label">历史版本</span>
               <el-icon
                 class="chevron"
                 :style="{ transform: versionsExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }"
@@ -605,38 +606,6 @@ function shortTime(d: string) {
       <div class="publish-form">
 
         <div class="pf-item">
-          <div class="pf-label">封面图 <span class="pf-optional">可选</span></div>
-          <div
-            class="cover-upload"
-            :class="{ 'cover-upload--has-image': coverDisplayUrl }"
-            @click="coverInputRef?.click()"
-          >
-            <template v-if="coverDisplayUrl">
-              <img :src="coverDisplayUrl" class="cover-preview" />
-              <div class="cover-overlay">
-                <el-icon v-if="coverUploading" class="is-loading cover-overlay-icon"><Loading /></el-icon>
-                <span v-else class="cover-change-tip">点击更换</span>
-              </div>
-            </template>
-            <template v-else>
-              <el-icon v-if="coverUploading" class="is-loading" style="font-size: 24px; color: #9ca3af"><Loading /></el-icon>
-              <template v-else>
-                <el-icon class="cover-icon"><Picture /></el-icon>
-                <span class="cover-tip">点击上传封面图</span>
-                <span class="cover-hint">建议尺寸 1200 × 630</span>
-              </template>
-            </template>
-          </div>
-          <input
-            ref="coverInputRef"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            style="display: none"
-            @change="handleCoverSelect"
-          />
-        </div>
-
-        <div class="pf-item">
           <div class="pf-label">摘要 <span class="pf-optional">可选</span></div>
           <el-input
             v-model="publishForm.summary"
@@ -661,7 +630,6 @@ function shortTime(d: string) {
             clearable
             :disabled="creatingMeta"
             placeholder="搜索或输入分类名称，按 Enter 创建"
-            style="width: 100%"
             @change="handleCategoryChange"
           >
             <el-option
@@ -682,7 +650,6 @@ function shortTime(d: string) {
             allow-create
             :disabled="creatingMeta"
             placeholder="搜索或输入标签名称，按 Enter 创建"
-            style="width: 100%"
             @change="handleTagsChange"
           >
             <el-option v-for="t in tagOptions" :key="t.id" :label="t.name" :value="t.id" />
@@ -933,7 +900,7 @@ function shortTime(d: string) {
 }
 .meta-sidebar--closed { width: 0; opacity: 0; }
 
-.sidebar-scroll { width: 260px; height: 100%; overflow-y: auto; }
+.sidebar-scroll { width: 100%; height: 100%; overflow-y: auto; }
 
 .sidebar-section { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
 
@@ -946,6 +913,7 @@ function shortTime(d: string) {
   display: flex; align-items: center; justify-content: space-between;
   width: 100%; background: transparent; border: none; cursor: pointer; padding: 0;
 }
+.version-header .section-label { margin-bottom: 0; }
 
 .chevron { color: #9ca3af; transition: transform 0.2s ease; }
 
@@ -988,41 +956,13 @@ function shortTime(d: string) {
 .pf-label     { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151; }
 .pf-optional  { font-size: 11px; font-weight: 400; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 3px; }
 .pf-required  { font-size: 11px; font-weight: 500; color: #dc2626; background: #fef2f2; padding: 1px 6px; border-radius: 3px; }
-
-.cover-upload {
-  position: relative;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 5px; height: 120px;
-  border: 2px dashed #e5e7eb; border-radius: 8px; cursor: pointer;
-  overflow: hidden;
-  transition: border-color 0.15s, background 0.15s;
-}
-.cover-upload:hover { border-color: #c7d2fe; background: #f5f3ff; }
-.cover-upload--has-image { border-style: solid; padding: 0; }
-.cover-upload--has-image:hover { background: transparent; }
-
-.cover-icon { font-size: 24px; color: #9ca3af; }
-.cover-tip  { font-size: 13px; color: #6b7280; }
-.cover-hint { font-size: 11px; color: #9ca3af; }
-
-.cover-preview { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-.cover-overlay {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.cover-upload--has-image:hover .cover-overlay { opacity: 1; }
-.cover-change-tip   { font-size: 13px; font-weight: 500; color: #fff; }
-.cover-overlay-icon { font-size: 24px; color: #fff; }
+.pf-item :deep(.el-select) { width: 100%; }
 
 /* ── Mobile ──────────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .write-view     { margin: -16px -12px; }
   .write-toolbar  { padding: 0 12px; gap: 8px; }
-  .save-hint, .word-count { display: none; }
+  .save-hint { display: none; }
   .title-section  { padding: 24px 20px 14px; }
   .title-input    { font-size: 22px; }
   .diff-banner    { padding: 10px 20px; }
