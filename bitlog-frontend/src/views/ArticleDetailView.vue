@@ -97,6 +97,11 @@ const error = ref(false)
 
 const renderedContent = computed(() => (article.value ? md.render(article.value.content) : ''))
 
+const readingTime = computed(() => {
+  if (!article.value) return 1
+  return Math.max(1, Math.round(article.value.content.length / 300))
+})
+
 const toc = ref<{ id: string; level: number; text: string }[]>([])
 const activeSection = ref('')
 const scrollProgress = ref(0)
@@ -196,12 +201,6 @@ onUnmounted(() => {
     <!-- Article header (dark, no cover image) -->
     <div class="article-header">
       <div class="article-header__inner">
-        <button class="back-btn" @click="router.back()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M19 12H5M12 5l-7 7 7 7" />
-          </svg>
-          返回
-        </button>
         <div class="article-meta">
           <RouterLink
             v-if="article.category"
@@ -210,6 +209,8 @@ onUnmounted(() => {
           >{{ article.category.name }}</RouterLink>
           <span v-if="article.category" class="meta-sep">·</span>
           <span class="meta-date">{{ formatDate(article.publishTime) }}</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-reading-time">{{ readingTime }} min read</span>
         </div>
         <h1 class="article-title">{{ article.title }}</h1>
       </div>
@@ -393,38 +394,7 @@ onUnmounted(() => {
 .article-header__inner {
   max-width: var(--spacing-container);
   margin: 0 auto;
-  padding: 48px var(--spacing-page-padding) 64px;
-}
-
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: rgba(245, 243, 239, 0.4);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  padding: 0;
-  margin-bottom: 40px;
-  padding-bottom: 1px;
-  background-image: linear-gradient(rgba(245, 243, 239, 0.4), rgba(245, 243, 239, 0.4));
-  background-repeat: no-repeat;
-  background-size: 0% 1px;
-  background-position: left bottom;
-  transition: color var(--transition-base), background-size var(--transition-sweep);
-}
-
-.back-btn:hover {
-  color: rgba(245, 243, 239, 0.75);
-  background-size: 100% 1px;
-}
-
-.back-btn svg {
-  width: 13px;
-  height: 13px;
+  padding: 56px var(--spacing-page-padding) 64px;
 }
 
 .article-meta {
@@ -459,9 +429,15 @@ onUnmounted(() => {
 }
 
 .meta-date {
-  font-size: 11px;
-  color: rgba(245, 243, 239, 0.35);
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  color: rgba(245, 243, 239, 0.55);
+  letter-spacing: 0.03em;
+}
+
+.meta-reading-time {
+  font-size: 13px;
+  color: rgba(245, 243, 239, 0.4);
+  letter-spacing: 0.03em;
 }
 
 .article-title {
