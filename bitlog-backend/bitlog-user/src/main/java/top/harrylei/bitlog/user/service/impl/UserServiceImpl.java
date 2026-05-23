@@ -42,7 +42,6 @@ import java.util.stream.Collectors;
  * 用户业务服务实现
  *
  * @author Harry
- * 
  * @since 2026-03-28
  */
 @Slf4j
@@ -67,9 +66,7 @@ public class UserServiceImpl implements UserService {
             return null;
         }
         UserDO user = userDAO.getById(userInfo.getUserId());
-        UserVO vo = userConverter.toVO(userInfo, user);
-        vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
-        return vo;
+        return userConverter.toVO(userInfo, user);
     }
 
     @Override
@@ -86,11 +83,7 @@ public class UserServiceImpl implements UserService {
         List<UserDO> userList = userDAO.listByUserIds(accountIds);
         Map<Long, UserDO> userMap = userList.stream().collect(Collectors.toMap(UserDO::getId, Function.identity()));
 
-        return userInfoList.stream().map(info -> {
-            UserVO vo = userConverter.toVO(info, userMap.get(info.getUserId()));
-            vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
-            return vo;
-        }).toList();
+        return userInfoList.stream().map(info -> userConverter.toVO(info, userMap.get(info.getUserId()))).toList();
     }
 
     @Override
@@ -103,9 +96,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        UserDetailVO vo = userConverter.toDetailVO(userInfo, user);
-        vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
-        return vo;
+        return userConverter.toDetailVO(userInfo, user);
     }
 
     @Override
@@ -150,11 +141,14 @@ public class UserServiceImpl implements UserService {
         if (!key.startsWith(ownerPrefix)) {
             ResultCode.INVALID_PARAMETER.throwException("无效的头像地址");
         }
-        String oldAvatar = userInfo.getAvatar();
-        userInfoDAO.updateAvatar(userId, key);
+        String oldAvatarUrl = userInfo.getAvatar();
+        userInfoDAO.updateAvatar(userId, avatar);
         log.info("更新用户头像 userId={}", userId);
-        if (StringUtils.hasText(oldAvatar) && oldAvatar.startsWith(ownerPrefix)) {
-            fileService.delete(oldAvatar);
+        if (StringUtils.hasText(oldAvatarUrl)) {
+            String oldKey = fileUrlHelper.extractKey(oldAvatarUrl);
+            if (oldKey.startsWith(ownerPrefix)) {
+                fileService.delete(oldKey);
+            }
         }
     }
 
@@ -235,11 +229,7 @@ public class UserServiceImpl implements UserService {
     public PageVO<UserListVO> pageQuery(UserPageQuery query) {
         IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query);
 
-        List<UserListVO> voList = resultPage.getRecords().stream().map(dto -> {
-            UserListVO vo = userConverter.toListVO(dto);
-            vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
-            return vo;
-        }).toList();
+        List<UserListVO> voList = resultPage.getRecords().stream().map(dto -> userConverter.toListVO(dto)).toList();
 
         PageVO<UserListVO> pageVO = new PageVO<>();
         pageVO.setPageNum(resultPage.getCurrent());
