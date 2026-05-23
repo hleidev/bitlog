@@ -10,9 +10,9 @@
 
       <div class="hero__right">
         <div class="hero__author-name">Harry</div>
-        <div class="hero__author-bio">后端工程师，偶尔写前端。<br>记录技术思考，也记录那些值得留下来的字。</div>
+        <div class="hero__author-bio">后端工程师，<br>在奔波里记录生活的边角料。</div>
         <div class="hero__author-links">
-          <a href="#" class="hero__link">GitHub</a>
+          <a href="https://github.com/hleidev" target="_blank" rel="noopener noreferrer" class="hero__link">GitHub</a>
           <span class="hero__sep">·</span>
           <RouterLink to="/about" class="hero__link">关于我</RouterLink>
         </div>
@@ -29,7 +29,7 @@ import { RouterLink } from 'vue-router'
 <style scoped>
 .hero {
   background: var(--color-hero-bg);
-  min-height: 72vh;
+  min-height: 52vh;
   display: flex;
   align-items: flex-end;
   position: relative;
@@ -39,8 +39,12 @@ import { RouterLink } from 'vue-router'
 .hero__after {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, transparent 60%, rgba(255, 255, 255, 0.03) 100%);
+  background: linear-gradient(to bottom, transparent 55%, rgba(250, 249, 247, 0.18) 100%);
   pointer-events: none;
+}
+
+[data-theme='dark'] .hero__after {
+  background: linear-gradient(to bottom, transparent 55%, rgba(14, 12, 11, 0.3) 100%);
 }
 
 .hero__inner {
