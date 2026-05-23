@@ -5,14 +5,13 @@ export interface UploadRes {
   fileUrl: string
 }
 
-export type UploadScene = 'avatar' | 'article_cover' | 'article_content'
+export type UploadScene = 'avatar' | 'article'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 const SIZE_LIMITS: Record<UploadScene, number> = {
   avatar: 1 * 1024 * 1024,
-  article_cover: 10 * 1024 * 1024,
-  article_content: 5 * 1024 * 1024,
+  article: 5 * 1024 * 1024,
 }
 
 export function validateUploadFile(file: File, scene: UploadScene): string | null {

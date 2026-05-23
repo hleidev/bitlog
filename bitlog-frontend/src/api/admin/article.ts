@@ -99,7 +99,6 @@ export interface GetMyArticlesParams {
 }
 
 export interface PublishArticleParams {
-  cover?: string | null
   summary?: string | null
   categoryId?: number | null
   tagIds?: number[]
