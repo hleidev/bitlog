@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type TableInstance } from 'element-plus'
 import { Search, RefreshLeft, Plus, MoreFilled } from '@element-plus/icons-vue'
 import {
@@ -13,6 +13,7 @@ import {
 } from '@/api/admin/article'
 import { ApiError } from '@/utils/request'
 
+const route = useRoute()
 const router = useRouter()
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -24,7 +25,6 @@ const selectedRows = ref<ArticleVO[]>([])
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 type TabKey = 'all' | 'published' | 'draft'
-const activeTab = ref<TabKey>('all')
 
 const TAB_STATUS: Record<TabKey, ArticleStatus | undefined> = {
   all: undefined,
@@ -32,23 +32,38 @@ const TAB_STATUS: Record<TabKey, ArticleStatus | undefined> = {
   draft: 'DRAFT',
 }
 
+const VALID_TABS = new Set<TabKey>(['all', 'published', 'draft'])
+function isValidTab(v: unknown): v is TabKey { return VALID_TABS.has(v as TabKey) }
+
+// ── Init from URL ─────────────────────────────────────────────────────────────
+const q = route.query
+const activeTab = ref<TabKey>(isValidTab(q.tab) ? q.tab : 'all')
+const keyword   = ref(typeof q.keyword === 'string' ? q.keyword : '')
+const pagination = reactive({
+  pageNum:  Math.max(1, Number(q.page)  || 1),
+  pageSize: [10, 20, 50].includes(Number(q.size)) ? Number(q.size) : 10,
+  total: 0,
+})
+
+function syncUrl() {
+  const query: Record<string, string> = {}
+  if (activeTab.value !== 'all')        query.tab     = activeTab.value
+  if (keyword.value.trim())             query.keyword = keyword.value.trim()
+  if (pagination.pageNum !== 1)         query.page    = String(pagination.pageNum)
+  if (pagination.pageSize !== 10)       query.size    = String(pagination.pageSize)
+  router.replace({ query })
+}
+
 function switchTab(tab: TabKey) {
   if (activeTab.value === tab) return
   activeTab.value = tab
   pagination.pageNum = 1
   clearSelection()
+  syncUrl()
   fetchArticles()
 }
 
 // ── Filters & pagination ──────────────────────────────────────────────────────
-const keyword = ref('')
-
-const pagination = reactive({
-  pageNum: 1,
-  pageSize: 10,
-  total: 0,
-})
-
 async function fetchArticles() {
   loading.value = true
   try {
@@ -70,6 +85,7 @@ async function fetchArticles() {
 
 function handleSearch() {
   pagination.pageNum = 1
+  syncUrl()
   fetchArticles()
 }
 
@@ -77,15 +93,18 @@ function handleReset() {
   keyword.value = ''
   pagination.pageNum = 1
   clearSelection()
+  syncUrl()
   fetchArticles()
 }
 
 function handleCurrentChange() {
+  syncUrl()
   fetchArticles()
 }
 
 function handleSizeChange() {
   pagination.pageNum = 1
+  syncUrl()
   fetchArticles()
 }
 
