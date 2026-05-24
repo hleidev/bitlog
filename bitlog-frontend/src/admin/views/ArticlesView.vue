@@ -126,6 +126,15 @@ async function handleCommand(cmd: string, row: ArticleVO) {
   } else if (cmd === 'togglePublish') {
     const next: ArticleStatus = row.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
     const label = next === 'PUBLISHED' ? '发布' : '取消发布'
+    if (next === 'DRAFT') {
+      try {
+        await ElMessageBox.confirm(
+          `确认取消发布「${row.title}」？`,
+          '取消发布',
+          { confirmButtonText: '取消发布', cancelButtonText: '取消', type: 'warning' },
+        )
+      } catch { return }
+    }
     try {
       await updateArticlesStatus([row.id], next)
       ElMessage.success(next === 'PUBLISHED' ? '文章已发布' : '已取消发布')
