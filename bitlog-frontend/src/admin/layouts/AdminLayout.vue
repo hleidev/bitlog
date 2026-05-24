@@ -7,7 +7,7 @@ import '@/admin/styles/variables.css'
 
 const MOBILE_BP = 768
 
-const collapsed = ref(false)
+const collapsed = ref(localStorage.getItem('admin-sidebar-collapsed') === 'true')
 const drawerOpen = ref(false)
 const windowWidth = ref(window.innerWidth)
 
@@ -26,6 +26,7 @@ function handleToggle() {
     drawerOpen.value = !drawerOpen.value
   } else {
     collapsed.value = !collapsed.value
+    localStorage.setItem('admin-sidebar-collapsed', String(collapsed.value))
   }
 }
 
