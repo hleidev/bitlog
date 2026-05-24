@@ -204,7 +204,7 @@ const doSearch = () => {
   font-family: var(--font-serif);
   font-size: 17px;
   font-weight: 600;
-  color: #fff;
+  color: var(--color-text-on-dark);
   transition: color var(--transition-header);
 }
 
@@ -224,7 +224,7 @@ const doSearch = () => {
 .header__nav-link {
   font-size: 13px;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(245, 243, 239, 0.7);
   padding-bottom: 1px;
   background-image: linear-gradient(var(--color-accent), var(--color-accent));
   background-repeat: no-repeat;
@@ -237,8 +237,12 @@ const doSearch = () => {
   color: var(--color-text-secondary);
 }
 
-.header__nav-link:hover,
+.header__nav-link:hover {
+  background-size: 100% 1px;
+}
+
 .header__nav-link.router-link-exact-active {
+  color: var(--color-text-on-dark);
   background-size: 100% 1px;
 }
 
@@ -259,7 +263,7 @@ const doSearch = () => {
   justify-content: center;
   width: 20px;
   height: 20px;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(245, 243, 239, 0.7);
   transition: color var(--transition-header), opacity var(--transition-base);
   flex-shrink: 0;
 }
@@ -345,7 +349,7 @@ const doSearch = () => {
   justify-content: center;
   width: 20px;
   height: 20px;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(245, 243, 239, 0.7);
   transition: color var(--transition-header), opacity var(--transition-base);
   flex-shrink: 0;
 }
@@ -368,9 +372,9 @@ const doSearch = () => {
   letter-spacing: 0.04em;
   padding: 5px 14px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(245, 243, 239, 0.35);
   background: transparent;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(245, 243, 239, 0.85);
   transition: all var(--transition-base);
   font-family: var(--font-sans);
   cursor: pointer;
@@ -459,7 +463,7 @@ const doSearch = () => {
   display: block;
   width: 22px;
   height: 1.5px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(245, 243, 239, 0.85);
   transition: all 0.3s ease;
   transform-origin: center;
 }
