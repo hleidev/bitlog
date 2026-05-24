@@ -328,6 +328,10 @@ async function handleSave() {
   await performSave()
 }
 
+function openPreview() {
+  window.open(`/admin/preview/${currentId.value}`, '_blank')
+}
+
 async function openPublishDialog() {
   if (!title.value.trim()) {
     ElMessage.warning('请先输入文章标题')
@@ -416,6 +420,7 @@ function shortTime(d: string) {
       <div class="tb-right">
         <span v-if="saveStateText" class="save-hint">{{ saveStateText }}</span>
 
+        <el-button v-if="isEdit" size="small" @click="openPreview">预览</el-button>
         <el-button size="small" :loading="saving" @click="handleSave">保存</el-button>
         <el-button size="small" type="primary" @click="openPublishDialog">发布</el-button>
 

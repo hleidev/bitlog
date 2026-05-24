@@ -121,6 +121,8 @@ function handleApiError(err: unknown, fallback = '操作失败') {
 async function handleCommand(cmd: string, row: ArticleVO) {
   if (cmd === 'edit') {
     router.push(`/admin/write/${row.id}`)
+  } else if (cmd === 'preview') {
+    window.open(`/admin/preview/${row.id}`, '_blank')
   } else if (cmd === 'togglePublish') {
     const next: ArticleStatus = row.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
     const label = next === 'PUBLISHED' ? '发布' : '取消发布'
@@ -342,10 +344,11 @@ function formatViews(n: number) {
                   </button>
                   <template #dropdown>
                     <el-dropdown-menu>
+                      <el-dropdown-item command="preview">预览</el-dropdown-item>
                       <el-dropdown-item v-if="row.status === 'PUBLISHED'" command="togglePublish">
                         取消发布
                       </el-dropdown-item>
-                      <el-dropdown-item command="delete" :divided="row.status === 'PUBLISHED'" style="color: var(--el-color-danger)">
+                      <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">
                         删除
                       </el-dropdown-item>
                     </el-dropdown-menu>
