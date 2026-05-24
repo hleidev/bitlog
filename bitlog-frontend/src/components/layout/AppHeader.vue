@@ -140,8 +140,7 @@ const doSearch = () => {
     <div class="mobile-drawer" :class="{ 'mobile-drawer--open': mobileMenuOpen }">
       <nav class="mobile-drawer__nav">
         <RouterLink to="/" class="mobile-drawer__link" @click="mobileMenuOpen = false">首页</RouterLink>
-        <RouterLink to="/about" class="mobile-drawer__link" @click="mobileMenuOpen = false">关于</RouterLink>
-        <RouterLink to="/friends" class="mobile-drawer__link" @click="mobileMenuOpen = false">友链</RouterLink>
+        <RouterLink to="/articles" class="mobile-drawer__link" @click="mobileMenuOpen = false">文章</RouterLink>
       </nav>
       <div class="mobile-drawer__actions">
         <button v-if="!isLoggedIn" class="mobile-login-btn" @click="modalStore.open('login'); mobileMenuOpen = false">登录</button>
