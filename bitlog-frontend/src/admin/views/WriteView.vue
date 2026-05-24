@@ -16,6 +16,7 @@ import {
   getArticleVersions,
   getArticleVersionDetail,
   rollbackVersion,
+  generateArticleSummary,
   type ArticleVersionVO,
   type ArticleVersionDetailVO,
 } from '@/api/admin/article'
@@ -60,6 +61,32 @@ const publishForm = ref({
   categoryId: null as number | null,
   tagIds:     [] as number[],
 })
+
+// ── AI summary generation ──────────────────────────────────────────────────────
+const aiGenerating       = ref(false)
+const aiGeneratedSummary = ref<string | null>(null)
+
+async function generateAiSummary() {
+  if (!currentId.value) return
+  aiGenerating.value       = true
+  aiGeneratedSummary.value = null
+  try {
+    aiGeneratedSummary.value = await generateArticleSummary(currentId.value)
+  } catch (err) {
+    handleError(err, 'AI 生成失败，请稍后重试')
+  } finally {
+    aiGenerating.value = false
+  }
+}
+
+function acceptAiSummary() {
+  publishForm.value.summary = aiGeneratedSummary.value!
+  aiGeneratedSummary.value  = null
+}
+
+function dismissAiSummary() {
+  aiGeneratedSummary.value = null
+}
 
 // ── Content image upload ──────────────────────────────────────────────────────
 const editorRef    = ref<ExposeParam>()
@@ -152,8 +179,8 @@ async function handleTagsChange(vals: (number | string)[]) {
 }
 
 // ── Sidebar & versions ─────────────────────────────────────────────────────────
-const sidebarOpen      = ref(isEdit.value)
-const versionsExpanded = ref(true)
+const sidebarOpen      = ref(false)
+const versionsExpanded = ref(false)
 const versions         = ref<ArticleVersionVO[]>([])
 
 async function loadVersions() {
@@ -365,6 +392,8 @@ async function openPublishDialog() {
     await performSave()
     if (!currentId.value) return
   }
+  aiGeneratedSummary.value = null
+  aiGenerating.value       = false
   publishDialogVisible.value = true
 }
 
@@ -630,7 +659,19 @@ function shortTime(d: string) {
       <div class="publish-form">
 
         <div class="pf-item">
-          <div class="pf-label">摘要 <span class="pf-optional">可选</span></div>
+          <div class="pf-label">
+            摘要 <span class="pf-optional">可选</span>
+            <button
+              class="ai-gen-btn"
+              :class="{ 'ai-gen-btn--loading': aiGenerating }"
+              :disabled="aiGenerating"
+              type="button"
+              @click="generateAiSummary"
+            >
+              <span class="ai-gen-btn__icon">✦</span>
+              <span>{{ aiGenerating ? '生成中…' : 'AI 生成' }}</span>
+            </button>
+          </div>
           <el-input
             v-model="publishForm.summary"
             type="textarea"
@@ -640,6 +681,22 @@ function shortTime(d: string) {
             show-word-limit
             resize="none"
           />
+          <transition name="ai-preview">
+            <div v-if="aiGenerating || aiGeneratedSummary" class="ai-preview">
+              <div v-if="aiGenerating" class="ai-preview__loading">
+                <span class="ai-preview__dot" /><span class="ai-preview__dot" /><span class="ai-preview__dot" />
+                <span class="ai-preview__hint">AI 正在生成摘要…</span>
+              </div>
+              <template v-else-if="aiGeneratedSummary">
+                <p class="ai-preview__text">{{ aiGeneratedSummary }}</p>
+                <div class="ai-preview__actions">
+                  <button type="button" class="ai-action ai-action--secondary" @click="generateAiSummary">重新生成</button>
+                  <button type="button" class="ai-action ai-action--dismiss" @click="dismissAiSummary">丢弃</button>
+                  <button type="button" class="ai-action ai-action--primary" @click="acceptAiSummary">写入摘要</button>
+                </div>
+              </template>
+            </div>
+          </transition>
         </div>
 
         <div class="pf-item">
@@ -981,6 +1038,95 @@ function shortTime(d: string) {
 .pf-optional  { font-size: 11px; font-weight: 400; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 3px; }
 .pf-required  { font-size: 11px; font-weight: 500; color: #dc2626; background: #fef2f2; padding: 1px 6px; border-radius: 3px; }
 .pf-item :deep(.el-select) { width: 100%; }
+
+/* ── AI generate button ────────────────────────────────────────────────────────*/
+.ai-gen-btn {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px;
+  font-size: 12px; font-weight: 500;
+  color: #7c3aed;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  line-height: 20px;
+}
+.ai-gen-btn:hover:not(:disabled) { background: #ede9fe; }
+.ai-gen-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.ai-gen-btn__icon { font-size: 11px; }
+.ai-gen-btn--loading .ai-gen-btn__icon {
+  display: inline-block;
+  animation: ai-spin 1.2s linear infinite;
+}
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+
+/* ── AI preview card ───────────────────────────────────────────────────────────*/
+.ai-preview {
+  border: 1px solid #ddd6fe;
+  border-radius: 6px;
+  background: #faf9ff;
+  overflow: hidden;
+}
+.ai-preview__loading {
+  display: flex; align-items: center; gap: 6px;
+  padding: 14px 16px;
+  color: #7c3aed; font-size: 13px;
+}
+.ai-preview__dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #7c3aed;
+  animation: ai-dot 1.2s infinite ease-in-out;
+}
+.ai-preview__dot:nth-child(2) { animation-delay: 0.2s; }
+.ai-preview__dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes ai-dot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%            { transform: scale(1);   opacity: 1; }
+}
+.ai-preview__hint { margin-left: 4px; }
+.ai-preview__text {
+  margin: 0;
+  padding: 14px 16px 10px;
+  font-size: 13px; line-height: 1.7; color: #374151;
+}
+.ai-preview__actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 0 12px 12px;
+}
+
+/* ── AI action buttons ─────────────────────────────────────────────────────────*/
+.ai-action {
+  padding: 4px 12px;
+  font-size: 12px; font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ai-action--secondary {
+  color: #7c3aed; background: #ede9fe; border-color: #ddd6fe;
+}
+.ai-action--secondary:hover { background: #ddd6fe; }
+.ai-action--dismiss {
+  color: #6b7280; background: #f3f4f6; border-color: #e5e7eb;
+}
+.ai-action--dismiss:hover { background: #e5e7eb; }
+.ai-action--primary {
+  color: #fff; background: #7c3aed; border-color: #7c3aed;
+}
+.ai-action--primary:hover { background: #6d28d9; }
+
+/* ── Transition ────────────────────────────────────────────────────────────────*/
+.ai-preview-enter-active, .ai-preview-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+.ai-preview-enter-from, .ai-preview-leave-to {
+  opacity: 0; transform: translateY(-4px);
+}
 
 /* ── Mobile ──────────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {

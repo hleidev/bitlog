@@ -165,3 +165,7 @@ export function updateArticlesStatus(ids: number[], status: ArticleStatus): Prom
 export function deleteArticles(ids: number[]): Promise<void> {
   return request.delete<never, void>('/v1/article/batch', { data: { ids } })
 }
+
+export function generateArticleSummary(id: number): Promise<string> {
+  return request.post<never, string>(`/v1/article/${id}/ai/summary`)
+}
