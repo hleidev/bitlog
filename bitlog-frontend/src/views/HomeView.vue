@@ -60,7 +60,7 @@ onMounted(async () => {
           class="article-row"
         >
           <div class="article-date">
-            {{ formatMonth(article.publishTime) }}<span class="article-year">{{ formatYear(article.publishTime) }}</span>
+            {{ formatMonth(article.publishTime) }} <span class="article-year">{{ formatYear(article.publishTime) }}</span>
           </div>
           <div class="article-body">
             <span class="article-title">{{ article.title }}</span>
@@ -115,6 +115,7 @@ onMounted(async () => {
 .article-list {
   border-top: 1px solid var(--color-border);
   transition: opacity var(--transition-base);
+  counter-reset: article-counter;
 }
 
 .article-list--loading {
@@ -124,13 +125,25 @@ onMounted(async () => {
 
 .article-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 40px;
   padding: 28px 10px;
   margin: 0 -10px;
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   transition: background var(--transition-base);
+}
+
+.article-row::before {
+  counter-increment: article-counter;
+  content: counter(article-counter, decimal-leading-zero);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-faint);
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  width: 24px;
 }
 
 .article-row.is-visible {
@@ -153,22 +166,18 @@ onMounted(async () => {
 }
 
 .article-date {
-  width: 72px;
+  width: 80px;
   flex-shrink: 0;
   font-size: 11px;
   color: var(--color-text-muted);
   letter-spacing: 0.03em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  padding-top: 3px;
-  line-height: 1.4;
   transition: color var(--transition-base);
 }
 
 .article-year {
-  display: block;
-  font-size: 10px;
-  margin-top: 2px;
+  font-size: 11px;
   opacity: 0.65;
 }
 
