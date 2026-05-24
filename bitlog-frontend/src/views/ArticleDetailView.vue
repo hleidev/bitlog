@@ -217,7 +217,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Article layout -->
-    <div class="article-layout container">
+    <div class="article-layout container view-enter">
       <!-- Main content -->
       <article class="article-body">
         <!-- Tags -->
@@ -354,9 +354,7 @@ onUnmounted(() => {
 .skeleton-header {
   width: 100%;
   height: 320px;
-  background: linear-gradient(90deg, var(--color-bg-hover) 25%, var(--color-border) 50%, var(--color-bg-hover) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
+  background: var(--color-hero-bg);
 }
 
 .skeleton-body {

@@ -22,8 +22,7 @@
 }
 
 .view-enter,
-.page-state,
-.article-detail {
+.page-state {
   animation: viewFadeIn 0.18s ease both;
 }
 

@@ -43,10 +43,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="view-enter">
+  <main>
     <HeroSection />
 
-    <div id="content-area" class="home-main">
+    <div id="content-area" class="home-main view-enter">
       <div class="section-header">
         <span class="section-label">近期文章</span>
         <div class="section-rule"></div>
