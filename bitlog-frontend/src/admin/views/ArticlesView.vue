@@ -342,10 +342,10 @@ function formatViews(n: number) {
                   </button>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item command="togglePublish">
-                        {{ row.status === 'PUBLISHED' ? '取消发布' : '发布' }}
+                      <el-dropdown-item v-if="row.status === 'PUBLISHED'" command="togglePublish">
+                        取消发布
                       </el-dropdown-item>
-                      <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">
+                      <el-dropdown-item command="delete" :divided="row.status === 'PUBLISHED'" style="color: var(--el-color-danger)">
                         删除
                       </el-dropdown-item>
                     </el-dropdown-menu>
