@@ -2,6 +2,9 @@ import request from '@/utils/request'
 
 export type ArticleStatus = 'DRAFT' | 'PUBLISHED'
 
+const STATUS_FROM_API: Record<number, ArticleStatus> = { 0: 'DRAFT', 1: 'PUBLISHED' }
+const STATUS_TO_API: Record<ArticleStatus, number> = { DRAFT: 0, PUBLISHED: 1 }
+
 // ── List-item type (no content body) ─────────────────────────────────────────
 
 export interface ArticleVO {
@@ -138,20 +141,25 @@ export function rollbackVersion(id: number, versionId: number): Promise<void> {
 
 // ── Article management ────────────────────────────────────────────────────────
 
-export function getMyArticles(params: GetMyArticlesParams): Promise<ArticleListResult> {
+export async function getMyArticles(params: GetMyArticlesParams): Promise<ArticleListResult> {
   const apiParams: Record<string, unknown> = {
     pageNum: params.pageNum,
     pageSize: params.pageSize,
   }
-  if (params.status !== undefined) apiParams.status = params.status
+  if (params.status !== undefined) apiParams.status = STATUS_TO_API[params.status]
   if (params.keyword)              apiParams.keyword = params.keyword
   if (params.categoryId !== undefined) apiParams.categoryId = params.categoryId
 
-  return request.get<never, ArticleListResult>('/v1/article/my', { params: apiParams })
+  const res = await request.get<never, ArticleListResult>('/v1/article/my', { params: apiParams })
+  res.page.content = res.page.content.map(a => ({
+    ...a,
+    status: STATUS_FROM_API[a.status as unknown as number] ?? a.status,
+  }))
+  return res
 }
 
 export function updateArticlesStatus(ids: number[], status: ArticleStatus): Promise<void> {
-  return request.patch<never, void>('/v1/article/batch/status', { ids, status })
+  return request.patch<never, void>('/v1/article/batch/status', { ids, status: STATUS_TO_API[status] })
 }
 
 export function deleteArticles(ids: number[]): Promise<void> {
