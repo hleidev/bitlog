@@ -82,6 +82,11 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
         lambdaUpdate().eq(ArticleDO::getId, articleId).set(ArticleDO::getDeleted, DeleteStatusEnum.DELETED).update();
     }
 
+    /** 删除版本后递减版本计数 */
+    public void decrementVersionCount(Long articleId, int count) {
+        lambdaUpdate().eq(ArticleDO::getId, articleId).setSql("version_count = version_count - " + count).update();
+    }
+
     /** 批量软删除文章 */
     public void batchDelete(List<Long> articleIds) {
         lambdaUpdate().in(ArticleDO::getId, articleIds).set(ArticleDO::getDeleted, DeleteStatusEnum.DELETED).update();

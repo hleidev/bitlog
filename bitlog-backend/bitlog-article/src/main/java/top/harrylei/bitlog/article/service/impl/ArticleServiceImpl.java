@@ -45,6 +45,7 @@ import top.harrylei.bitlog.common.model.PageVO;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -175,6 +176,33 @@ public class ArticleServiceImpl implements ArticleService {
             articleDAO.unpublish(articleId);
             log.info("取消发布文章 articleId={}", articleId);
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteVersions(Long userId, Long articleId, List<Long> versionIds) {
+        ArticleDO article = getArticleOrThrow(articleId);
+        checkOwner(article, userId);
+
+        Set<Long> protectedIds = new HashSet<>();
+        if (article.getLatestVersionId() != null) {
+            protectedIds.add(article.getLatestVersionId());
+        }
+        if (article.getPublishedVersionId() != null) {
+            protectedIds.add(article.getPublishedVersionId());
+        }
+
+        List<Long> toDeleteIds =
+            articleVersionDAO.listByVersionIds(versionIds).stream().filter(v -> v.getArticleId().equals(articleId))
+                .filter(v -> !protectedIds.contains(v.getId())).map(ArticleVersionDO::getId).toList();
+
+        if (toDeleteIds.isEmpty()) {
+            return;
+        }
+
+        articleVersionDAO.removeByIds(toDeleteIds);
+        articleDAO.decrementVersionCount(articleId, toDeleteIds.size());
+        log.info("批量删除文章版本 articleId={} count={}", articleId, toDeleteIds.size());
     }
 
     @Override

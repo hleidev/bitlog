@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageQuery;
 import top.harrylei.bitlog.api.model.article.req.ArticleBatchDeleteRequest;
+import top.harrylei.bitlog.api.model.article.req.ArticleVersionBatchDeleteRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleBatchStatusUpdateRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
@@ -102,6 +103,15 @@ public class ArticleController {
     @GetMapping("/{id}/versions/{versionId}")
     public Result<ArticleVersionDetailVO> versionDetail(@PathVariable Long id, @PathVariable Long versionId) {
         return Result.success(articleService.getVersionDetail(ReqInfoContext.getContext().getUserId(), id, versionId));
+    }
+
+    @RequiresLogin
+    @Operation(summary = "批量删除文章版本（传单个 ID 即为单个操作）")
+    @DeleteMapping("/{id}/versions/batch")
+    public Result<Void> batchDeleteVersions(@PathVariable Long id,
+        @Valid @RequestBody ArticleVersionBatchDeleteRequest req) {
+        articleService.deleteVersions(ReqInfoContext.getContext().getUserId(), id, req.getVersionIds());
+        return Result.success();
     }
 
     @RequiresLogin
