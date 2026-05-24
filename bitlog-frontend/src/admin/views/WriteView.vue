@@ -979,6 +979,10 @@ function shortTime(d: string) {
 :deep(.md-editor-preview h2)        { border-bottom: 1px solid #f0f0f0; padding-bottom: 0.3em; }
 :deep(.md-editor-preview code:not(pre code)) { background: #f3f4f6; color: #e53e3e; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
 :deep(.md-editor-preview pre)       { border-radius: 8px; font-size: 14px; }
+:deep(.md-editor-preview ul),
+:deep(.md-editor-preview ol)        { padding-left: 24px; margin-bottom: 12px; }
+:deep(.md-editor-preview ul li)     { list-style: disc; }
+:deep(.md-editor-preview ol li)     { list-style: decimal; }
 
 /* ── Diff view ───────────────────────────────────────────────────────────────── */
 .diff-view {
