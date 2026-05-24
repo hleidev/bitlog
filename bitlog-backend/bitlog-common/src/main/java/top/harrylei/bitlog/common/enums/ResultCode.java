@@ -33,6 +33,9 @@ public enum ResultCode implements IResultCode {
     // ========== 文件 44xxx ==========
     FILE_TYPE_NOT_ALLOWED(44001, "不支持的文件类型"), FILE_SIZE_EXCEEDED(44002, "文件大小超出限制"),
 
+    // ========== AI 45xxx ==========
+    AI_NOT_CONFIGURED(45001, "AI 功能未配置"), AI_SERVICE_ERROR(45002, "AI 服务调用失败"),
+
     // ========== 系统 50xxx ==========
     INTERNAL_ERROR(50000, "系统内部错误"), SERVICE_UNAVAILABLE(50003, "服务暂不可用"), DATABASE_ERROR(50010, "数据库操作异常");
 

@@ -44,3 +44,17 @@ management:
 app:
   exception:
     print-stack-trace: false
+
+bitlog:
+  ai:
+    providers:
+      qwen:
+        base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+        api-key: ENC(REMOVED)
+        timeout: 30s
+    capabilities:
+      text:
+        provider: qwen
+        model: qwen3.6-flash
+        extra-params:
+          enable_thinking: false
