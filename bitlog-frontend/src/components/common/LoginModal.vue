@@ -315,6 +315,7 @@ watch(
 
 
 .auth-modal__title {
+  font-family: var(--font-serif);
   font-size: 20px;
   font-weight: 600;
   color: var(--color-text-primary);
