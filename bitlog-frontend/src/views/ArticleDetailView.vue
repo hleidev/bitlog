@@ -804,7 +804,6 @@ onUnmounted(() => {
   font-size: 16px;
   line-height: 1.85;
   color: var(--color-text-secondary);
-  counter-reset: section;
 }
 
 .prose h1 {
@@ -827,17 +826,6 @@ onUnmounted(() => {
   border-bottom: 1px solid var(--color-border);
 }
 
-.prose h2::before {
-  counter-increment: section;
-  content: counter(section, decimal-leading-zero);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--color-accent);
-  letter-spacing: 0.06em;
-  margin-right: 12px;
-  vertical-align: middle;
-}
 
 .prose h1:first-child,
 .prose h2:first-child { margin-top: 0; }
