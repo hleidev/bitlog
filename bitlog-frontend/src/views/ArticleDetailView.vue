@@ -97,11 +97,6 @@ const error = ref(false)
 
 const renderedContent = computed(() => (article.value ? md.render(article.value.content) : ''))
 
-const readingTime = computed(() => {
-  if (!article.value) return 1
-  return Math.max(1, Math.round(article.value.content.length / 300))
-})
-
 const toc = ref<{ id: string; level: number; text: string }[]>([])
 const activeSection = ref('')
 const scrollProgress = ref(0)
@@ -201,18 +196,18 @@ onUnmounted(() => {
     <!-- Article header (dark, no cover image) -->
     <div class="article-header">
       <div class="article-header__inner">
-        <div class="article-meta">
+        <div class="article-header__label">
           <RouterLink
             v-if="article.category"
             :to="{ path: '/articles', query: { categoryId: article.category.id } }"
             class="meta-category"
           >{{ article.category.name }}</RouterLink>
-          <span v-if="article.category" class="meta-sep">·</span>
-          <span class="meta-date">{{ formatDate(article.publishTime) }}</span>
-          <span class="meta-sep">·</span>
-          <span class="meta-reading-time">{{ readingTime }} min read</span>
+          <div class="header-rule"></div>
         </div>
         <h1 class="article-title">{{ article.title }}</h1>
+        <div class="article-header__foot">
+          <span class="meta-date">{{ formatDate(article.publishTime) }}</span>
+        </div>
       </div>
     </div>
 
@@ -386,29 +381,36 @@ onUnmounted(() => {
 .article-header {
   background: var(--color-hero-bg);
   padding-top: var(--spacing-header-height);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .article-header__inner {
   max-width: var(--spacing-container);
   margin: 0 auto;
-  padding: 56px var(--spacing-page-padding) 64px;
+  padding: 72px var(--spacing-page-padding) 80px;
 }
 
-.article-meta {
+.article-header__label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.header-rule {
+  flex: 1;
+  height: 1px;
+  background: rgba(245, 243, 239, 0.08);
 }
 
 .meta-category {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-accent);
   text-decoration: none;
+  flex-shrink: 0;
   background-image: linear-gradient(var(--color-accent), var(--color-accent));
   background-repeat: no-repeat;
   background-size: 0% 1px;
@@ -421,31 +423,25 @@ onUnmounted(() => {
   background-size: 100% 1px;
 }
 
-.meta-sep {
-  font-size: 10px;
-  color: rgba(245, 243, 239, 0.2);
+.article-title {
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 4.5vw, 54px);
+  font-weight: 400;
+  line-height: 1.28;
+  color: var(--color-text-on-dark);
+  max-width: 860px;
+  letter-spacing: 0.01em;
+}
+
+.article-header__foot {
+  margin-top: 28px;
 }
 
 .meta-date {
-  font-size: 13px;
-  color: rgba(245, 243, 239, 0.55);
-  letter-spacing: 0.03em;
-}
-
-.meta-reading-time {
-  font-size: 13px;
-  color: rgba(245, 243, 239, 0.4);
-  letter-spacing: 0.03em;
-}
-
-.article-title {
-  font-family: var(--font-serif);
-  font-size: clamp(24px, 4vw, 42px);
-  font-weight: 400;
-  line-height: 1.35;
-  color: var(--color-text-on-dark);
-  max-width: 800px;
-  letter-spacing: 0.01em;
+  font-size: 12px;
+  color: rgba(245, 243, 239, 0.3);
+  letter-spacing: 0.08em;
+  font-family: var(--font-sans);
 }
 
 /* ── Layout ── */
@@ -557,7 +553,6 @@ onUnmounted(() => {
 }
 
 .toc-card {
-  border: 1px solid var(--color-border-light);
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - var(--spacing-header-height) - 48px);
@@ -570,8 +565,7 @@ onUnmounted(() => {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-text-faint);
-  padding: 14px 16px 10px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 0 10px 12px;
   flex-shrink: 0;
 }
 
@@ -579,7 +573,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 8px 8px 12px;
+  padding: 0 0 12px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
@@ -595,8 +589,7 @@ onUnmounted(() => {
   line-height: 1.45;
   color: var(--color-text-muted);
   padding: 5px 10px;
-  border-radius: 2px;
-  transition: color var(--transition-base), background var(--transition-base);
+  transition: color var(--transition-base);
   border-left: 2px solid transparent;
   text-decoration: none;
   white-space: nowrap;
@@ -612,26 +605,24 @@ onUnmounted(() => {
 
 .toc-item:hover {
   color: var(--color-text-secondary);
-  background: var(--color-bg-hover);
 }
 
 .toc-item--active {
   color: var(--color-accent);
   border-left-color: var(--color-accent);
-  background: var(--color-bg-hover);
   font-weight: 500;
 }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .toc-sidebar { display: none; }
-  .article-title { font-size: 24px; }
+  .article-title { font-size: 26px; }
   .article-layout { padding-top: 40px; }
 }
 
 @media (max-width: 768px) {
   .article-header__inner {
-    padding: 32px 20px 48px;
+    padding: 48px 20px 56px;
   }
 }
 
@@ -813,6 +804,7 @@ onUnmounted(() => {
   font-size: 16px;
   line-height: 1.85;
   color: var(--color-text-secondary);
+  counter-reset: section;
 }
 
 .prose h1 {
@@ -835,6 +827,18 @@ onUnmounted(() => {
   border-bottom: 1px solid var(--color-border);
 }
 
+.prose h2::before {
+  counter-increment: section;
+  content: counter(section, decimal-leading-zero);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-accent);
+  letter-spacing: 0.06em;
+  margin-right: 12px;
+  vertical-align: middle;
+}
+
 .prose h1:first-child,
 .prose h2:first-child { margin-top: 0; }
 
@@ -850,6 +854,12 @@ onUnmounted(() => {
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 22px 0 10px;
+}
+
+.prose > p:first-of-type {
+  font-size: 18px;
+  color: var(--color-text-primary);
+  line-height: 1.8;
 }
 
 .prose p { margin-bottom: 18px; }
