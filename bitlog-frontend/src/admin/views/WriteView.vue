@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Fold, Expand, ArrowRight } from '@element-plus/icons-vue'
 import { MdEditor, NormalToolbar } from 'md-editor-v3'
@@ -219,11 +219,31 @@ function exitDiff() {
 const saveState = ref<'idle' | 'saving' | 'saved'>(isEdit.value ? 'saved' : 'idle')
 const saving    = ref(false)
 let saveTimer: ReturnType<typeof setTimeout> | undefined
-let autoSaveTimer: ReturnType<typeof setTimeout> | undefined
 
+const hasUnsaved = ref(false)
+
+function onBeforeUnload(e: BeforeUnloadEvent) {
+  if (hasUnsaved.value) e.preventDefault()
+}
+
+onMounted(() => window.addEventListener('beforeunload', onBeforeUnload))
 onUnmounted(() => {
   clearTimeout(saveTimer)
-  clearTimeout(autoSaveTimer)
+  window.removeEventListener('beforeunload', onBeforeUnload)
+})
+
+onBeforeRouteLeave(async () => {
+  if (!hasUnsaved.value) return true
+  try {
+    await ElMessageBox.confirm('你有未保存的修改，确认离开吗？', '离开页面', {
+      confirmButtonText: '离开',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    return true
+  } catch {
+    return false
+  }
 })
 
 const saveStateText = computed(() => {
@@ -263,15 +283,14 @@ async function performSave() {
   }
 }
 
-// ── Auto-save (debounced 2.5s) ─────────────────────────────────────────────────
+// ── Change tracking (no auto-save) ────────────────────────────────────────────
 let suppressAutoSave = false
 
 watch([title, content], () => {
   if (suppressAutoSave) return
   if (!title.value.trim()) return
+  hasUnsaved.value = true
   saveState.value = 'idle'
-  clearTimeout(autoSaveTimer)
-  autoSaveTimer = setTimeout(performSave, 2500)
 })
 
 // ── Load draft ─────────────────────────────────────────────────────────────────
@@ -324,8 +343,8 @@ async function handleSave() {
     ElMessage.warning('请先输入文章标题')
     return
   }
-  clearTimeout(autoSaveTimer)
   await performSave()
+  hasUnsaved.value = false
 }
 
 function openPreview() {
@@ -343,7 +362,6 @@ async function openPublishDialog() {
   }
   // Ensure the article is created/saved before opening publish dialog
   if (currentId.value === null || saveState.value !== 'saved') {
-    clearTimeout(autoSaveTimer)
     await performSave()
     if (!currentId.value) return
   }
@@ -366,6 +384,7 @@ async function handlePublishConfirm() {
     })
     publishedVersionId.value   = latestVersionId.value
     publishDialogVisible.value = false
+    hasUnsaved.value           = false
     ElMessage.success(wasPublished ? '发布信息已更新' : '文章已发布')
     loadVersions() // fire-and-forget: refresh sidebar version list in background
   } catch (err) {
