@@ -7,7 +7,7 @@ NProgress.configure({ showSpinner: false })
 
 const router = createRouter({
   history: createWebHistory(),
-  scrollBehavior: (_to, _from, savedPosition) => savedPosition ?? false,
+  scrollBehavior: (_to, _from, savedPosition) => savedPosition ?? { top: 0, left: 0 },
   routes: [
     {
       path: '/',
@@ -119,7 +119,6 @@ router.beforeEach(async (to) => {
 
 router.afterEach(() => {
   NProgress.done()
-  window.scrollTo(0, 0)
 })
 
 export default router
