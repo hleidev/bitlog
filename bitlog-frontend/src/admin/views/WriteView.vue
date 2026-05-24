@@ -2,7 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Fold, Expand, ArrowRight } from '@element-plus/icons-vue'
+import { ArrowLeft, Fold, Expand } from '@element-plus/icons-vue'
 import { MdEditor, NormalToolbar } from 'md-editor-v3'
 import type { ToolbarNames, ExposeParam } from 'md-editor-v3'
 import { Image as ImageIcon } from 'lucide-vue-next'
@@ -17,6 +17,7 @@ import {
   getArticleVersionDetail,
   rollbackVersion,
   generateArticleSummary,
+  deleteArticleVersions,
   type ArticleVersionVO,
   type ArticleVersionDetailVO,
 } from '@/api/admin/article'
@@ -179,9 +180,8 @@ async function handleTagsChange(vals: (number | string)[]) {
 }
 
 // ── Sidebar & versions ─────────────────────────────────────────────────────────
-const sidebarOpen      = ref(false)
-const versionsExpanded = ref(false)
-const versions         = ref<ArticleVersionVO[]>([])
+const sidebarOpen = ref(false)
+const versions    = ref<ArticleVersionVO[]>([])
 
 async function loadVersions() {
   if (!currentId.value) return
@@ -192,6 +192,61 @@ async function loadVersions() {
     if (latest) latestVersionId.value = latest.id
   } catch {
     // non-critical
+  }
+}
+
+// ── Version management ─────────────────────────────────────────────────────────
+const versionManageMode  = ref(false)
+const selectedVersionIds = ref<number[]>([])
+const deletingVersions   = ref(false)
+
+const deletableVersionIds = computed(() =>
+  versions.value
+    .filter(v => !v.latest && v.id !== publishedVersionId.value)
+    .map(v => v.id)
+)
+
+const allDeletableSelected = computed(() =>
+  deletableVersionIds.value.length > 0 &&
+  deletableVersionIds.value.every(id => selectedVersionIds.value.includes(id))
+)
+
+function toggleVersionSelect(id: number) {
+  const idx = selectedVersionIds.value.indexOf(id)
+  if (idx >= 0) selectedVersionIds.value.splice(idx, 1)
+  else          selectedVersionIds.value.push(id)
+}
+
+function toggleSelectAll() {
+  if (allDeletableSelected.value) selectedVersionIds.value = []
+  else selectedVersionIds.value = [...deletableVersionIds.value]
+}
+
+function exitVersionManage() {
+  versionManageMode.value  = false
+  selectedVersionIds.value = []
+}
+
+async function handleDeleteVersions() {
+  if (!selectedVersionIds.value.length || !currentId.value) return
+  const count = selectedVersionIds.value.length
+  try {
+    await ElMessageBox.confirm(
+      `确定删除选中的 ${count} 个版本？此操作不可恢复。`,
+      '删除版本',
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch { return }
+  deletingVersions.value = true
+  try {
+    await deleteArticleVersions(currentId.value, [...selectedVersionIds.value])
+    await loadVersions()
+    exitVersionManage()
+    ElMessage.success(`已删除 ${count} 个版本`)
+  } catch (err) {
+    handleError(err, '删除版本失败')
+  } finally {
+    deletingVersions.value = false
   }
 }
 
@@ -605,44 +660,84 @@ function shortTime(d: string) {
 
           <!-- Version history -->
           <div class="sidebar-section">
-            <button class="version-header" @click="versionsExpanded = !versionsExpanded">
+            <div class="version-header-row">
               <span class="section-label">历史版本</span>
-              <el-icon
-                class="chevron"
-                :style="{ transform: versionsExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }"
+              <button
+                class="version-manage-toggle"
+                :class="{ 'version-manage-toggle--cancel': versionManageMode }"
+                @click="versionManageMode ? exitVersionManage() : (versionManageMode = true)"
               >
-                <ArrowRight />
-              </el-icon>
-            </button>
+                {{ versionManageMode ? '取消' : '管理' }}
+              </button>
+            </div>
 
-            <Transition name="version-list">
-              <div v-if="versionsExpanded" class="version-list">
+            <div class="version-list">
+
+                <div v-if="versionManageMode" class="version-select-all">
+                  <el-checkbox
+                    :model-value="allDeletableSelected"
+                    :indeterminate="selectedVersionIds.length > 0 && !allDeletableSelected"
+                    :disabled="deletableVersionIds.length === 0"
+                    @change="toggleSelectAll"
+                  >全选可删除</el-checkbox>
+                </div>
+
                 <div
                   v-for="v in versions"
                   :key="v.id"
                   class="version-item"
                   :class="{
-                    'version-item--current': v.latest,
-                    'version-item--active':  diffMode && diffVersion?.id === v.id,
+                    'version-item--current':     v.latest,
+                    'version-item--active':      !versionManageMode && diffMode && diffVersion?.id === v.id,
+                    'version-item--manage':      versionManageMode,
+                    'version-item--undeletable': versionManageMode && (v.latest || v.id === publishedVersionId),
                   }"
                 >
+                  <el-checkbox
+                    v-if="versionManageMode"
+                    class="version-checkbox"
+                    :model-value="selectedVersionIds.includes(v.id)"
+                    :disabled="v.latest || v.id === publishedVersionId"
+                    @change="() => toggleVersionSelect(v.id)"
+                  />
+
                   <div class="version-info">
-                    <span class="version-label">版本 {{ v.version }}{{ v.latest ? '（当前）' : '' }}</span>
+                    <div class="version-label-row">
+                      <span class="version-label">版本 {{ v.version }}</span>
+                      <span v-if="v.latest" class="version-tag version-tag--current">当前</span>
+                      <span v-else-if="v.id === publishedVersionId" class="version-tag version-tag--published">已发布</span>
+                    </div>
                     <span class="version-time">{{ shortTime(v.createTime) }}</span>
                   </div>
-                  <span v-if="v.latest" class="current-dot" />
+
+                  <template v-if="!versionManageMode">
+                    <span v-if="v.latest" class="current-dot" />
+                    <button
+                      v-else
+                      class="compare-btn"
+                      :class="{ 'compare-btn--active': diffMode && diffVersion?.id === v.id }"
+                      :disabled="diffLoading"
+                      @click="enterDiff(v)"
+                    >
+                      {{ diffMode && diffVersion?.id === v.id ? '对比中' : '对比' }}
+                    </button>
+                  </template>
+                </div>
+
+                <div v-if="versionManageMode" class="version-manage-footer">
+                  <span class="version-manage-count">
+                    已选 {{ selectedVersionIds.length }} / {{ deletableVersionIds.length }}
+                  </span>
                   <button
-                    v-else
-                    class="compare-btn"
-                    :class="{ 'compare-btn--active': diffMode && diffVersion?.id === v.id }"
-                    :disabled="diffLoading"
-                    @click="enterDiff(v)"
+                    class="version-delete-btn"
+                    :disabled="selectedVersionIds.length === 0 || deletingVersions"
+                    @click="handleDeleteVersions"
                   >
-                    {{ diffMode && diffVersion?.id === v.id ? '对比中' : '对比' }}
+                    {{ deletingVersions ? '删除中…' : '删除' }}
                   </button>
                 </div>
-              </div>
-            </Transition>
+
+            </div>
           </div>
 
         </div>
@@ -990,20 +1085,23 @@ function shortTime(d: string) {
   text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;
 }
 
-.version-header {
+.version-header-row {
   display: flex; align-items: center; justify-content: space-between;
-  width: 100%; background: transparent; border: none; cursor: pointer; padding: 0;
 }
-.version-header .section-label { margin-bottom: 0; }
+.version-header-row .section-label { margin-bottom: 0; }
 
-.chevron { color: #9ca3af; transition: transform 0.2s ease; }
+.version-manage-toggle {
+  flex-shrink: 0;
+  font-size: 11px; font-weight: 500; color: #6366f1;
+  background: transparent; border: none; cursor: pointer;
+  padding: 2px 4px; border-radius: 3px;
+  transition: color 0.15s;
+}
+.version-manage-toggle:hover { color: #4338ca; }
+.version-manage-toggle--cancel { color: #9ca3af; }
+.version-manage-toggle--cancel:hover { color: #6b7280; }
 
 .version-list { margin-top: 12px; display: flex; flex-direction: column; }
-
-.version-list-enter-active,
-.version-list-leave-active { transition: opacity 0.2s, transform 0.2s; }
-.version-list-enter-from,
-.version-list-leave-to     { opacity: 0; transform: translateY(-6px); }
 
 .version-item {
   display: flex; align-items: center; justify-content: space-between;
@@ -1014,7 +1112,7 @@ function shortTime(d: string) {
 .version-item:last-child { border-bottom: none; padding-bottom: 0; }
 .version-item--active    { background: #f5f3ff; margin: 0 -4px; padding-left: 4px; padding-right: 4px; }
 
-.version-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.version-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .version-label { font-size: 13px; font-weight: 500; color: #374151; }
 .version-time  { font-size: 11px; color: #9ca3af; }
 
@@ -1030,6 +1128,45 @@ function shortTime(d: string) {
 .compare-btn--active     { background: #4338ca; border-color: #4338ca; color: #fff; }
 .compare-btn--active:hover { background: #3730a3; border-color: #3730a3; }
 .compare-btn:disabled    { opacity: 0.5; cursor: not-allowed; }
+
+.version-select-all {
+  padding: 8px 0 8px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 2px;
+}
+.version-select-all :deep(.el-checkbox__label) { font-size: 12px; color: #6b7280; }
+
+.version-item--manage      { gap: 10px; }
+.version-item--undeletable { opacity: 0.45; }
+
+.version-checkbox { flex-shrink: 0; }
+
+.version-label-row { display: flex; align-items: center; gap: 5px; }
+
+.version-tag {
+  font-size: 10px; font-weight: 500; line-height: 1;
+  padding: 2px 5px; border-radius: 3px;
+}
+.version-tag--current   { color: #166534; background: #dcfce7; }
+.version-tag--published { color: #1e40af; background: #dbeafe; }
+
+.version-manage-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0 2px;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 6px;
+}
+.version-manage-count { font-size: 12px; color: #9ca3af; }
+
+.version-delete-btn {
+  font-size: 12px; font-weight: 500;
+  color: #fff; background: #ef4444;
+  border: none; border-radius: 4px;
+  padding: 4px 14px; cursor: pointer;
+  transition: background 0.15s;
+}
+.version-delete-btn:hover:not(:disabled) { background: #dc2626; }
+.version-delete-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ── Publish dialog ───────────────────────────────────────────────────────────── */
 .publish-form { display: flex; flex-direction: column; gap: 20px; }

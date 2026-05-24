@@ -169,3 +169,7 @@ export function deleteArticles(ids: number[]): Promise<void> {
 export function generateArticleSummary(id: number): Promise<string> {
   return request.post<never, string>(`/v1/article/${id}/ai/summary`)
 }
+
+export function deleteArticleVersions(articleId: number, versionIds: number[]): Promise<void> {
+  return request.delete<never, void>(`/v1/article/${articleId}/versions/batch`, { data: { versionIds } })
+}
