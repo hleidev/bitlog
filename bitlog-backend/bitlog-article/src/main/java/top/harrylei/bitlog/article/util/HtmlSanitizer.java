@@ -36,6 +36,8 @@ public class HtmlSanitizer {
         clean.outputSettings().prettyPrint(false);
         // 防止 tab-napping：target="_blank" 必须携带 rel="noopener noreferrer"
         clean.select("a[target=_blank]").forEach(a -> a.attr("rel", "noopener noreferrer"));
-        return clean.body().html();
+        // Jsoup escapes '>' in text nodes, but content is Markdown where '>' is blockquote syntax.
+        // A standalone '>' cannot form a valid HTML tag, so unescaping it is safe.
+        return clean.body().html().replace("&gt;", ">");
     }
 }
