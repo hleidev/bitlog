@@ -23,6 +23,11 @@ const router = createRouter({
       component: () => import('@/admin/views/AdminLoginView.vue'),
     },
     {
+      path: '/admin/preview/:id(\\d+)',
+      component: () => import('@/admin/views/PreviewView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
       path: '/admin',
       component: () => import('@/admin/layouts/AdminLayout.vue'),
       meta: { requiresAuth: true },
