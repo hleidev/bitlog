@@ -430,7 +430,11 @@ async function handleSave() {
 }
 
 function openPreview() {
-  window.open(`/admin/preview/${currentId.value}`, '_blank')
+  if (isPublished.value) {
+    window.open(`/article/${currentId.value}`, '_blank')
+  } else {
+    window.open(`/admin/preview/${currentId.value}`, '_blank')
+  }
 }
 
 async function openPublishDialog() {

@@ -141,7 +141,11 @@ async function handleCommand(cmd: string, row: ArticleVO) {
   if (cmd === 'edit') {
     router.push(`/admin/write/${row.id}`)
   } else if (cmd === 'preview') {
-    window.open(`/admin/preview/${row.id}`, '_blank')
+    if (row.status === 'PUBLISHED') {
+      window.open(`/article/${row.id}`, '_blank')
+    } else {
+      window.open(`/admin/preview/${row.id}`, '_blank')
+    }
   } else if (cmd === 'togglePublish') {
     const next: ArticleStatus = row.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
     const label = next === 'PUBLISHED' ? '发布' : '取消发布'
