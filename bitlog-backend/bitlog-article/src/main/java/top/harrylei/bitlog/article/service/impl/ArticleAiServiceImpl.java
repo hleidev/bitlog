@@ -24,17 +24,17 @@ import top.harrylei.bitlog.common.enums.ResultCode;
 public class ArticleAiServiceImpl implements ArticleAiService {
 
     private static final int CONTENT_MAX_CHARS = 3000;
-    private static final int SUMMARY_MAX_CHARS = 512;
+    private static final int SUMMARY_MAX_CHARS = 100;
 
     private static final String SYSTEM_PROMPT = "你是一个博客写作助手，擅长根据文章内容生成精炼的摘要。";
 
     private static final String USER_PROMPT_TEMPLATE = """
         请根据以下文章内容生成一段摘要。
         要求：
-        - 不超过 200 字
+        - 严格控制在 80 至 100 个汉字之间
         - 纯文本，不包含任何 Markdown 符号
         - 使用与文章相同的语言（中文文章用中文，英文文章用英文）
-        - 直接输出摘要内容，不要有任何前缀或说明文字
+        - 只输出摘要内容，不要有任何前缀或说明文字
 
         文章标题：%s
         文章内容：
