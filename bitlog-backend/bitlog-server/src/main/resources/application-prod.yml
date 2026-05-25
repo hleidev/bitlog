@@ -53,8 +53,10 @@ bitlog:
         api-key: ENC(REMOVED)
         timeout: 30s
     capabilities:
-      text:
+      text-json:
         provider: qwen
         model: qwen3.6-flash
         extra-params:
           enable_thinking: false
+          response_format:
+            type: json_object

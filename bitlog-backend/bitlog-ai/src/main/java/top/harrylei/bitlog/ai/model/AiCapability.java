@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum AiCapability {
 
-    TEXT("text"), IMAGE("image"), CODE("code");
+    TEXT_JSON("text-json"), IMAGE("image"), CODE("code");
 
     /** 与 YAML 配置 key 保持一致 */
     private final String key;

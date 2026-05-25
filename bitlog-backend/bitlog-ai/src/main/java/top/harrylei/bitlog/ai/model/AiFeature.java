@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum AiFeature {
 
-    ARTICLE_SUMMARY(AiCapability.TEXT);
+    ARTICLE_SUGGESTIONS(AiCapability.TEXT_JSON);
 
     private final AiCapability capability;
 }
