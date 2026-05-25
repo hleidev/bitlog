@@ -16,7 +16,7 @@ import {
   getArticleVersions,
   getArticleVersionDetail,
   rollbackVersion,
-  generateArticleSummary,
+  generateAiMetadata,
   deleteArticleVersions,
   type ArticleVersionVO,
   type ArticleVersionDetailVO,
@@ -63,30 +63,54 @@ const publishForm = ref({
   tagIds:     [] as number[],
 })
 
-// ── AI summary generation ──────────────────────────────────────────────────────
-const aiGenerating       = ref(false)
-const aiGeneratedSummary = ref<string | null>(null)
+// ── AI metadata recommendation ────────────────────────────────────────────────
+const aiGenerating    = ref(false)
+const aiSummaryResult = ref<string | null>(null)
+// null = not shown, false = shown but no match, object = match found
+const aiCatResult     = ref<{ id: number; name: string } | false | null>(null)
+const aiTagsResult    = ref<{ existing: Array<{ id: number; name: string }>; suggested: string[] } | null>(null)
 
-async function generateAiSummary() {
+async function runAiRecommend() {
   if (!currentId.value) return
-  aiGenerating.value       = true
-  aiGeneratedSummary.value = null
+  aiGenerating.value    = true
+  aiSummaryResult.value = null
+  aiCatResult.value     = null
+  aiTagsResult.value    = null
   try {
-    aiGeneratedSummary.value = await generateArticleSummary(currentId.value)
+    const data            = await generateAiMetadata(currentId.value)
+    aiSummaryResult.value = data.summary
+    aiCatResult.value     = data.category ?? false
+    aiTagsResult.value    = { existing: data.tags, suggested: data.suggestedTags }
   } catch (err) {
-    handleError(err, 'AI 生成失败，请稍后重试')
+    handleError(err, 'AI 推荐失败，请稍后重试')
   } finally {
     aiGenerating.value = false
   }
 }
 
 function acceptAiSummary() {
-  publishForm.value.summary = aiGeneratedSummary.value!
-  aiGeneratedSummary.value  = null
+  if (!aiSummaryResult.value) return
+  publishForm.value.summary = aiSummaryResult.value
+  aiSummaryResult.value     = null
 }
 
-function dismissAiSummary() {
-  aiGeneratedSummary.value = null
+function applyAiCategory() {
+  if (!aiCatResult.value) return
+  categorySelectVal.value = aiCatResult.value.id
+  handleCategoryChange(aiCatResult.value.id)
+  aiCatResult.value = null
+}
+
+function applyAiExistingTag(tag: { id: number; name: string }) {
+  if (tagSelectVals.value.includes(tag.id)) return
+  tagSelectVals.value      = [...tagSelectVals.value, tag.id]
+  publishForm.value.tagIds = [...publishForm.value.tagIds, tag.id]
+  if (!tagOptions.value.find(t => t.id === tag.id))
+    tagOptions.value = [...tagOptions.value, { id: tag.id, name: tag.name, articleCount: 0, createTime: '', updateTime: '' }]
+}
+
+function applyAiSuggestedTag(name: string) {
+  if (!tagSelectVals.value.includes(name)) tagSelectVals.value = [...tagSelectVals.value, name]
 }
 
 // ── Content image upload ──────────────────────────────────────────────────────
@@ -451,8 +475,10 @@ async function openPublishDialog() {
     await performSave()
     if (!currentId.value) return
   }
-  aiGeneratedSummary.value = null
-  aiGenerating.value       = false
+  aiSummaryResult.value = null
+  aiCatResult.value     = null
+  aiTagsResult.value    = null
+  aiGenerating.value    = false
   publishDialogVisible.value = true
 }
 
@@ -757,20 +783,21 @@ function shortTime(d: string) {
     >
       <div class="publish-form">
 
+        <div class="pf-ai-bar">
+          <button
+            class="ai-gen-btn ai-gen-btn--full"
+            :class="{ 'ai-gen-btn--loading': aiGenerating }"
+            :disabled="aiGenerating"
+            type="button"
+            @click="runAiRecommend"
+          >
+            <span class="ai-gen-btn__icon">✦</span>
+            <span>{{ aiGenerating ? 'AI 分析中…' : 'AI 一键推荐' }}</span>
+          </button>
+        </div>
+
         <div class="pf-item">
-          <div class="pf-label">
-            摘要 <span class="pf-optional">可选</span>
-            <button
-              class="ai-gen-btn"
-              :class="{ 'ai-gen-btn--loading': aiGenerating }"
-              :disabled="aiGenerating"
-              type="button"
-              @click="generateAiSummary"
-            >
-              <span class="ai-gen-btn__icon">✦</span>
-              <span>{{ aiGenerating ? '生成中…' : 'AI 生成' }}</span>
-            </button>
-          </div>
+          <div class="pf-label">摘要 <span class="pf-optional">可选</span></div>
           <el-input
             v-model="publishForm.summary"
             type="textarea"
@@ -781,28 +808,18 @@ function shortTime(d: string) {
             resize="none"
           />
           <transition name="ai-preview">
-            <div v-if="aiGenerating || aiGeneratedSummary" class="ai-preview">
-              <div v-if="aiGenerating" class="ai-preview__loading">
-                <span class="ai-preview__dot" /><span class="ai-preview__dot" /><span class="ai-preview__dot" />
-                <span class="ai-preview__hint">AI 正在生成摘要…</span>
+            <div v-if="aiSummaryResult" class="ai-preview">
+              <p class="ai-preview__text">{{ aiSummaryResult }}</p>
+              <div class="ai-preview__actions">
+                <button type="button" class="ai-action ai-action--dismiss" @click="aiSummaryResult = null">丢弃</button>
+                <button type="button" class="ai-action ai-action--primary" @click="acceptAiSummary">写入摘要</button>
               </div>
-              <template v-else-if="aiGeneratedSummary">
-                <p class="ai-preview__text">{{ aiGeneratedSummary }}</p>
-                <div class="ai-preview__actions">
-                  <button type="button" class="ai-action ai-action--secondary" @click="generateAiSummary">重新生成</button>
-                  <button type="button" class="ai-action ai-action--dismiss" @click="dismissAiSummary">丢弃</button>
-                  <button type="button" class="ai-action ai-action--primary" @click="acceptAiSummary">写入摘要</button>
-                </div>
-              </template>
             </div>
           </transition>
         </div>
 
         <div class="pf-item">
-          <div class="pf-label">
-            分类
-            <span class="pf-required">必填</span>
-          </div>
+          <div class="pf-label">分类 <span class="pf-required">必填</span></div>
           <el-select
             v-model="categorySelectVal"
             filterable
@@ -812,13 +829,27 @@ function shortTime(d: string) {
             placeholder="搜索或输入分类名称，按 Enter 创建"
             @change="handleCategoryChange"
           >
-            <el-option
-              v-for="cat in categoryOptions"
-              :key="cat.id"
-              :label="cat.name"
-              :value="cat.id"
-            />
+            <el-option v-for="cat in categoryOptions" :key="cat.id" :label="cat.name" :value="cat.id" />
           </el-select>
+          <transition name="ai-preview">
+            <div v-if="aiCatResult !== null" class="ai-preview">
+              <template v-if="aiCatResult">
+                <div class="ai-preview__meta">
+                  <span class="ai-meta-chip ai-meta-chip--existing">{{ aiCatResult.name }}</span>
+                </div>
+                <div class="ai-preview__actions">
+                  <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">丢弃</button>
+                  <button type="button" class="ai-action ai-action--primary" @click="applyAiCategory">应用</button>
+                </div>
+              </template>
+              <template v-else>
+                <p class="ai-preview__no-match">现有分类均不适配，请手动选择</p>
+                <div class="ai-preview__actions">
+                  <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">知道了</button>
+                </div>
+              </template>
+            </div>
+          </transition>
         </div>
 
         <div class="pf-item">
@@ -834,6 +865,35 @@ function shortTime(d: string) {
           >
             <el-option v-for="t in tagOptions" :key="t.id" :label="t.name" :value="t.id" />
           </el-select>
+          <transition name="ai-preview">
+            <div v-if="aiTagsResult" class="ai-preview">
+              <div class="ai-preview__meta">
+                <button
+                  v-for="tag in aiTagsResult.existing"
+                  :key="tag.id"
+                  type="button"
+                  :class="['ai-meta-chip ai-meta-chip--existing ai-meta-chip--action', { 'ai-meta-chip--applied': tagSelectVals.includes(tag.id) }]"
+                  :disabled="tagSelectVals.includes(tag.id)"
+                  @click="applyAiExistingTag(tag)"
+                >
+                  {{ tag.name }}<span class="ai-meta-chip__plus">+</span>
+                </button>
+                <button
+                  v-for="name in aiTagsResult.suggested"
+                  :key="name"
+                  type="button"
+                  :class="['ai-meta-chip ai-meta-chip--new ai-meta-chip--action', { 'ai-meta-chip--applied': tagSelectVals.includes(name) }]"
+                  :disabled="tagSelectVals.includes(name)"
+                  @click="applyAiSuggestedTag(name)"
+                >
+                  {{ name }}<span class="ai-meta-chip__badge">新</span><span class="ai-meta-chip__plus">+</span>
+                </button>
+              </div>
+              <div class="ai-preview__actions">
+                <button type="button" class="ai-action ai-action--dismiss" @click="aiTagsResult = null">丢弃</button>
+              </div>
+            </div>
+          </transition>
         </div>
 
       </div>
@@ -1178,6 +1238,7 @@ function shortTime(d: string) {
 
 /* ── Publish dialog ───────────────────────────────────────────────────────────── */
 .publish-form { display: flex; flex-direction: column; gap: 20px; }
+.pf-ai-bar    { display: flex; justify-content: flex-end; margin-bottom: -4px; }
 .pf-item      { display: flex; flex-direction: column; gap: 8px; }
 .pf-label     { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151; }
 .pf-optional  { font-size: 11px; font-weight: 400; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 3px; }
@@ -1198,6 +1259,7 @@ function shortTime(d: string) {
   transition: background 0.15s, opacity 0.15s;
   line-height: 20px;
 }
+.ai-gen-btn--full { padding: 4px 14px; font-size: 13px; }
 .ai-gen-btn:hover:not(:disabled) { background: #ede9fe; }
 .ai-gen-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .ai-gen-btn__icon { font-size: 11px; }
@@ -1233,6 +1295,11 @@ function shortTime(d: string) {
   40%            { transform: scale(1);   opacity: 1; }
 }
 .ai-preview__hint { margin-left: 4px; }
+.ai-preview__no-match {
+  margin: 0;
+  padding: 12px 16px 8px;
+  font-size: 12px; color: #9ca3af; font-style: italic;
+}
 .ai-preview__text {
   margin: 0;
   padding: 14px 16px 10px;
@@ -1264,6 +1331,46 @@ function shortTime(d: string) {
   color: #fff; background: #7c3aed; border-color: #7c3aed;
 }
 .ai-action--primary:hover { background: #6d28d9; }
+
+/* ── AI meta chips (category / tag suggestions) ───────────────────────────────*/
+.ai-preview__meta {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 12px 16px 10px;
+}
+.ai-meta-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px;
+  font-size: 12px; font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  line-height: 20px;
+}
+.ai-meta-chip--existing {
+  color: #7c3aed; background: #ede9fe; border-color: #ddd6fe;
+}
+.ai-meta-chip--new {
+  color: #6b7280; background: #f9fafb; border-color: #d1d5db; border-style: dashed;
+}
+.ai-meta-chip--action {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ai-meta-chip--action.ai-meta-chip--existing:hover { background: #ddd6fe; }
+.ai-meta-chip--action.ai-meta-chip--new:hover { background: #f3f4f6; }
+.ai-meta-chip__badge {
+  font-size: 10px; font-weight: 600;
+  color: #9ca3af; background: #e5e7eb;
+  padding: 0 4px; border-radius: 3px;
+}
+.ai-meta-chip__plus {
+  font-size: 14px; font-weight: 400; line-height: 1;
+  color: #a78bfa; margin-left: 1px;
+}
+.ai-meta-chip--new .ai-meta-chip__plus { color: #9ca3af; }
+.ai-meta-chip--applied {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* ── Transition ────────────────────────────────────────────────────────────────*/
 .ai-preview-enter-active, .ai-preview-leave-active {

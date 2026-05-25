@@ -166,8 +166,15 @@ export function deleteArticles(ids: number[]): Promise<void> {
   return request.delete<never, void>('/v1/article/batch', { data: { ids } })
 }
 
-export function generateArticleSummary(id: number): Promise<string> {
-  return request.post<never, string>(`/v1/article/${id}/ai/summary`)
+export interface AiMetadataVO {
+  summary:       string
+  category:      { id: number; name: string } | null
+  tags:          Array<{ id: number; name: string }>
+  suggestedTags: string[]
+}
+
+export function generateAiMetadata(id: number): Promise<AiMetadataVO> {
+  return request.post<never, AiMetadataVO>(`/v1/article/${id}/ai/metadata`)
 }
 
 export function deleteArticleVersions(articleId: number, versionIds: number[]): Promise<void> {
