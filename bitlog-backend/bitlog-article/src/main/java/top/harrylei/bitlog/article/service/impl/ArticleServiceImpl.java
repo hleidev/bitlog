@@ -23,6 +23,7 @@ import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import org.springframework.lang.NonNull;
+import top.harrylei.bitlog.article.component.ArticleReadDedupe;
 import top.harrylei.bitlog.article.converter.ArticleConverter;
 import top.harrylei.bitlog.article.repository.dao.ArticleDAO;
 import top.harrylei.bitlog.article.repository.dao.ArticleStatisticsDAO;
@@ -37,6 +38,7 @@ import top.harrylei.bitlog.article.repository.entity.ArticleVersionDO;
 import top.harrylei.bitlog.article.repository.entity.CategoryDO;
 import top.harrylei.bitlog.article.repository.entity.TagDO;
 import top.harrylei.bitlog.article.service.ArticleService;
+import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.PageVO;
@@ -70,6 +72,7 @@ public class ArticleServiceImpl implements ArticleService {
     private final CategoryDAO categoryDAO;
     private final TagDAO tagDAO;
     private final ArticleConverter articleConverter;
+    private final ArticleReadDedupe articleReadDedupe;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -245,7 +248,10 @@ public class ArticleServiceImpl implements ArticleService {
         if (version == null) {
             ResultCode.ARTICLE_VERSION_NOT_EXISTS.throwException();
         }
-        articleStatisticsDAO.incrementReadCount(articleId);
+        String clientIp = ReqInfoContext.getContext().getClientIp();
+        if (articleReadDedupe.shouldCount(articleId, clientIp)) {
+            articleStatisticsDAO.incrementReadCount(articleId);
+        }
         return buildPublicDetailVO(article, version);
     }
 

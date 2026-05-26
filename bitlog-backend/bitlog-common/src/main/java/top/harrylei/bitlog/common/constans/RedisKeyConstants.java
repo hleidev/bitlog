@@ -27,6 +27,7 @@ public class RedisKeyConstants {
     public static final String HEALTH_CHECK = GLOBAL_PREFIX + "health:check";
     public static final String LOGIN_FAIL_IP = GLOBAL_PREFIX + "login:fail:ip:";
     public static final String LOGIN_FAIL_USER = GLOBAL_PREFIX + "login:fail:user:";
+    public static final String ARTICLE_READ = GLOBAL_PREFIX + "article:read:";
 
     // ===== Key 构建方法 =====
 
@@ -52,5 +53,9 @@ public class RedisKeyConstants {
 
     public static String getLoginFailUserKey(String username) {
         return LOGIN_FAIL_USER + username;
+    }
+
+    public static String getArticleReadKey(Long articleId, String ip) {
+        return ARTICLE_READ + articleId + ":" + ip;
     }
 }
