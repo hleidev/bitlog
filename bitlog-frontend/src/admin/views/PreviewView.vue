@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { getArticleDraft } from '@/api/admin/article'
 import type { ArticleDetailVO } from '@/api/admin/article'
 import MarkdownIt from 'markdown-it'
+import DOMPurify from 'dompurify'
 import '@/assets/styles/prose.css'
 
 const ICON_COPY =
@@ -83,7 +84,7 @@ const onScroll = () => {
 }
 
 // ── Copy handler ──────────────────────────────────────────────────────────────
-const renderedContent = computed(() => article.value ? md.render(article.value.content) : '')
+const renderedContent = computed(() => article.value ? DOMPurify.sanitize(md.render(article.value.content)) : '')
 
 const handleCopyClick = async (e: MouseEvent) => {
   const target = e.target as Element

@@ -4,6 +4,7 @@ import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { getArticleDetail, type ArticleDetailVO } from '@/api/article'
 import { formatDate } from '@/utils/format'
 import MarkdownIt from 'markdown-it'
+import DOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import mermaid from 'mermaid'
 
@@ -115,7 +116,7 @@ const article = ref<ArticleDetailVO | null>(null)
 const loading = ref(true)
 const error = ref(false)
 
-const renderedContent = computed(() => (article.value ? md.render(article.value.content) : ''))
+const renderedContent = computed(() => (article.value ? DOMPurify.sanitize(md.render(article.value.content)) : ''))
 
 const toc = ref<{ id: string; level: number; text: string }[]>([])
 const activeSection = ref('')
