@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type TableInstance } from 'element-plus'
-import { Search, RefreshLeft, Plus, MoreFilled } from '@element-plus/icons-vue'
+import { Search, RefreshLeft, Plus } from '@element-plus/icons-vue'
 import {
   getMyArticles,
   updateArticlesStatus,
@@ -366,26 +366,16 @@ function formatViews(n: number) {
             </template>
           </el-table-column>
 
-          <el-table-column label="" width="96" align="right" fixed="right">
+          <el-table-column label="" width="168" align="right" fixed="right">
             <template #default="{ row }">
               <div class="row-actions">
-                <button class="edit-btn" @click="handleCommand('edit', row)">编辑</button>
-                <el-dropdown trigger="hover" @command="(cmd: string) => handleCommand(cmd, row)">
-                  <button class="more-btn">
-                    <el-icon><MoreFilled /></el-icon>
-                  </button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="preview">预览</el-dropdown-item>
-                      <el-dropdown-item v-if="row.status === 'PUBLISHED'" command="togglePublish">
-                        取消发布
-                      </el-dropdown-item>
-                      <el-dropdown-item command="delete" divided style="color: var(--el-color-danger)">
-                        删除
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
+                <button class="action-btn" @click="handleCommand('preview', row)">预览</button>
+                <button
+                  v-if="row.status === 'PUBLISHED'"
+                  class="action-btn"
+                  @click="handleCommand('togglePublish', row)"
+                >撤回</button>
+                <button class="action-btn action-btn--danger" @click="handleCommand('delete', row)">删除</button>
               </div>
             </template>
           </el-table-column>
@@ -671,11 +661,10 @@ function formatViews(n: number) {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 2px;
-  padding-right: 4px;
+  gap: 8px;
 }
 
-.edit-btn {
+.action-btn {
   font-size: 13px;
   font-weight: 500;
   color: #4338ca;
@@ -684,43 +673,19 @@ function formatViews(n: number) {
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 5px;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s;
   white-space: nowrap;
 }
 
-.edit-btn:hover {
+.action-btn:hover {
   background: #ede9fe;
 }
 
-:deep(.el-table tr:hover) .edit-btn {
-  opacity: 1;
+.action-btn--danger {
+  color: var(--el-color-danger);
 }
 
-.more-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: #9ca3af;
-  cursor: pointer;
-  outline: none;
-  transition: background 0.15s, color 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.more-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.more-btn:focus,
-.more-btn:active {
-  outline: none;
+.action-btn--danger:hover {
+  background: #fee2e2;
 }
 
 /* Draft row: amber left accent */
