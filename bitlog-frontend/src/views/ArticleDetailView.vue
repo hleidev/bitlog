@@ -4,6 +4,8 @@ import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { getArticleDetail, type ArticleDetailVO } from '@/api/article'
 import { formatDate } from '@/utils/format'
 import MarkdownIt from 'markdown-it'
+import hljs from 'highlight.js'
+import mermaid from 'mermaid'
 
 const ICON_COPY =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
@@ -16,7 +18,13 @@ const ICON_CHECK =
   '<polyline points="20 6 9 17 4 12"/>' +
   '</svg>'
 
+const MERMAID_CLASS = 'mermaid'
+
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true })
+
+const getMermaidTheme = () => {
+  return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+}
 
 md.renderer.rules.fence = (tokens, idx) => {
   const token = tokens[idx]
@@ -24,7 +32,15 @@ md.renderer.rules.fence = (tokens, idx) => {
   const lang = info ? info.split(/\s+/g)[0] : ''
   const str = token.content
   const escapedLang = md.utils.escapeHtml(lang || 'text')
-  const highlighted = md.utils.escapeHtml(str)
+
+  if (lang === MERMAID_CLASS) {
+    return '<pre class="' + MERMAID_CLASS + '">' + md.utils.escapeHtml(str) + '</pre>\n'
+  }
+
+  const highlighted = lang && hljs.getLanguage(lang)
+    ? hljs.highlight(str, { language: lang, ignoreIllegals: true }).value
+    : md.utils.escapeHtml(str)
+
   return (
     '<div class="prose-code-wrap">' +
     '<div class="prose-code-controls">' +
@@ -33,7 +49,7 @@ md.renderer.rules.fence = (tokens, idx) => {
     '<button class="prose-code-copy" type="button" title="复制代码">' + ICON_COPY + '</button>' +
     '</div>' +
     '<div class="prose-code-block-outer">' +
-    '<pre class="prose-code-block"><code class="hljs">' + highlighted + '</code></pre>' +
+    '<pre class="prose-code-block"><code class="hljs language-' + escapedLang + '">' + highlighted + '</code></pre>' +
     '</div>' +
     '</div>\n'
   )
@@ -44,13 +60,17 @@ const proseRef = ref<HTMLElement | null>(null)
 const fullscreenVisible = ref(false)
 const fullscreenLang = ref('')
 const fullscreenHighlighted = ref('')
+let fullscreenKeyHandler: ((e: KeyboardEvent) => void) | null = null
 
 watch(fullscreenVisible, (val) => {
   if (val) {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { fullscreenVisible.value = false; window.removeEventListener('keydown', onKey) }
+    fullscreenKeyHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { fullscreenVisible.value = false }
     }
-    window.addEventListener('keydown', onKey)
+    window.addEventListener('keydown', fullscreenKeyHandler)
+  } else if (fullscreenKeyHandler) {
+    window.removeEventListener('keydown', fullscreenKeyHandler)
+    fullscreenKeyHandler = null
   }
 })
 
@@ -120,6 +140,18 @@ const visibleTocItems = computed(() =>
   }),
 )
 
+const renderMermaid = async () => {
+  const mermaidEls = document.querySelectorAll<HTMLElement>('.prose .' + MERMAID_CLASS)
+  if (!mermaidEls.length) return
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: getMermaidTheme() })
+  mermaidEls.forEach((el) => el.removeAttribute('data-processed'))
+  await mermaid.run({ nodes: Array.from(mermaidEls), suppressErrors: true })
+}
+
+const themeObserver = new MutationObserver(() => {
+  if (article.value) renderMermaid()
+})
+
 onMounted(async () => {
   const id = Number(route.params.id)
   try {
@@ -140,6 +172,9 @@ onMounted(async () => {
   if (toc.value.length) activeSection.value = toc.value[0].id
   window.addEventListener('scroll', onScroll, { passive: true })
   proseRef.value?.addEventListener('click', handleCopyClick)
+
+  await renderMermaid()
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 })
 
 const onScroll = () => {
@@ -164,6 +199,7 @@ const scrollToSection = (id: string) => {
 onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)
   proseRef.value?.removeEventListener('click', handleCopyClick)
+  themeObserver.disconnect()
 })
 </script>
 
@@ -1025,6 +1061,23 @@ onUnmounted(() => {
 .prose .prose-code-block .hljs::-webkit-scrollbar { height: 3px; }
 .prose .prose-code-block .hljs::-webkit-scrollbar-track { background: transparent; }
 .prose .prose-code-block .hljs::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 2px; }
+
+.prose .mermaid {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 24px 0 !important;
+  overflow: visible;
+  display: block;
+}
+
+.prose :deep(.mermaid svg) {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  max-width: 100%;
+}
 
 .prose pre:not(.prose-code-block) {
   background: #0d1117;
