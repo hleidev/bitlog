@@ -4,7 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
-import top.harrylei.bitlog.api.model.user.req.UserUpdateRequest;
+import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
 import top.harrylei.bitlog.api.model.user.vo.UserVO;
@@ -82,5 +82,5 @@ public interface UserConverter {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createTime", ignore = true)
     @Mapping(target = "updateTime", ignore = true)
-    UserInfoDO toInfoDO(UserUpdateRequest req);
+    UserInfoDO toInfoDO(UserUpdateParam req);
 }

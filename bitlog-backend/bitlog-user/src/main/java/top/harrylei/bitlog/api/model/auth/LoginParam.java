@@ -5,13 +5,13 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
- * 认证请求
+ * 认证请求参数
  *
  * @author Harry
  * @since 2026-03-17
  */
 @Data
-public class LoginRequest {
+public class LoginParam {
 
     @NotBlank(message = "用户名不能为空")
     @Pattern(regexp = "^[a-zA-Z0-9_-]{4,16}$", message = "用户名只能包含字母、数字、下划线和连字符，长度为4-16位")

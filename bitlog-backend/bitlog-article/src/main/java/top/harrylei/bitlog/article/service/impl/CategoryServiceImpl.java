@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.harrylei.bitlog.api.model.article.req.CategoryCreateRequest;
-import top.harrylei.bitlog.api.model.article.req.CategoryUpdateRequest;
+import top.harrylei.bitlog.api.model.article.req.CategoryCreateParam;
+import top.harrylei.bitlog.api.model.article.req.CategoryUpdateParam;
 import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
 import top.harrylei.bitlog.article.converter.ArticleConverter;
 import top.harrylei.bitlog.article.repository.dao.CategoryDAO;
@@ -49,7 +49,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public Long save(CategoryCreateRequest req) {
+    public Long save(CategoryCreateParam req) {
         String name = req.getName().trim();
         if (categoryDAO.getByName(name) != null) {
             ResultCode.CATEGORY_ALREADY_EXISTS.throwException(name);
@@ -65,7 +65,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public void update(Long categoryId, CategoryUpdateRequest req) {
+    public void update(Long categoryId, CategoryUpdateParam req) {
         CategoryDO category = categoryDAO.getById(categoryId);
         if (category == null)
             ResultCode.CATEGORY_NOT_EXISTS.throwException();

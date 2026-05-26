@@ -6,14 +6,14 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 分类创建请求
+ * 分类更新请求参数
  *
  * @author Harry
  * @since 2026-04-09
  */
 @Data
-@Schema(description = "分类创建请求")
-public class CategoryCreateRequest {
+@Schema(description = "分类更新请求参数")
+public class CategoryUpdateParam {
     @NotBlank(message = "分类名称不能为空")
     @Size(max = 64, message = "分类名称不能超过 64 个字符")
     @Schema(description = "分类名称", requiredMode = Schema.RequiredMode.REQUIRED)

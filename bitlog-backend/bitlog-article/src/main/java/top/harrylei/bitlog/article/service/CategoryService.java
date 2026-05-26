@@ -1,7 +1,7 @@
 package top.harrylei.bitlog.article.service;
 
-import top.harrylei.bitlog.api.model.article.req.CategoryCreateRequest;
-import top.harrylei.bitlog.api.model.article.req.CategoryUpdateRequest;
+import top.harrylei.bitlog.api.model.article.req.CategoryCreateParam;
+import top.harrylei.bitlog.api.model.article.req.CategoryUpdateParam;
 import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
 
 import java.util.List;
@@ -27,12 +27,12 @@ public interface CategoryService {
     /**
      * 创建分类
      */
-    Long save(CategoryCreateRequest req);
+    Long save(CategoryCreateParam req);
 
     /**
      * 更新分类名称
      */
-    void update(Long categoryId, CategoryUpdateRequest req);
+    void update(Long categoryId, CategoryUpdateParam req);
 
     /**
      * 删除分类（有子分类或有文章时拒绝）

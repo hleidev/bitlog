@@ -10,7 +10,7 @@ import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.user.LoginTypeEnum;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
-import top.harrylei.bitlog.api.model.user.req.AdminCreateUserRequest;
+import top.harrylei.bitlog.api.model.user.req.AdminCreateUserParam;
 import top.harrylei.bitlog.api.model.user.vo.UserCreatedVO;
 import top.harrylei.bitlog.common.constans.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
@@ -65,7 +65,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public UserCreatedVO adminCreateUser(AdminCreateUserRequest req) {
+    public UserCreatedVO adminCreateUser(AdminCreateUserParam req) {
         if (userDAO.existsUser(req.getUsername())) {
             ResultCode.USER_ALREADY_EXISTS.throwException(req.getUsername());
         }

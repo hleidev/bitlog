@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
-import top.harrylei.bitlog.api.model.article.query.ArticlePageQuery;
+import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
 import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.article.repository.mapper.ArticleMapper;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
@@ -105,12 +105,12 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
             .isNull(ArticleStatusEnum.DRAFT == status, ArticleDO::getPublishedVersionId).count();
     }
 
-    public IPage<ArticleDO> pagePublished(ArticlePageQuery query, Page<ArticleDO> page) {
+    public IPage<ArticleDO> pagePublished(ArticlePageParam query, Page<ArticleDO> page) {
         return getBaseMapper().pagePublished(page, query);
     }
 
     /** 分页查询用户文章（支持状态过滤），关键词过滤下推到 SQL */
-    public IPage<ArticleDO> pageByUser(Long userId, ArticlePageQuery query, Page<ArticleDO> page) {
+    public IPage<ArticleDO> pageByUser(Long userId, ArticlePageParam query, Page<ArticleDO> page) {
         ArticleStatusEnum status = query.getStatus();
         return page(page, Wrappers.<ArticleDO>lambdaQuery().eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
             .eq(ArticleDO::getUserId, userId)

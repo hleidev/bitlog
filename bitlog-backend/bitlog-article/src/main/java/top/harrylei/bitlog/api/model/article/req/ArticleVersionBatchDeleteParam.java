@@ -8,14 +8,14 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 文章版本批量删除请求
+ * 文章版本批量删除请求参数
  *
  * @author Harry
  * @since 2026-05-24
  */
 @Data
-@Schema(description = "文章版本批量删除请求")
-public class ArticleVersionBatchDeleteRequest {
+@Schema(description = "文章版本批量删除请求参数")
+public class ArticleVersionBatchDeleteParam {
 
     @NotEmpty(message = "版本 ID 列表不能为空")
     @Size(max = 50, message = "单次操作版本数不能超过 50")

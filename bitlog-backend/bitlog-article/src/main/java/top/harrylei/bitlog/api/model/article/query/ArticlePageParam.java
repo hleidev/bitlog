@@ -20,7 +20,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
 @Schema(description = "文章列表查询参数")
-public class ArticlePageQuery extends BasePage {
+public class ArticlePageParam extends BasePage {
 
     @Schema(description = "分类 ID")
     private Long categoryId;

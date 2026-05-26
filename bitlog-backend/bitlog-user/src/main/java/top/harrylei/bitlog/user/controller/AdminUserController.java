@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.harrylei.bitlog.api.model.user.query.UserPageQuery;
-import top.harrylei.bitlog.api.model.user.req.AdminCreateUserRequest;
-import top.harrylei.bitlog.api.model.user.req.UserIdsRequest;
-import top.harrylei.bitlog.api.model.user.req.UserStatusUpdateRequest;
+import top.harrylei.bitlog.api.model.user.query.UserPageParam;
+import top.harrylei.bitlog.api.model.user.req.AdminCreateUserParam;
+import top.harrylei.bitlog.api.model.user.req.UserIdsParam;
+import top.harrylei.bitlog.api.model.user.req.UserStatusUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.PasswordResetVO;
 import top.harrylei.bitlog.api.model.user.vo.UserCreatedVO;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
@@ -46,13 +46,13 @@ public class AdminUserController {
 
     @Operation(summary = "创建用户")
     @PostMapping("/users")
-    public Result<UserCreatedVO> createUser(@Valid @RequestBody AdminCreateUserRequest req) {
+    public Result<UserCreatedVO> createUser(@Valid @RequestBody AdminCreateUserParam req) {
         return Result.success(authService.adminCreateUser(req));
     }
 
     @Operation(summary = "分页查询用户列表")
     @GetMapping("/users")
-    public Result<PageVO<UserListVO>> pageUsers(@ParameterObject UserPageQuery query) {
+    public Result<PageVO<UserListVO>> pageUsers(@ParameterObject UserPageParam query) {
         return Result.success(userService.pageQuery(query));
     }
 
@@ -70,28 +70,28 @@ public class AdminUserController {
 
     @Operation(summary = "批量修改用户状态")
     @PatchMapping("/users/status")
-    public Result<Void> updateUserStatus(@Valid @RequestBody UserStatusUpdateRequest req) {
+    public Result<Void> updateUserStatus(@Valid @RequestBody UserStatusUpdateParam req) {
         userService.updateUserStatusBatch(req.getUserIds(), req.getStatus());
         return Result.success();
     }
 
     @Operation(summary = "批量软删除用户")
     @DeleteMapping("/users")
-    public Result<Void> deleteUsers(@Valid @RequestBody UserIdsRequest req) {
+    public Result<Void> deleteUsers(@Valid @RequestBody UserIdsParam req) {
         userService.deleteUserBatch(req.getUserIds());
         return Result.success();
     }
 
     @Operation(summary = "批量恢复已删除用户")
     @PatchMapping("/users/restore")
-    public Result<Void> restoreUsers(@Valid @RequestBody UserIdsRequest req) {
+    public Result<Void> restoreUsers(@Valid @RequestBody UserIdsParam req) {
         userService.restoreUserBatch(req.getUserIds());
         return Result.success();
     }
 
     @Operation(summary = "批量物理删除用户（不可恢复）")
     @DeleteMapping("/users/permanent")
-    public Result<Void> removeUsers(@Valid @RequestBody UserIdsRequest req) {
+    public Result<Void> removeUsers(@Valid @RequestBody UserIdsParam req) {
         userService.removeUserBatch(req.getUserIds());
         return Result.success();
     }

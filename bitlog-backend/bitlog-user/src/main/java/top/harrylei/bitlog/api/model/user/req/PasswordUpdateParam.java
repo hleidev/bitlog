@@ -5,13 +5,13 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
- * 用户密码更新请求
+ * 用户密码更新请求参数
  *
  * @author Harry
  * @since 2026-03-17
  */
 @Data
-public class PasswordUpdateRequest {
+public class PasswordUpdateParam {
 
     @NotBlank(message = "旧密码不能为空")
     private String oldPassword;

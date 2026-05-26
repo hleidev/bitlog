@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.harrylei.bitlog.api.model.article.req.TagSaveRequest;
-import top.harrylei.bitlog.api.model.article.req.TagUpdateRequest;
+import top.harrylei.bitlog.api.model.article.req.TagSaveParam;
+import top.harrylei.bitlog.api.model.article.req.TagUpdateParam;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import top.harrylei.bitlog.article.converter.ArticleConverter;
 import top.harrylei.bitlog.article.repository.dao.ArticleTagDAO;
@@ -51,7 +51,7 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
-    public Long save(TagSaveRequest req) {
+    public Long save(TagSaveParam req) {
         String name = req.getName().trim();
         if (tagDAO.getByName(name) != null) {
             ResultCode.TAG_ALREADY_EXISTS.throwException(name);
@@ -60,7 +60,7 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
-    public void update(Long tagId, TagUpdateRequest req) {
+    public void update(Long tagId, TagUpdateParam req) {
         TagDO tag = tagDAO.getById(tagId);
         if (tag == null) {
             ResultCode.TAG_NOT_EXISTS.throwException();

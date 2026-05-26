@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.harrylei.bitlog.api.model.user.req.PasswordUpdateRequest;
-import top.harrylei.bitlog.api.model.user.req.UserUpdateRequest;
+import top.harrylei.bitlog.api.model.user.req.PasswordUpdateParam;
+import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.model.Result;
@@ -25,7 +25,6 @@ import top.harrylei.bitlog.user.service.UserService;
  * 用户接口
  *
  * @author Harry
- * 
  * @since 2026-03-28
  */
 @Tag(name = "用户接口")
@@ -46,22 +45,22 @@ public class UserController {
 
     @Operation(summary = "更新用户基本信息")
     @PutMapping("/info")
-    public Result<Void> updateInfo(@Valid @RequestBody UserUpdateRequest req) {
+    public Result<Void> updateInfo(@Valid @RequestBody UserUpdateParam req) {
         userService.updateUserInfo(ReqInfoContext.getContext().getUserId(), req);
         return Result.success();
     }
 
     @Operation(summary = "修改密码")
     @PutMapping("/password")
-    public Result<Void> updatePassword(@Valid @RequestBody PasswordUpdateRequest req) {
+    public Result<Void> updatePassword(@Valid @RequestBody PasswordUpdateParam req) {
         userService.updatePassword(ReqInfoContext.getContext().getUserId(), req);
         return Result.success();
     }
 
     @Operation(summary = "更新头像")
     @PutMapping("/avatar")
-    public Result<Void> updateAvatar(
-            @RequestParam @NotBlank(message = "头像地址不能为空") @Size(max = 256, message = "头像地址过长") String avatar) {
+    public Result<Void>
+        updateAvatar(@RequestParam @NotBlank(message = "头像地址不能为空") @Size(max = 256, message = "头像地址过长") String avatar) {
         userService.updateAvatar(ReqInfoContext.getContext().getUserId(), avatar);
         return Result.success();
     }

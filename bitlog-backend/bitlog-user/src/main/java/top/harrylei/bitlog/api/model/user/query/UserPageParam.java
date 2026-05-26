@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "用户列表查询参数")
 @Accessors(chain = true)
-public class UserPageQuery extends BasePage {
+public class UserPageParam extends BasePage {
 
     @Schema(description = "登录用户名")
     private String username;

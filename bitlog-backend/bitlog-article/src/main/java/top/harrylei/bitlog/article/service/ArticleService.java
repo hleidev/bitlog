@@ -2,9 +2,9 @@ package top.harrylei.bitlog.article.service;
 
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
-import top.harrylei.bitlog.api.model.article.query.ArticlePageQuery;
-import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
-import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
+import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
+import top.harrylei.bitlog.api.model.article.req.ArticlePublishParam;
+import top.harrylei.bitlog.api.model.article.req.ArticleSaveParam;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticlePublicDetailVO;
@@ -31,7 +31,7 @@ public interface ArticleService {
      * @param req 保存请求
      * @return 文章 ID
      */
-    Long saveArticle(Long userId, ArticleSaveRequest req);
+    Long saveArticle(Long userId, ArticleSaveParam req);
 
     /**
      * 更新文章草稿（生成新版本，仅处理标题和正文）
@@ -40,7 +40,7 @@ public interface ArticleService {
      * @param articleId 文章 ID
      * @param req 更新请求
      */
-    void updateArticle(Long userId, Long articleId, ArticleSaveRequest req);
+    void updateArticle(Long userId, Long articleId, ArticleSaveParam req);
 
     /**
      * 发布文章（更新封面、摘要、分类、标签，并将最新版本设为已发布版本）
@@ -49,7 +49,7 @@ public interface ArticleService {
      * @param articleId 文章 ID
      * @param req 发布请求
      */
-    void publishArticle(Long userId, Long articleId, ArticlePublishRequest req);
+    void publishArticle(Long userId, Long articleId, ArticlePublishParam req);
 
     /**
      * 切换文章状态（草稿 ↔ 已发布）
@@ -113,7 +113,7 @@ public interface ArticleService {
      * @param query 查询参数
      * @return 分页结果
      */
-    PageVO<ArticlePublicVO> pagePublished(ArticlePageQuery query);
+    PageVO<ArticlePublicVO> pagePublished(ArticlePageParam query);
 
     /**
      * 批量切换文章状态
@@ -150,7 +150,7 @@ public interface ArticleService {
      * @param query 查询参数
      * @return 分页结果及状态计数
      */
-    ArticleListVO pageMyArticles(Long userId, ArticlePageQuery query);
+    ArticleListVO pageMyArticles(Long userId, ArticlePageParam query);
 
     /**
      * 根据文章 ID 获取文章基础信息（内部 Feign 接口使用）

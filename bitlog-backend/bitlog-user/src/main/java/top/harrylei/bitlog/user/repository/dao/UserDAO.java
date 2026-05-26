@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
 import top.harrylei.bitlog.api.model.user.dto.UserStatsDTO;
-import top.harrylei.bitlog.api.model.user.query.UserPageQuery;
+import top.harrylei.bitlog.api.model.user.query.UserPageParam;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
@@ -24,45 +24,29 @@ import java.util.List;
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
 
     public UserDO getByUsername(String username) {
-        return lambdaQuery()
-                .eq(UserDO::getUsername, username)
-                .eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-                .one();
+        return lambdaQuery().eq(UserDO::getUsername, username).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+            .one();
     }
 
     public boolean existsUser(String username) {
-        return lambdaQuery()
-                .eq(UserDO::getUsername, username)
-                .eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-                .exists();
+        return lambdaQuery().eq(UserDO::getUsername, username).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+            .exists();
     }
 
     public UserDO getById(Long userId) {
-        return lambdaQuery()
-                .eq(UserDO::getId, userId)
-                .eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-                .one();
+        return lambdaQuery().eq(UserDO::getId, userId).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED).one();
     }
 
     public List<UserDO> listByUserIds(List<Long> userIds) {
-        return lambdaQuery()
-                .in(UserDO::getId, userIds)
-                .eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-                .list();
+        return lambdaQuery().in(UserDO::getId, userIds).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED).list();
     }
 
     public void updatePassword(Long userId, String encodedPassword) {
-        lambdaUpdate()
-                .eq(UserDO::getId, userId)
-                .set(UserDO::getPassword, encodedPassword)
-                .update();
+        lambdaUpdate().eq(UserDO::getId, userId).set(UserDO::getPassword, encodedPassword).update();
     }
 
     public void updateStatusBatch(List<Long> userIds, UserStatusEnum status) {
-        lambdaUpdate()
-                .in(UserDO::getId, userIds)
-                .set(UserDO::getStatus, status)
-                .update();
+        lambdaUpdate().in(UserDO::getId, userIds).set(UserDO::getStatus, status).update();
     }
 
     public void deleteBatch(List<Long> userIds) {
@@ -74,16 +58,14 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
     }
 
     public void removeBatch(List<Long> userIds) {
-        lambdaUpdate()
-                .in(UserDO::getId, userIds)
-                .remove();
+        lambdaUpdate().in(UserDO::getId, userIds).remove();
     }
 
     public UserStatsDTO countStats() {
         return getBaseMapper().selectUserStats();
     }
 
-    public IPage<UserDetailDTO> pageUsers(UserPageQuery queryParam) {
+    public IPage<UserDetailDTO> pageUsers(UserPageParam queryParam) {
         return getBaseMapper().pageUsers(new Page<>(queryParam.getPageNum(), queryParam.getPageSize()), queryParam);
     }
 
@@ -92,9 +74,6 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
     }
 
     private void updateDeletedStatus(List<Long> userIds, DeleteStatusEnum status) {
-        lambdaUpdate()
-                .in(UserDO::getId, userIds)
-                .set(UserDO::getDeleted, status)
-                .update();
+        lambdaUpdate().in(UserDO::getId, userIds).set(UserDO::getDeleted, status).update();
     }
 }

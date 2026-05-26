@@ -11,9 +11,9 @@ import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
 import top.harrylei.bitlog.api.model.user.dto.UserStatsDTO;
-import top.harrylei.bitlog.api.model.user.query.UserPageQuery;
-import top.harrylei.bitlog.api.model.user.req.PasswordUpdateRequest;
-import top.harrylei.bitlog.api.model.user.req.UserUpdateRequest;
+import top.harrylei.bitlog.api.model.user.query.UserPageParam;
+import top.harrylei.bitlog.api.model.user.req.PasswordUpdateParam;
+import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.PasswordResetVO;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
@@ -109,7 +109,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateUserInfo(Long userId, UserUpdateRequest req) {
+    public void updateUserInfo(Long userId, UserUpdateParam req) {
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
         if (userInfo == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
@@ -120,7 +120,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updatePassword(Long userId, PasswordUpdateRequest req) {
+    public void updatePassword(Long userId, PasswordUpdateParam req) {
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
         if (userInfo == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
@@ -234,7 +234,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public PageVO<UserListVO> pageQuery(UserPageQuery query) {
+    public PageVO<UserListVO> pageQuery(UserPageParam query) {
         IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query);
 
         List<UserListVO> voList = resultPage.getRecords().stream().map(dto -> {

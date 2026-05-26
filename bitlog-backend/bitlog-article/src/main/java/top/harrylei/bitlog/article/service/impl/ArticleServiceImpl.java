@@ -9,9 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
-import top.harrylei.bitlog.api.model.article.query.ArticlePageQuery;
-import top.harrylei.bitlog.api.model.article.req.ArticlePublishRequest;
-import top.harrylei.bitlog.api.model.article.req.ArticleSaveRequest;
+import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
+import top.harrylei.bitlog.api.model.article.req.ArticlePublishParam;
+import top.harrylei.bitlog.api.model.article.req.ArticleSaveParam;
 import top.harrylei.bitlog.api.model.article.vo.ArticleCountVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
@@ -73,7 +73,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long saveArticle(Long userId, ArticleSaveRequest req) {
+    public Long saveArticle(Long userId, ArticleSaveParam req) {
         ArticleDO article = new ArticleDO().setUserId(userId).setSummary("").setVersionCount(0)
             .setDeleted(DeleteStatusEnum.NOT_DELETED);
         articleDAO.save(article);
@@ -96,7 +96,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateArticle(Long userId, Long articleId, ArticleSaveRequest req) {
+    public void updateArticle(Long userId, Long articleId, ArticleSaveParam req) {
         ArticleDO article = getArticleOrThrow(articleId);
         checkOwner(article, userId);
 
@@ -113,7 +113,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void publishArticle(Long userId, Long articleId, ArticlePublishRequest req) {
+    public void publishArticle(Long userId, Long articleId, ArticlePublishParam req) {
         ArticleDO article = getArticleOrThrow(articleId);
         checkOwner(article, userId);
         if (article.getLatestVersionId() == null) {
@@ -307,14 +307,14 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageVO<ArticlePublicVO> pagePublished(ArticlePageQuery query) {
+    public PageVO<ArticlePublicVO> pagePublished(ArticlePageParam query) {
         IPage<ArticleDO> page = articleDAO.pagePublished(query, buildPage(query));
         return toPublicArticlePageVO(page);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ArticleListVO pageMyArticles(Long userId, ArticlePageQuery query) {
+    public ArticleListVO pageMyArticles(Long userId, ArticlePageParam query) {
         IPage<ArticleDO> page = articleDAO.pageByUser(userId, query, buildPage(query));
         long total = articleDAO.countByUser(userId);
         long published = articleDAO.countByUserAndStatus(userId, ArticleStatusEnum.PUBLISHED);
@@ -434,7 +434,7 @@ public class ArticleServiceImpl implements ArticleService {
         }
     }
 
-    private ArticleVersionDO buildVersion(Long articleId, int version, ArticleSaveRequest req) {
+    private ArticleVersionDO buildVersion(Long articleId, int version, ArticleSaveParam req) {
         return new ArticleVersionDO().setArticleId(articleId).setVersion(version).setTitle(req.getTitle())
             .setContent(req.getContent());
     }
@@ -526,7 +526,7 @@ public class ArticleServiceImpl implements ArticleService {
         return vo;
     }
 
-    private Page<ArticleDO> buildPage(ArticlePageQuery query) {
+    private Page<ArticleDO> buildPage(ArticlePageParam query) {
         return new Page<>(query.getPageNum(), query.getPageSize());
     }
 

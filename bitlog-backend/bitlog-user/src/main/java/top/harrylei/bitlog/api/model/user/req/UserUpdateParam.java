@@ -7,15 +7,15 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 /**
- * 用户信息更新请求
+ * 用户信息更新请求参数
  *
  * @author Harry
  * @since 2026-03-17
  */
 @Data
-@Schema(description = "用户信息更新请求")
+@Schema(description = "用户信息更新请求参数")
 @Accessors(chain = true)
-public class UserUpdateRequest {
+public class UserUpdateParam {
 
     @NotBlank(message = "昵称不能为空")
     @Size(max = 64, message = "昵称最长64字符")

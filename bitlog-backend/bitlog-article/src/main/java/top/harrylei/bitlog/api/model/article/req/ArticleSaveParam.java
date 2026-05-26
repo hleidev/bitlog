@@ -7,15 +7,15 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 /**
- * 文章保存请求（仅草稿：标题 + 正文）
+ * 文章保存请求参数（仅草稿：标题 + 正文）
  *
  * @author Harry
  * @since 2026-04-09
  */
 @Data
 @Accessors(chain = true)
-@Schema(description = "文章保存请求")
-public class ArticleSaveRequest {
+@Schema(description = "文章保存请求参数")
+public class ArticleSaveParam {
 
     @NotBlank(message = "标题不能为空")
     @Size(max = 200, message = "标题长度不能超过 200 个字符")

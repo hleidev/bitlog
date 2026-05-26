@@ -1,7 +1,7 @@
 package top.harrylei.bitlog.article.service;
 
-import top.harrylei.bitlog.api.model.article.req.TagSaveRequest;
-import top.harrylei.bitlog.api.model.article.req.TagUpdateRequest;
+import top.harrylei.bitlog.api.model.article.req.TagSaveParam;
+import top.harrylei.bitlog.api.model.article.req.TagUpdateParam;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
 
 import java.util.List;
@@ -22,20 +22,18 @@ public interface TagService {
     List<TagVO> listAll(String name);
 
     /**
-     * 查询或创建标签（按名称）
-     * 存在则返回已有 ID，不存在则新建后返回新 ID
+     * 查询或创建标签（按名称） 存在则返回已有 ID，不存在则新建后返回新 ID
      */
     Long getOrCreate(String name);
 
     /** 保存标签 */
-    Long save(TagSaveRequest req);
+    Long save(TagSaveParam req);
 
     /** 更新标签名称 */
-    void update(Long tagId, TagUpdateRequest req);
+    void update(Long tagId, TagUpdateParam req);
 
     /**
-     * 批量删除标签（软删除）并清理文章关联
-     * 任意 ID 不存在则整体回滚
+     * 批量删除标签（软删除）并清理文章关联 任意 ID 不存在则整体回滚
      */
     void batchDelete(List<Long> ids);
 }

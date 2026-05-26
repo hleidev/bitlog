@@ -11,15 +11,15 @@ import lombok.experimental.Accessors;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 
 /**
- * 管理员创建用户请求
+ * 管理员创建用户请求参数
  *
  * @author Harry
  * @since 2026-03-17
  */
 @Data
 @Accessors(chain = true)
-@Schema(description = "管理员创建用户请求")
-public class AdminCreateUserRequest {
+@Schema(description = "管理员创建用户请求参数")
+public class AdminCreateUserParam {
 
     @NotBlank(message = "用户名不能为空")
     @Pattern(regexp = "^[a-zA-Z0-9_-]{4,16}$", message = "用户名只能包含字母、数字、下划线和连字符，长度为4-16位")
