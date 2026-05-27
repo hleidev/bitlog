@@ -233,12 +233,17 @@ onUnmounted(() => {
     <!-- Article header (dark, no cover image) -->
     <div class="article-header">
       <div class="article-header__inner">
+        <nav class="article-breadcrumb">
+          <RouterLink to="/articles" class="breadcrumb-link">文章</RouterLink>
+          <template v-if="article.category">
+            <span class="breadcrumb-sep">/</span>
+            <RouterLink
+              :to="{ path: '/articles', query: { categoryId: article.category.id } }"
+              class="breadcrumb-link"
+            >{{ article.category.name }}</RouterLink>
+          </template>
+        </nav>
         <div class="article-header__label">
-          <RouterLink
-            v-if="article.category"
-            :to="{ path: '/articles', query: { categoryId: article.category.id } }"
-            class="meta-category"
-          >{{ article.category.name }}</RouterLink>
           <div class="header-rule"></div>
         </div>
         <h1 class="article-title">{{ article.title }}</h1>
@@ -425,6 +430,38 @@ onUnmounted(() => {
   max-width: var(--spacing-container);
   margin: 0 auto;
   padding: 72px var(--spacing-page-padding) 80px;
+}
+
+.article-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.breadcrumb-link {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(245, 243, 239, 0.4);
+  padding-bottom: 1px;
+  background-image: linear-gradient(var(--color-accent), var(--color-accent));
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  background-position: left bottom;
+  transition: color var(--transition-base), background-size var(--transition-sweep);
+}
+
+.breadcrumb-link:hover {
+  color: rgba(245, 243, 239, 0.75);
+  background-size: 100% 1px;
+}
+
+.breadcrumb-sep {
+  font-size: 11px;
+  color: rgba(245, 243, 239, 0.2);
+  user-select: none;
 }
 
 .article-header__label {
