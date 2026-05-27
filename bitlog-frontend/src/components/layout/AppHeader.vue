@@ -141,6 +141,15 @@ const doSearch = () => {
       <nav class="mobile-drawer__nav">
         <RouterLink to="/" class="mobile-drawer__link" @click="mobileMenuOpen = false">首页</RouterLink>
         <RouterLink to="/articles" class="mobile-drawer__link" @click="mobileMenuOpen = false">文章</RouterLink>
+        <button class="mobile-drawer__link mobile-drawer__theme" @click="toggleTheme">
+          <svg v-if="!isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          {{ isDark ? '切换亮色' : '切换暗色' }}
+        </button>
       </nav>
       <div class="mobile-drawer__actions">
         <button v-if="!isLoggedIn" class="mobile-login-btn" @click="modalStore.open('login'); mobileMenuOpen = false">登录</button>
@@ -536,6 +545,29 @@ const doSearch = () => {
   background: var(--color-bg-hover);
   border-color: var(--color-text-muted);
   color: var(--color-text-primary);
+}
+
+.mobile-drawer__theme {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  font-size: 16px;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-align: left;
+}
+
+.mobile-drawer__theme svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.mobile-drawer__theme:hover {
+  color: var(--color-accent);
 }
 
 .mobile-overlay {
