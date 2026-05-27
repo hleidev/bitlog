@@ -205,6 +205,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <div class="article-page">
   <!-- Reading progress bar -->
   <div class="progress-bar" :style="{ width: scrollProgress + '%' }" />
 
@@ -234,7 +235,7 @@ onUnmounted(() => {
     <div class="article-header">
       <div class="article-header__inner">
         <nav class="article-breadcrumb">
-          <RouterLink to="/articles" class="breadcrumb-link">文章</RouterLink>
+          <button class="breadcrumb-link" @click="router.back()">文章</button>
           <template v-if="article.category">
             <span class="breadcrumb-sep">/</span>
             <RouterLink
@@ -337,6 +338,7 @@ onUnmounted(() => {
     </div>
     </Transition>
   </Teleport>
+  </div>
 </template>
 
 <style scoped>

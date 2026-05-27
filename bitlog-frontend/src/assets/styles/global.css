@@ -22,7 +22,6 @@
   to   { opacity: 1; }
 }
 
-.view-enter,
 .page-state {
   animation: viewFadeIn 0.18s ease both;
 }

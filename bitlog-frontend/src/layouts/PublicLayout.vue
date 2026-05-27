@@ -20,7 +20,11 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
 <template>
   <AppHeader />
-  <RouterView />
+  <RouterView v-slot="{ Component, route }">
+    <Transition name="page" mode="out-in">
+      <component :is="Component" :key="route.path" />
+    </Transition>
+  </RouterView>
   <AppFooter />
   <LoginModal />
   <Transition name="back-top">
@@ -33,6 +37,19 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 </template>
 
 <style scoped>
+.page-enter-active {
+  transition: opacity 0.2s ease;
+}
+
+.page-leave-active {
+  transition: opacity 0.12s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
 .back-top {
   position: fixed;
   bottom: 40px;
