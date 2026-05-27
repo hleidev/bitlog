@@ -25,11 +25,15 @@ export function useHeaderScroll() {
   function attach() {
     mo?.disconnect()
     mo = null
+    // Pages without darkTop never have a dark hero — always opaque regardless of DOM state
+    if (!route.meta.darkTop) {
+      isScrolled.value = true
+      return
+    }
     update()
     // If this is a dark-top page but its sentinel isn't in DOM yet
     // (article still loading), watch for it
     if (
-      route.meta.darkTop &&
       !document.getElementById('hero') &&
       !document.querySelector('.article-header')
     ) {
