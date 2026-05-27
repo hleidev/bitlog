@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Fold, Expand } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/useUserStore'
 import { storeToRefs } from 'pinia'
 import UserDropdown from '@/components/common/UserDropdown.vue'
@@ -15,7 +14,7 @@ const { userInfo } = storeToRefs(userStore)
 
 const menuOpen = ref(false)
 
-const pageTitle = computed(() => route.meta.title ?? '')
+const pageTitle   = computed(() => route.meta.title ?? '')
 const parentTitle = computed(() => route.meta.parent ?? '')
 const displayName = computed(() => userInfo.value?.nickname ?? 'Admin')
 const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
@@ -24,16 +23,20 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 <template>
   <div class="admin-header">
     <div class="header-left">
-      <el-button
-        text
-        :icon="collapsed ? Expand : Fold"
-        class="toggle-btn"
-        @click="emit('toggle')"
-      />
-      <el-breadcrumb separator="/">
-        <el-breadcrumb-item v-if="parentTitle">{{ parentTitle }}</el-breadcrumb-item>
-        <el-breadcrumb-item v-if="pageTitle">{{ pageTitle }}</el-breadcrumb-item>
-      </el-breadcrumb>
+      <!-- Sidebar toggle -->
+      <button class="toggle-btn" @click="emit('toggle')" aria-label="切换侧边栏">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="9" y1="3" x2="9" y2="21" />
+        </svg>
+      </button>
+
+      <!-- Breadcrumb -->
+      <nav v-if="pageTitle" class="breadcrumb">
+        <span v-if="parentTitle" class="breadcrumb-item breadcrumb-item--parent">{{ parentTitle }}</span>
+        <span v-if="parentTitle" class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-item">{{ pageTitle }}</span>
+      </nav>
     </div>
 
     <div class="header-right">
@@ -46,7 +49,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
             :alt="displayName"
           />
           <span v-else class="trigger-avatar trigger-avatar--placeholder">{{ avatarLetter }}</span>
-          <span class="trigger-name trigger-name--desktop">{{ displayName }}</span>
+          <span class="trigger-name">{{ displayName }}</span>
         </button>
 
         <Transition name="dropdown">
@@ -63,7 +66,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px 0 4px;
+  padding: 0 20px 0 12px;
   background: var(--admin-header-bg);
   border-bottom: 1px solid var(--admin-header-border);
 }
@@ -71,21 +74,70 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
+/* ── Toggle ── */
+
 .toggle-btn {
-  font-size: 18px;
-  color: #595959;
-  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  color: var(--color-text-muted, #b0a89e);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.toggle-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .toggle-btn:hover {
   color: var(--admin-accent);
-  background-color: #f5f5f5;
+  background: var(--admin-sidebar-hover);
 }
 
-/* User menu */
+/* ── Breadcrumb ── */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.breadcrumb-item {
+  font-size: 13px;
+  color: var(--color-text-primary, #1a1610);
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-weight: 500;
+}
+
+.breadcrumb-item--parent {
+  color: var(--color-text-muted, #b0a89e);
+  font-weight: 400;
+}
+
+.breadcrumb-sep {
+  font-size: 13px;
+  color: var(--color-text-faint, #ccc5bc);
+  user-select: none;
+}
+
+/* ── User menu ── */
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
 .user-menu {
   position: relative;
 }
@@ -94,20 +146,21 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 10px 4px 4px;
-  border-radius: 8px;
+  padding: 4px 8px 4px 4px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s;
   background: transparent;
+  border: none;
+  transition: background 0.15s ease;
 }
 
 .user-trigger:hover {
-  background-color: #f5f5f5;
+  background: var(--admin-sidebar-hover);
 }
 
 .trigger-avatar {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   flex-shrink: 0;
   display: flex;
@@ -122,23 +175,17 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 .trigger-avatar--placeholder {
   background: var(--admin-accent);
   color: #fff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
 }
 
 .trigger-name {
-  font-size: 14px;
-  color: #262626;
+  font-size: 13.5px;
+  color: var(--color-text-secondary, #5a5248);
   font-weight: 500;
+  font-family: var(--font-sans, 'Inter', sans-serif);
 }
 
-@media (max-width: 768px) {
-  .trigger-name--desktop {
-    display: none;
-  }
-}
-
-/* Dropdown */
 .admin-user-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -146,7 +193,6 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
   z-index: 1001;
 }
 
-/* Transition */
 .dropdown-enter-active,
 .dropdown-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -156,5 +202,11 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-6px);
+}
+
+@media (max-width: 768px) {
+  .trigger-name {
+    display: none;
+  }
 }
 </style>

@@ -37,7 +37,7 @@ watch(() => route.path, () => {
 </script>
 
 <template>
-  <el-container class="admin-layout">
+  <div class="admin-layout">
     <!-- Mobile backdrop -->
     <Transition name="backdrop">
       <div
@@ -47,44 +47,50 @@ watch(() => route.path, () => {
       />
     </Transition>
 
-    <el-aside
-      :width="collapsed ? 'var(--admin-sidebar-width-collapsed)' : 'var(--admin-sidebar-width)'"
+    <!-- Sidebar -->
+    <div
       class="admin-aside"
-      :class="{ 'drawer-open': isMobile && drawerOpen, 'is-mobile': isMobile }"
+      :class="{ 'is-collapsed': !isMobile && collapsed, 'is-mobile': isMobile, 'drawer-open': isMobile && drawerOpen }"
     >
       <AdminSidebar :collapsed="isMobile ? false : collapsed" />
-    </el-aside>
+    </div>
 
-    <el-container class="admin-main-container">
-      <el-header height="var(--admin-header-height)" class="admin-header-wrap">
+    <!-- Main area -->
+    <div class="admin-main-container">
+      <div class="admin-header-wrap">
         <AdminHeader
           :collapsed="isMobile ? !drawerOpen : collapsed"
           :is-mobile="isMobile"
           @toggle="handleToggle"
         />
-      </el-header>
-
-      <el-main class="admin-main">
+      </div>
+      <div class="admin-main">
         <RouterView />
-      </el-main>
-    </el-container>
-  </el-container>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
 .admin-layout {
+  display: flex;
   height: 100vh;
   overflow: hidden;
+  background: var(--admin-body-bg);
 }
 
 .admin-aside {
+  width: var(--admin-sidebar-width);
+  flex-shrink: 0;
   transition: width 0.22s ease;
   overflow: hidden;
-  flex-shrink: 0;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  border-right: 1px solid var(--admin-sidebar-border);
 }
 
-/* Mobile: sidebar becomes a fixed drawer overlay */
+.admin-aside.is-collapsed {
+  width: var(--admin-sidebar-width-collapsed);
+}
+
 .admin-aside.is-mobile {
   position: fixed;
   top: 0;
@@ -93,19 +99,17 @@ watch(() => route.path, () => {
   width: var(--admin-sidebar-width) !important;
   z-index: 1001;
   transform: translateX(-100%);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.25s ease;
 }
 
 .admin-aside.is-mobile.drawer-open {
   transform: translateX(0);
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
-/* Backdrop */
 .admin-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.3);
   z-index: 1000;
 }
 
@@ -128,14 +132,15 @@ watch(() => route.path, () => {
 }
 
 .admin-header-wrap {
-  padding: 0;
+  height: var(--admin-header-height);
   flex-shrink: 0;
 }
 
 .admin-main {
-  background: var(--admin-body-bg);
+  flex: 1;
   overflow-y: auto;
   padding: 24px;
+  background: var(--admin-body-bg);
 }
 
 @media (max-width: 768px) {
