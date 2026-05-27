@@ -88,6 +88,7 @@ function toggleGroup(item: GroupItem) {
 function isGroupActive(item: GroupItem): boolean {
   return item.children.some(c => route.path === c.path)
 }
+
 </script>
 
 <template>
@@ -162,6 +163,7 @@ function isGroupActive(item: GroupItem): boolean {
 
       </template>
     </nav>
+
   </div>
 </template>
 
@@ -351,4 +353,5 @@ function isGroupActive(item: GroupItem): boolean {
 .sidebar--collapsed .sidebar-logo {
   padding: 0;
 }
+
 </style>
