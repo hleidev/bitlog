@@ -217,6 +217,7 @@ onMounted(async () => {
           </button>
         </div>
       </div>
+      <div class="filter-loading" :class="{ 'filter-loading--active': loading }"></div>
     </div>
 
     <!-- Content -->
@@ -473,6 +474,39 @@ onMounted(async () => {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: #fff;
+}
+
+/* Loading bar */
+.filter-loading {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.filter-loading--active {
+  opacity: 1;
+}
+
+.filter-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%);
+  animation: filter-sweep 1.1s ease-in-out infinite;
+}
+
+@keyframes filter-sweep {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
 }
 
 /* ── Content ──────────────────────────────────────────────────────────────── */
