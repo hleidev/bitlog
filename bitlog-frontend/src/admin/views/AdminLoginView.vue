@@ -50,7 +50,7 @@ async function handleLogin() {
         <div v-if="errorMsg" class="error-bar">{{ errorMsg }}</div>
       </transition>
 
-      <el-form class="login-form" @submit.prevent="handleLogin">
+      <form class="login-form" @submit.prevent="handleLogin">
         <el-form-item>
           <el-input
             v-model="form.username"
@@ -59,7 +59,6 @@ async function handleLogin() {
             :prefix-icon="User"
             :maxlength="16"
             autocomplete="username"
-            @keyup.enter="handleLogin"
           />
         </el-form-item>
         <el-form-item>
@@ -71,19 +70,18 @@ async function handleLogin() {
             :prefix-icon="Lock"
             show-password
             autocomplete="current-password"
-            @keyup.enter="handleLogin"
           />
         </el-form-item>
         <el-button
           type="primary"
+          native-type="submit"
           size="large"
           :loading="loading"
           class="login-btn"
-          @click="handleLogin"
         >
           登录
         </el-button>
-      </el-form>
+      </form>
 
       <div class="login-footer">
         <a href="/" class="back-link">← 返回网站</a>
