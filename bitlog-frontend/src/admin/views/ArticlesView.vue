@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox, type TableInstance } from 'element-plus'
-import { Search, RefreshLeft, Plus } from '@element-plus/icons-vue'
+import { useToast } from '@/admin/composables/useToast'
+import { useConfirm } from '@/admin/composables/useConfirm'
 import {
   getMyArticles,
   updateArticlesStatus,
@@ -13,30 +13,29 @@ import {
 } from '@/api/admin/article'
 import { ApiError } from '@/utils/request'
 
-const route = useRoute()
-const router = useRouter()
+const route   = useRoute()
+const router  = useRouter()
+const toast   = useToast()
+const confirm = useConfirm()
 
 // ── State ─────────────────────────────────────────────────────────────────────
-const loading = ref(false)
+const loading  = ref(false)
 const articles = ref<ArticleVO[]>([])
-const counts = ref<ArticleCounts>({ total: 0, published: 0, draft: 0 })
-const tableRef = ref<TableInstance>()
-const selectedRows = ref<ArticleVO[]>([])
+const counts   = ref<ArticleCounts>({ total: 0, published: 0, draft: 0 })
+const selected = reactive(new Set<number>())
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 type TabKey = 'all' | 'published' | 'draft'
 
 const TAB_STATUS: Record<TabKey, ArticleStatus | undefined> = {
-  all: undefined,
-  published: 'PUBLISHED',
-  draft: 'DRAFT',
+  all: undefined, published: 'PUBLISHED', draft: 'DRAFT',
 }
 
 const VALID_TABS = new Set<TabKey>(['all', 'published', 'draft'])
 function isValidTab(v: unknown): v is TabKey { return VALID_TABS.has(v as TabKey) }
 
 // ── Init from URL ─────────────────────────────────────────────────────────────
-const q = route.query
+const q         = route.query
 const activeTab = ref<TabKey>(isValidTab(q.tab) ? q.tab : 'all')
 const keyword   = ref(typeof q.keyword === 'string' ? q.keyword : '')
 const pagination = reactive({
@@ -47,10 +46,10 @@ const pagination = reactive({
 
 function syncUrl() {
   const query: Record<string, string> = {}
-  if (activeTab.value !== 'all')        query.tab     = activeTab.value
-  if (keyword.value.trim())             query.keyword = keyword.value.trim()
-  if (pagination.pageNum !== 1)         query.page    = String(pagination.pageNum)
-  if (pagination.pageSize !== 10)       query.size    = String(pagination.pageSize)
+  if (activeTab.value !== 'all')  query.tab     = activeTab.value
+  if (keyword.value.trim())       query.keyword = keyword.value.trim()
+  if (pagination.pageNum !== 1)   query.page    = String(pagination.pageNum)
+  if (pagination.pageSize !== 10) query.size    = String(pagination.pageSize)
   router.replace({ query })
 }
 
@@ -63,19 +62,19 @@ function switchTab(tab: TabKey) {
   fetchArticles()
 }
 
-// ── Filters & pagination ──────────────────────────────────────────────────────
+// ── Fetch ─────────────────────────────────────────────────────────────────────
 async function fetchArticles() {
   loading.value = true
   try {
     const res = await getMyArticles({
-      pageNum: pagination.pageNum,
+      pageNum:  pagination.pageNum,
       pageSize: pagination.pageSize,
-      status: TAB_STATUS[activeTab.value],
-      keyword: keyword.value.trim() || undefined,
+      status:   TAB_STATUS[activeTab.value],
+      keyword:  keyword.value.trim() || undefined,
     })
-    articles.value = res.page.content
-    pagination.total = res.page.totalElements
-    counts.value = res.counts
+    articles.value    = res.page.content
+    pagination.total  = res.page.totalElements
+    counts.value      = res.counts
   } catch (err) {
     handleApiError(err, '加载文章失败')
   } finally {
@@ -84,154 +83,133 @@ async function fetchArticles() {
 }
 
 function handleSearch() {
-  pagination.pageNum = 1
-  syncUrl()
-  fetchArticles()
+  pagination.pageNum = 1; syncUrl(); fetchArticles()
 }
 
 function handleReset() {
-  keyword.value = ''
-  pagination.pageNum = 1
-  clearSelection()
-  syncUrl()
-  fetchArticles()
-}
-
-function handleCurrentChange() {
-  syncUrl()
-  fetchArticles()
-}
-
-function handleSizeChange() {
-  pagination.pageNum = 1
-  syncUrl()
-  fetchArticles()
+  keyword.value = ''; pagination.pageNum = 1; clearSelection(); syncUrl(); fetchArticles()
 }
 
 onMounted(fetchArticles)
 
 // ── Selection ─────────────────────────────────────────────────────────────────
-function handleSelectionChange(rows: ArticleVO[]) {
-  selectedRows.value = rows
+const allChecked = computed(() =>
+  articles.value.length > 0 && articles.value.every(a => selected.has(a.id)),
+)
+const someChecked = computed(() =>
+  articles.value.some(a => selected.has(a.id)) && !allChecked.value,
+)
+
+function toggleAll() {
+  if (allChecked.value) articles.value.forEach(a => selected.delete(a.id))
+  else                  articles.value.forEach(a => selected.add(a.id))
 }
 
-function clearSelection() {
-  selectedRows.value = []
-  tableRef.value?.clearSelection()
+function toggleRow(id: number) {
+  if (selected.has(id)) selected.delete(id)
+  else                  selected.add(id)
 }
+
+function clearSelection() { selected.clear() }
+
+const selectedCount = computed(() => selected.size)
+const selectedIds   = computed(() => [...selected])
 
 // ── Error handling ────────────────────────────────────────────────────────────
 function handleApiError(err: unknown, fallback = '操作失败') {
   if (err instanceof ApiError) {
-    if (err.code === 43001) {
-      ElMessage.error('文章不存在，列表已刷新')
-      fetchArticles()
-    } else if (err.code === 43003) {
-      ElMessage.error('无权操作该文章')
-    } else {
-      ElMessage.error(err.message || fallback)
-    }
+    if      (err.code === 43001) { toast.error('文章不存在，列表已刷新'); fetchArticles() }
+    else if (err.code === 43003) toast.error('无权操作该文章')
+    else                         toast.error(err.message || fallback)
     return
   }
-  ElMessage.error(fallback)
+  toast.error(fallback)
 }
 
 // ── Single row actions ────────────────────────────────────────────────────────
-async function handleCommand(cmd: string, row: ArticleVO) {
-  if (cmd === 'edit') {
-    router.push(`/admin/write/${row.id}`)
-  } else if (cmd === 'preview') {
-    if (row.status === 'PUBLISHED') {
-      window.open(`/article/${row.id}`, '_blank')
-    } else {
-      window.open(`/admin/preview/${row.id}`, '_blank')
-    }
-  } else if (cmd === 'togglePublish') {
-    const next: ArticleStatus = row.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
-    const label = next === 'PUBLISHED' ? '发布' : '取消发布'
-    if (next === 'DRAFT') {
-      try {
-        await ElMessageBox.confirm(
-          `确认取消发布「${row.title}」？`,
-          '取消发布',
-          { confirmButtonText: '取消发布', cancelButtonText: '取消', type: 'warning' },
-        )
-      } catch { return }
-    }
-    try {
-      await updateArticlesStatus([row.id], next)
-      ElMessage.success(next === 'PUBLISHED' ? '文章已发布' : '已取消发布')
-      fetchArticles()
-    } catch (err) {
-      handleApiError(err, `${label}失败`)
-    }
-  } else if (cmd === 'delete') {
-    try {
-      await ElMessageBox.confirm(`确认删除「${row.title}」？`, '删除文章', {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger',
-      })
-    } catch { return }
-    try {
-      await deleteArticles([row.id])
-      ElMessage.success('文章已删除')
-      fetchArticles()
-    } catch (err) {
-      handleApiError(err, '删除失败')
-    }
+async function handleEdit(row: ArticleVO) {
+  router.push(`/admin/write/${row.id}`)
+}
+
+function handlePreview(row: ArticleVO) {
+  if (row.status === 'PUBLISHED') window.open(`/article/${row.id}`, '_blank')
+  else                            window.open(`/admin/preview/${row.id}`, '_blank')
+}
+
+async function handleTogglePublish(row: ArticleVO) {
+  const next: ArticleStatus = row.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
+  if (next === 'DRAFT') {
+    try { await confirm(`确认取消发布「${row.title}」？`, '取消发布', { confirmText: '取消发布' }) }
+    catch { return }
   }
+  try {
+    await updateArticlesStatus([row.id], next)
+    toast.success(next === 'PUBLISHED' ? '文章已发布' : '已取消发布')
+    fetchArticles()
+  } catch (err) { handleApiError(err, '操作失败') }
+}
+
+async function handleDelete(row: ArticleVO) {
+  try { await confirm(`确认删除「${row.title}」？`, '删除文章', { confirmText: '删除', danger: true }) }
+  catch { return }
+  try {
+    await deleteArticles([row.id])
+    toast.success('文章已删除')
+    fetchArticles()
+  } catch (err) { handleApiError(err, '删除失败') }
 }
 
 // ── Batch actions ─────────────────────────────────────────────────────────────
 async function handleBatchPublish(publish: boolean) {
   const next: ArticleStatus = publish ? 'PUBLISHED' : 'DRAFT'
   const label = publish ? '发布' : '撤回'
-  // snapshot before confirm to avoid state desync across await
-  const ids = selectedRows.value.map(a => a.id)
-  const count = ids.length
-  try {
-    await ElMessageBox.confirm(
-      `确认${label}选中的 ${count} 篇文章？`,
-      `批量${label}`,
-      { confirmButtonText: label, cancelButtonText: '取消' },
-    )
-  } catch { return }
+  const ids   = selectedIds.value
+  try { await confirm(`确认${label}选中的 ${ids.length} 篇文章？`, `批量${label}`, { confirmText: label }) }
+  catch { return }
   try {
     await updateArticlesStatus(ids, next)
-    ElMessage.success(`已${label} ${count} 篇文章`)
-    clearSelection()
-    fetchArticles()
-  } catch (err) {
-    handleApiError(err, `批量${label}失败`)
-  }
+    toast.success(`已${label} ${ids.length} 篇文章`)
+    clearSelection(); fetchArticles()
+  } catch (err) { handleApiError(err, `批量${label}失败`) }
 }
 
 async function handleBatchDelete() {
-  const ids = selectedRows.value.map(a => a.id)
-  const count = ids.length
-  try {
-    await ElMessageBox.confirm(
-      `确认删除选中的 ${count} 篇文章？`,
-      '批量删除',
-      { confirmButtonText: '删除', cancelButtonText: '取消', confirmButtonClass: 'el-button--danger' },
-    )
-  } catch { return }
+  const ids = selectedIds.value
+  try { await confirm(`确认删除选中的 ${ids.length} 篇文章？`, '批量删除', { confirmText: '删除', danger: true }) }
+  catch { return }
   try {
     await deleteArticles(ids)
-    ElMessage.success(`已删除 ${count} 篇文章`)
-    clearSelection()
-    fetchArticles()
-  } catch (err) {
-    handleApiError(err, '批量删除失败')
-  }
+    toast.success(`已删除 ${ids.length} 篇文章`)
+    clearSelection(); fetchArticles()
+  } catch (err) { handleApiError(err, '批量删除失败') }
 }
+
+// ── Pagination ────────────────────────────────────────────────────────────────
+const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize) || 1)
+
+function goPage(n: number) {
+  pagination.pageNum = n; syncUrl(); fetchArticles()
+}
+
+function pageSizeChange(e: Event) {
+  pagination.pageSize = Number((e.target as HTMLSelectElement).value)
+  pagination.pageNum  = 1
+  syncUrl(); fetchArticles()
+}
+
+const pageNumbers = computed(() => {
+  const cur   = pagination.pageNum
+  const total = totalPages.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '…')[] = [1]
+  if (cur > 3) pages.push('…')
+  for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) pages.push(i)
+  if (cur < total - 2) pages.push('…')
+  pages.push(total)
+  return pages
+})
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function getRowClass({ row }: { row: ArticleVO }) {
-  return row.status === 'DRAFT' ? 'row--draft' : ''
-}
-
 function relativeTime(d: string) {
   const diff = Date.now() - new Date(d).getTime()
   const m    = Math.floor(diff / 60000)
@@ -256,7 +234,7 @@ function formatViews(n: number) {
   <div class="articles-page">
     <div class="main-card">
 
-      <!-- ── Header ─────────────────────────────────────────────────────────── -->
+      <!-- ── Header ── -->
       <div class="card-header">
         <div class="view-tabs">
           <button class="view-tab" :class="{ 'view-tab--active': activeTab === 'all' }" @click="switchTab('all')">
@@ -274,130 +252,161 @@ function formatViews(n: number) {
         </div>
 
         <div class="header-actions">
-          <el-input
-            v-model="keyword"
-            placeholder="搜索标题"
-            clearable
-            :prefix-icon="Search"
-            style="width: 200px"
-            @clear="handleSearch"
-            @keyup.enter="handleSearch"
-          />
-          <el-button :icon="RefreshLeft" @click="handleReset" />
-          <el-button type="primary" :icon="Plus" @click="router.push('/admin/write')">写文章</el-button>
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              v-model="keyword"
+              class="search-input"
+              placeholder="搜索标题"
+              @keyup.enter="handleSearch"
+            />
+            <button v-if="keyword" class="search-clear" @click="keyword = ''; handleSearch()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <button class="icon-btn" title="重置" @click="handleReset">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
+          </button>
+          <button class="primary-btn" @click="router.push('/admin/write')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            写文章
+          </button>
         </div>
       </div>
 
-      <!-- ── Selection bar ───────────────────────────────────────────────────── -->
+      <!-- ── Selection bar ── -->
       <Transition name="sel-bar">
-        <div v-if="selectedRows.length > 0" class="selection-bar">
-          <span class="sel-count">已选 <b>{{ selectedRows.length }}</b> 篇</span>
+        <div v-if="selectedCount > 0" class="selection-bar">
+          <span class="sel-count">已选 <b>{{ selectedCount }}</b> 篇</span>
           <div class="sel-actions">
-            <el-button size="small" @click="handleBatchPublish(true)">批量发布</el-button>
-            <el-button size="small" @click="handleBatchPublish(false)">批量撤回</el-button>
-            <el-button size="small" type="danger" plain @click="handleBatchDelete">批量删除</el-button>
+            <button class="ghost-btn ghost-btn--sm" @click="handleBatchPublish(true)">批量发布</button>
+            <button class="ghost-btn ghost-btn--sm" @click="handleBatchPublish(false)">批量撤回</button>
+            <button class="ghost-btn ghost-btn--sm ghost-btn--danger" @click="handleBatchDelete">批量删除</button>
           </div>
-          <el-button size="small" text class="sel-cancel" @click="clearSelection">取消选择</el-button>
+          <button class="cancel-btn" @click="clearSelection">取消选择</button>
         </div>
       </Transition>
 
-      <!-- ── Table ───────────────────────────────────────────────────────────── -->
-      <div class="table-scroll-wrap">
-        <el-table
-          ref="tableRef"
-          v-loading="loading"
-          :data="articles"
-          :row-key="(row: ArticleVO) => row.id"
-          :row-class-name="getRowClass"
-          style="width: 100%"
-          @selection-change="handleSelectionChange"
-        >
-          <el-table-column type="selection" width="44" />
+      <!-- ── Table ── -->
+      <div class="table-wrap" :class="{ 'table-wrap--loading': loading }">
+        <div v-if="loading" class="table-loading">
+          <svg class="spinner" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="40" stroke-dashoffset="15"/>
+          </svg>
+        </div>
 
-          <el-table-column label="文章" min-width="260">
-            <template #default="{ row }">
-              <div class="title-cell">
-                <span
-                  class="article-title"
-                  :class="{ 'article-title--draft': row.status === 'DRAFT' }"
-                  @click="handleCommand('edit', row)"
-                >{{ row.title }}</span>
-              </div>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="分类" width="96">
-            <template #default="{ row }">
-              <span v-if="row.categoryName" class="category-tag">{{ row.categoryName }}</span>
-              <span v-else class="cell-muted">—</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="标签" min-width="160">
-            <template #default="{ row }">
-              <div v-if="row.tags.length > 0" class="tags-cell">
-                <span v-for="tag in row.tags.slice(0, 2)" :key="tag" class="tag-chip">{{ tag }}</span>
-                <span v-if="row.tags.length > 2" class="tag-more">+{{ row.tags.length - 2 }}</span>
-              </div>
-              <span v-else class="cell-muted">—</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="状态" width="130">
-            <template #default="{ row }">
-              <div class="status-cell">
-                <span v-if="row.publishedVersionId !== null" class="status-badge status-badge--published">已发布</span>
-                <span v-if="row.latestVersionId !== row.publishedVersionId" class="status-badge status-badge--draft">草稿</span>
-              </div>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="阅读" width="76" align="right">
-            <template #default="{ row }">
-              <span class="cell-muted">{{ row.status === 'PUBLISHED' ? formatViews(row.readCount) : '—' }}</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="更新时间" width="120">
-            <template #default="{ row }">
-              <el-tooltip :content="row.updateTime" placement="top">
-                <span class="cell-muted">{{ relativeTime(row.updateTime) }}</span>
-              </el-tooltip>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="" width="168" align="right" fixed="right">
-            <template #default="{ row }">
-              <div class="row-actions">
-                <button class="action-btn" @click="handleCommand('preview', row)">预览</button>
-                <button
-                  v-if="row.status === 'PUBLISHED'"
-                  class="action-btn"
-                  @click="handleCommand('togglePublish', row)"
-                >撤回</button>
-                <button class="action-btn action-btn--danger" @click="handleCommand('delete', row)">删除</button>
-              </div>
-            </template>
-          </el-table-column>
-
-          <template #empty>
-            <el-empty description="暂无文章" :image-size="80" />
-          </template>
-        </el-table>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="col-check">
+                <input
+                  type="checkbox"
+                  class="row-checkbox"
+                  :checked="allChecked"
+                  :indeterminate="someChecked"
+                  @change="toggleAll"
+                />
+              </th>
+              <th class="col-title">文章</th>
+              <th class="col-category">分类</th>
+              <th class="col-tags">标签</th>
+              <th class="col-status">状态</th>
+              <th class="col-views">阅读</th>
+              <th class="col-time">更新时间</th>
+              <th class="col-actions" />
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="articles.length === 0 && !loading">
+              <td colspan="8" class="empty-cell">
+                <div class="empty-state">
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/>
+                  </svg>
+                  <span>暂无文章</span>
+                </div>
+              </td>
+            </tr>
+            <tr
+              v-for="row in articles"
+              :key="row.id"
+              :class="{ 'row--draft': row.status === 'DRAFT', 'row--selected': selected.has(row.id) }"
+            >
+              <td class="col-check">
+                <input type="checkbox" class="row-checkbox" :checked="selected.has(row.id)" @change="toggleRow(row.id)" />
+              </td>
+              <td class="col-title">
+                <span class="article-title" :class="{ 'article-title--draft': row.status === 'DRAFT' }" @click="handleEdit(row)">
+                  {{ row.title }}
+                </span>
+              </td>
+              <td class="col-category">
+                <span v-if="row.categoryName" class="category-tag">{{ row.categoryName }}</span>
+                <span v-else class="cell-muted">—</span>
+              </td>
+              <td class="col-tags">
+                <div v-if="row.tags.length > 0" class="tags-cell">
+                  <span v-for="tag in row.tags.slice(0, 2)" :key="tag" class="tag-chip">{{ tag }}</span>
+                  <span v-if="row.tags.length > 2" class="tag-more">+{{ row.tags.length - 2 }}</span>
+                </div>
+                <span v-else class="cell-muted">—</span>
+              </td>
+              <td class="col-status">
+                <div class="status-cell">
+                  <span v-if="row.publishedVersionId !== null" class="status-badge status-badge--published">已发布</span>
+                  <span v-if="row.latestVersionId !== row.publishedVersionId" class="status-badge status-badge--draft">草稿</span>
+                </div>
+              </td>
+              <td class="col-views">
+                <span class="cell-muted">{{ row.status === 'PUBLISHED' ? formatViews(row.readCount) : '—' }}</span>
+              </td>
+              <td class="col-time">
+                <span class="cell-muted" :title="row.updateTime">{{ relativeTime(row.updateTime) }}</span>
+              </td>
+              <td class="col-actions">
+                <div class="row-actions">
+                  <button class="action-btn" @click="handlePreview(row)">预览</button>
+                  <button v-if="row.status === 'PUBLISHED'" class="action-btn" @click="handleTogglePublish(row)">撤回</button>
+                  <button class="action-btn action-btn--danger" @click="handleDelete(row)">删除</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <!-- ── Pagination ──────────────────────────────────────────────────────── -->
-      <div class="pagination-bar">
-        <el-pagination
-          v-model:current-page="pagination.pageNum"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
-          background
-          @current-change="handleCurrentChange"
-          @size-change="handleSizeChange"
-        />
+      <!-- ── Pagination ── -->
+      <div v-if="pagination.total > 0" class="pagination-bar">
+        <span class="pagination-total">共 {{ pagination.total }} 篇</span>
+        <div class="pagination-controls">
+          <button class="page-btn" :disabled="pagination.pageNum <= 1" @click="goPage(pagination.pageNum - 1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <template v-for="p in pageNumbers" :key="p">
+            <span v-if="p === '…'" class="page-ellipsis">…</span>
+            <button
+              v-else
+              class="page-btn page-btn--num"
+              :class="{ 'page-btn--active': p === pagination.pageNum }"
+              @click="goPage(p as number)"
+            >{{ p }}</button>
+          </template>
+          <button class="page-btn" :disabled="pagination.pageNum >= totalPages" @click="goPage(pagination.pageNum + 1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+        <select class="page-size-select" :value="pagination.pageSize" @change="pageSizeChange">
+          <option :value="10">10 / 页</option>
+          <option :value="20">20 / 页</option>
+          <option :value="50">50 / 页</option>
+        </select>
       </div>
 
     </div>
@@ -405,25 +414,23 @@ function formatViews(n: number) {
 </template>
 
 <style scoped>
-.articles-page {
-  display: flex;
-  flex-direction: column;
-}
+.articles-page { display: flex; flex-direction: column; }
 
 .main-card {
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 10px;
+  background: var(--admin-header-bg, #faf9f7);
+  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-radius: 4px;
   overflow: hidden;
 }
 
-/* ── Header ──────────────────────────────────────────────────────────────────── */
+/* ── Header ── */
+
 .card-header {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  border-bottom: 1px solid #f0f0f0;
-  padding: 0 20px;
+  border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+  padding: 0 16px 0 20px;
   gap: 12px;
 }
 
@@ -432,16 +439,12 @@ function formatViews(n: number) {
   align-items: center;
   gap: 8px;
   padding: 10px 0;
+  flex-shrink: 0;
 }
 
-.header-actions :deep(.el-button + .el-button) {
-  margin-left: 0;
-}
+/* ── Tabs ── */
 
-/* ── Tabs ────────────────────────────────────────────────────────────────────── */
-.view-tabs {
-  display: flex;
-}
+.view-tabs { display: flex; }
 
 .view-tab {
   display: inline-flex;
@@ -450,8 +453,9 @@ function formatViews(n: number) {
   padding: 0 4px;
   margin-right: 20px;
   height: 48px;
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 13.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text-muted, #b0a89e);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -460,141 +464,284 @@ function formatViews(n: number) {
   white-space: nowrap;
 }
 
-.view-tab:hover {
-  color: #374151;
-}
+.view-tab:hover { color: var(--admin-sidebar-text, #5a5248); }
 
 .view-tab--active {
-  color: #1d4ed8;
-  border-bottom-color: #1d4ed8;
-  font-weight: 500;
+  color: var(--admin-accent, #b85c38);
+  border-bottom-color: var(--admin-accent, #b85c38);
+  font-weight: 600;
 }
 
 .tab-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 18px;
+  min-width: 18px;
+  height: 16px;
   padding: 0 5px;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  background: #e0e7ff;
-  color: #3730a3;
-  border-radius: 10px;
+  background: rgba(184, 92, 56, 0.1);
+  color: var(--admin-accent, #b85c38);
+  border-radius: 8px;
 }
 
-/* ── Selection bar ───────────────────────────────────────────────────────────── */
+/* ── Search ── */
+
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 8px;
+  width: 14px;
+  height: 14px;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+  pointer-events: none;
+}
+
+.search-input {
+  height: 32px;
+  width: 180px;
+  padding: 0 28px 0 28px;
+  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-radius: 4px;
+  background: #fff;
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: #1a1610;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.search-input:focus { border-color: var(--admin-accent, #b85c38); }
+.search-input::placeholder { color: var(--admin-sidebar-text-muted, #b0a89e); }
+
+.search-clear {
+  position: absolute;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+  padding: 0;
+}
+
+.search-clear svg { width: 12px; height: 12px; }
+.search-clear:hover { color: var(--admin-sidebar-text, #5a5248); }
+
+/* ── Buttons ── */
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--admin-sidebar-text, #5a5248);
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.icon-btn svg { width: 14px; height: 14px; }
+.icon-btn:hover { background: var(--admin-sidebar-hover, #ece9e4); }
+
+.primary-btn {
+  height: 32px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--admin-accent, #b85c38);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.primary-btn svg { width: 13px; height: 13px; }
+.primary-btn:hover { background: var(--admin-accent-dark, #924530); }
+
+/* ── Selection bar ── */
+
 .selection-bar {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 20px;
-  background: #eff6ff;
-  border-bottom: 1px solid #bfdbfe;
+  padding: 9px 20px;
+  background: rgba(184, 92, 56, 0.05);
+  border-bottom: 1px solid rgba(184, 92, 56, 0.15);
 }
 
 .sel-count {
   font-size: 13px;
-  color: #1d4ed8;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-accent, #b85c38);
   white-space: nowrap;
 }
 
-.sel-count b {
-  font-weight: 700;
+.sel-count b { font-weight: 700; }
+
+.sel-actions { display: flex; gap: 6px; }
+
+.ghost-btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-radius: 4px;
+  background: #fff;
+  font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text, #5a5248);
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
 }
 
-.sel-actions {
-  display: flex;
-  gap: 8px;
-}
+.ghost-btn--sm { height: 26px; }
+.ghost-btn:hover { background: var(--admin-sidebar-hover, #ece9e4); }
+.ghost-btn--danger { color: #c0392b; border-color: rgba(192, 57, 43, 0.25); }
+.ghost-btn--danger:hover { background: rgba(192, 57, 43, 0.05); }
 
-.sel-cancel {
+.cancel-btn {
   margin-left: auto;
-  color: #6b7280;
+  font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
 }
+
+.cancel-btn:hover { color: var(--admin-sidebar-text, #5a5248); }
 
 .sel-bar-enter-active,
-.sel-bar-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
+.sel-bar-leave-active { transition: opacity 0.15s, transform 0.15s; }
 .sel-bar-enter-from,
-.sel-bar-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
+.sel-bar-leave-to { opacity: 0; transform: translateY(-4px); }
 
-/* ── Table ───────────────────────────────────────────────────────────────────── */
-.table-scroll-wrap {
+/* ── Table ── */
+
+.table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  position: relative;
+  min-height: 120px;
 }
 
-:deep(.el-table) {
-  --el-table-border-color: #f3f4f6;
-  --el-table-header-bg-color: #f9fafb;
-  --el-table-header-text-color: #6b7280;
-  --el-table-row-hover-bg-color: #f5f7ff;
-  --el-table-tr-bg-color: #fff;
+.table-wrap--loading { pointer-events: none; }
+
+.table-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(250, 249, 247, 0.7);
+  z-index: 1;
 }
 
-:deep(.el-table th) {
-  font-size: 12px;
+.spinner {
+  width: 24px;
+  height: 24px;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+}
+
+.data-table thead tr {
+  background: var(--admin-sidebar-hover, #ece9e4);
+  border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+}
+
+.data-table th {
+  padding: 9px 12px;
+  font-size: 11.5px;
   font-weight: 600;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+  text-align: left;
+  white-space: nowrap;
   letter-spacing: 0.3px;
 }
 
-/* Title cell */
-.title-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
+.data-table td {
+  padding: 11px 12px;
+  font-size: 13px;
+  color: #1a1610;
+  border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+  vertical-align: middle;
 }
 
-.pin-badge {
-  flex-shrink: 0;
-  font-size: 11px;
-  font-weight: 600;
-  color: #b45309;
-  background: #fef3c7;
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid #fde68a;
-}
+.data-table tbody tr:last-child td { border-bottom: none; }
+
+.data-table tbody tr:hover td { background: rgba(236, 233, 228, 0.4); }
+.row--selected td { background: rgba(184, 92, 56, 0.04); }
+
+.row--draft td:first-child { box-shadow: inset 3px 0 0 var(--admin-sidebar-border, #e8e4de); }
+
+/* Column widths */
+.col-check    { width: 40px; }
+.col-title    { min-width: 240px; }
+.col-category { width: 90px; }
+.col-tags     { min-width: 140px; }
+.col-status   { width: 120px; }
+.col-views    { width: 68px; text-align: right; }
+.col-time     { width: 110px; }
+.col-actions  { width: 150px; text-align: right; }
+
+.row-checkbox { cursor: pointer; accent-color: var(--admin-accent, #b85c38); }
+
+/* ── Table cells ── */
 
 .article-title {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
-  color: #111827;
+  color: #1a1610;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: block;
+  max-width: 320px;
   cursor: pointer;
-  transition: color 0.1s;
+  transition: color 0.12s;
 }
 
-.article-title:hover {
-  color: #1d4ed8;
-}
+.article-title:hover { color: var(--admin-accent, #b85c38); }
+.article-title--draft { color: var(--admin-sidebar-text-muted, #b0a89e); }
 
-.article-title--draft {
-  color: #6b7280;
-}
-
-/* Category */
 .category-tag {
   display: inline-block;
-  font-size: 12px;
-  color: #374151;
-  background: #f3f4f6;
+  font-size: 11.5px;
+  color: var(--admin-sidebar-text, #5a5248);
+  background: var(--admin-sidebar-hover, #ece9e4);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 3px;
   white-space: nowrap;
 }
 
-/* Tags */
 .tags-cell {
   display: flex;
   align-items: center;
@@ -606,155 +753,186 @@ function formatViews(n: number) {
   display: inline-flex;
   font-size: 11px;
   font-weight: 500;
-  color: #4338ca;
-  background: #e0e7ff;
+  color: var(--admin-accent, #b85c38);
+  background: rgba(184, 92, 56, 0.08);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 3px;
   white-space: nowrap;
 }
 
 .tag-more {
   font-size: 11px;
-  color: #9ca3af;
-  font-weight: 500;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
 }
 
-/* Status */
 .status-cell {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
-  justify-content: center;
 }
 
 .status-badge {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 3px;
+  font-size: 11.5px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .status-badge--published {
-  background: #f0fdf4;
+  background: rgba(22, 163, 74, 0.08);
   color: #16a34a;
-  border: 1px solid #bbf7d0;
+  border: 1px solid rgba(22, 163, 74, 0.2);
 }
 
 .status-badge--draft {
-  background: #f9fafb;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
+  background: var(--admin-sidebar-hover, #ece9e4);
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+  border: 1px solid var(--admin-sidebar-border, #e8e4de);
 }
 
-
-/* Misc */
 .cell-muted {
-  font-size: 13px;
-  color: #6b7280;
+  font-size: 12.5px;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
 }
 
-/* Row actions */
 .row-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 2px;
 }
 
 .action-btn {
-  font-size: 13px;
-  font-weight: 500;
-  color: #4338ca;
+  font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text, #5a5248);
   background: transparent;
   border: none;
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 5px;
+  border-radius: 3px;
   white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
 }
 
-.action-btn:hover {
-  background: #ede9fe;
+.action-btn:hover { background: var(--admin-sidebar-hover, #ece9e4); }
+.action-btn--danger { color: #c0392b; }
+.action-btn--danger:hover { background: rgba(192, 57, 43, 0.08); }
+
+/* ── Empty ── */
+
+.empty-cell { padding: 0 !important; border: none !important; }
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 60px 0;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
 }
 
-.action-btn--danger {
-  color: var(--el-color-danger);
+.empty-icon { width: 32px; height: 32px; opacity: 0.3; }
+
+.empty-state span {
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
 }
 
-.action-btn--danger:hover {
-  background: #fee2e2;
-}
+/* ── Pagination ── */
 
-/* Draft row: amber left accent */
-:deep(.el-table .row--draft .el-table__cell:first-child) {
-  box-shadow: inset 3px 0 0 #f59e0b;
-}
-
-/* ── Pagination ──────────────────────────────────────────────────────────────── */
 .pagination-bar {
   display: flex;
-  justify-content: flex-end;
-  padding: 14px 20px;
-  border-top: 1px solid #f3f4f6;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--admin-sidebar-border, #e8e4de);
 }
 
-/* ── Mobile ──────────────────────────────────────────────────────────────────── */
+.pagination-total {
+  font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+}
+
+.page-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-radius: 3px;
+  background: #fff;
+  font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text, #5a5248);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.page-btn svg { width: 13px; height: 13px; }
+.page-btn:hover:not(:disabled) { background: var(--admin-sidebar-hover, #ece9e4); }
+.page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.page-btn--num { min-width: 28px; }
+.page-btn--active {
+  background: var(--admin-accent, #b85c38);
+  border-color: var(--admin-accent, #b85c38);
+  color: #fff;
+  font-weight: 600;
+}
+
+.page-btn--active:hover { background: var(--admin-accent, #b85c38); }
+
+.page-ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  font-size: 12.5px;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+}
+
+.page-size-select {
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-radius: 3px;
+  background: #fff;
+  font-size: 12px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text, #5a5248);
+  outline: none;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+/* ── Mobile ── */
+
 @media (max-width: 768px) {
-  .card-header {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 0 12px;
-    gap: 0;
-  }
-
-  .view-tabs {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    border-bottom: 1px solid #f0f0f0;
-  }
-
-  .view-tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .view-tab {
-    flex-shrink: 0;
-    margin-right: 12px;
-    height: 42px;
-    font-size: 13px;
-  }
-
-  .header-actions {
-    padding: 8px 0;
-    flex-wrap: wrap;
-  }
-
-  .header-actions .el-input {
-    width: 100% !important;
-    flex: 1 1 120px;
-  }
-
-  .selection-bar {
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px 12px;
-  }
-
-  .sel-actions {
-    flex-wrap: wrap;
-  }
-
-  .sel-cancel {
-    margin-left: 0;
-  }
-
-  .pagination-bar {
-    padding: 12px;
-    justify-content: center;
-  }
+  .card-header { flex-direction: column; align-items: stretch; padding: 0 12px; gap: 0; }
+  .view-tabs { overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de); }
+  .view-tabs::-webkit-scrollbar { display: none; }
+  .view-tab { flex-shrink: 0; margin-right: 12px; height: 42px; }
+  .header-actions { padding: 8px 0; flex-wrap: wrap; }
+  .search-input { width: 140px; }
+  .selection-bar { flex-wrap: wrap; padding: 8px 12px; }
+  .sel-cancel { margin-left: 0; }
+  .pagination-bar { padding: 10px 12px; flex-wrap: wrap; gap: 6px; }
+  .page-size-select { margin-left: 0; }
 }
 </style>
