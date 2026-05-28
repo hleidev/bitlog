@@ -51,7 +51,7 @@ async function handleLogout() {
       <span v-else class="ud-avatar ud-avatar--placeholder">{{ avatarLetter }}</span>
       <div class="ud-profile-info">
         <span class="ud-name">{{ displayName }}</span>
-        <span v-if="userInfo?.username" class="ud-position">{{ userInfo.username }}</span>
+        <span v-if="userInfo?.username" class="ud-position">@{{ userInfo.username }}</span>
       </div>
     </div>
 
