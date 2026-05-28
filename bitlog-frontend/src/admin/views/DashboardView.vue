@@ -1,39 +1,74 @@
 <script setup lang="ts">
-import { Document, User, ChatLineRound, TrendCharts } from '@element-plus/icons-vue'
-
 const stats = [
-  { label: '文章总数', value: '—', sub: '篇', icon: Document, color: '#4a8db7' },
-  { label: '注册用户', value: '—', sub: '人', icon: User, color: '#52c41a' },
-  { label: '评论总数', value: '—', sub: '条', icon: ChatLineRound, color: '#faad14' },
-  { label: '总访问量', value: '—', sub: '次', icon: TrendCharts, color: '#eb2f96' },
+  {
+    label: '文章总数',
+    value: '—',
+    unit: '篇',
+    icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z',
+  },
+  {
+    label: '注册用户',
+    value: '—',
+    unit: '人',
+    icon: 'M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z',
+  },
+  {
+    label: '评论总数',
+    value: '—',
+    unit: '条',
+    icon: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z',
+  },
+  {
+    label: '总访问量',
+    value: '—',
+    unit: '次',
+    icon: 'M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z',
+  },
 ]
 </script>
 
 <template>
   <div class="dashboard">
-    <div class="stat-grid">
-      <el-card v-for="item in stats" :key="item.label" class="stat-card" shadow="never">
-        <div class="stat-content">
-          <div class="stat-icon" :style="{ backgroundColor: item.color + '1a', color: item.color }">
-            <el-icon :size="24"><component :is="item.icon" /></el-icon>
-          </div>
-          <div class="stat-info">
-            <div class="stat-label">{{ item.label }}</div>
-            <div class="stat-value">
-              {{ item.value }}
-              <span class="stat-unit">{{ item.sub }}</span>
-            </div>
-          </div>
-        </div>
-      </el-card>
+
+    <!-- Page title -->
+    <div class="page-header">
+      <div class="title-row">
+        <h2 class="page-title">概览</h2>
+        <div class="title-rule" />
+      </div>
     </div>
 
-    <el-card shadow="never" class="placeholder-card">
-      <template #header>
-        <span class="card-title">最近文章</span>
-      </template>
-      <el-empty description="暂无数据" :image-size="80" />
-    </el-card>
+    <!-- Stat cards -->
+    <div class="stat-grid">
+      <div v-for="item in stats" :key="item.label" class="stat-card">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path :d="item.icon" />
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">{{ item.label }}</span>
+          <div class="stat-value">
+            {{ item.value }}<span class="stat-unit">{{ item.unit }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent articles placeholder -->
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-label">最近文章</span>
+        <div class="section-rule" />
+      </div>
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z" />
+        </svg>
+        <span>暂无数据</span>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -41,100 +76,162 @@ const stats = [
 .dashboard {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
+
+/* ── Header ── */
+
+.page-header {
+  display: flex;
+  align-items: center;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.page-title {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1610;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.title-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--admin-sidebar-border, #e8e4de);
+}
+
+/* ── Stat grid ── */
 
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 .stat-card {
-  border-radius: 8px;
-  border: 1px solid #f0f0f0;
-}
-
-.stat-card :deep(.el-card__body) {
-  padding: 20px;
-}
-
-.stat-content {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+  padding: 18px;
+  background: var(--admin-header-bg, #faf9f7);
+  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-radius: 4px;
 }
 
-.stat-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
+.stat-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: rgba(184, 92, 56, 0.08);
+  color: var(--admin-accent, #b85c38);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
+.stat-icon-wrap svg {
+  width: 20px;
+  height: 20px;
+}
+
 .stat-info {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
 
 .stat-label {
-  font-size: 13px;
-  color: #8c8c8c;
-  margin-bottom: 6px;
+  font-size: 12px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text-muted, #b0a89e);
 }
 
 .stat-value {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 700;
-  color: #262626;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: #1a1610;
   line-height: 1;
 }
 
 .stat-unit {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
-  color: #8c8c8c;
-  margin-left: 2px;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+  margin-left: 3px;
 }
 
-.placeholder-card {
-  border-radius: 8px;
-  border: 1px solid #f0f0f0;
+/* ── Section card ── */
+
+.section-card {
+  background: var(--admin-header-bg, #faf9f7);
+  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-radius: 4px;
+  padding: 18px 20px 24px;
 }
 
-.card-title {
-  font-size: 15px;
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.section-label {
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 13.5px;
   font-weight: 600;
-  color: #262626;
+  color: #1a1610;
+  white-space: nowrap;
 }
+
+.section-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--admin-sidebar-border, #e8e4de);
+}
+
+/* ── Empty state ── */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 0;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+}
+
+.empty-icon {
+  width: 32px;
+  height: 32px;
+  opacity: 0.3;
+}
+
+.empty-state span {
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+}
+
+/* ── Responsive ── */
 
 @media (max-width: 900px) {
-  .stat-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
-  .stat-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-
-  .stat-card :deep(.el-card__body) {
-    padding: 14px;
-  }
-
-  .stat-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-  }
-
-  .stat-value {
-    font-size: 20px;
-  }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-card { padding: 14px; }
+  .stat-value { font-size: 18px; }
 }
 </style>
