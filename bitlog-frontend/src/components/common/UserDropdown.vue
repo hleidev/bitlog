@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/useUserStore'
 import { storeToRefs } from 'pinia'
@@ -11,6 +11,7 @@ const props = withDefaults(defineProps<{ showAdminLinks?: boolean }>(), {
 
 const emit = defineEmits<{ close: [] }>()
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const { userInfo, isAdmin } = storeToRefs(userStore)
@@ -33,7 +34,7 @@ async function handleLogout() {
     return
   }
   await userStore.logout()
-  router.push('/')
+  router.push(route.path.startsWith('/admin') ? '/admin/login' : '/')
 }
 </script>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import BaseModal from './BaseModal.vue'
 import { useModalStore } from '@/stores/useModalStore'
 import { useUserStore } from '@/stores/useUserStore'
@@ -20,8 +20,9 @@ const loginErrors = ref({ username: '', password: '' })
 const registerForm = ref({ username: '', password: '', confirmPassword: '' })
 const registerErrors = ref({ username: '', password: '', confirmPassword: '' })
 
-const loading = ref(false)
-const apiError = ref('')
+const loading        = ref(false)
+const apiError       = ref('')
+const usernameInputRef = ref<HTMLInputElement | null>(null)
 
 const USERNAME_RE = /^[a-zA-Z0-9_-]{4,16}$/
 const PASSWORD_RE = /^[a-zA-Z0-9_@#%&!$*-]{8,20}$/
@@ -153,6 +154,7 @@ watch(
       registerForm.value = { username: '', password: '', confirmPassword: '' }
       registerErrors.value = { username: '', password: '', confirmPassword: '' }
       apiError.value = ''
+      nextTick(() => usernameInputRef.value?.focus())
     }
   },
 )
@@ -176,6 +178,7 @@ watch(
           <label class="form-label" for="login-username">用户名</label>
           <input
             id="login-username"
+            ref="usernameInputRef"
             v-model="loginForm.username"
             class="form-input"
             :class="{ 'form-input--error': loginErrors.username }"
@@ -184,6 +187,7 @@ watch(
             autocomplete="username"
             :disabled="loading"
             @blur="validateLoginUsername"
+            @keyup.enter="handleLogin"
           />
           <p v-if="loginErrors.username" class="field-error">{{ loginErrors.username }}</p>
         </div>
@@ -204,6 +208,7 @@ watch(
             autocomplete="current-password"
             :disabled="loading"
             @blur="validateLoginPassword"
+            @keyup.enter="handleLogin"
           />
           <p v-if="loginErrors.password" class="field-error">{{ loginErrors.password }}</p>
         </div>

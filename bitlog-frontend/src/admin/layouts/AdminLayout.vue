@@ -3,6 +3,8 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminSidebar from '@/admin/components/AdminSidebar.vue'
 import AdminHeader from '@/admin/components/AdminHeader.vue'
+import AdminToast from '@/admin/components/AdminToast.vue'
+import AdminConfirmDialog from '@/admin/components/AdminConfirmDialog.vue'
 import '@/admin/styles/variables.css'
 
 const MOBILE_BP = 768
@@ -68,6 +70,9 @@ watch(() => route.path, () => {
         <RouterView />
       </div>
     </div>
+
+    <AdminToast />
+    <AdminConfirmDialog />
   </div>
 </template>
 
