@@ -45,7 +45,7 @@ const adminMenus: MenuItem[] = [
   {
     title: '用户', icon: 'users', key: 'users', defaultPath: '/admin/users',
     children: [
-      { title: '用户管理', icon: 'list', path: '/admin/users' },
+      { title: '用户管理', icon: 'users', path: '/admin/users' },
       { title: '个人资料', icon: 'user', path: '/admin/profile' },
     ],
   },
