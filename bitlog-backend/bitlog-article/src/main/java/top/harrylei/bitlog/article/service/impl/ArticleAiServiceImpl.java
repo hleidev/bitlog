@@ -39,8 +39,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ArticleAiServiceImpl implements ArticleAiService {
 
-    private static final int CONTENT_MAX_CHARS = 3000;
-    private static final int SUMMARY_MAX_CHARS = 100;
     private static final int SUGGESTED_TAGS_MAX = 2;
 
     private static final String METADATA_SYSTEM_PROMPT = "你是一个博客写作助手，擅长根据文章内容生成摘要并推荐合适的分类和标签。";
@@ -95,7 +93,7 @@ public class ArticleAiServiceImpl implements ArticleAiService {
         String tagOptions = tags.stream().map(t -> t.getId() + ":" + t.getName()).collect(Collectors.joining("\n"));
 
         String userMessage = METADATA_USER_PROMPT_TEMPLATE.formatted(categoryOptions, tagOptions, version.getTitle(),
-            truncate(version.getContent()));
+            version.getContent());
 
         String raw = aiModelRouter.chat(AiFeature.ARTICLE_SUGGESTIONS, METADATA_SYSTEM_PROMPT, userMessage);
         log.debug("AI 元数据原始响应 articleId={} raw={}", articleId, raw);
@@ -117,9 +115,6 @@ public class ArticleAiServiceImpl implements ArticleAiService {
         Map<Long, TagDO> tagMap = tags.stream().collect(Collectors.toMap(TagDO::getId, t -> t));
 
         String summary = parsed.summary != null ? parsed.summary : "";
-        if (summary.length() > SUMMARY_MAX_CHARS) {
-            summary = summary.substring(0, SUMMARY_MAX_CHARS);
-        }
 
         CategoryVO category = null;
         if (parsed.categoryId != null && categoryMap.containsKey(parsed.categoryId)) {
@@ -170,13 +165,6 @@ public class ArticleAiServiceImpl implements ArticleAiService {
         if (!article.getUserId().equals(userId)) {
             ResultCode.ARTICLE_NO_PERMISSION.throwException();
         }
-    }
-
-    private String truncate(String content) {
-        if (content == null) {
-            return "";
-        }
-        return content.length() > CONTENT_MAX_CHARS ? content.substring(0, CONTENT_MAX_CHARS) + "..." : content;
     }
 
     @Data
