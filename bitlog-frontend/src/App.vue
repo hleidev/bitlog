@@ -23,4 +23,5 @@ watch(
 
 <template>
   <RouterView />
+  <ConfirmDialog />
 </template>

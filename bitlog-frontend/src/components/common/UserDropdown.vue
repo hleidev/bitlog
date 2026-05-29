@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
+import { useConfirm } from '@/composables/useConfirm'
 import { useUserStore } from '@/stores/useUserStore'
 import { storeToRefs } from 'pinia'
 
@@ -15,6 +15,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const { userInfo, isAdmin } = storeToRefs(userStore)
+const confirm = useConfirm()
 
 const displayName = computed(() => userInfo.value?.nickname ?? '')
 const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase() || '?')
@@ -26,10 +27,7 @@ function close() {
 async function handleLogout() {
   close()
   try {
-    await ElMessageBox.confirm('确认注销登录？', '注销', {
-      confirmButtonText: '注销',
-      cancelButtonText: '取消',
-    })
+    await confirm('确认注销登录？', '注销', { confirmText: '注销', cancelText: '取消' })
   } catch {
     return
   }
