@@ -4,7 +4,7 @@
     <conversionRule conversionWord="clr" class="org.springframework.boot.logging.logback.ColorConverter"/>
     <conversionRule conversionWord="wEx" class="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
 
-    <!-- ===== Dev: 彩色 Console，DEBUG ===== -->
+    <!-- ===== Dev: 彩色 Console（DEBUG）+ 文件（INFO+） ===== -->
     <springProfile name="dev">
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -12,8 +12,23 @@
             </encoder>
         </appender>
 
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/bitlog.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>logs/bitlog.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>7</maxHistory>
+                <totalSizeCap>200MB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>${LOG_PATTERN}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
         </root>
         <logger name="top.harrylei.bitlog" level="DEBUG"/>
     </springProfile>
