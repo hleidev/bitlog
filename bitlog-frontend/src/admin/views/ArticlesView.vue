@@ -348,13 +348,12 @@ function formatViews(n: number) {
                 </span>
               </td>
               <td class="col-category">
-                <span v-if="row.categoryName" class="category-tag">{{ row.categoryName }}</span>
+                <span v-if="row.category" class="category-tag">{{ row.category.name }}</span>
                 <span v-else class="cell-muted">—</span>
               </td>
               <td class="col-tags">
                 <div v-if="row.tags.length > 0" class="tags-cell">
-                  <span v-for="tag in row.tags.slice(0, 2)" :key="tag" class="tag-chip">{{ tag }}</span>
-                  <span v-if="row.tags.length > 2" class="tag-more">+{{ row.tags.length - 2 }}</span>
+                  <span v-for="tag in row.tags" :key="tag" class="tag-chip">{{ tag }}</span>
                 </div>
                 <span v-else class="cell-muted">—</span>
               </td>
@@ -746,7 +745,7 @@ function formatViews(n: number) {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .tag-chip {
@@ -760,10 +759,6 @@ function formatViews(n: number) {
   white-space: nowrap;
 }
 
-.tag-more {
-  font-size: 11px;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
-}
 
 .status-cell {
   display: inline-flex;

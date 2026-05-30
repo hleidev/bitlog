@@ -188,8 +188,8 @@ async function loadDraft() {
     hasDraftAbovePublish.value  = data.publishedVersionId !== null && data.latestVersionId !== data.publishedVersionId
     publishForm.value = {
       summary:    data.summary ?? '',
-      categoryId: data.categoryId,
-      tagIds:     [...data.tagIds],
+      categoryId: data.category?.id ?? null,
+      tagIds:     data.tags.map(t => t.id),
     }
     await loadVersions()
     saveState.value = 'saved'
@@ -344,10 +344,15 @@ function openPreview() {
     toast.warning('请先保存文章')
     return
   }
-  if (isPublished.value) {
-    window.open(`/article/${articleId}`, '_blank')
-  } else {
+  // 有未发布的草稿内容 → 预览草稿页；内容一致或从未发布过 → 预览公开页
+  const hasUnpublishedChanges = latestVersionId.value !== null &&
+    publishedVersionId.value !== null &&
+    latestVersionId.value !== publishedVersionId.value
+
+  if (hasUnpublishedChanges) {
     window.open(`/admin/preview/${articleId}`, '_blank')
+  } else {
+    window.open(`/article/${articleId}`, '_blank')
   }
 }
 

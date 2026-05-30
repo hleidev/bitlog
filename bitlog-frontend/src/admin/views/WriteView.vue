@@ -414,11 +414,11 @@ async function loadDraft() {
     publishedVersionId.value = data.publishedVersionId
     publishForm.value = {
       summary:    data.summary ?? '',
-      categoryId: data.categoryId,
-      tagIds:     [...data.tagIds],
+      categoryId: data.category?.id ?? null,
+      tagIds:     data.tags.map(t => t.id),
     }
-    categorySelectVal.value = data.categoryId
-    tagSelectVals.value     = [...data.tagIds]
+    categorySelectVal.value = data.category?.id ?? null
+    tagSelectVals.value     = data.tags.map(t => t.id)
     await loadVersions()
     // Wait for Vue to flush the watchers triggered by title/content assignment
     // before re-enabling auto-save, so the load itself never triggers a save.
@@ -454,10 +454,16 @@ async function handleSave() {
 }
 
 function openPreview() {
-  if (isPublished.value) {
-    window.open(`/article/${currentId.value}`, '_blank')
-  } else {
+  // 有未发布的草稿内容（latestVersionId !== publishedVersionId）→ 预览草稿页
+  // 内容一致或从未发布过 → 预览公开页
+  const hasUnpublishedChanges = latestVersionId.value !== null &&
+    publishedVersionId.value !== null &&
+    latestVersionId.value !== publishedVersionId.value
+
+  if (hasUnpublishedChanges) {
     window.open(`/admin/preview/${currentId.value}`, '_blank')
+  } else {
+    window.open(`/article/${currentId.value}`, '_blank')
   }
 }
 

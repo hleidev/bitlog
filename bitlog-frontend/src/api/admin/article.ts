@@ -16,10 +16,8 @@ export interface ArticleVO {
   cover: string | null
   summary: string | null
   status: ArticleStatus
-  categoryId: number | null
-  categoryName: string | null
-  tagIds: number[]
-  tags: string[]
+  category: { id: number; name: string } | null
+  tags: { id: number; name: string }[]
   publishTime: string | null
   createTime: string
   updateTime: string
@@ -41,10 +39,8 @@ export interface ArticleDetailVO {
   cover: string | null
   summary: string | null
   status: ArticleStatus
-  categoryId: number | null
-  categoryName: string | null
-  tagIds: number[]
-  tags: string[]
+  category: { id: number; name: string } | null
+  tags: { id: number; name: string }[]
   publishTime: string | null
   createTime: string
   updateTime: string
