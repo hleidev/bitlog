@@ -166,6 +166,7 @@ onMounted(async () => {
 :deep(.editor code) { font-family: var(--font-mono); font-size: 0.875em; background: var(--color-bg-hover); color: var(--color-accent-light); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--color-border); }
 :deep(.editor pre) { background: #282828; border-radius: 4px; padding: 20px 24px; overflow-x: auto; margin: 24px 0; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.65; color: #fff; }
 :deep(.editor pre code) { background: none; color: inherit; padding: 0; border: none; font-size: inherit; }
+:deep(.prose-code-wrap .prose-code-block) { padding: 46px 22px 20px; margin: 0; }
 :deep(.editor blockquote) { border-left: 2px solid var(--color-accent); margin: 28px 0; padding: 14px 20px; background: rgba(184, 92, 56, 0.04); position: relative; }
 :deep(.editor blockquote::before) { display: none; }
 :deep(.editor blockquote p) { margin: 0; color: var(--color-text-muted); font-style: italic; }
@@ -238,13 +239,13 @@ onMounted(async () => {
 :deep(.me-raw-editor) {
   display: block;
   width: 100%;
-  background: #282828;
-  color: #e8e8e8;
-  caret-color: #e8e8e8;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  caret-color: var(--color-text-primary);
   font-family: var(--font-mono);
-  font-size: 13.5px;
-  line-height: 1.65;
-  padding: 14px 18px;
+  font-size: 14px;
+  line-height: 1.7;
+  padding: 14px 0;
   border: none;
   outline: none;
   resize: none;
@@ -257,10 +258,12 @@ onMounted(async () => {
 
 /* ── Code block edit layer ─────────────────────────────────────────────────── */
 :deep(.me-code__edit) {
-  border-radius: 4px;
+  border-radius: 0;
   overflow: hidden;
   margin: 26px 0;
-  border: 2px solid var(--color-accent, #b85c38);
+  border: none;
+  border-left: 2px solid var(--color-accent);
+  padding-left: 16px;
 }
 
 @media (max-width: 768px) {
