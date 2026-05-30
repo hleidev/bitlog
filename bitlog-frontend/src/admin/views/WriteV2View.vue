@@ -1172,15 +1172,10 @@ onBeforeRouteLeave(async () => {
 
 /* ── Mermaid NodeView ──────────────────────────────────────────────────────── */
 :deep(.me-mermaid) {
-  border: 1px solid var(--color-border, #e8e4de);
-  border-radius: 4px;
   margin: 24px 0;
-  overflow: hidden;
 }
 
 :deep(.me-mermaid__preview) {
-  padding: 24px 20px;
-  background: #fff;
   text-align: center;
   min-height: 48px;
   display: flex;
@@ -1191,7 +1186,9 @@ onBeforeRouteLeave(async () => {
 }
 
 :deep(.me-mermaid.is-editing) {
-  border: 2px solid var(--color-accent, #b85c38);
+  outline: 2px solid var(--color-accent, #b85c38);
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 
 :deep(.me-mermaid__preview svg) {
