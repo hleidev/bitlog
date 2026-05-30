@@ -68,7 +68,14 @@ const renderMermaid = async () => {
   const els = document.querySelectorAll<HTMLElement>('.prose .' + MERMAID_CLASS)
   if (!els.length) return
   mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: getMermaidTheme() })
-  els.forEach((el) => el.removeAttribute('data-processed'))
+  els.forEach((el) => {
+    if (!el.dataset.mermaidSrc) {
+      el.dataset.mermaidSrc = el.textContent ?? ''
+    } else {
+      el.textContent = el.dataset.mermaidSrc
+    }
+    el.removeAttribute('data-processed')
+  })
   await mermaid.run({ nodes: Array.from(els), suppressErrors: true })
 }
 
