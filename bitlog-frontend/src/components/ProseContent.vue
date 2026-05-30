@@ -67,7 +67,7 @@ const getMermaidTheme = () =>
 const renderMermaid = async () => {
   const els = document.querySelectorAll<HTMLElement>('.prose .' + MERMAID_CLASS)
   if (!els.length) return
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: getMermaidTheme() })
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: getMermaidTheme() })
   els.forEach((el) => {
     if (!el.dataset.mermaidSrc) {
       el.dataset.mermaidSrc = el.textContent ?? ''
@@ -105,7 +105,7 @@ const handleClick = async (e: MouseEvent) => {
     } else if (type === 'green') {
       const code = wrap.querySelector('.prose-code-block code')
       fullscreenLang.value = wrap.querySelector('.prose-code-lang')?.textContent?.trim() ?? ''
-      fullscreenHighlighted.value = code?.innerHTML ?? ''
+      fullscreenHighlighted.value = DOMPurify.sanitize(code?.innerHTML ?? '', { USE_PROFILES: { html: true } })
       fullscreenVisible.value = true
     }
   }

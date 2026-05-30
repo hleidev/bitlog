@@ -87,7 +87,7 @@ function buildProseCodeWrap(lang: string, code: string, getText: () => string): 
 
 let mermaidSeq = 0
 
-mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' })
+mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' })
 
 async function renderMermaid(container: HTMLElement, code: string) {
   if (!code.trim()) {
