@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
-import { useToast } from '@/admin/composables/useToast'
-import { useConfirm } from '@/admin/composables/useConfirm'
-import { Crepe, CrepeFeature } from '@milkdown/crepe'
-import '@milkdown/crepe/theme/frame.css'
-import { getMarkdown, replaceAll } from '@milkdown/kit/utils'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowLeft, Fold, Expand } from '@element-plus/icons-vue'
+import { MdEditor, NormalToolbar } from 'md-editor-v3'
+import type { ToolbarNames, ExposeParam } from 'md-editor-v3'
+import { Image as ImageIcon } from 'lucide-vue-next'
+import 'md-editor-v3/lib/style.css'
 import { diffLines, diffWords } from 'diff'
 import {
   createArticle,
@@ -25,80 +26,32 @@ import { getTags, getOrCreateTag, type Tag } from '@/api/admin/tag'
 import { uploadFile } from '@/api/file'
 import { ApiError } from '@/utils/request'
 
-const route   = useRoute()
-const router  = useRouter()
-const toast   = useToast()
-const confirm = useConfirm()
+const route  = useRoute()
+const router = useRouter()
 
 const currentId = ref<number | null>(route.params.id ? Number(route.params.id) : null)
 const isEdit    = computed(() => currentId.value !== null)
 
-// ── Crepe editor ───────────────────────────────────────────────────────────────
-const editorContainer = ref<HTMLDivElement>()
-let crepe: Crepe | null = null
+// ── Editor state ───────────────────────────────────────────────────────────────
+const title   = ref('')
+const content = ref('')
 
-async function initCrepe(initialMarkdown = '') {
-  if (!editorContainer.value) return
-  crepe = new Crepe({
-    root: editorContainer.value,
-    defaultValue: initialMarkdown,
-    features: {
-      [CrepeFeature.BlockEdit]:       true,
-      [CrepeFeature.Cursor]:         true,
-      [CrepeFeature.ImageBlock]:     true,
-      [CrepeFeature.LinkTooltip]:    true,
-      [CrepeFeature.ListItem]:       true,
-      [CrepeFeature.Placeholder]:    true,
-      [CrepeFeature.Table]:          true,
-      [CrepeFeature.Toolbar]:        true,
-    },
-    featureConfigs: {
-      [CrepeFeature.Placeholder]: { text: '开始写作...' },
-      [CrepeFeature.ImageBlock]: {
-        onUpload: async (file: File) => {
-          const result = await uploadFile(file, 'article')
-          return result.fileUrl
-        },
-      },
-    },
-  })
-
-  await crepe.create()
-
-  crepe.on((listener) => {
-    listener.markdownUpdated((_ctx, markdown) => {
-      if (suppressFirstMarkdownUpdate) {
-        suppressFirstMarkdownUpdate = false
-        return
-      }
-      content.value = markdown
-    })
-  })
-}
-
-function crepeDestroy() {
-  if (crepe) {
-    crepe.destroy()
-    crepe = null
-  }
-}
-
-function getCrepeMarkdown(): string {
-  if (!crepe) return content.value
-  return crepe.getMarkdown()
-}
-
-function setCrepeMarkdown(md: string) {
-  if (crepe) {
-    crepe.action(replaceAll(md))
-  }
-  content.value = md
-}
-
-// ── Article metadata ───────────────────────────────────────────────────────────
+// ── Article metadata (populated from draft detail) ─────────────────────────────
 const latestVersionId    = ref<number | null>(null)
 const publishedVersionId = ref<number | null>(null)
+
 const isPublished = computed(() => publishedVersionId.value !== null)
+
+// ── Toolbar config ─────────────────────────────────────────────────────────────
+const toolbars: ToolbarNames[] = [
+  'bold', 'italic', 'strikeThrough', '-',
+  'title', 'quote', '-',
+  'unorderedList', 'orderedList', 'task', '-',
+  'codeRow', 'code', 'link', 0, 'table',
+  '=',
+  'revoke', 'next', '-',
+  'preview', 'pageFullscreen',
+]
 
 // ── Publish dialog ─────────────────────────────────────────────────────────────
 const publishDialogVisible = ref(false)
@@ -110,18 +63,21 @@ const publishForm = ref({
   tagIds:     [] as number[],
 })
 
-// ── AI metadata recommendation ─────────────────────────────────────────────────
+// ── AI metadata recommendation ────────────────────────────────────────────────
 const aiGenerating    = ref(false)
 const aiSummaryResult = ref<string | null>(null)
+// null = not shown, false = shown but no match, object = match found
 const aiCatResult     = ref<{ id: number; name: string } | false | null>(null)
 const aiTagsResult    = ref<{ existing: Array<{ id: number; name: string }>; suggested: string[] } | null>(null)
 
 async function runAiRecommend() {
   if (!currentId.value) return
-  aiGenerating.value = true
-  aiSummaryResult.value = aiCatResult.value = aiTagsResult.value = null
+  aiGenerating.value    = true
+  aiSummaryResult.value = null
+  aiCatResult.value     = null
+  aiTagsResult.value    = null
   try {
-    const data = await generateAiMetadata(currentId.value)
+    const data            = await generateAiMetadata(currentId.value)
     aiSummaryResult.value = data.summary
     aiCatResult.value     = data.category ?? false
     aiTagsResult.value    = { existing: data.tags, suggested: data.suggestedTags }
@@ -140,153 +96,43 @@ function acceptAiSummary() {
 
 function applyAiCategory() {
   if (!aiCatResult.value) return
-  selectCategory(aiCatResult.value.id, aiCatResult.value.name)
+  categorySelectVal.value = aiCatResult.value.id
+  handleCategoryChange(aiCatResult.value.id)
   aiCatResult.value = null
 }
 
 function applyAiExistingTag(tag: { id: number; name: string }) {
-  if (publishForm.value.tagIds.includes(tag.id)) return
+  if (tagSelectVals.value.includes(tag.id)) return
+  tagSelectVals.value      = [...tagSelectVals.value, tag.id]
   publishForm.value.tagIds = [...publishForm.value.tagIds, tag.id]
   if (!tagOptions.value.find(t => t.id === tag.id))
     tagOptions.value = [...tagOptions.value, { id: tag.id, name: tag.name, articleCount: 0, createTime: '', updateTime: '' }]
 }
 
 function applyAiSuggestedTag(name: string) {
-  if (!pendingTagNames.value.includes(name)) pendingTagNames.value = [...pendingTagNames.value, name]
+  if (!tagSelectVals.value.includes(name)) tagSelectVals.value = [...tagSelectVals.value, name]
 }
 
-// ── Category combobox ──────────────────────────────────────────────────────────
-const catSearch     = ref('')
-const catDropOpen   = ref(false)
-const catInputRef   = ref<HTMLInputElement | null>(null)
+// ── Content image upload ──────────────────────────────────────────────────────
+const editorRef    = ref<ExposeParam>()
+const imgInputRef  = ref<HTMLInputElement | null>(null)
 
-const selectedCategoryName = computed(() => {
-  const id = publishForm.value.categoryId
-  if (!id) return ''
-  return categoryOptions.value.find(c => c.id === id)?.name ?? ''
-})
-
-const filteredCats = computed(() => {
-  const q = catSearch.value.trim().toLowerCase()
-  if (!q) return categoryOptions.value
-  return categoryOptions.value.filter(c => c.name.toLowerCase().includes(q))
-})
-
-const canCreateCat = computed(() => {
-  const q = catSearch.value.trim()
-  return q.length > 0 && !categoryOptions.value.some(c => c.name === q)
-})
-
-function openCatDrop() {
-  catSearch.value = ''
-  catDropOpen.value = true
-  nextTick(() => catInputRef.value?.focus())
-}
-
-function closeCatDrop() { catDropOpen.value = false }
-
-function selectCategory(id: number, name: string) {
-  publishForm.value.categoryId = id
-  catSearch.value  = ''
-  catDropOpen.value = false
-  if (!categoryOptions.value.find(c => c.id === id))
-    categoryOptions.value = [...categoryOptions.value, { id, name, articleCount: 0, createTime: '' }]
-}
-
-function clearCategory() {
-  publishForm.value.categoryId = null
-  catSearch.value = ''
-}
-
-async function createCategory() {
-  const name = catSearch.value.trim()
-  if (!name) return
-  creatingMeta.value = true
-  closeCatDrop()
+async function onImgFileChange(e: Event) {
+  const files = [...((e.target as HTMLInputElement).files ?? [])]
+  if (imgInputRef.value) imgInputRef.value.value = ''
+  if (!files.length) return
   try {
-    const id = await getOrCreateCategory(name)
-    selectCategory(id, name)
-  } catch {
-    toast.error('创建分类失败')
-  } finally {
-    creatingMeta.value = false
+    const results = await Promise.all(files.map(f => uploadFile(f, 'article')))
+    results.forEach(r => editorRef.value?.insert(() => ({ targetValue: `![](${r.fileUrl})` })))
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '图片上传失败')
   }
 }
 
-// ── Tag multi-select ───────────────────────────────────────────────────────────
-const tagSearch     = ref('')
-const tagDropOpen   = ref(false)
-const tagInputRef   = ref<HTMLInputElement | null>(null)
-const pendingTagNames = ref<string[]>([])
-
-const filteredTagOptions = computed(() => {
-  const q     = tagSearch.value.trim().toLowerCase()
-  const taken = new Set(publishForm.value.tagIds)
-  const list  = tagOptions.value.filter(t => !taken.has(t.id))
-  if (!q) return list
-  return list.filter(t => t.name.toLowerCase().includes(q))
-})
-
-const canCreateTag = computed(() => {
-  const q = tagSearch.value.trim()
-  if (!q) return false
-  const existsInOptions  = tagOptions.value.some(t => t.name === q)
-  const existsInPending  = pendingTagNames.value.includes(q)
-  const existsInSelected = tagOptions.value.filter(t => publishForm.value.tagIds.includes(t.id)).some(t => t.name === q)
-  return !existsInOptions && !existsInPending && !existsInSelected
-})
-
-function openTagDrop() {
-  tagSearch.value = ''
-  tagDropOpen.value = true
-  nextTick(() => tagInputRef.value?.focus())
-}
-
-function closeTagDrop() { tagDropOpen.value = false }
-
-function addExistingTag(id: number) {
-  if (!publishForm.value.tagIds.includes(id))
-    publishForm.value.tagIds = [...publishForm.value.tagIds, id]
-  tagSearch.value = ''
-  tagInputRef.value?.focus()
-}
-
-function addNewTagName() {
-  const name = tagSearch.value.trim()
-  if (!name || pendingTagNames.value.includes(name)) return
-  pendingTagNames.value = [...pendingTagNames.value, name]
-  tagSearch.value = ''
-  tagInputRef.value?.focus()
-}
-
-function removeTag(id: number) {
-  publishForm.value.tagIds = publishForm.value.tagIds.filter(t => t !== id)
-}
-
-function removePendingTag(name: string) {
-  pendingTagNames.value = pendingTagNames.value.filter(n => n !== name)
-}
-
-const creatingMeta = ref(false)
-
-async function resolveNewTags(): Promise<number[]> {
-  if (!pendingTagNames.value.length) return []
-  creatingMeta.value = true
-  try {
-    const newIds = await Promise.all(pendingTagNames.value.map(name => getOrCreateTag(name)))
-    for (let i = 0; i < pendingTagNames.value.length; i++) {
-      if (!tagOptions.value.find(t => t.id === newIds[i]))
-        tagOptions.value = [...tagOptions.value, { id: newIds[i], name: pendingTagNames.value[i], articleCount: 0, createTime: '', updateTime: '' }]
-    }
-    pendingTagNames.value = []
-    return newIds
-  } catch {
-    toast.error('创建标签失败')
-    return []
-  } finally {
-    creatingMeta.value = false
-  }
-}
+// Separate select models to handle allow-create string phase before API resolves
+const categorySelectVal = ref<number | string | null>(null)
+const tagSelectVals     = ref<(number | string)[]>([])
+const creatingMeta      = ref(false)
 
 const categoryOptions = ref<Category[]>([])
 const tagOptions      = ref<Tag[]>([])
@@ -296,11 +142,66 @@ async function loadCategoriesAndTags() {
     const [cats, tags] = await Promise.all([getCategories(), getTags()])
     categoryOptions.value = cats
     tagOptions.value      = tags
-  } catch { /* non-critical */ }
+  } catch {
+    // non-critical
+  }
 }
 
-// ── Content state (synced from Crepe) ─────────────────────────────────────────
-const content = ref('')
+async function handleCategoryChange(val: number | string | null) {
+  if (typeof val !== 'string') {
+    publishForm.value.categoryId = val as number | null
+    return
+  }
+  const name = val.trim()
+  if (!name) {
+    categorySelectVal.value      = null
+    publishForm.value.categoryId = null
+    return
+  }
+  creatingMeta.value = true
+  try {
+    const id = await getOrCreateCategory(name)
+    categorySelectVal.value      = id
+    publishForm.value.categoryId = id
+    // Add to local options if newly created so the label shows correctly
+    if (!categoryOptions.value.find(c => c.id === id)) {
+      categoryOptions.value = [...categoryOptions.value, { id, name, articleCount: 0, createTime: '' }]
+    }
+  } catch {
+    categorySelectVal.value      = null
+    publishForm.value.categoryId = null
+    ElMessage.error('创建分类失败')
+  } finally {
+    creatingMeta.value = false
+  }
+}
+
+async function handleTagsChange(vals: (number | string)[]) {
+  const existingIds = vals.filter((v): v is number => typeof v === 'number')
+  const newNames    = vals.filter((v): v is string => typeof v === 'string').map(s => s.trim()).filter(Boolean)
+  if (!newNames.length) {
+    publishForm.value.tagIds = existingIds
+    return
+  }
+  creatingMeta.value = true
+  try {
+    const newIds = await Promise.all(newNames.map(name => getOrCreateTag(name)))
+    for (let i = 0; i < newNames.length; i++) {
+      if (!tagOptions.value.find(t => t.id === newIds[i])) {
+        tagOptions.value = [...tagOptions.value, { id: newIds[i], name: newNames[i], articleCount: 0, createTime: '', updateTime: '' }]
+      }
+    }
+    const merged = [...new Set([...existingIds, ...newIds])]
+    tagSelectVals.value      = merged
+    publishForm.value.tagIds = merged
+  } catch {
+    tagSelectVals.value      = existingIds
+    publishForm.value.tagIds = existingIds
+    ElMessage.error('创建标签失败')
+  } finally {
+    creatingMeta.value = false
+  }
+}
 
 // ── Sidebar & versions ─────────────────────────────────────────────────────────
 const sidebarOpen = ref(false)
@@ -313,7 +214,9 @@ async function loadVersions() {
     versions.value = data
     const latest = data.find(v => v.latest)
     if (latest) latestVersionId.value = latest.id
-  } catch { /* non-critical */ }
+  } catch {
+    // non-critical
+  }
 }
 
 // ── Version management ─────────────────────────────────────────────────────────
@@ -322,7 +225,9 @@ const selectedVersionIds = ref<number[]>([])
 const deletingVersions   = ref(false)
 
 const deletableVersionIds = computed(() =>
-  versions.value.filter(v => !v.latest && v.id !== publishedVersionId.value).map(v => v.id)
+  versions.value
+    .filter(v => !v.latest && v.id !== publishedVersionId.value)
+    .map(v => v.id)
 )
 
 const allDeletableSelected = computed(() =>
@@ -349,14 +254,19 @@ function exitVersionManage() {
 async function handleDeleteVersions() {
   if (!selectedVersionIds.value.length || !currentId.value) return
   const count = selectedVersionIds.value.length
-  try { await confirm(`确定删除选中的 ${count} 个版本？此操作不可恢复。`, '删除版本', { confirmText: '删除', danger: true }) }
-  catch { return }
+  try {
+    await ElMessageBox.confirm(
+      `确定删除选中的 ${count} 个版本？此操作不可恢复。`,
+      '删除版本',
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch { return }
   deletingVersions.value = true
   try {
     await deleteArticleVersions(currentId.value, [...selectedVersionIds.value])
     await loadVersions()
     exitVersionManage()
-    toast.success(`已删除 ${count} 个版本`)
+    ElMessage.success(`已删除 ${count} 个版本`)
   } catch (err) {
     handleError(err, '删除版本失败')
   } finally {
@@ -369,7 +279,9 @@ const diffMode    = ref(false)
 const diffVersion = ref<ArticleVersionDetailVO | null>(null)
 const diffLoading = ref(false)
 
-const hasTitleDiff = computed(() => !!diffVersion.value && diffVersion.value.title !== title.value)
+const hasTitleDiff = computed(() =>
+  !!diffVersion.value && diffVersion.value.title !== title.value
+)
 
 const titleDiff = computed(() => {
   if (!diffVersion.value) return []
@@ -383,7 +295,9 @@ const renderedContentLines = computed(() => {
   for (const part of changes) {
     const parts = part.value.split('\n')
     if (parts[parts.length - 1] === '') parts.pop()
-    for (const text of parts) lines.push({ text, added: !!part.added, removed: !!part.removed })
+    for (const text of parts) {
+      lines.push({ text, added: !!part.added, removed: !!part.removed })
+    }
   }
   return lines
 })
@@ -396,15 +310,18 @@ async function enterDiff(v: ArticleVersionVO) {
     diffVersion.value = detail
     diffMode.value    = true
   } catch {
-    toast.error('加载版本内容失败')
+    ElMessage.error('加载版本内容失败')
   } finally {
     diffLoading.value = false
   }
 }
 
-function exitDiff() { diffMode.value = false; diffVersion.value = null }
+function exitDiff() {
+  diffMode.value    = false
+  diffVersion.value = null
+}
 
-// ── Save state ────────────────────────────────────────────────────────────────
+// ── Save state ─────────────────────────────────────────────────────────────────
 const saveState = ref<'idle' | 'saving' | 'saved'>(isEdit.value ? 'saved' : 'idle')
 const saving    = ref(false)
 let saveTimer: ReturnType<typeof setTimeout> | undefined
@@ -416,14 +333,23 @@ function onBeforeUnload(e: BeforeUnloadEvent) {
 }
 
 onMounted(() => window.addEventListener('beforeunload', onBeforeUnload))
-onUnmounted(() => { clearTimeout(saveTimer); window.removeEventListener('beforeunload', onBeforeUnload) })
+onUnmounted(() => {
+  clearTimeout(saveTimer)
+  window.removeEventListener('beforeunload', onBeforeUnload)
+})
 
 onBeforeRouteLeave(async () => {
   if (!hasUnsaved.value) return true
   try {
-    await confirm('你有未保存的修改，确认离开吗？', '离开页面', { confirmText: '离开' })
+    await ElMessageBox.confirm('你有未保存的修改，确认离开吗？', '离开页面', {
+      confirmButtonText: '离开',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
     return true
-  } catch { return false }
+  } catch {
+    return false
+  }
 })
 
 const saveStateText = computed(() => {
@@ -436,10 +362,9 @@ async function performSave() {
   if (!title.value.trim() || saving.value) return
   saving.value    = true
   saveState.value = 'saving'
-  const markdown = getCrepeMarkdown()
   try {
     if (currentId.value === null) {
-      const newId = await createArticle({ title: title.value, content: markdown })
+      const newId = await createArticle({ title: title.value, content: content.value })
       currentId.value = newId
       router.replace(`/admin/write/${newId}`)
       sidebarOpen.value = true
@@ -448,12 +373,14 @@ async function performSave() {
       publishedVersionId.value = data.publishedVersionId
       versions.value           = versionData
     } else {
-      await updateArticleDraft(currentId.value, { title: title.value, content: markdown })
+      await updateArticleDraft(currentId.value, { title: title.value, content: content.value })
       loadVersions()
     }
     saveState.value = 'saved'
     clearTimeout(saveTimer)
-    saveTimer = setTimeout(() => { if (saveState.value === 'saved') saveState.value = 'idle' }, 3000)
+    saveTimer = setTimeout(() => {
+      if (saveState.value === 'saved') saveState.value = 'idle'
+    }, 3000)
   } catch (err) {
     saveState.value = 'idle'
     handleError(err, '保存失败')
@@ -462,8 +389,8 @@ async function performSave() {
   }
 }
 
+// ── Change tracking (no auto-save) ────────────────────────────────────────────
 let suppressAutoSave = false
-let suppressFirstMarkdownUpdate = false
 
 watch([title, content], () => {
   if (suppressAutoSave) return
@@ -472,15 +399,17 @@ watch([title, content], () => {
   saveState.value = 'idle'
 })
 
+// ── Load draft ─────────────────────────────────────────────────────────────────
 const pageLoading = ref(false)
 
 async function loadDraft() {
   if (!currentId.value) return
-  pageLoading.value = true
-  suppressAutoSave  = true
+  pageLoading.value  = true
+  suppressAutoSave   = true
   try {
     const data = await getArticleDraft(currentId.value)
     title.value              = data.title
+    content.value            = data.content
     latestVersionId.value    = data.latestVersionId
     publishedVersionId.value = data.publishedVersionId
     publishForm.value = {
@@ -488,10 +417,11 @@ async function loadDraft() {
       categoryId: data.categoryId,
       tagIds:     [...data.tagIds],
     }
-    suppressFirstMarkdownUpdate = true
-    setCrepeMarkdown(data.content)
-    content.value = data.content
+    categorySelectVal.value = data.categoryId
+    tagSelectVals.value     = [...data.tagIds]
     await loadVersions()
+    // Wait for Vue to flush the watchers triggered by title/content assignment
+    // before re-enabling auto-save, so the load itself never triggers a save.
     await nextTick()
     saveState.value = 'saved'
   } catch (err) {
@@ -502,75 +432,75 @@ async function loadDraft() {
   }
 }
 
-// ── Keyboard shortcut: Ctrl+S ─────────────────────────────────────────────────
-function handleKeydown(e: KeyboardEvent) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-    e.preventDefault()
-    handleSave()
-  }
-}
-
-onMounted(async () => {
-  window.addEventListener('keydown', handleKeydown)
-  await initCrepe()
-  if (isEdit.value) await loadDraft()
-  await loadCategoriesAndTags()
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
-  crepeDestroy()
+onMounted(() => {
+  if (isEdit.value) loadDraft()
+  loadCategoriesAndTags()
 })
 
 // ── Error helper ───────────────────────────────────────────────────────────────
 function handleError(err: unknown, fallback = '操作失败') {
-  toast.error((err instanceof ApiError ? err.message : null) || fallback)
+  const msg = err instanceof ApiError ? err.message : null
+  ElMessage.error(msg || fallback)
 }
 
-// ── Actions ─────────────────────────────────────────────────────────────────
+// ── Actions ────────────────────────────────────────────────────────────────────
 async function handleSave() {
-  if (!title.value.trim()) { toast.warning('请先输入文章标题'); return }
+  if (!title.value.trim()) {
+    ElMessage.warning('请先输入文章标题')
+    return
+  }
   await performSave()
   hasUnsaved.value = false
 }
 
 function openPreview() {
-  if (isPublished.value) window.open(`/article/${currentId.value}`, '_blank')
-  else                   window.open(`/admin/preview/${currentId.value}`, '_blank')
+  if (isPublished.value) {
+    window.open(`/article/${currentId.value}`, '_blank')
+  } else {
+    window.open(`/admin/preview/${currentId.value}`, '_blank')
+  }
 }
 
 async function openPublishDialog() {
-  if (!title.value.trim())   { toast.warning('请先输入文章标题'); return }
-  if (!getCrepeMarkdown().trim()) { toast.warning('请先输入文章内容'); return }
+  if (!title.value.trim()) {
+    ElMessage.warning('请先输入文章标题')
+    return
+  }
+  if (!content.value.trim()) {
+    ElMessage.warning('请先输入文章内容')
+    return
+  }
+  // Ensure the article is created/saved before opening publish dialog
   if (currentId.value === null || saveState.value !== 'saved') {
     await performSave()
     if (!currentId.value) return
   }
-  aiSummaryResult.value = aiCatResult.value = aiTagsResult.value = null
-  aiGenerating.value = false
-  pendingTagNames.value = []
+  aiSummaryResult.value = null
+  aiCatResult.value     = null
+  aiTagsResult.value    = null
+  aiGenerating.value    = false
   publishDialogVisible.value = true
 }
 
 async function handlePublishConfirm() {
   if (!currentId.value) return
-  if (!publishForm.value.categoryId) { toast.warning('请选择文章分类'); return }
-  const newTagIds = await resolveNewTags()
-  const allTagIds = [...new Set([...publishForm.value.tagIds, ...newTagIds])]
+  if (!publishForm.value.categoryId) {
+    ElMessage.warning('请选择文章分类')
+    return
+  }
   publishing.value = true
   const wasPublished = isPublished.value
   try {
     await publishArticle(currentId.value, {
       summary:    publishForm.value.summary || null,
       categoryId: publishForm.value.categoryId,
-      tagIds:     allTagIds,
+      tagIds:     publishForm.value.tagIds,
     })
-    publishForm.value.tagIds    = allTagIds
     publishedVersionId.value   = latestVersionId.value
-    publishDialogVisible.value  = false
-    hasUnsaved.value            = false
-    toast.success(wasPublished ? '发布信息已更新' : '文章已发布')
-    loadVersions()
+    publishDialogVisible.value = false
+    hasUnsaved.value           = false
+    ElMessage.success(wasPublished ? '发布信息已更新' : '文章已发布')
+    loadVersions() // fire-and-forget: refresh sidebar version list in background
   } catch (err) {
     handleError(err, '发布失败')
   } finally {
@@ -579,16 +509,24 @@ async function handlePublishConfirm() {
 }
 
 async function handleRollback(v: ArticleVersionDetailVO) {
-  try { await confirm(`回滚到版本 ${v.version}？将基于该版本创建新草稿。`, '回滚版本', { confirmText: '确认回滚' }) }
-  catch { return }
+  try {
+    await ElMessageBox.confirm(
+      `回滚到版本 ${v.version}？将基于该版本创建新草稿。`,
+      '回滚版本',
+      { confirmButtonText: '确认回滚', cancelButtonText: '取消' },
+    )
+  } catch { return }
   try {
     await rollbackVersion(currentId.value!, v.id)
     exitDiff()
     await loadDraft()
-    toast.success(`已回滚至版本 ${v.version}`)
-  } catch (err) { handleError(err, '回滚失败') }
+    ElMessage.success(`已回滚至版本 ${v.version}`)
+  } catch (err) {
+    handleError(err, '回滚失败')
+  }
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
 function shortTime(d: string) {
   return new Date(d)
     .toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -599,11 +537,11 @@ function shortTime(d: string) {
 <template>
   <div class="write-view">
 
-    <!-- ── Toolbar ── -->
+    <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
     <div class="write-toolbar">
       <div class="tb-left">
         <button class="back-btn" @click="router.push('/admin/articles')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          <el-icon><ArrowLeft /></el-icon>
           <span>文章列表</span>
         </button>
         <div class="tb-sep" />
@@ -614,42 +552,27 @@ function shortTime(d: string) {
 
       <div class="tb-right">
         <span v-if="saveStateText" class="save-hint">{{ saveStateText }}</span>
-        <button v-if="isEdit" class="tb-btn" @click="openPreview">预览</button>
-        <button class="tb-btn" :disabled="saving" @click="handleSave">
-          <svg v-if="saving" class="btn-spinner-icon" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="40" stroke-dashoffset="15"/>
-          </svg>
-          {{ saving ? '保存中…' : '保存' }}
-        </button>
-        <button class="tb-btn tb-btn--primary" @click="openPublishDialog">发布</button>
+
+        <el-button v-if="isEdit" size="small" @click="openPreview">预览</el-button>
+        <el-button size="small" :loading="saving" @click="handleSave">保存</el-button>
+        <el-button size="small" type="primary" @click="openPublishDialog">发布</el-button>
+
         <button
           v-if="isEdit"
           class="sidebar-toggle"
           :title="sidebarOpen ? '收起侧栏' : '展开侧栏'"
           @click="sidebarOpen = !sidebarOpen"
         >
-          <svg v-if="sidebarOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/>
-            <path d="M19 9l-3 3 3 3"/>
-          </svg>
-          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/>
-            <path d="M11 9l3 3-3 3"/>
-          </svg>
+          <el-icon><component :is="sidebarOpen ? Fold : Expand" /></el-icon>
         </button>
       </div>
     </div>
 
-    <!-- ── Body ── -->
+    <!-- ── Body ───────────────────────────────────────────────────────────── -->
     <div class="write-body">
 
       <!-- Editor area -->
-      <div class="editor-area">
-        <div v-if="pageLoading" class="editor-loading">
-          <svg class="spinner" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="40" stroke-dashoffset="15"/>
-          </svg>
-        </div>
+      <div class="editor-area" v-loading="pageLoading">
 
         <!-- Title -->
         <div class="title-section">
@@ -662,25 +585,57 @@ function shortTime(d: string) {
           />
         </div>
 
-        <!-- Diff banner -->
+        <!-- Diff mode banner -->
         <Transition name="diff-banner">
           <div v-if="diffMode && diffVersion" class="diff-banner">
             <div class="diff-banner-left">
               <span class="diff-badge">对比模式</span>
-              <span class="diff-desc">版本 {{ diffVersion.version }}（{{ shortTime(diffVersion.createTime) }}）↔ 当前版本</span>
+              <span class="diff-desc">
+                版本 {{ diffVersion.version }}（{{ shortTime(diffVersion.createTime) }}）↔ 当前版本
+              </span>
             </div>
             <div class="diff-banner-right">
-              <button class="tb-btn" @click="exitDiff">退出对比</button>
-              <button class="tb-btn tb-btn--primary" @click="handleRollback(diffVersion)">回滚到此版本</button>
+              <el-button size="small" @click="exitDiff">退出对比</el-button>
+              <el-button size="small" type="primary" @click="handleRollback(diffVersion)">
+                回滚到此版本
+              </el-button>
             </div>
           </div>
         </Transition>
 
-        <!-- Editor -->
-        <div v-show="!diffMode" class="md-wrap" ref="editorContainer" />
+        <!-- Editor (hidden in diff mode) -->
+        <div v-show="!diffMode" class="md-wrap">
+          <MdEditor
+            ref="editorRef"
+            v-model="content"
+            editor-id="write-editor"
+            :toolbars="toolbars"
+            preview-theme="github"
+            code-theme="atom"
+            :show-code-row-number="true"
+            style="height: 100%"
+            @save="handleSave"
+          >
+            <template #defToolbars>
+              <NormalToolbar title="图片" @onClick="imgInputRef?.click()">
+                <ImageIcon :size="16" />
+              </NormalToolbar>
+            </template>
+          </MdEditor>
+          <input
+            ref="imgInputRef"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            style="display: none"
+            @change="onImgFileChange"
+          />
+        </div>
 
         <!-- Diff view -->
         <div v-if="diffMode" class="diff-view">
+
+          <!-- Title diff -->
           <div v-if="hasTitleDiff" class="diff-section">
             <div class="diff-section-label">标题变更</div>
             <div class="diff-title-row diff-title-row--removed">
@@ -690,26 +645,50 @@ function shortTime(d: string) {
             <div class="diff-title-row diff-title-row--added">
               <span class="diff-marker">+</span>
               <span class="diff-title-text">
-                <span v-for="(part, i) in titleDiff" :key="i" :class="{ 'diff-word--added': part.added, 'diff-word--removed': part.removed }">{{ part.value }}</span>
+                <span
+                  v-for="(part, i) in titleDiff"
+                  :key="i"
+                  :class="{
+                    'diff-word--added':   part.added,
+                    'diff-word--removed': part.removed,
+                  }"
+                >{{ part.value }}</span>
               </span>
             </div>
           </div>
+
+          <!-- Content diff -->
           <div class="diff-section diff-section--content">
             <div class="diff-section-label">正文变更</div>
             <div class="diff-lines">
-              <div v-for="(line, i) in renderedContentLines" :key="i" class="diff-line"
-                :class="{ 'diff-line--added': line.added, 'diff-line--removed': line.removed, 'diff-line--unchanged': !line.added && !line.removed }">
+              <div
+                v-for="(line, i) in renderedContentLines"
+                :key="i"
+                class="diff-line"
+                :class="{
+                  'diff-line--added':     line.added,
+                  'diff-line--removed':   line.removed,
+                  'diff-line--unchanged': !line.added && !line.removed,
+                }"
+              >
                 <span class="diff-marker">{{ line.added ? '+' : line.removed ? '−' : ' ' }}</span>
                 <span class="diff-line-text">{{ line.text || ' ' }}</span>
               </div>
             </div>
           </div>
+
         </div>
       </div>
 
-      <!-- Sidebar -->
-      <div v-if="isEdit" class="meta-sidebar" :class="{ 'meta-sidebar--closed': !sidebarOpen }">
+      <!-- Sidebar (edit mode only) -->
+      <div
+        v-if="isEdit"
+        class="meta-sidebar"
+        :class="{ 'meta-sidebar--closed': !sidebarOpen }"
+      >
         <div class="sidebar-scroll">
+
+          <!-- Version history -->
           <div class="sidebar-section">
             <div class="version-header-row">
               <span class="section-label">历史版本</span>
@@ -717,266 +696,261 @@ function shortTime(d: string) {
                 class="version-manage-toggle"
                 :class="{ 'version-manage-toggle--cancel': versionManageMode }"
                 @click="versionManageMode ? exitVersionManage() : (versionManageMode = true)"
-              >{{ versionManageMode ? '取消' : '管理' }}</button>
+              >
+                {{ versionManageMode ? '取消' : '管理' }}
+              </button>
             </div>
 
             <div class="version-list">
-              <div v-if="versionManageMode" class="version-select-all">
-                <label class="checkbox-label">
-                  <input
-                    type="checkbox"
-                    class="version-checkbox-input"
-                    :checked="allDeletableSelected"
+
+                <div v-if="versionManageMode" class="version-select-all">
+                  <el-checkbox
+                    :model-value="allDeletableSelected"
                     :indeterminate="selectedVersionIds.length > 0 && !allDeletableSelected"
                     :disabled="deletableVersionIds.length === 0"
                     @change="toggleSelectAll"
-                  />
-                  全选可删除
-                </label>
-              </div>
-
-              <div
-                v-for="v in versions"
-                :key="v.id"
-                class="version-item"
-                :class="{
-                  'version-item--current':     v.latest,
-                  'version-item--active':      !versionManageMode && diffMode && diffVersion?.id === v.id,
-                  'version-item--manage':      versionManageMode,
-                  'version-item--undeletable': versionManageMode && (v.latest || v.id === publishedVersionId),
-                }"
-              >
-                <input
-                  v-if="versionManageMode"
-                  type="checkbox"
-                  class="version-checkbox-input"
-                  :checked="selectedVersionIds.includes(v.id)"
-                  :disabled="v.latest || v.id === publishedVersionId"
-                  @change="() => toggleVersionSelect(v.id)"
-                />
-
-                <div class="version-info">
-                  <div class="version-label-row">
-                    <span class="version-label">版本 {{ v.version }}</span>
-                    <span v-if="v.latest" class="version-tag version-tag--current">当前</span>
-                    <span v-else-if="v.id === publishedVersionId" class="version-tag version-tag--published">已发布</span>
-                  </div>
-                  <span class="version-time">{{ shortTime(v.createTime) }}</span>
+                  >全选可删除</el-checkbox>
                 </div>
 
-                <template v-if="!versionManageMode">
-                  <span v-if="v.latest" class="current-dot" />
-                  <button
-                    v-else
-                    class="compare-btn"
-                    :class="{ 'compare-btn--active': diffMode && diffVersion?.id === v.id }"
-                    :disabled="diffLoading"
-                    @click="enterDiff(v)"
-                  >{{ diffMode && diffVersion?.id === v.id ? '对比中' : '对比' }}</button>
-                </template>
-              </div>
+                <div
+                  v-for="v in versions"
+                  :key="v.id"
+                  class="version-item"
+                  :class="{
+                    'version-item--current':     v.latest,
+                    'version-item--active':      !versionManageMode && diffMode && diffVersion?.id === v.id,
+                    'version-item--manage':      versionManageMode,
+                    'version-item--undeletable': versionManageMode && (v.latest || v.id === publishedVersionId),
+                  }"
+                >
+                  <el-checkbox
+                    v-if="versionManageMode"
+                    class="version-checkbox"
+                    :model-value="selectedVersionIds.includes(v.id)"
+                    :disabled="v.latest || v.id === publishedVersionId"
+                    @change="() => toggleVersionSelect(v.id)"
+                  />
 
-              <div v-if="versionManageMode" class="version-manage-footer">
-                <span class="version-manage-count">已选 {{ selectedVersionIds.length }} / {{ deletableVersionIds.length }}</span>
-                <button class="version-delete-btn" :disabled="selectedVersionIds.length === 0 || deletingVersions" @click="handleDeleteVersions">
-                  {{ deletingVersions ? '删除中…' : '删除' }}
-                </button>
-              </div>
+                  <div class="version-info">
+                    <div class="version-label-row">
+                      <span class="version-label">版本 {{ v.version }}</span>
+                      <span v-if="v.latest" class="version-tag version-tag--current">当前</span>
+                      <span v-else-if="v.id === publishedVersionId" class="version-tag version-tag--published">已发布</span>
+                    </div>
+                    <span class="version-time">{{ shortTime(v.createTime) }}</span>
+                  </div>
+
+                  <template v-if="!versionManageMode">
+                    <span v-if="v.latest" class="current-dot" />
+                    <button
+                      v-else
+                      class="compare-btn"
+                      :class="{ 'compare-btn--active': diffMode && diffVersion?.id === v.id }"
+                      :disabled="diffLoading"
+                      @click="enterDiff(v)"
+                    >
+                      {{ diffMode && diffVersion?.id === v.id ? '对比中' : '对比' }}
+                    </button>
+                  </template>
+                </div>
+
+                <div v-if="versionManageMode" class="version-manage-footer">
+                  <span class="version-manage-count">
+                    已选 {{ selectedVersionIds.length }} / {{ deletableVersionIds.length }}
+                  </span>
+                  <button
+                    class="version-delete-btn"
+                    :disabled="selectedVersionIds.length === 0 || deletingVersions"
+                    @click="handleDeleteVersions"
+                  >
+                    {{ deletingVersions ? '删除中…' : '删除' }}
+                  </button>
+                </div>
+
             </div>
           </div>
+
         </div>
       </div>
     </div>
 
-    <!-- ── Publish Dialog ── -->
-    <Teleport to="body">
-      <div v-if="publishDialogVisible" class="dialog-mask" @click.self="publishDialogVisible = false">
-        <div class="publish-dialog">
-          <div class="pd-header">
-            <span class="pd-title">{{ isPublished ? '更新发布信息' : '发布文章' }}</span>
-            <button class="pd-close" @click="publishDialogVisible = false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
+    <!-- ── Publish Dialog ──────────────────────────────────────────────────── -->
+    <el-dialog
+      v-model="publishDialogVisible"
+      :title="isPublished ? '更新发布信息' : '发布文章'"
+      width="540px"
+      :close-on-click-modal="false"
+    >
+      <div class="publish-form">
 
-          <div class="publish-form">
-
-            <div class="pf-ai-bar">
-              <button class="ai-gen-btn ai-gen-btn--full" :class="{ 'ai-gen-btn--loading': aiGenerating }" :disabled="aiGenerating" type="button" @click="runAiRecommend">
-                <span class="ai-gen-btn__icon">✦</span>
-                <span>{{ aiGenerating ? 'AI 分析中…' : 'AI 一键推荐' }}</span>
-              </button>
-            </div>
-
-            <!-- Summary -->
-            <div class="pf-item">
-              <div class="pf-label">摘要 <span class="pf-optional">可选</span></div>
-              <div class="textarea-wrap">
-                <textarea v-model="publishForm.summary" class="pf-textarea" rows="3" placeholder="留空则自动截取正文前 200 字..." maxlength="512" />
-                <span class="textarea-count">{{ publishForm.summary.length }} / 512</span>
-              </div>
-              <Transition name="ai-preview">
-                <div v-if="aiSummaryResult" class="ai-preview">
-                  <p class="ai-preview__text">{{ aiSummaryResult }}</p>
-                  <div class="ai-preview__actions">
-                    <button type="button" class="ai-action ai-action--dismiss" @click="aiSummaryResult = null">丢弃</button>
-                    <button type="button" class="ai-action ai-action--primary" @click="acceptAiSummary">写入摘要</button>
-                  </div>
-                </div>
-              </Transition>
-            </div>
-
-            <!-- Category combobox -->
-            <div class="pf-item">
-              <div class="pf-label">分类 <span class="pf-required">必填</span></div>
-              <div class="combobox" v-click-outside="closeCatDrop">
-                <div class="combobox-trigger" :class="{ 'combobox-trigger--active': catDropOpen }" @click="catDropOpen ? closeCatDrop() : openCatDrop()">
-                  <span v-if="selectedCategoryName && !catDropOpen" class="combobox-value">{{ selectedCategoryName }}</span>
-                  <input
-                    v-show="catDropOpen || !selectedCategoryName"
-                    ref="catInputRef"
-                    v-model="catSearch"
-                    class="combobox-input"
-                    :placeholder="selectedCategoryName || '搜索或输入分类名，按 Enter 创建'"
-                    @keydown.enter.prevent="canCreateCat ? createCategory() : (filteredCats[0] && selectCategory(filteredCats[0].id, filteredCats[0].name))"
-                    @keydown.escape="closeCatDrop"
-                  />
-                  <button v-if="publishForm.categoryId && !catDropOpen" type="button" class="combobox-clear" @click.stop="clearCategory()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                  </button>
-                  <svg v-else class="combobox-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                </div>
-                <div v-if="catDropOpen" class="combobox-dropdown">
-                  <button v-for="cat in filteredCats" :key="cat.id" type="button" class="combobox-option" @click="selectCategory(cat.id, cat.name)">
-                    {{ cat.name }}
-                  </button>
-                  <button v-if="canCreateCat" type="button" class="combobox-option combobox-option--create" @click="createCategory()">
-                    创建分类「{{ catSearch.trim() }}」
-                  </button>
-                  <div v-if="filteredCats.length === 0 && !canCreateCat" class="combobox-empty">无匹配分类</div>
-                </div>
-              </div>
-              <Transition name="ai-preview">
-                <div v-if="aiCatResult !== null" class="ai-preview">
-                  <template v-if="aiCatResult">
-                    <div class="ai-preview__meta"><span class="ai-meta-chip ai-meta-chip--existing">{{ aiCatResult.name }}</span></div>
-                    <div class="ai-preview__actions">
-                      <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">丢弃</button>
-                      <button type="button" class="ai-action ai-action--primary" @click="applyAiCategory">应用</button>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <p class="ai-preview__no-match">现有分类均不适配，请手动选择</p>
-                    <div class="ai-preview__actions">
-                      <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">知道了</button>
-                    </div>
-                  </template>
-                </div>
-              </Transition>
-            </div>
-
-            <!-- Tags multi-select -->
-            <div class="pf-item">
-              <div class="pf-label">标签 <span class="pf-optional">可选</span></div>
-              <div class="tag-select" v-click-outside="closeTagDrop">
-                <div class="tag-select-box" @click="openTagDrop">
-                  <span v-for="id in publishForm.tagIds" :key="id" class="tag-chip">
-                    {{ tagOptions.find(t => t.id === id)?.name ?? id }}
-                    <button type="button" class="tag-chip-remove" @click.stop="removeTag(id)">×</button>
-                  </span>
-                  <span v-for="name in pendingTagNames" :key="name" class="tag-chip tag-chip--new">
-                    {{ name }}
-                    <button type="button" class="tag-chip-remove" @click.stop="removePendingTag(name)">×</button>
-                  </span>
-                  <input
-                    ref="tagInputRef"
-                    v-model="tagSearch"
-                    class="tag-input"
-                    :placeholder="(publishForm.tagIds.length + pendingTagNames.length) === 0 ? '搜索或输入标签，按 Enter 添加' : ''"
-                    @keydown.enter.prevent="canCreateTag ? addNewTagName() : (filteredTagOptions[0] && addExistingTag(filteredTagOptions[0].id))"
-                    @keydown.escape="closeTagDrop"
-                    @focus="tagDropOpen = true"
-                  />
-                </div>
-                <div v-if="tagDropOpen" class="combobox-dropdown">
-                  <button v-for="tag in filteredTagOptions" :key="tag.id" type="button" class="combobox-option" @click="addExistingTag(tag.id)">
-                    {{ tag.name }}
-                  </button>
-                  <button v-if="canCreateTag" type="button" class="combobox-option combobox-option--create" @click="addNewTagName()">
-                    添加标签「{{ tagSearch.trim() }}」
-                  </button>
-                  <div v-if="filteredTagOptions.length === 0 && !canCreateTag" class="combobox-empty">无匹配标签</div>
-                </div>
-              </div>
-              <Transition name="ai-preview">
-                <div v-if="aiTagsResult" class="ai-preview">
-                  <div class="ai-preview__meta">
-                    <button v-for="tag in aiTagsResult.existing" :key="tag.id" type="button"
-                      :class="['ai-meta-chip ai-meta-chip--existing ai-meta-chip--action', { 'ai-meta-chip--applied': publishForm.tagIds.includes(tag.id) }]"
-                      :disabled="publishForm.tagIds.includes(tag.id)"
-                      @click="applyAiExistingTag(tag)">
-                      {{ tag.name }}<span class="ai-meta-chip__plus">+</span>
-                    </button>
-                    <button v-for="name in aiTagsResult.suggested" :key="name" type="button"
-                      :class="['ai-meta-chip ai-meta-chip--new ai-meta-chip--action', { 'ai-meta-chip--applied': pendingTagNames.includes(name) }]"
-                      :disabled="pendingTagNames.includes(name)"
-                      @click="applyAiSuggestedTag(name)">
-                      {{ name }}<span class="ai-meta-chip__badge">新</span><span class="ai-meta-chip__plus">+</span>
-                    </button>
-                  </div>
-                  <div class="ai-preview__actions">
-                    <button type="button" class="ai-action ai-action--dismiss" @click="aiTagsResult = null">丢弃</button>
-                  </div>
-                </div>
-              </Transition>
-            </div>
-
-          </div>
-
-          <div class="pd-footer">
-            <button class="tb-btn" @click="publishDialogVisible = false">取消</button>
-            <button class="tb-btn tb-btn--primary" :disabled="publishing || creatingMeta" @click="handlePublishConfirm">
-              <svg v-if="publishing || creatingMeta" class="btn-spinner-icon" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="40" stroke-dashoffset="15"/>
-              </svg>
-              {{ isPublished ? '更新' : '立即发布' }}
-            </button>
-          </div>
+        <div class="pf-ai-bar">
+          <button
+            class="ai-gen-btn ai-gen-btn--full"
+            :class="{ 'ai-gen-btn--loading': aiGenerating }"
+            :disabled="aiGenerating"
+            type="button"
+            @click="runAiRecommend"
+          >
+            <span class="ai-gen-btn__icon">✦</span>
+            <span>{{ aiGenerating ? 'AI 分析中…' : 'AI 一键推荐' }}</span>
+          </button>
         </div>
+
+        <div class="pf-item">
+          <div class="pf-label">摘要 <span class="pf-optional">可选</span></div>
+          <el-input
+            v-model="publishForm.summary"
+            type="textarea"
+            :rows="3"
+            placeholder="留空则自动截取正文前 200 字..."
+            :maxlength="512"
+            show-word-limit
+            resize="none"
+          />
+          <transition name="ai-preview">
+            <div v-if="aiSummaryResult" class="ai-preview">
+              <p class="ai-preview__text">{{ aiSummaryResult }}</p>
+              <div class="ai-preview__actions">
+                <button type="button" class="ai-action ai-action--dismiss" @click="aiSummaryResult = null">丢弃</button>
+                <button type="button" class="ai-action ai-action--primary" @click="acceptAiSummary">写入摘要</button>
+              </div>
+            </div>
+          </transition>
+        </div>
+
+        <div class="pf-item">
+          <div class="pf-label">分类 <span class="pf-required">必填</span></div>
+          <el-select
+            v-model="categorySelectVal"
+            filterable
+            allow-create
+            clearable
+            :disabled="creatingMeta"
+            placeholder="搜索或输入分类名称，按 Enter 创建"
+            @change="handleCategoryChange"
+          >
+            <el-option v-for="cat in categoryOptions" :key="cat.id" :label="cat.name" :value="cat.id" />
+          </el-select>
+          <transition name="ai-preview">
+            <div v-if="aiCatResult !== null" class="ai-preview">
+              <template v-if="aiCatResult">
+                <div class="ai-preview__meta">
+                  <span class="ai-meta-chip ai-meta-chip--existing">{{ aiCatResult.name }}</span>
+                </div>
+                <div class="ai-preview__actions">
+                  <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">丢弃</button>
+                  <button type="button" class="ai-action ai-action--primary" @click="applyAiCategory">应用</button>
+                </div>
+              </template>
+              <template v-else>
+                <p class="ai-preview__no-match">现有分类均不适配，请手动选择</p>
+                <div class="ai-preview__actions">
+                  <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">知道了</button>
+                </div>
+              </template>
+            </div>
+          </transition>
+        </div>
+
+        <div class="pf-item">
+          <div class="pf-label">标签 <span class="pf-optional">可选</span></div>
+          <el-select
+            v-model="tagSelectVals"
+            multiple
+            filterable
+            allow-create
+            :disabled="creatingMeta"
+            placeholder="搜索或输入标签名称，按 Enter 创建"
+            @change="handleTagsChange"
+          >
+            <el-option v-for="t in tagOptions" :key="t.id" :label="t.name" :value="t.id" />
+          </el-select>
+          <transition name="ai-preview">
+            <div v-if="aiTagsResult" class="ai-preview">
+              <div class="ai-preview__meta">
+                <button
+                  v-for="tag in aiTagsResult.existing"
+                  :key="tag.id"
+                  type="button"
+                  :class="['ai-meta-chip ai-meta-chip--existing ai-meta-chip--action', { 'ai-meta-chip--applied': tagSelectVals.includes(tag.id) }]"
+                  :disabled="tagSelectVals.includes(tag.id)"
+                  @click="applyAiExistingTag(tag)"
+                >
+                  {{ tag.name }}<span class="ai-meta-chip__plus">+</span>
+                </button>
+                <button
+                  v-for="name in aiTagsResult.suggested"
+                  :key="name"
+                  type="button"
+                  :class="['ai-meta-chip ai-meta-chip--new ai-meta-chip--action', { 'ai-meta-chip--applied': tagSelectVals.includes(name) }]"
+                  :disabled="tagSelectVals.includes(name)"
+                  @click="applyAiSuggestedTag(name)"
+                >
+                  {{ name }}<span class="ai-meta-chip__badge">新</span><span class="ai-meta-chip__plus">+</span>
+                </button>
+              </div>
+              <div class="ai-preview__actions">
+                <button type="button" class="ai-action ai-action--dismiss" @click="aiTagsResult = null">丢弃</button>
+              </div>
+            </div>
+          </transition>
+        </div>
+
       </div>
-    </Teleport>
+
+      <template #footer>
+        <el-button @click="publishDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="publishing" @click="handlePublishConfirm">
+          {{ isPublished ? '更新' : '立即发布' }}
+        </el-button>
+      </template>
+    </el-dialog>
 
   </div>
 </template>
 
 <style scoped>
-/* ── Layout ── */
-
+/* ── Layout ──────────────────────────────────────────────────────────────────── */
 .write-view {
   margin: -24px;
   height: calc(100vh - var(--admin-header-height));
-  display: flex; flex-direction: column;
-  background: #fff; overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  overflow: hidden;
 }
 
-/* ── Toolbar ── */
-
+/* ── Toolbar ─────────────────────────────────────────────────────────────────── */
 .write-toolbar {
-  display: flex; align-items: center; justify-content: space-between;
-  height: 52px; padding: 0 16px 0 20px;
-  border-bottom: 1px solid #f0f0f0; flex-shrink: 0; gap: 12px; z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 16px 0 20px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+  gap: 12px;
+  z-index: 10;
 }
 
 .tb-left  { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.tb-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.tb-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.tb-right :deep(.el-button + .el-button) { margin-left: 0; }
 
 .back-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 13px; color: #6b7280; background: transparent; border: none;
-  cursor: pointer; padding: 5px 8px; border-radius: 4px; white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 5px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
   transition: color 0.15s, background 0.15s;
 }
-.back-btn svg  { width: 14px; height: 14px; }
 .back-btn:hover { color: #111827; background: #f3f4f6; }
 
 .tb-sep { width: 1px; height: 18px; background: #e5e7eb; flex-shrink: 0; }
@@ -987,49 +961,28 @@ function shortTime(d: string) {
 
 .save-hint { font-size: 12px; color: #9ca3af; }
 
-.tb-btn {
-  height: 30px; padding: 0 12px;
-  display: inline-flex; align-items: center; gap: 5px;
-  border: 1px solid #e5e7eb; border-radius: 4px; background: #fff;
-  font-size: 13px; font-family: inherit; color: #374151;
-  cursor: pointer; transition: background 0.15s; white-space: nowrap;
-}
-.tb-btn:hover:not(:disabled) { background: #f9fafb; }
-.tb-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.tb-btn--primary { background: #b85c38; border-color: #b85c38; color: #fff; }
-.tb-btn--primary:hover:not(:disabled) { background: #924530; border-color: #924530; }
-
-.btn-spinner-icon { width: 13px; height: 13px; animation: spin 0.9s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
 .sidebar-toggle {
   display: flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px;
-  border: 1px solid #e5e7eb; border-radius: 4px; background: transparent;
-  color: #6b7280; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  width: 32px; height: 32px;
+  border: 1px solid #e5e7eb; border-radius: 6px;
+  background: transparent; color: #6b7280; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
-.sidebar-toggle svg   { width: 15px; height: 15px; }
 .sidebar-toggle:hover { border-color: #c7d2fe; background: #f5f3ff; color: #4338ca; }
 
-/* ── Body ── */
-
+/* ── Body ────────────────────────────────────────────────────────────────────── */
 .write-body { flex: 1; display: flex; min-height: 0; overflow: hidden; }
 
-/* ── Editor area ── */
-
+/* ── Editor area ─────────────────────────────────────────────────────────────── */
 .editor-area {
-  flex: 1; display: flex; flex-direction: column;
-  min-width: 0; min-height: 0; overflow: hidden; position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
-
-.editor-loading {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.8); z-index: 5;
-}
-
-.spinner { width: 28px; height: 28px; color: #b0a89e; animation: spin 0.9s linear infinite; }
 
 .title-section { padding: 24px 48px 14px; flex-shrink: 0; }
 
@@ -1040,66 +993,149 @@ function shortTime(d: string) {
   line-height: 1.35; padding: 0; font-family: inherit;
 }
 .title-input::placeholder { color: #d1d5db; }
-.title-input:disabled { opacity: 1; cursor: default; }
+.title-input:disabled     { opacity: 1; cursor: default; }
 
-/* ── Diff banner ── */
-
+/* ── Diff banner ─────────────────────────────────────────────────────────────── */
 .diff-banner {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 10px 48px;
-  background: #fffbeb; border-top: 1px solid #fde68a; border-bottom: 1px solid #fde68a;
+  background: #fffbeb;
+  border-top: 1px solid #fde68a;
+  border-bottom: 1px solid #fde68a;
   flex-shrink: 0;
 }
-.diff-banner-enter-active, .diff-banner-leave-active { transition: opacity 0.2s, transform 0.2s; }
-.diff-banner-enter-from, .diff-banner-leave-to { opacity: 0; transform: translateY(-6px); }
+
+.diff-banner-enter-active,
+.diff-banner-leave-active { transition: opacity 0.2s, transform 0.2s; }
+.diff-banner-enter-from,
+.diff-banner-leave-to     { opacity: 0; transform: translateY(-6px); }
 
 .diff-banner-left  { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .diff-banner-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.diff-banner-right :deep(.el-button + .el-button) { margin-left: 0; }
 
-.diff-badge { font-size: 11px; font-weight: 600; color: #92400e; background: #fde68a; padding: 2px 8px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
-.diff-desc  { font-size: 13px; color: #78350f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* ── Crepe editor ── */
-
-.md-wrap {
-  flex: 1; min-height: 0; overflow: hidden;
+.diff-badge {
+  font-size: 11px; font-weight: 600;
+  color: #92400e; background: #fde68a;
+  padding: 2px 8px; border-radius: 4px;
+  white-space: nowrap; flex-shrink: 0;
 }
 
-/* Crepe uses its own internal DOM structure; style via :deep if needed */
-.md-wrap :deep(.crepe) {
-  height: 100%;
+.diff-desc {
+  font-size: 13px; color: #78350f;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* ── Diff view ── */
+/* ── md-editor-v3 ────────────────────────────────────────────────────────────── */
+.md-wrap { flex: 1; min-height: 0; overflow: hidden; }
 
+:deep(.md-editor)                   { border: none !important; border-radius: 0; font-family: inherit; }
+:deep(.md-editor-toolbar-wrapper)   { border-bottom: 1px solid #f0f0f0; background: #fafafa; }
+:deep(.md-editor-toolbar)           { padding: 0 48px; }
+:deep(.md-editor-input-wrapper)     { background: #fff; }
+:deep(.md-editor-input)             { font-size: 15px; line-height: 1.8; color: #374151; padding: 28px 48px !important; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+:deep(.md-editor-preview-wrapper)   { background: #fff; }
+:deep(.md-editor-preview)           { padding: 28px 48px !important; }
+:deep(.md-editor-preview h1),
+:deep(.md-editor-preview h2)        { border-bottom: 1px solid #f0f0f0; padding-bottom: 0.3em; }
+:deep(.md-editor-preview code:not(pre code)) { background: #f3f4f6; color: #e53e3e; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
+:deep(.md-editor-preview pre)       { border-radius: 8px; font-size: 14px; }
+:deep(.md-editor-preview ul),
+:deep(.md-editor-preview ol)        { padding-left: 24px; margin-bottom: 12px; }
+:deep(.md-editor-preview ul li)     { list-style: disc; }
+:deep(.md-editor-preview ol li)     { list-style: decimal; }
+
+/* ── Diff view ───────────────────────────────────────────────────────────────── */
 .diff-view {
-  flex: 1; overflow-y: auto; padding: 28px 48px 60px;
-  display: flex; flex-direction: column; gap: 24px; background: #fff;
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 48px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: #fff;
 }
+
 .diff-section { display: flex; flex-direction: column; gap: 0; }
-.diff-section-label { font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
-.diff-title-row { display: flex; align-items: baseline; gap: 10px; padding: 8px 12px; border-radius: 6px; margin-bottom: 4px; font-size: 22px; font-weight: 700; line-height: 1.35; }
+
+.diff-section-label {
+  font-size: 11px; font-weight: 600;
+  color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px;
+  margin-bottom: 10px;
+}
+
+/* Title diff */
+.diff-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.35;
+}
 .diff-title-row--removed { background: #fff5f5; }
 .diff-title-row--added   { background: #f0fdf4; }
+
 .diff-title-text { flex: 1; }
+
+/* Word-level highlighting inside title added row */
 .diff-word--added   { background: #bbf7d0; border-radius: 2px; }
 .diff-word--removed { background: #fecdd3; text-decoration: line-through; border-radius: 2px; }
+
+/* Content diff */
 .diff-section--content { flex: 1; }
-.diff-lines { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 14px; line-height: 1.7; border: 1px solid #f0f0f0; border-radius: 8px; overflow: hidden; }
-.diff-line { display: flex; align-items: baseline; padding: 1px 0; min-height: 24px; }
+
+.diff-lines {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.diff-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  padding: 1px 0;
+  min-height: 24px;
+}
+
 .diff-line--added     { background: #f0fdf4; }
 .diff-line--removed   { background: #fff5f5; }
 .diff-line--unchanged { background: #fff; }
-.diff-marker { flex-shrink: 0; width: 36px; text-align: center; font-size: 13px; font-weight: 600; user-select: none; }
+
+.diff-marker {
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  user-select: none;
+}
+
 .diff-line--added   .diff-marker { color: #16a34a; }
 .diff-line--removed .diff-marker { color: #dc2626; }
 .diff-line--unchanged .diff-marker { color: #d1d5db; }
-.diff-line-text { flex: 1; padding: 0 16px 0 0; white-space: pre-wrap; word-break: break-all; color: #374151; }
+
+.diff-line-text {
+  flex: 1;
+  padding: 0 16px 0 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #374151;
+}
 .diff-line--added   .diff-line-text { color: #166534; }
 .diff-line--removed .diff-line-text { color: #991b1b; }
 
-/* ── Sidebar ── */
-
+/* ── Sidebar ─────────────────────────────────────────────────────────────────── */
 .meta-sidebar {
   width: 260px; flex-shrink: 0;
   border-left: 1px solid #f0f0f0; background: #fafafa;
@@ -1109,224 +1145,259 @@ function shortTime(d: string) {
 .meta-sidebar--closed { width: 0; opacity: 0; }
 
 .sidebar-scroll { width: 100%; height: 100%; overflow-y: auto; }
+
 .sidebar-section { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
 
-.section-label { font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px; }
+.section-label {
+  font-size: 11px; font-weight: 600; color: #9ca3af;
+  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;
+}
 
-.version-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.version-header-row {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.version-header-row .section-label { margin-bottom: 0; }
 
-.version-manage-toggle { font-size: 11px; font-weight: 500; color: #6366f1; background: transparent; border: none; cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: color 0.15s; }
+.version-manage-toggle {
+  flex-shrink: 0;
+  font-size: 11px; font-weight: 500; color: #6366f1;
+  background: transparent; border: none; cursor: pointer;
+  padding: 2px 4px; border-radius: 3px;
+  transition: color 0.15s;
+}
 .version-manage-toggle:hover { color: #4338ca; }
 .version-manage-toggle--cancel { color: #9ca3af; }
 .version-manage-toggle--cancel:hover { color: #6b7280; }
 
-.version-list { display: flex; flex-direction: column; }
+.version-list { margin-top: 12px; display: flex; flex-direction: column; }
 
-.version-select-all { padding: 4px 0 10px; border-bottom: 1px solid #f0f0f0; margin-bottom: 2px; }
-
-.checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; cursor: pointer; }
-.version-checkbox-input { cursor: pointer; accent-color: #b85c38; }
-
-.version-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; gap: 8px; border-radius: 4px; transition: background 0.15s; }
+.version-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid #f3f4f6; gap: 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
 .version-item:last-child { border-bottom: none; padding-bottom: 0; }
-.version-item--active { background: #f5f3ff; margin: 0 -4px; padding-left: 4px; padding-right: 4px; }
-.version-item--manage { gap: 10px; }
-.version-item--undeletable { opacity: 0.45; }
+.version-item--active    { background: #f5f3ff; margin: 0 -4px; padding-left: 4px; padding-right: 4px; }
 
 .version-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.version-label-row { display: flex; align-items: center; gap: 5px; }
 .version-label { font-size: 13px; font-weight: 500; color: #374151; }
 .version-time  { font-size: 11px; color: #9ca3af; }
 
 .current-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; flex-shrink: 0; }
 
-.compare-btn { flex-shrink: 0; font-size: 12px; color: #4338ca; background: transparent; border: 1px solid #c7d2fe; border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.1s, border-color 0.1s; }
-.compare-btn:hover:not(:disabled)       { background: #ede9fe; border-color: #a5b4fc; }
+.compare-btn {
+  flex-shrink: 0; font-size: 12px; color: #4338ca;
+  background: transparent; border: 1px solid #c7d2fe;
+  border-radius: 4px; padding: 3px 10px; cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.compare-btn:hover       { background: #ede9fe; border-color: #a5b4fc; }
 .compare-btn--active     { background: #4338ca; border-color: #4338ca; color: #fff; }
 .compare-btn--active:hover { background: #3730a3; border-color: #3730a3; }
 .compare-btn:disabled    { opacity: 0.5; cursor: not-allowed; }
 
-.version-tag { font-size: 10px; font-weight: 500; line-height: 1; padding: 2px 5px; border-radius: 3px; }
+.version-select-all {
+  padding: 8px 0 8px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 2px;
+}
+.version-select-all :deep(.el-checkbox__label) { font-size: 12px; color: #6b7280; }
+
+.version-item--manage      { gap: 10px; }
+.version-item--undeletable { opacity: 0.45; }
+
+.version-checkbox { flex-shrink: 0; }
+
+.version-label-row { display: flex; align-items: center; gap: 5px; }
+
+.version-tag {
+  font-size: 10px; font-weight: 500; line-height: 1;
+  padding: 2px 5px; border-radius: 3px;
+}
 .version-tag--current   { color: #166534; background: #dcfce7; }
 .version-tag--published { color: #1e40af; background: #dbeafe; }
 
-.version-manage-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 0 2px; border-top: 1px solid #f0f0f0; margin-top: 6px; }
+.version-manage-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0 2px;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 6px;
+}
 .version-manage-count { font-size: 12px; color: #9ca3af; }
-.version-delete-btn { font-size: 12px; font-weight: 500; color: #fff; background: #ef4444; border: none; border-radius: 4px; padding: 4px 14px; cursor: pointer; transition: background 0.15s; }
+
+.version-delete-btn {
+  font-size: 12px; font-weight: 500;
+  color: #fff; background: #ef4444;
+  border: none; border-radius: 4px;
+  padding: 4px 14px; cursor: pointer;
+  transition: background 0.15s;
+}
 .version-delete-btn:hover:not(:disabled) { background: #dc2626; }
 .version-delete-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* ── Publish dialog ── */
+/* ── Publish dialog ───────────────────────────────────────────────────────────── */
+.publish-form { display: flex; flex-direction: column; gap: 20px; }
+.pf-ai-bar    { display: flex; justify-content: flex-end; margin-bottom: -4px; }
+.pf-item      { display: flex; flex-direction: column; gap: 8px; }
+.pf-label     { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151; }
+.pf-optional  { font-size: 11px; font-weight: 400; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 3px; }
+.pf-required  { font-size: 11px; font-weight: 500; color: #dc2626; background: #fef2f2; padding: 1px 6px; border-radius: 3px; }
+.pf-item :deep(.el-select) { width: 100%; }
 
-.dialog-mask {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4);
-  display: flex; align-items: center; justify-content: center; z-index: 1000;
-}
-
-.publish-dialog {
-  width: min(540px, calc(100vw - 32px));
-  background: #fff;
-  border: 1px solid #e8e4de;
-  border-radius: 4px; overflow: hidden;
-  max-height: calc(100vh - 48px); display: flex; flex-direction: column;
-}
-
-.pd-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
-}
-.pd-title { font-size: 15px; font-weight: 600; color: #1a1610; font-family: var(--font-serif, 'Lora', serif); }
-.pd-close { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; border-radius: 4px; background: transparent; color: #9ca3af; cursor: pointer; transition: background 0.15s; }
-.pd-close svg { width: 14px; height: 14px; }
-.pd-close:hover { background: #f3f4f6; }
-
-.publish-form { padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
-
-.pf-ai-bar { display: flex; justify-content: flex-end; margin-bottom: -4px; }
-.pf-item   { display: flex; flex-direction: column; gap: 8px; }
-.pf-label  { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151; }
-.pf-optional { font-size: 11px; font-weight: 400; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 3px; }
-.pf-required { font-size: 11px; font-weight: 500; color: #dc2626; background: #fef2f2; padding: 1px 6px; border-radius: 3px; }
-
-.textarea-wrap { position: relative; }
-.pf-textarea {
-  width: 100%; box-sizing: border-box;
-  padding: 8px 10px; padding-bottom: 22px;
-  border: 1px solid #e8e4de; border-radius: 4px; background: #fff;
-  font-size: 13px; font-family: inherit; color: #1a1610; outline: none;
-  transition: border-color 0.15s; resize: none;
-}
-.pf-textarea:focus { border-color: #b85c38; }
-.pf-textarea::placeholder { color: #b0a89e; }
-.textarea-count { position: absolute; bottom: 6px; right: 10px; font-size: 11px; color: #b0a89e; }
-
-.pd-footer {
-  display: flex; justify-content: flex-end; gap: 8px;
-  padding: 14px 20px; border-top: 1px solid #f0f0f0; flex-shrink: 0;
-}
-
-/* ── Combobox ── */
-
-.combobox { position: relative; }
-
-.combobox-trigger {
-  min-height: 34px; padding: 0 30px 0 10px;
-  display: flex; align-items: center; flex-wrap: wrap; gap: 4px;
-  border: 1px solid #e8e4de; border-radius: 4px; background: #fff;
-  cursor: text; transition: border-color 0.15s; position: relative;
-}
-.combobox-trigger--active { border-color: #b85c38; }
-
-.combobox-value { font-size: 13px; color: #1a1610; }
-.combobox-input { flex: 1; min-width: 80px; border: none; outline: none; font-size: 13px; font-family: inherit; color: #1a1610; background: transparent; }
-.combobox-input::placeholder { color: #b0a89e; }
-
-.combobox-clear, .combobox-chevron {
-  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-  display: flex; align-items: center; background: none; border: none;
-  color: #b0a89e; cursor: pointer; padding: 0;
-}
-.combobox-clear svg    { width: 12px; height: 12px; }
-.combobox-chevron      { pointer-events: none; }
-.combobox-chevron      { width: 14px; height: 14px; }
-
-.combobox-dropdown {
-  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-  background: #fff; border: 1px solid #e8e4de; border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); z-index: 200;
-  max-height: 200px; overflow-y: auto;
-}
-
-.combobox-option {
-  display: block; width: 100%; padding: 8px 12px; text-align: left;
-  font-size: 13px; font-family: inherit; color: #1a1610;
-  background: none; border: none; cursor: pointer; transition: background 0.1s;
-}
-.combobox-option:hover { background: #ece9e4; }
-.combobox-option--create { color: #b85c38; font-style: italic; border-top: 1px solid #f0f0f0; }
-
-.combobox-empty { padding: 10px 12px; font-size: 13px; color: #b0a89e; text-align: center; }
-
-/* ── Tag multi-select ── */
-
-.tag-select { position: relative; }
-
-.tag-select-box {
-  min-height: 34px; padding: 4px 8px;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
-  border: 1px solid #e8e4de; border-radius: 4px; background: #fff;
-  cursor: text; transition: border-color 0.15s;
-}
-.tag-select-box:focus-within { border-color: #b85c38; }
-
-.tag-chip {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 6px; border-radius: 3px;
-  font-size: 12px; font-weight: 500;
-  background: rgba(184, 92, 56, 0.1); color: #b85c38;
-}
-.tag-chip--new { background: #f3f4f6; color: #6b7280; font-style: italic; }
-
-.tag-chip-remove { font-size: 13px; line-height: 1; background: none; border: none; cursor: pointer; color: inherit; opacity: 0.7; padding: 0; }
-.tag-chip-remove:hover { opacity: 1; }
-
-.tag-input { flex: 1; min-width: 100px; border: none; outline: none; font-size: 13px; font-family: inherit; color: #1a1610; background: transparent; }
-.tag-input::placeholder { color: #b0a89e; }
-
-/* ── AI generate button ── */
-
+/* ── AI generate button ────────────────────────────────────────────────────────*/
 .ai-gen-btn {
-  margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 10px; font-size: 12px; font-weight: 500;
-  color: #7c3aed; background: #f5f3ff; border: 1px solid #ddd6fe;
-  border-radius: 4px; cursor: pointer; transition: background 0.15s, opacity 0.15s; line-height: 20px;
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px;
+  font-size: 12px; font-weight: 500;
+  color: #7c3aed;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  line-height: 20px;
 }
 .ai-gen-btn--full { padding: 4px 14px; font-size: 13px; }
 .ai-gen-btn:hover:not(:disabled) { background: #ede9fe; }
 .ai-gen-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .ai-gen-btn__icon { font-size: 11px; }
-.ai-gen-btn--loading .ai-gen-btn__icon { display: inline-block; animation: ai-spin 1.2s linear infinite; }
+.ai-gen-btn--loading .ai-gen-btn__icon {
+  display: inline-block;
+  animation: ai-spin 1.2s linear infinite;
+}
 @keyframes ai-spin { to { transform: rotate(360deg); } }
 
-/* ── AI preview ── */
+/* ── AI preview card ───────────────────────────────────────────────────────────*/
+.ai-preview {
+  border: 1px solid #ddd6fe;
+  border-radius: 6px;
+  background: #faf9ff;
+  overflow: hidden;
+}
+.ai-preview__loading {
+  display: flex; align-items: center; gap: 6px;
+  padding: 14px 16px;
+  color: #7c3aed; font-size: 13px;
+}
+.ai-preview__dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #7c3aed;
+  animation: ai-dot 1.2s infinite ease-in-out;
+}
+.ai-preview__dot:nth-child(2) { animation-delay: 0.2s; }
+.ai-preview__dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes ai-dot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%            { transform: scale(1);   opacity: 1; }
+}
+.ai-preview__hint { margin-left: 4px; }
+.ai-preview__no-match {
+  margin: 0;
+  padding: 12px 16px 8px;
+  font-size: 12px; color: #9ca3af; font-style: italic;
+}
+.ai-preview__text {
+  margin: 0;
+  padding: 14px 16px 10px;
+  font-size: 13px; line-height: 1.7; color: #374151;
+}
+.ai-preview__actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 0 12px 12px;
+}
 
-.ai-preview { border: 1px solid #ddd6fe; border-radius: 6px; background: #faf9ff; overflow: hidden; }
-.ai-preview__no-match { margin: 0; padding: 12px 16px 8px; font-size: 12px; color: #9ca3af; font-style: italic; }
-.ai-preview__text { margin: 0; padding: 14px 16px 10px; font-size: 13px; line-height: 1.7; color: #374151; }
-.ai-preview__actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 12px 12px; }
-.ai-preview__meta { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px 10px; }
-
-.ai-action { padding: 4px 12px; font-size: 12px; font-weight: 500; border-radius: 4px; border: 1px solid transparent; cursor: pointer; transition: background 0.15s; }
-.ai-action--dismiss { color: #6b7280; background: #f3f4f6; border-color: #e5e7eb; }
+/* ── AI action buttons ─────────────────────────────────────────────────────────*/
+.ai-action {
+  padding: 4px 12px;
+  font-size: 12px; font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ai-action--secondary {
+  color: #7c3aed; background: #ede9fe; border-color: #ddd6fe;
+}
+.ai-action--secondary:hover { background: #ddd6fe; }
+.ai-action--dismiss {
+  color: #6b7280; background: #f3f4f6; border-color: #e5e7eb;
+}
 .ai-action--dismiss:hover { background: #e5e7eb; }
-.ai-action--primary { color: #fff; background: #7c3aed; border-color: #7c3aed; }
+.ai-action--primary {
+  color: #fff; background: #7c3aed; border-color: #7c3aed;
+}
 .ai-action--primary:hover { background: #6d28d9; }
 
-.ai-meta-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; font-size: 12px; font-weight: 500; border-radius: 4px; border: 1px solid transparent; line-height: 20px; }
-.ai-meta-chip--existing { color: #7c3aed; background: #ede9fe; border-color: #ddd6fe; }
-.ai-meta-chip--new      { color: #6b7280; background: #f9fafb; border-color: #d1d5db; border-style: dashed; }
-.ai-meta-chip--action   { cursor: pointer; transition: background 0.15s; }
+/* ── AI meta chips (category / tag suggestions) ───────────────────────────────*/
+.ai-preview__meta {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 12px 16px 10px;
+}
+.ai-meta-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px;
+  font-size: 12px; font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  line-height: 20px;
+}
+.ai-meta-chip--existing {
+  color: #7c3aed; background: #ede9fe; border-color: #ddd6fe;
+}
+.ai-meta-chip--new {
+  color: #6b7280; background: #f9fafb; border-color: #d1d5db; border-style: dashed;
+}
+.ai-meta-chip--action {
+  cursor: pointer;
+  transition: background 0.15s;
+}
 .ai-meta-chip--action.ai-meta-chip--existing:hover { background: #ddd6fe; }
-.ai-meta-chip--action.ai-meta-chip--new:hover      { background: #f3f4f6; }
-.ai-meta-chip__badge { font-size: 10px; font-weight: 600; color: #9ca3af; background: #e5e7eb; padding: 0 4px; border-radius: 3px; }
-.ai-meta-chip__plus  { font-size: 14px; font-weight: 400; line-height: 1; color: #a78bfa; margin-left: 1px; }
+.ai-meta-chip--action.ai-meta-chip--new:hover { background: #f3f4f6; }
+.ai-meta-chip__badge {
+  font-size: 10px; font-weight: 600;
+  color: #9ca3af; background: #e5e7eb;
+  padding: 0 4px; border-radius: 3px;
+}
+.ai-meta-chip__plus {
+  font-size: 14px; font-weight: 400; line-height: 1;
+  color: #a78bfa; margin-left: 1px;
+}
 .ai-meta-chip--new .ai-meta-chip__plus { color: #9ca3af; }
-.ai-meta-chip--applied { opacity: 0.4; cursor: not-allowed; }
+.ai-meta-chip--applied {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
-.ai-preview-enter-active, .ai-preview-leave-active { transition: opacity 0.2s, transform 0.2s; }
-.ai-preview-enter-from, .ai-preview-leave-to { opacity: 0; transform: translateY(-4px); }
+/* ── Transition ────────────────────────────────────────────────────────────────*/
+.ai-preview-enter-active, .ai-preview-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+.ai-preview-enter-from, .ai-preview-leave-to {
+  opacity: 0; transform: translateY(-4px);
+}
 
-/* ── Mobile ── */
-
+/* ── Mobile ──────────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .write-view    { margin: -16px -12px; }
-  .write-toolbar { padding: 0 12px; gap: 8px; }
-  .save-hint     { display: none; }
-  .title-section { padding: 24px 20px 14px; }
-  .title-input   { font-size: 22px; }
-  .diff-banner   { padding: 10px 20px; }
-  .diff-view     { padding: 20px 20px 40px; }
-  .meta-sidebar  { position: fixed; top: var(--admin-header-height); right: 0; height: calc(100vh - var(--admin-header-height)); z-index: 100; box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1); }
+  .write-view     { margin: -16px -12px; }
+  .write-toolbar  { padding: 0 12px; gap: 8px; }
+  .save-hint { display: none; }
+  .title-section  { padding: 24px 20px 14px; }
+  .title-input    { font-size: 22px; }
+  .diff-banner    { padding: 10px 20px; }
+  .diff-view      { padding: 20px 20px 40px; }
+  :deep(.md-editor-toolbar) { padding: 0 12px; }
+  :deep(.md-editor-input)   { padding: 20px !important; }
+  :deep(.md-editor-preview) { padding: 20px !important; }
+
+  .meta-sidebar {
+    position: fixed; top: var(--admin-header-height); right: 0;
+    height: calc(100vh - var(--admin-header-height)); z-index: 100;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+  }
   .meta-sidebar--closed { width: 0; opacity: 0; box-shadow: none; }
 }
 </style>
