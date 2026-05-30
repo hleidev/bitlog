@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
-    @ResponseStatus(HttpStatus.OK)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
     public Result<Void> handleAuthorizationDenied(AuthorizationDeniedException e) {
         log.warn("权限不足: {}", e.getMessage());
         return Result.fail(ResultCode.FORBIDDEN);
