@@ -87,14 +87,31 @@ const publishForm = ref({
   tagIds:     [] as number[],
 })
 
-// ── Category / tag selects ─────────────────────────────────────────────────────
-const categorySelectVal = ref<number | string | null>(null)
-const tagSelectVals     = ref<(number)[]>([])
-const categoryOptions   = ref<Category[]>([])
-const tagOptions        = ref<Tag[]>([])
-const showNewCatInput   = ref(false)
-const newCategoryName   = ref('')
-const newTagName        = ref('')
+// ── Category / tag options ─────────────────────────────────────────────────────
+const categoryOptions = ref<Category[]>([])
+const tagOptions      = ref<Tag[]>([])
+
+// Category combobox
+const categoryInput        = ref('')
+const categoryDropdownOpen = ref(false)
+const selectedCategory     = ref<{ id: number; name: string } | null>(null)
+const filteredCategories   = computed(() => {
+  const q = categoryInput.value.trim().toLowerCase()
+  if (!q) return categoryOptions.value
+  return categoryOptions.value.filter(c => c.name.toLowerCase().includes(q))
+})
+
+// Tags combobox
+const tagInput        = ref('')
+const tagDropdownOpen = ref(false)
+const selectedTags    = ref<{ id: number; name: string }[]>([])
+const filteredTags    = computed(() => {
+  const selectedIds = new Set(selectedTags.value.map(t => t.id))
+  const base = tagOptions.value.filter(t => !selectedIds.has(t.id))
+  const q = tagInput.value.trim().toLowerCase()
+  if (!q) return base
+  return base.filter(t => t.name.toLowerCase().includes(q))
+})
 
 // ── AI recommendation ─────────────────────────────────────────────────────────
 const aiGenerating    = ref(false)
@@ -174,8 +191,6 @@ async function loadDraft() {
       categoryId: data.categoryId,
       tagIds:     [...data.tagIds],
     }
-    categorySelectVal.value = data.categoryId
-    tagSelectVals.value     = [...data.tagIds]
     await loadVersions()
     saveState.value = 'saved'
   } catch (err) {
@@ -188,25 +203,18 @@ async function loadDraft() {
   }
 }
 
-// ── Category / tag handlers ────────────────────────────────────────────────────
-function onCategorySelect() {
-  if (categorySelectVal.value === '__new__') {
-    showNewCatInput.value = true
-    categorySelectVal.value = null
-  } else {
-    publishForm.value.categoryId = categorySelectVal.value as number | null
-  }
+// ── Category combobox handlers ─────────────────────────────────────────────────
+function selectCategory(cat: { id: number; name: string }) {
+  selectedCategory.value = cat
+  categoryInput.value    = cat.name
+  publishForm.value.categoryId = cat.id
+  categoryDropdownOpen.value   = false
 }
 
-async function confirmNewCategory() {
-  const name = newCategoryName.value.trim()
-  if (!name) return
+async function createAndSelectCategory(name: string) {
   try {
     const id = await getOrCreateCategory(name)
-    categorySelectVal.value  = id
-    publishForm.value.categoryId = id
-    showNewCatInput.value    = false
-    newCategoryName.value    = ''
+    selectCategory({ id, name })
     if (!categoryOptions.value.find(c => c.id === id)) {
       categoryOptions.value = [...categoryOptions.value, { id, name, articleCount: 0, createTime: '' }]
     }
@@ -215,37 +223,77 @@ async function confirmNewCategory() {
   }
 }
 
-function cancelNewCategory() {
-  showNewCatInput.value = false
-  newCategoryName.value = ''
-  categorySelectVal.value = null
+function clearCategory() {
+  selectedCategory.value       = null
+  categoryInput.value          = ''
+  publishForm.value.categoryId = null
 }
 
-function toggleTag(id: number) {
-  const idx = tagSelectVals.value.indexOf(id)
-  if (idx >= 0) {
-    tagSelectVals.value = tagSelectVals.value.filter(i => i !== id)
-  } else {
-    tagSelectVals.value = [...tagSelectVals.value, id]
+function onCategoryInput() {
+  if (selectedCategory.value && categoryInput.value !== selectedCategory.value.name) {
+    selectedCategory.value       = null
+    publishForm.value.categoryId = null
   }
-  publishForm.value.tagIds = [...tagSelectVals.value]
+  categoryDropdownOpen.value = true
 }
 
-async function addNewTag() {
-  const name = newTagName.value.trim()
-  if (!name) return
+function onCategoryEnter() {
+  const q = categoryInput.value.trim()
+  if (!q) return
+  const exact = filteredCategories.value[0]
+  if (exact && exact.name.toLowerCase() === q.toLowerCase()) {
+    selectCategory(exact)
+  } else if (filteredCategories.value.length === 1) {
+    selectCategory(filteredCategories.value[0])
+  } else {
+    createAndSelectCategory(q)
+  }
+}
+
+function closeCategoryDropdown() {
+  if (!selectedCategory.value) categoryInput.value = ''
+  categoryDropdownOpen.value = false
+}
+
+// ── Tag combobox handlers ──────────────────────────────────────────────────────
+function addTag(tag: { id: number; name: string }) {
+  if (selectedTags.value.find(t => t.id === tag.id)) return
+  selectedTags.value       = [...selectedTags.value, tag]
+  publishForm.value.tagIds = selectedTags.value.map(t => t.id)
+  tagInput.value           = ''
+  tagDropdownOpen.value    = false
+}
+
+async function createAndAddTag(name: string) {
   try {
     const id = await getOrCreateTag(name)
-    if (!tagSelectVals.value.includes(id)) {
-      tagSelectVals.value = [...tagSelectVals.value, id]
-      publishForm.value.tagIds = [...tagSelectVals.value]
+    if (!selectedTags.value.find(t => t.id === id)) {
+      selectedTags.value       = [...selectedTags.value, { id, name }]
+      publishForm.value.tagIds = selectedTags.value.map(t => t.id)
     }
     if (!tagOptions.value.find(t => t.id === id)) {
       tagOptions.value = [...tagOptions.value, { id, name, articleCount: 0, createTime: '', updateTime: '' }]
     }
-    newTagName.value = ''
+    tagInput.value        = ''
+    tagDropdownOpen.value = false
   } catch {
     toast.error('创建标签失败')
+  }
+}
+
+function removeTag(id: number) {
+  selectedTags.value       = selectedTags.value.filter(t => t.id !== id)
+  publishForm.value.tagIds = selectedTags.value.map(t => t.id)
+}
+
+function onTagEnter() {
+  const q = tagInput.value.trim()
+  if (!q) return
+  const exact = tagOptions.value.find(t => t.name.toLowerCase() === q.toLowerCase())
+  if (exact) {
+    addTag(exact)
+  } else {
+    createAndAddTag(q)
   }
 }
 
@@ -377,38 +425,20 @@ function acceptAiSummary() {
 
 function applyAiCategory() {
   if (!aiCatResult.value) return
-  showNewCatInput.value = false
-  categorySelectVal.value = aiCatResult.value.id
-  publishForm.value.categoryId = aiCatResult.value.id
+  selectCategory(aiCatResult.value as { id: number; name: string })
   aiCatResult.value = null
 }
 
 function applyAiExistingTag(tag: { id: number; name: string }) {
-  if (tagSelectVals.value.includes(tag.id)) return
-  tagSelectVals.value      = [...tagSelectVals.value, tag.id]
-  publishForm.value.tagIds = [...publishForm.value.tagIds, tag.id]
-  if (!tagOptions.value.find(t => t.id === tag.id))
-    tagOptions.value = [...tagOptions.value, { id: tag.id, name: tag.name, articleCount: 0, createTime: '', updateTime: '' }]
+  addTag(tag)
 }
 
 function isSuggestedTagApplied(name: string): boolean {
-  const tag = tagOptions.value.find(t => t.name === name)
-  return tag ? tagSelectVals.value.includes(tag.id) : false
+  return selectedTags.value.some(t => t.name === name)
 }
 
 async function applyAiSuggestedTag(name: string) {
-  try {
-    const id = await getOrCreateTag(name)
-    if (!tagSelectVals.value.includes(id)) {
-      tagSelectVals.value = [...tagSelectVals.value, id]
-      publishForm.value.tagIds = [...tagSelectVals.value]
-    }
-    if (!tagOptions.value.find(t => t.id === id)) {
-      tagOptions.value = [...tagOptions.value, { id, name, articleCount: 0, createTime: '', updateTime: '' }]
-    }
-  } catch {
-    toast.error('创建标签失败')
-  }
+  await createAndAddTag(name)
 }
 
 // ── Version management ─────────────────────────────────────────────────────────
@@ -476,8 +506,17 @@ function onKeydown(e: KeyboardEvent) {
 onMounted(async () => {
   window.addEventListener('beforeunload', onBeforeUnload)
   window.addEventListener('keydown', onKeydown)
-  await loadDraft()
-  loadCategoriesAndTags()
+  await Promise.all([loadDraft(), loadCategoriesAndTags()])
+  // Resolve display names for pre-selected category / tags after both loads complete
+  if (publishForm.value.categoryId) {
+    const cat = categoryOptions.value.find(c => c.id === publishForm.value.categoryId)
+    if (cat) selectCategory(cat)
+  }
+  selectedTags.value = publishForm.value.tagIds
+    .flatMap(id => {
+      const t = tagOptions.value.find(tag => tag.id === id)
+      return t ? [{ id: t.id, name: t.name }] : []
+    })
 })
 
 onUnmounted(() => {
@@ -649,7 +688,19 @@ onBeforeRouteLeave(async () => {
           <div v-if="publishDialogVisible" class="dialog-overlay" @click.self="publishDialogVisible = false">
             <div class="dialog-panel">
               <div class="dialog-header">
-                <span class="dialog-title">{{ isPublished ? '更新发布信息' : '发布文章' }}</span>
+                <div class="dialog-title-row">
+                  <span class="dialog-title">{{ isPublished ? '更新发布' : '发布文章' }}</span>
+                  <button
+                    class="ai-trigger-btn"
+                    :class="{ 'ai-trigger-btn--loading': aiGenerating }"
+                    :disabled="aiGenerating"
+                    type="button"
+                    title="AI 智能填写"
+                    @click="runAiRecommend"
+                  >
+                    <span :style="aiGenerating ? 'display:inline-block;animation:ai-spin 1.2s linear infinite' : ''">✦</span>
+                  </button>
+                </div>
                 <button class="dialog-x" @click="publishDialogVisible = false">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
@@ -657,19 +708,6 @@ onBeforeRouteLeave(async () => {
 
               <div class="dialog-body">
                 <div class="publish-form">
-
-                  <div class="pf-ai-bar">
-                    <button
-                      class="ai-gen-btn ai-gen-btn--full"
-                      :class="{ 'ai-gen-btn--loading': aiGenerating }"
-                      :disabled="aiGenerating"
-                      type="button"
-                      @click="runAiRecommend"
-                    >
-                      <span class="ai-gen-btn__icon">✦</span>
-                      <span>{{ aiGenerating ? 'AI 分析中…' : 'AI 一键推荐' }}</span>
-                    </button>
-                  </div>
 
                   <div class="pf-item">
                     <div class="pf-label">摘要 <span class="pf-optional">可选</span></div>
@@ -681,12 +719,13 @@ onBeforeRouteLeave(async () => {
                       rows="3"
                     />
                     <div class="pf-char-count">{{ publishForm.summary.length }} / 512</div>
-                    <transition name="ai-preview">
-                      <div v-if="aiSummaryResult" class="ai-preview">
-                        <p class="ai-preview__text">{{ aiSummaryResult }}</p>
-                        <div class="ai-preview__actions">
-                          <button type="button" class="ai-action ai-action--dismiss" @click="aiSummaryResult = null">丢弃</button>
-                          <button type="button" class="ai-action ai-action--primary" @click="acceptAiSummary">写入摘要</button>
+                    <transition name="ai-slide">
+                      <div v-if="aiSummaryResult" class="pf-ai-inline">
+                        <p class="pf-ai-inline-body">{{ aiSummaryResult }}</p>
+                        <div class="pf-ai-inline-actions">
+                          <span class="pf-ai-badge">✦ AI</span>
+                          <button type="button" class="ai-action ai-action--dismiss" @click="aiSummaryResult = null">忽略</button>
+                          <button type="button" class="ai-action ai-action--primary" @click="acceptAiSummary">应用</button>
                         </div>
                       </div>
                     </transition>
@@ -694,34 +733,63 @@ onBeforeRouteLeave(async () => {
 
                   <div class="pf-item">
                     <div class="pf-label">分类 <span class="pf-required">必填</span></div>
-                    <template v-if="!showNewCatInput">
-                      <select v-model="categorySelectVal" @change="onCategorySelect" class="pf-select">
-                        <option :value="null" disabled>请选择分类...</option>
-                        <option v-for="cat in categoryOptions" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-                        <option value="__new__">✚ 创建新分类...</option>
-                      </select>
-                    </template>
-                    <div v-else class="pf-inline-row">
-                      <input v-model="newCategoryName" placeholder="输入新分类名称" @keyup.enter="confirmNewCategory" class="pf-input" />
-                      <button class="btn btn--default btn--sm" @click="confirmNewCategory">确认</button>
-                      <button class="btn btn--cancel btn--sm" @click="cancelNewCategory">取消</button>
+                    <div class="pf-combo" v-click-outside="closeCategoryDropdown">
+                      <div class="pf-combo-field" :class="{ 'pf-combo-field--focused': categoryDropdownOpen }">
+                        <input
+                          v-model="categoryInput"
+                          class="pf-combo-input"
+                          placeholder="搜索或输入新分类..."
+                          @input="onCategoryInput"
+                          @focus="categoryDropdownOpen = true"
+                          @keydown.enter.prevent="onCategoryEnter"
+                          @keydown.escape="closeCategoryDropdown"
+                          @keydown.tab="closeCategoryDropdown"
+                        />
+                        <button
+                          v-if="selectedCategory"
+                          type="button"
+                          class="pf-combo-clear"
+                          tabindex="-1"
+                          @click="clearCategory"
+                        >
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        </button>
+                      </div>
+                      <div v-if="categoryDropdownOpen" class="pf-combo-dropdown">
+                        <button
+                          v-for="cat in filteredCategories"
+                          :key="cat.id"
+                          type="button"
+                          class="pf-combo-opt"
+                          :class="{ 'pf-combo-opt--active': selectedCategory?.id === cat.id }"
+                          @mousedown.prevent="selectCategory(cat)"
+                        >{{ cat.name }}</button>
+                        <button
+                          v-if="categoryInput.trim() && !filteredCategories.find(c => c.name.toLowerCase() === categoryInput.trim().toLowerCase())"
+                          type="button"
+                          class="pf-combo-opt"
+                          @mousedown.prevent="createAndSelectCategory(categoryInput.trim())"
+                        >{{ categoryInput.trim() }}</button>
+                        <div v-if="!filteredCategories.length && !categoryInput.trim()" class="pf-combo-empty">
+                          暂无分类，输入名称即可创建
+                        </div>
+                      </div>
                     </div>
-                    <transition name="ai-preview">
-                      <div v-if="aiCatResult !== null" class="ai-preview">
+                    <transition name="ai-slide">
+                      <div v-if="aiCatResult !== null" class="pf-ai-inline pf-ai-inline--row">
+                        <span class="pf-ai-badge">✦ AI</span>
                         <template v-if="aiCatResult">
-                          <div class="ai-preview__meta">
-                            <span class="ai-meta-chip ai-meta-chip--existing">{{ aiCatResult.name }}</span>
-                          </div>
-                          <div class="ai-preview__actions">
-                            <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">丢弃</button>
+                          <span class="pf-ai-inline-val">{{ aiCatResult.name }}</span>
+                          <div class="pf-ai-inline-actions">
+                            <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">忽略</button>
                             <button type="button" class="ai-action ai-action--primary" @click="applyAiCategory">应用</button>
                           </div>
                         </template>
                         <template v-else>
-                          <p class="ai-preview__no-match">现有分类均不适配，请手动选择</p>
-                          <div class="ai-preview__actions">
-                            <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">知道了</button>
-                          </div>
+                          <span class="pf-ai-inline-no-match">现有分类均不适配，请手动选择</span>
+                          <button type="button" class="pf-ai-inline-dismiss" @click="aiCatResult = null">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                          </button>
                         </template>
                       </div>
                     </transition>
@@ -729,48 +797,68 @@ onBeforeRouteLeave(async () => {
 
                   <div class="pf-item">
                     <div class="pf-label">标签 <span class="pf-optional">可选</span></div>
-                    <div class="tag-chips">
-                      <button
-                        v-for="tag in tagOptions"
-                        :key="tag.id"
-                        type="button"
-                        class="tag-chip"
-                        :class="{ 'tag-chip--selected': tagSelectVals.includes(tag.id) }"
-                        @click="toggleTag(tag.id)"
-                      >{{ tag.name }}</button>
-                      <span v-if="!tagOptions.length" class="tag-chips-empty">暂无标签，请在下方添加</span>
+                    <div v-if="selectedTags.length" class="pf-selected-chips">
+                      <span v-for="tag in selectedTags" :key="tag.id" class="pf-sel-chip">
+                        {{ tag.name }}
+                        <button type="button" class="pf-sel-chip-x" @click="removeTag(tag.id)">
+                          <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        </button>
+                      </span>
                     </div>
-                    <div class="pf-inline-row">
-                      <input v-model="newTagName" placeholder="输入新标签名称" @keyup.enter="addNewTag" class="pf-input" />
-                      <button class="btn btn--default btn--sm" :disabled="!newTagName.trim()" @click="addNewTag">添加</button>
+                    <div class="pf-combo" v-click-outside="() => { tagDropdownOpen = false; tagInput = '' }">
+                      <div class="pf-combo-field" :class="{ 'pf-combo-field--focused': tagDropdownOpen }">
+                        <input
+                          v-model="tagInput"
+                          class="pf-combo-input"
+                          placeholder="搜索或输入新标签..."
+                          @input="tagDropdownOpen = true"
+                          @focus="tagDropdownOpen = true"
+                          @keydown.enter.prevent="onTagEnter"
+                          @keydown.escape="tagDropdownOpen = false; tagInput = ''"
+                          @keydown.tab="tagDropdownOpen = false"
+                        />
+                      </div>
+                      <div v-if="tagDropdownOpen" class="pf-combo-dropdown">
+                        <button
+                          v-for="tag in filteredTags"
+                          :key="tag.id"
+                          type="button"
+                          class="pf-combo-opt"
+                          @mousedown.prevent="addTag(tag)"
+                        >{{ tag.name }}</button>
+                        <button
+                          v-if="tagInput.trim() && !tagOptions.find(t => t.name.toLowerCase() === tagInput.trim().toLowerCase())"
+                          type="button"
+                          class="pf-combo-opt"
+                          @mousedown.prevent="createAndAddTag(tagInput.trim())"
+                        >{{ tagInput.trim() }}</button>
+                        <div v-if="!filteredTags.length && !tagInput.trim()" class="pf-combo-empty">
+                          暂无更多标签，输入名称即可创建
+                        </div>
+                      </div>
                     </div>
-                    <transition name="ai-preview">
-                      <div v-if="aiTagsResult" class="ai-preview">
-                        <div class="ai-preview__meta">
-                          <button
-                            v-for="tag in aiTagsResult.existing"
-                            :key="tag.id"
-                            type="button"
-                            :class="['ai-meta-chip ai-meta-chip--existing ai-meta-chip--action', { 'ai-meta-chip--applied': tagSelectVals.includes(tag.id) }]"
-                            :disabled="tagSelectVals.includes(tag.id)"
-                            @click="applyAiExistingTag(tag)"
-                          >
-                            {{ tag.name }}<span class="ai-meta-chip__plus">+</span>
-                          </button>
-                          <button
-                            v-for="name in aiTagsResult.suggested"
-                            :key="name"
-                            type="button"
-                            :class="['ai-meta-chip ai-meta-chip--new ai-meta-chip--action', { 'ai-meta-chip--applied': isSuggestedTagApplied(name) }]"
-                            :disabled="isSuggestedTagApplied(name)"
-                            @click="applyAiSuggestedTag(name)"
-                          >
-                            {{ name }}<span class="ai-meta-chip__badge">新</span><span class="ai-meta-chip__plus">+</span>
-                          </button>
-                        </div>
-                        <div class="ai-preview__actions">
-                          <button type="button" class="ai-action ai-action--dismiss" @click="aiTagsResult = null">丢弃</button>
-                        </div>
+                    <transition name="ai-slide">
+                      <div v-if="aiTagsResult" class="pf-ai-inline pf-ai-inline--chips">
+                        <span class="pf-ai-badge">✦ AI</span>
+                        <button
+                          v-for="tag in aiTagsResult.existing"
+                          :key="tag.id"
+                          type="button"
+                          :class="['ai-meta-chip ai-meta-chip--existing ai-meta-chip--action', { 'ai-meta-chip--applied': !!selectedTags.find(t => t.id === tag.id) }]"
+                          :disabled="!!selectedTags.find(t => t.id === tag.id)"
+                          @click="applyAiExistingTag(tag)"
+                        >{{ tag.name }}<span v-if="!selectedTags.find(t => t.id === tag.id)" class="ai-meta-chip__plus">+</span></button>
+                        <button
+                          v-for="name in aiTagsResult.suggested"
+                          :key="name"
+                          type="button"
+                          :class="['ai-meta-chip ai-meta-chip--new ai-meta-chip--action', { 'ai-meta-chip--applied': isSuggestedTagApplied(name) }]"
+                          :disabled="isSuggestedTagApplied(name)"
+                          @click="applyAiSuggestedTag(name)"
+                        >{{ name }}<span class="ai-meta-chip__badge">新</span><span v-if="!isSuggestedTagApplied(name)" class="ai-meta-chip__plus">+</span></button>
+                        <button type="button" class="pf-ai-inline-dismiss" @click="aiTagsResult = null">
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        </button>
                       </div>
                     </transition>
                   </div>
@@ -1006,66 +1094,70 @@ onBeforeRouteLeave(async () => {
 
 /* ── Publish dialog ───────────────────────────────────────────────────────────── */
 .publish-form { display: flex; flex-direction: column; gap: 20px; }
-.pf-ai-bar    { display: flex; justify-content: flex-end; margin-bottom: -4px; }
 .pf-item      { display: flex; flex-direction: column; gap: 8px; }
 .pf-label     { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151; }
 .pf-optional  { font-size: 11px; font-weight: 400; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 3px; }
 .pf-required  { font-size: 11px; font-weight: 500; color: #dc2626; background: #fef2f2; padding: 1px 6px; border-radius: 3px; }
 
-/* ── AI generate button ────────────────────────────────────────────────────────*/
-.ai-gen-btn {
-  margin-left: auto;
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 10px;
-  font-size: 12px; font-weight: 500;
-  color: #7c3aed;
-  background: #f5f3ff;
-  border: 1px solid #ddd6fe;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
-  line-height: 20px;
+/* ── Dialog title row with AI button ─────────────────────────────────────────*/
+.dialog-title-row { display: flex; align-items: center; gap: 8px; }
+.ai-trigger-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; flex-shrink: 0;
+  background: #f5f3ff; border: 1px solid #ddd6fe;
+  border-radius: 4px; cursor: pointer;
+  color: #7c3aed; font-size: 13px; font-family: inherit;
+  transition: background 0.15s;
 }
-.ai-gen-btn--full { padding: 4px 14px; font-size: 13px; }
-.ai-gen-btn:hover:not(:disabled) { background: #ede9fe; }
-.ai-gen-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.ai-gen-btn__icon { font-size: 11px; }
-.ai-gen-btn--loading .ai-gen-btn__icon {
-  display: inline-block;
-  animation: ai-spin 1.2s linear infinite;
-}
-@keyframes ai-spin { to { transform: rotate(360deg); } }
+.ai-trigger-btn:hover:not(:disabled) { background: #ede9fe; }
+.ai-trigger-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* ── AI preview card ───────────────────────────────────────────────────────────*/
-.ai-preview {
-  border: 1px solid #ddd6fe;
-  border-radius: 6px;
+/* ── Inline AI suggestion cards ───────────────────────────────────────────────*/
+.pf-ai-inline {
+  border: 1px solid #ede9fe;
+  border-radius: 4px;
   background: #faf9ff;
-  overflow: hidden;
+  padding: 10px 12px;
 }
-.ai-preview__no-match {
-  margin: 0;
-  padding: 12px 16px 8px;
-  font-size: 12px; color: #9ca3af; font-style: italic;
+.pf-ai-inline--row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
-.ai-preview__text {
+.pf-ai-inline--chips {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+}
+.pf-ai-inline-body {
   margin: 0;
-  padding: 14px 16px 10px;
   font-size: 13px; line-height: 1.7; color: #374151;
+  padding-bottom: 10px;
 }
-.ai-preview__actions {
-  display: flex; justify-content: flex-end; gap: 8px;
-  padding: 0 12px 12px;
+.pf-ai-inline-actions {
+  display: flex; align-items: center; gap: 6px; justify-content: flex-end;
 }
+.pf-ai-inline--row .pf-ai-inline-actions { margin-left: auto; flex-shrink: 0; }
+.pf-ai-badge { font-size: 11px; font-weight: 500; color: #a78bfa; flex-shrink: 0; }
+.pf-ai-inline-val { font-size: 13px; color: #374151; font-weight: 500; flex: 1; }
+.pf-ai-inline-no-match { font-size: 12px; color: #9ca3af; font-style: italic; flex: 1; }
+.pf-ai-inline-dismiss {
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; flex-shrink: 0;
+  border: none; background: transparent; cursor: pointer;
+  color: #9ca3af; border-radius: 3px; padding: 0;
+  margin-left: auto;
+  transition: color 0.15s;
+}
+.pf-ai-inline-dismiss:hover { color: #374151; }
+
+@keyframes ai-spin { to { transform: rotate(360deg); } }
 
 /* ── AI action buttons ─────────────────────────────────────────────────────────*/
 .ai-action {
-  padding: 4px 12px;
+  padding: 3px 10px;
   font-size: 12px; font-weight: 500;
   border-radius: 4px;
   border: 1px solid transparent;
   cursor: pointer;
   transition: background 0.15s;
+  font-family: inherit;
 }
 .ai-action--dismiss {
   color: #6b7280; background: #f3f4f6; border-color: #e5e7eb;
@@ -1077,10 +1169,6 @@ onBeforeRouteLeave(async () => {
 .ai-action--primary:hover { background: #6d28d9; }
 
 /* ── AI meta chips (category / tag suggestions) ───────────────────────────────*/
-.ai-preview__meta {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  padding: 12px 16px 10px;
-}
 .ai-meta-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 3px 10px;
@@ -1088,6 +1176,7 @@ onBeforeRouteLeave(async () => {
   border-radius: 4px;
   border: 1px solid transparent;
   line-height: 20px;
+  font-family: inherit;
 }
 .ai-meta-chip--existing {
   color: #7c3aed; background: #ede9fe; border-color: #ddd6fe;
@@ -1114,14 +1203,6 @@ onBeforeRouteLeave(async () => {
 .ai-meta-chip--applied {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-/* ── Transition ────────────────────────────────────────────────────────────────*/
-.ai-preview-enter-active, .ai-preview-leave-active {
-  transition: opacity 0.2s, transform 0.2s;
-}
-.ai-preview-enter-from, .ai-preview-leave-to {
-  opacity: 0; transform: translateY(-4px);
 }
 
 /* ── Milkdown: 把编辑容器接入 prose 主题 ────────────────────────────────────── */
@@ -1325,6 +1406,10 @@ onBeforeRouteLeave(async () => {
   flex-shrink: 0;
 }
 
+/* ── AI inline transition ────────────────────────────────────────────────────── */
+.ai-slide-enter-active, .ai-slide-leave-active { transition: opacity 0.18s, transform 0.18s; }
+.ai-slide-enter-from, .ai-slide-leave-to { opacity: 0; transform: translateY(-3px); }
+
 /* ── Dialog transition ───────────────────────────────────────────────────────── */
 .dialog-fade-enter-active { transition: opacity 0.2s ease; }
 .dialog-fade-leave-active { transition: opacity 0.15s ease; }
@@ -1335,11 +1420,11 @@ onBeforeRouteLeave(async () => {
 .dialog-fade-enter-from .dialog-panel { transform: scale(0.97); }
 
 /* ── Form controls ───────────────────────────────────────────────────────────── */
-.pf-select, .pf-input, .pf-textarea {
+.pf-textarea {
   display: block;
   width: 100%;
-  height: 36px;
-  padding: 0 10px;
+  height: auto;
+  padding: 8px 10px;
   font-size: 13px;
   font-family: inherit;
   border: 1px solid #d4cfc9;
@@ -1349,27 +1434,65 @@ onBeforeRouteLeave(async () => {
   outline: none;
   transition: border-color 0.15s;
   box-sizing: border-box;
+  resize: none;
+  line-height: 1.6;
 }
-.pf-select:focus, .pf-input:focus, .pf-textarea:focus { border-color: var(--admin-accent, #b85c38); }
-.pf-textarea { height: auto; padding: 8px 10px; resize: none; line-height: 1.6; }
+.pf-textarea:focus { border-color: var(--admin-accent, #b85c38); }
 .pf-char-count { font-size: 11px; color: #9ca3af; text-align: right; margin-top: 2px; }
-.pf-inline-row { display: flex; gap: 8px; align-items: center; }
-.pf-inline-row .pf-input { flex: 1; }
 
-/* ── Tag chips ───────────────────────────────────────────────────────────────── */
-.tag-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
-.tag-chip {
-  display: inline-flex; align-items: center;
-  padding: 3px 10px; font-size: 12px; font-weight: 500;
-  border-radius: 4px; border: 1px solid #d1d5db;
-  background: #f9fafb; color: #6b7280;
-  cursor: pointer; transition: all 0.15s;
-  font-family: inherit; line-height: 20px;
+/* ── Combobox ─────────────────────────────────────────────────────────────────── */
+.pf-combo { position: relative; }
+.pf-combo-field {
+  display: flex; align-items: center;
+  border: 1px solid #d4cfc9; border-radius: 4px; background: #fff;
+  transition: border-color 0.15s;
+  padding: 0 6px 0 10px;
 }
-.tag-chip:hover { background: #f3f4f6; border-color: #9ca3af; }
-.tag-chip--selected { background: #ede9fe; color: #7c3aed; border-color: #ddd6fe; }
-.tag-chip--selected:hover { background: #e5d9fd; }
-.tag-chips-empty { font-size: 12px; color: #9ca3af; font-style: italic; align-self: center; }
+.pf-combo-field--focused { border-color: var(--admin-accent, #b85c38); }
+.pf-combo-input {
+  flex: 1; height: 34px;
+  border: none; outline: none; background: transparent;
+  font-size: 13px; font-family: inherit; color: #374151;
+}
+.pf-combo-input::placeholder { color: #9ca3af; }
+.pf-combo-clear {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; flex-shrink: 0;
+  border: none; background: transparent; cursor: pointer;
+  color: #9ca3af; border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+}
+.pf-combo-clear:hover { color: #374151; background: #f3f4f6; }
+.pf-combo-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  z-index: 200; max-height: 176px; overflow-y: auto; padding: 4px 0;
+}
+.pf-combo-opt {
+  display: block; width: 100%; text-align: left;
+  padding: 7px 12px; font-size: 13px; color: #374151;
+  background: transparent; border: none; cursor: pointer;
+  font-family: inherit; transition: background 0.1s;
+}
+.pf-combo-opt:hover { background: #f3f4f6; }
+.pf-combo-opt--active { color: var(--admin-accent, #b85c38); font-weight: 500; }
+.pf-combo-empty { padding: 8px 12px; font-size: 12px; color: #9ca3af; font-style: italic; }
+
+/* ── Selected tag chips ──────────────────────────────────────────────────────── */
+.pf-selected-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf-sel-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 6px 3px 10px; font-size: 12px; font-weight: 500;
+  border-radius: 4px; background: #ede9fe; color: #7c3aed; border: 1px solid #ddd6fe;
+}
+.pf-sel-chip-x {
+  display: flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border: none; background: transparent;
+  cursor: pointer; color: #a78bfa; border-radius: 2px; padding: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.pf-sel-chip-x:hover { color: #7c3aed; background: #ddd6fe; }
 
 /* ── Checkbox ────────────────────────────────────────────────────────────────── */
 .checkbox-label {
