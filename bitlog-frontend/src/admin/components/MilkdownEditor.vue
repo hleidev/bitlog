@@ -1,10 +1,15 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { Milkdown, useEditor } from '@milkdown/vue'
 import { Crepe, CrepeFeature } from '@milkdown/crepe'
 import { $view } from '@milkdown/utils'
 import { codeBlockSchema } from '@milkdown/preset-commonmark'
+import { uploadConfig } from '@milkdown/kit/plugin/upload'
+import type { Uploader } from '@milkdown/kit/plugin/upload'
+import type { Node } from '@milkdown/kit/prose/model'
 import hljs from 'highlight.js'
 import mermaid from 'mermaid'
+import { uploadFile } from '@/api/file'
 
 const props = defineProps<{ content: string }>()
 
@@ -316,6 +321,15 @@ const codeBlockPlugin = $view(codeBlockSchema.node, () => {
   }
 })
 
+const emit = defineEmits<{ change: [] }>()
+
+let crepeInstance: Crepe | null = null
+
+const uploader = async (file: File) => {
+  const res = await uploadFile(file, 'article')
+  return res.fileUrl
+}
+
 const { get } = useEditor((root) => {
   const crepe = new Crepe({
     root,
@@ -326,14 +340,54 @@ const { get } = useEditor((root) => {
       [CrepeFeature.LinkTooltip]: false,
       [CrepeFeature.Latex]: false,
     },
+    featureConfigs: {
+      [CrepeFeature.ImageBlock]: { onUpload: uploader },
+    },
   })
 
   crepe.editor.use(codeBlockPlugin)
 
+  crepe.on(listener => listener.markdownUpdated(() => emit('change')))
+
+  crepeInstance = crepe
   return crepe
 })
 
-defineExpose({ get })
+function getMarkdown(): string {
+  return crepeInstance?.getMarkdown() ?? ''
+}
+
+onMounted(() => {
+  const editor = get()
+  if (!editor) return
+
+  const pasteUploader: Uploader = async (files, schema) => {
+    const images: File[] = []
+    for (let i = 0; i < files.length; i++) {
+      const file = files.item(i)
+      if (file && file.type.includes('image')) images.push(file)
+    }
+    // Prefer the block-level image node registered by CrepeFeature.ImageBlock;
+    // fall back to the inline image node if it is not in the schema.
+    const imageNodeType = schema.nodes.image_block ?? schema.nodes.imageBlock ?? schema.nodes.image
+    const nodes: Node[] = await Promise.all(
+      images.map(async (image) => {
+        const src = await uploader(image)
+        return imageNodeType.createAndFill({ src, alt: image.name }) as Node
+      }),
+    )
+    return nodes
+  }
+
+  editor.config((ctx) => {
+    ctx.set(uploadConfig, {
+      uploader: pasteUploader,
+      enableHtmlFileUploader: true,
+    })
+  })
+})
+
+defineExpose({ get, getMarkdown })
 </script>
 
 <template>
