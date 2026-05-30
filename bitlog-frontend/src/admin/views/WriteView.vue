@@ -3,10 +3,9 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
-import { MdEditor, NormalToolbar } from 'md-editor-v3'
-import type { ToolbarNames, ExposeParam } from 'md-editor-v3'
-import { Image as ImageIcon } from 'lucide-vue-next'
-import 'md-editor-v3/lib/style.css'
+import { Crepe, CrepeFeature } from '@milkdown/crepe'
+import '@milkdown/crepe/theme/frame.css'
+import { getMarkdown, replaceAll } from '@milkdown/kit/utils'
 import { diffLines, diffWords } from 'diff'
 import {
   createArticle,
@@ -34,25 +33,72 @@ const confirm = useConfirm()
 const currentId = ref<number | null>(route.params.id ? Number(route.params.id) : null)
 const isEdit    = computed(() => currentId.value !== null)
 
-// ── Editor state ───────────────────────────────────────────────────────────────
-const title   = ref('')
-const content = ref('')
+// ── Crepe editor ───────────────────────────────────────────────────────────────
+const editorContainer = ref<HTMLDivElement>()
+let crepe: Crepe | null = null
+
+async function initCrepe(initialMarkdown = '') {
+  if (!editorContainer.value) return
+  crepe = new Crepe({
+    root: editorContainer.value,
+    defaultValue: initialMarkdown,
+    features: {
+      [CrepeFeature.BlockEdit]:       true,
+      [CrepeFeature.Cursor]:         true,
+      [CrepeFeature.ImageBlock]:     true,
+      [CrepeFeature.LinkTooltip]:    true,
+      [CrepeFeature.ListItem]:       true,
+      [CrepeFeature.Placeholder]:    true,
+      [CrepeFeature.Table]:          true,
+      [CrepeFeature.Toolbar]:        true,
+    },
+    featureConfigs: {
+      [CrepeFeature.Placeholder]: { text: '开始写作...' },
+      [CrepeFeature.ImageBlock]: {
+        onUpload: async (file: File) => {
+          const result = await uploadFile(file, 'article')
+          return result.fileUrl
+        },
+      },
+    },
+  })
+
+  await crepe.create()
+
+  crepe.on((listener) => {
+    listener.markdownUpdated((_ctx, markdown) => {
+      if (suppressFirstMarkdownUpdate) {
+        suppressFirstMarkdownUpdate = false
+        return
+      }
+      content.value = markdown
+    })
+  })
+}
+
+function crepeDestroy() {
+  if (crepe) {
+    crepe.destroy()
+    crepe = null
+  }
+}
+
+function getCrepeMarkdown(): string {
+  if (!crepe) return content.value
+  return crepe.getMarkdown()
+}
+
+function setCrepeMarkdown(md: string) {
+  if (crepe) {
+    crepe.action(replaceAll(md))
+  }
+  content.value = md
+}
 
 // ── Article metadata ───────────────────────────────────────────────────────────
 const latestVersionId    = ref<number | null>(null)
 const publishedVersionId = ref<number | null>(null)
 const isPublished = computed(() => publishedVersionId.value !== null)
-
-// ── Toolbar config ─────────────────────────────────────────────────────────────
-const toolbars: ToolbarNames[] = [
-  'bold', 'italic', 'strikeThrough', '-',
-  'title', 'quote', '-',
-  'unorderedList', 'orderedList', 'task', '-',
-  'codeRow', 'code', 'link', 0, 'table',
-  '=',
-  'revoke', 'next', '-',
-  'preview', 'pageFullscreen',
-]
 
 // ── Publish dialog ─────────────────────────────────────────────────────────────
 const publishDialogVisible = ref(false)
@@ -171,7 +217,7 @@ async function createCategory() {
 const tagSearch     = ref('')
 const tagDropOpen   = ref(false)
 const tagInputRef   = ref<HTMLInputElement | null>(null)
-const pendingTagNames = ref<string[]>([])  // new tag names waiting to be created
+const pendingTagNames = ref<string[]>([])
 
 const filteredTagOptions = computed(() => {
   const q     = tagSearch.value.trim().toLowerCase()
@@ -253,21 +299,8 @@ async function loadCategoriesAndTags() {
   } catch { /* non-critical */ }
 }
 
-// ── Content image upload ───────────────────────────────────────────────────────
-const editorRef   = ref<ExposeParam>()
-const imgInputRef = ref<HTMLInputElement | null>(null)
-
-async function onImgFileChange(e: Event) {
-  const files = [...((e.target as HTMLInputElement).files ?? [])]
-  if (imgInputRef.value) imgInputRef.value.value = ''
-  if (!files.length) return
-  try {
-    const results = await Promise.all(files.map(f => uploadFile(f, 'article')))
-    results.forEach(r => editorRef.value?.insert(() => ({ targetValue: `![](${r.fileUrl})` })))
-  } catch (err) {
-    toast.error(err instanceof Error ? err.message : '图片上传失败')
-  }
-}
+// ── Content state (synced from Crepe) ─────────────────────────────────────────
+const content = ref('')
 
 // ── Sidebar & versions ─────────────────────────────────────────────────────────
 const sidebarOpen = ref(false)
@@ -371,7 +404,7 @@ async function enterDiff(v: ArticleVersionVO) {
 
 function exitDiff() { diffMode.value = false; diffVersion.value = null }
 
-// ── Save state ─────────────────────────────────────────────────────────────────
+// ── Save state ────────────────────────────────────────────────────────────────
 const saveState = ref<'idle' | 'saving' | 'saved'>(isEdit.value ? 'saved' : 'idle')
 const saving    = ref(false)
 let saveTimer: ReturnType<typeof setTimeout> | undefined
@@ -403,9 +436,10 @@ async function performSave() {
   if (!title.value.trim() || saving.value) return
   saving.value    = true
   saveState.value = 'saving'
+  const markdown = getCrepeMarkdown()
   try {
     if (currentId.value === null) {
-      const newId = await createArticle({ title: title.value, content: content.value })
+      const newId = await createArticle({ title: title.value, content: markdown })
       currentId.value = newId
       router.replace(`/admin/write/${newId}`)
       sidebarOpen.value = true
@@ -414,7 +448,7 @@ async function performSave() {
       publishedVersionId.value = data.publishedVersionId
       versions.value           = versionData
     } else {
-      await updateArticleDraft(currentId.value, { title: title.value, content: content.value })
+      await updateArticleDraft(currentId.value, { title: title.value, content: markdown })
       loadVersions()
     }
     saveState.value = 'saved'
@@ -429,6 +463,7 @@ async function performSave() {
 }
 
 let suppressAutoSave = false
+let suppressFirstMarkdownUpdate = false
 
 watch([title, content], () => {
   if (suppressAutoSave) return
@@ -446,7 +481,6 @@ async function loadDraft() {
   try {
     const data = await getArticleDraft(currentId.value)
     title.value              = data.title
-    content.value            = data.content
     latestVersionId.value    = data.latestVersionId
     publishedVersionId.value = data.publishedVersionId
     publishForm.value = {
@@ -454,6 +488,9 @@ async function loadDraft() {
       categoryId: data.categoryId,
       tagIds:     [...data.tagIds],
     }
+    suppressFirstMarkdownUpdate = true
+    setCrepeMarkdown(data.content)
+    content.value = data.content
     await loadVersions()
     await nextTick()
     saveState.value = 'saved'
@@ -465,14 +502,32 @@ async function loadDraft() {
   }
 }
 
-onMounted(() => { if (isEdit.value) loadDraft(); loadCategoriesAndTags() })
+// ── Keyboard shortcut: Ctrl+S ─────────────────────────────────────────────────
+function handleKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault()
+    handleSave()
+  }
+}
+
+onMounted(async () => {
+  window.addEventListener('keydown', handleKeydown)
+  await initCrepe()
+  if (isEdit.value) await loadDraft()
+  await loadCategoriesAndTags()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+  crepeDestroy()
+})
 
 // ── Error helper ───────────────────────────────────────────────────────────────
 function handleError(err: unknown, fallback = '操作失败') {
   toast.error((err instanceof ApiError ? err.message : null) || fallback)
 }
 
-// ── Actions ────────────────────────────────────────────────────────────────────
+// ── Actions ─────────────────────────────────────────────────────────────────
 async function handleSave() {
   if (!title.value.trim()) { toast.warning('请先输入文章标题'); return }
   await performSave()
@@ -486,7 +541,7 @@ function openPreview() {
 
 async function openPublishDialog() {
   if (!title.value.trim())   { toast.warning('请先输入文章标题'); return }
-  if (!content.value.trim()) { toast.warning('请先输入文章内容'); return }
+  if (!getCrepeMarkdown().trim()) { toast.warning('请先输入文章内容'); return }
   if (currentId.value === null || saveState.value !== 'saved') {
     await performSave()
     if (!currentId.value) return
@@ -511,7 +566,7 @@ async function handlePublishConfirm() {
       tagIds:     allTagIds,
     })
     publishForm.value.tagIds    = allTagIds
-    publishedVersionId.value    = latestVersionId.value
+    publishedVersionId.value   = latestVersionId.value
     publishDialogVisible.value  = false
     hasUnsaved.value            = false
     toast.success(wasPublished ? '发布信息已更新' : '文章已发布')
@@ -598,7 +653,13 @@ function shortTime(d: string) {
 
         <!-- Title -->
         <div class="title-section">
-          <input v-model="title" class="title-input" placeholder="文章标题..." maxlength="200" :disabled="diffMode" />
+          <input
+            v-model="title"
+            class="title-input"
+            placeholder="文章标题..."
+            maxlength="200"
+            :disabled="diffMode"
+          />
         </div>
 
         <!-- Diff banner -->
@@ -616,26 +677,7 @@ function shortTime(d: string) {
         </Transition>
 
         <!-- Editor -->
-        <div v-show="!diffMode" class="md-wrap">
-          <MdEditor
-            ref="editorRef"
-            v-model="content"
-            editor-id="write-editor"
-            :toolbars="toolbars"
-            preview-theme="github"
-            code-theme="atom"
-            :show-code-row-number="true"
-            style="height: 100%"
-            @save="handleSave"
-          >
-            <template #defToolbars>
-              <NormalToolbar title="图片" @onClick="imgInputRef?.click()">
-                <ImageIcon :size="16" />
-              </NormalToolbar>
-            </template>
-          </MdEditor>
-          <input ref="imgInputRef" type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none" @change="onImgFileChange" />
-        </div>
+        <div v-show="!diffMode" class="md-wrap" ref="editorContainer" />
 
         <!-- Diff view -->
         <div v-if="diffMode" class="diff-view">
@@ -1017,25 +1059,16 @@ function shortTime(d: string) {
 .diff-badge { font-size: 11px; font-weight: 600; color: #92400e; background: #fde68a; padding: 2px 8px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
 .diff-desc  { font-size: 13px; color: #78350f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ── md-editor-v3 ── */
+/* ── Crepe editor ── */
 
-.md-wrap { flex: 1; min-height: 0; overflow: hidden; }
+.md-wrap {
+  flex: 1; min-height: 0; overflow: hidden;
+}
 
-:deep(.md-editor)                 { border: none !important; border-radius: 0; font-family: inherit; }
-:deep(.md-editor-toolbar-wrapper) { border-bottom: 1px solid #f0f0f0; background: #fafafa; }
-:deep(.md-editor-toolbar)         { padding: 0 48px; }
-:deep(.md-editor-input-wrapper)   { background: #fff; }
-:deep(.md-editor-input)           { font-size: 15px; line-height: 1.8; color: #374151; padding: 28px 48px !important; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
-:deep(.md-editor-preview-wrapper) { background: #fff; }
-:deep(.md-editor-preview)         { padding: 28px 48px !important; }
-:deep(.md-editor-preview h1),
-:deep(.md-editor-preview h2)      { border-bottom: 1px solid #f0f0f0; padding-bottom: 0.3em; }
-:deep(.md-editor-preview code:not(pre code)) { background: #f3f4f6; color: #e53e3e; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
-:deep(.md-editor-preview pre)     { border-radius: 8px; font-size: 14px; }
-:deep(.md-editor-preview ul),
-:deep(.md-editor-preview ol)      { padding-left: 24px; margin-bottom: 12px; }
-:deep(.md-editor-preview ul li)   { list-style: disc; }
-:deep(.md-editor-preview ol li)   { list-style: decimal; }
+/* Crepe uses its own internal DOM structure; style via :deep if needed */
+.md-wrap :deep(.crepe) {
+  height: 100%;
+}
 
 /* ── Diff view ── */
 
@@ -1293,9 +1326,6 @@ function shortTime(d: string) {
   .title-input   { font-size: 22px; }
   .diff-banner   { padding: 10px 20px; }
   .diff-view     { padding: 20px 20px 40px; }
-  :deep(.md-editor-toolbar) { padding: 0 12px; }
-  :deep(.md-editor-input)   { padding: 20px !important; }
-  :deep(.md-editor-preview) { padding: 20px !important; }
   .meta-sidebar  { position: fixed; top: var(--admin-header-height); right: 0; height: calc(100vh - var(--admin-header-height)); z-index: 100; box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1); }
   .meta-sidebar--closed { width: 0; opacity: 0; box-shadow: none; }
 }
