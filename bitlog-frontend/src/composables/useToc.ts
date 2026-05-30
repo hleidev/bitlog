@@ -42,8 +42,12 @@ export function useToc() {
     if (toc.value.length) activeSection.value = toc.value[0].id
   }
 
-  function scrollToSection(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  function scrollToSection(id: string, headerOffset = 0) {
+    const el = document.getElementById(id)
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const top = rect.top + window.scrollY - headerOffset
+    window.scrollTo({ top, behavior: 'smooth' })
   }
 
   const onScroll = () => {

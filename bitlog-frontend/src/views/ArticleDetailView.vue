@@ -17,6 +17,8 @@ const scrollProgress = ref(0)
 
 const { toc, activeSection, visibleTocItems, buildToc, scrollToSection } = useToc()
 
+const HEADER_OFFSET = 60
+
 const onScroll = () => {
   const el = document.documentElement
   const total = el.scrollHeight - el.clientHeight
@@ -132,7 +134,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
           <TocSidebar
             :items="visibleTocItems"
             :active-section="activeSection"
-            @scroll-to="scrollToSection"
+            @scroll-to="(id: string) => scrollToSection(id, HEADER_OFFSET)"
           />
         </aside>
       </div>
