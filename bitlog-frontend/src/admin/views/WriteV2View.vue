@@ -71,10 +71,8 @@ onMounted(async () => {
 .write-v2 {
   margin: -24px;
   height: calc(100vh - var(--admin-header-height));
-  display: flex;
-  flex-direction: column;
   background: #fff;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .loading-state {
@@ -102,7 +100,6 @@ onMounted(async () => {
 
 .editor-header {
   padding: 28px 64px 16px;
-  flex-shrink: 0;
 }
 
 .title-input {
@@ -130,9 +127,6 @@ onMounted(async () => {
 }
 
 .editor-container {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
   padding: 0 64px 60px;
 }
 
