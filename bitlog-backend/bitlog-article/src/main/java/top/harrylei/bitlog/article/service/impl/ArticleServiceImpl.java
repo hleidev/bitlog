@@ -490,14 +490,18 @@ public class ArticleServiceImpl implements ArticleService {
         if (article.getCategoryId() != null) {
             CategoryDO category = categoryDAO.getById(article.getCategoryId());
             if (category != null) {
-                vo.setCategoryName(category.getName());
+                vo.setCategory(new CategoryVO().setId(category.getId()).setName(category.getName()));
             }
         }
 
         List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(article.getId());
-        vo.setTagIds(tagIds);
         if (!tagIds.isEmpty()) {
-            vo.setTags(tagDAO.listByIds(tagIds).stream().map(TagDO::getName).toList());
+            Map<Long, String> tagNameById =
+                tagDAO.listByIds(tagIds).stream().collect(Collectors.toMap(TagDO::getId, TagDO::getName));
+            vo.setTags(
+                tagIds.stream().map(id -> new TagVO().setId(id).setName(tagNameById.getOrDefault(id, ""))).toList());
+        } else {
+            vo.setTags(List.of());
         }
 
         ArticleStatisticsDO stats = articleStatisticsDAO.getByArticleId(article.getId());
@@ -559,11 +563,10 @@ public class ArticleServiceImpl implements ArticleService {
             vo.setUpdateTime(a.getUpdateTime());
             vo.setPublishTime(a.getPublishTime());
             if (a.getCategoryId() != null) {
-                vo.setCategoryName(data.categoryNameMap().get(a.getCategoryId()));
+                vo.setCategory(
+                    new CategoryVO().setId(a.getCategoryId()).setName(data.categoryNameMap().get(a.getCategoryId())));
             }
-            List<TagVO> articleTags = data.tagsData().tagVOsByArticle().getOrDefault(a.getId(), List.of());
-            vo.setTagIds(articleTags.stream().map(TagVO::getId).toList());
-            vo.setTags(articleTags.stream().map(TagVO::getName).toList());
+            vo.setTags(data.tagsData().tagVOsByArticle().getOrDefault(a.getId(), List.of()));
             ArticleStatisticsDO stats = statsMap.get(a.getId());
             if (stats != null) {
                 vo.setReadCount(stats.getReadCount());

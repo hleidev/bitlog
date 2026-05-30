@@ -40,17 +40,11 @@ public class ArticleVO {
     @Schema(description = "已发布版本 ID（article_version.id），null 表示从未发布")
     private Long publishedVersionId;
 
-    @Schema(description = "分类 ID")
-    private Long categoryId;
+    @Schema(description = "所属分类")
+    private CategoryVO category;
 
-    @Schema(description = "分类名称")
-    private String categoryName;
-
-    @Schema(description = "标签 ID 列表")
-    private List<Long> tagIds;
-
-    @Schema(description = "标签名称列表")
-    private List<String> tags;
+    @Schema(description = "标签列表")
+    private List<TagVO> tags;
 
     @Schema(description = "发布时间")
     private LocalDateTime publishTime;
