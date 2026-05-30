@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useHeaderScroll } from '@/composables/useHeaderScroll'
@@ -13,9 +13,31 @@ const userStore = useUserStore()
 const router = useRouter()
 const { userInfo, isLoggedIn } = storeToRefs(userStore)
 
-const savedTheme = localStorage.getItem('theme')
-const isDark = ref(savedTheme === 'dark')
+type ThemeMode = 'system' | 'light' | 'dark'
+const systemDark = window.matchMedia('(prefers-color-scheme: dark)')
+const systemIsDark = ref(systemDark.matches)
+const savedMode = localStorage.getItem('themeMode') as ThemeMode | null
+const oldTheme = !savedMode ? localStorage.getItem('theme') : null
+const themeMode = ref<ThemeMode>(
+  savedMode ?? (oldTheme === 'dark' ? 'dark' : oldTheme === 'light' ? 'light' : 'system')
+)
+const isDark = computed(() =>
+  themeMode.value === 'dark' || (themeMode.value === 'system' && systemIsDark.value)
+)
 document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
+systemDark.addEventListener('change', (e) => {
+  systemIsDark.value = e.matches
+  if (themeMode.value === 'system') {
+    document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light')
+  }
+})
+const themeDropdownOpen = ref(false)
+const setTheme = (mode: ThemeMode) => {
+  themeMode.value = mode
+  localStorage.setItem('themeMode', mode)
+  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
+  themeDropdownOpen.value = false
+}
 
 const mobileMenuOpen = ref(false)
 const dropdownOpen = ref(false)
@@ -25,13 +47,6 @@ const searchInputRef = ref<HTMLInputElement | null>(null)
 
 const closeDropdown = () => {
   dropdownOpen.value = false
-}
-
-const toggleTheme = () => {
-  isDark.value = !isDark.value
-  const theme = isDark.value ? 'dark' : 'light'
-  document.documentElement.setAttribute('data-theme', theme)
-  localStorage.setItem('theme', theme)
 }
 
 const openSearch = async () => {
@@ -95,14 +110,41 @@ const doSearch = () => {
             </svg>
           </button>
           <!-- 主题切换 -->
-          <button class="header__theme-btn" @click="toggleTheme" :aria-label="isDark ? '切换亮色' : '切换暗色'">
-            <svg v-if="!isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-            </svg>
-            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
-          </button>
+          <div class="header__theme-wrap" v-click-outside="() => themeDropdownOpen = false">
+            <button class="header__theme-btn" @click="themeDropdownOpen = !themeDropdownOpen" aria-label="主题设置">
+              <svg v-if="themeMode === 'system'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              <svg v-else-if="!isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+              </svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </button>
+            <Transition name="dropdown">
+              <div v-if="themeDropdownOpen" class="theme-dropdown">
+                <button class="theme-dropdown-item" :class="{ 'theme-dropdown-item--active': themeMode === 'system' }" @click="setTheme('system')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                  </svg>
+                  跟随系统
+                </button>
+                <button class="theme-dropdown-item" :class="{ 'theme-dropdown-item--active': themeMode === 'light' }" @click="setTheme('light')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                  </svg>
+                  浅色
+                </button>
+                <button class="theme-dropdown-item" :class="{ 'theme-dropdown-item--active': themeMode === 'dark' }" @click="setTheme('dark')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                  </svg>
+                  深色
+                </button>
+              </div>
+            </Transition>
+          </div>
           <!-- 登录按钮 / 用户头像 -->
           <button v-if="!isLoggedIn" class="header__login-btn" @click="modalStore.open('login')">登录</button>
           <template v-else>
@@ -141,15 +183,26 @@ const doSearch = () => {
       <nav class="mobile-drawer__nav">
         <RouterLink to="/" class="mobile-drawer__link" @click="mobileMenuOpen = false">首页</RouterLink>
         <RouterLink to="/articles" class="mobile-drawer__link" @click="mobileMenuOpen = false">文章</RouterLink>
-        <button class="mobile-drawer__link mobile-drawer__theme" @click="toggleTheme">
-          <svg v-if="!isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-          </svg>
-          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-          {{ isDark ? '切换亮色' : '切换暗色' }}
-        </button>
+        <div class="mobile-theme-row">
+          <button class="mobile-theme-btn" :class="{ 'mobile-theme-btn--active': themeMode === 'system' }" @click="setTheme('system')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            跟随系统
+          </button>
+          <button class="mobile-theme-btn" :class="{ 'mobile-theme-btn--active': themeMode === 'light' }" @click="setTheme('light')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            浅色
+          </button>
+          <button class="mobile-theme-btn" :class="{ 'mobile-theme-btn--active': themeMode === 'dark' }" @click="setTheme('dark')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            深色
+          </button>
+        </div>
       </nav>
       <div class="mobile-drawer__actions">
         <button v-if="!isLoggedIn" class="mobile-login-btn" @click="modalStore.open('login'); mobileMenuOpen = false">登录</button>
@@ -547,28 +600,80 @@ const doSearch = () => {
   color: var(--color-text-primary);
 }
 
-.mobile-drawer__theme {
+/* ── Desktop theme dropdown ── */
+.header__theme-wrap {
+  position: relative;
+}
+
+.theme-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  min-width: 116px;
+  overflow: hidden;
+  z-index: 1001;
+}
+
+.theme-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 14px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  text-align: left;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.theme-dropdown-item:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.theme-dropdown-item--active { color: var(--color-accent); }
+
+.theme-dropdown-item svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* ── Mobile theme options ── */
+.mobile-theme-row {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mobile-theme-btn {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  background: transparent;
-  font-size: 16px;
+  padding: 10px 0;
+  font-size: 15px;
   font-family: var(--font-sans);
   color: var(--color-text-muted);
+  background: transparent;
   cursor: pointer;
   text-align: left;
+  transition: color var(--transition-base);
 }
 
-.mobile-drawer__theme svg {
+.mobile-theme-btn svg {
   width: 17px;
   height: 17px;
   flex-shrink: 0;
 }
 
-.mobile-drawer__theme:hover {
-  color: var(--color-accent);
-}
+.mobile-theme-btn:hover { color: var(--color-text-primary); }
+.mobile-theme-btn--active { color: var(--color-accent); }
 
 .mobile-overlay {
   position: fixed;
