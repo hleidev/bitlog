@@ -290,6 +290,8 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   gap: 48px;
   padding-top: 56px;
   padding-bottom: 100px;
+  padding-left: var(--spacing-page-padding);
+  padding-right: var(--spacing-page-padding);
 }
 
 .article-body {
@@ -392,5 +394,6 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
 @media (max-width: 768px) {
   .article-header__inner { padding: 48px 20px 56px; }
+  .article-layout { padding-left: 20px; padding-right: 20px; }
 }
 </style>
