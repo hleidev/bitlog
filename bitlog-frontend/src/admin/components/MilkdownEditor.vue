@@ -325,6 +325,11 @@ const emit = defineEmits<{ change: [] }>()
 
 let crepeInstance: Crepe | null = null
 
+// Milkdown fires markdownUpdated once during initialization as it processes
+// the initial defaultValue. We absorb that first event so the parent never
+// sees it as a user edit.
+let editorReady = false
+
 const uploader = async (file: File) => {
   const res = await uploadFile(file, 'article')
   return res.fileUrl
@@ -347,7 +352,13 @@ const { get } = useEditor((root) => {
 
   crepe.editor.use(codeBlockPlugin)
 
-  crepe.on(listener => listener.markdownUpdated(() => emit('change')))
+  crepe.on(listener => listener.markdownUpdated(() => {
+    if (!editorReady) {
+      editorReady = true
+      return
+    }
+    emit('change')
+  }))
 
   crepeInstance = crepe
   return crepe
