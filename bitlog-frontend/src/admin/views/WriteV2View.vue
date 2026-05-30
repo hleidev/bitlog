@@ -166,10 +166,12 @@ onMounted(async () => {
 :deep(.editor code) { font-family: var(--font-mono); font-size: 0.875em; background: var(--color-bg-hover); color: var(--color-accent-light); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--color-border); }
 :deep(.editor pre) { background: #282828; border-radius: 4px; padding: 20px 24px; overflow-x: auto; margin: 24px 0; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.65; color: #fff; }
 :deep(.editor pre code) { background: none; color: inherit; padding: 0; border: none; font-size: inherit; }
-:deep(.editor blockquote) { border-left: 2px solid var(--color-accent); margin: 28px 0; padding: 14px 20px; background: rgba(184, 92, 56, 0.04); }
+:deep(.editor blockquote) { border-left: 2px solid var(--color-accent); margin: 28px 0; padding: 14px 20px; background: rgba(184, 92, 56, 0.04); position: relative; }
+:deep(.editor blockquote::before) { display: none; }
 :deep(.editor blockquote p) { margin: 0; color: var(--color-text-muted); font-style: italic; }
 :deep(.editor ul), :deep(.editor ol) { padding-left: 24px; margin-bottom: 18px; }
-:deep(.editor li) { margin-bottom: 8px; line-height: 1.75; }
+:deep(.editor li) { margin-bottom: 4px; line-height: 1.75; }
+:deep(.editor li p) { margin: 0 !important; padding: 0 !important; }
 :deep(.editor ul li) { list-style: disc; }
 :deep(.editor ol li) { list-style: decimal; }
 :deep(.editor hr) { border: none; border-top: 1px solid var(--color-border); margin: 40px 0; }
@@ -177,6 +179,7 @@ onMounted(async () => {
 :deep(.editor table) { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; border: 1px solid var(--color-border); }
 :deep(.editor th) { background: var(--color-bg-hover); color: var(--color-text-primary); font-weight: 600; text-align: left; padding: 10px 16px; border-bottom: 1px solid var(--color-border); }
 :deep(.editor td) { padding: 10px 16px; border-bottom: 1px solid var(--color-border); color: var(--color-text-secondary); }
+:deep(.editor td p), :deep(.editor th p) { margin: 0 !important; padding: 0 !important; }
 
 :deep(.milkdown .toolbar) {
   border-radius: 8px;
