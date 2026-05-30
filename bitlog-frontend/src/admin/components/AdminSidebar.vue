@@ -75,7 +75,7 @@ watch(() => route.path, syncOpenGroups)
 
 function toggleGroup(item: GroupItem) {
   if (props.collapsed) {
-    if (item.defaultPath) router.push(item.defaultPath)
+    router.push(item.children[0].path)
     return
   }
   if (openGroups.value.has(item.key)) {
@@ -105,33 +105,29 @@ function isGroupActive(item: GroupItem): boolean {
 
         <!-- Group -->
         <div v-if="isGroup(item)" class="nav-group">
-          <button
-            class="nav-item nav-item--group"
-            :class="{ 'nav-item--active': isGroupActive(item) }"
-            @click="toggleGroup(item)"
+          <!-- Collapsed: click → first child, hover → popover -->
+          <el-popover
+            v-if="collapsed"
+            trigger="hover"
+            placement="right-start"
+            :show-after="0"
+            :hide-after="200"
+            :persistent="false"
+            :width="140"
+            popper-class="sidebar-popover"
           >
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
-              <path :d="ICONS[item.icon]" />
-            </svg>
-            <span v-show="!collapsed" class="nav-label">{{ item.title }}</span>
-            <svg
-              v-show="!collapsed"
-              class="nav-chevron"
-              :class="{ 'nav-chevron--open': openGroups.has(item.key) }"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path :d="ICONS.chevron" />
-            </svg>
-          </button>
-
-          <!-- Sub-items -->
-          <div
-            v-show="!collapsed"
-            class="sub-items-wrap"
-            :class="{ 'sub-items-wrap--open': openGroups.has(item.key) }"
-          >
-            <div class="sub-items-inner">
+            <template #reference>
+              <button
+                class="nav-item nav-item--group"
+                :class="{ 'nav-item--active': isGroupActive(item) }"
+                @click="toggleGroup(item)"
+              >
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path :d="ICONS[item.icon]" />
+                </svg>
+              </button>
+            </template>
+            <div class="sub-menu-popover">
               <RouterLink
                 v-for="child in item.children"
                 :key="child.path"
@@ -145,7 +141,50 @@ function isGroupActive(item: GroupItem): boolean {
                 <span class="nav-label">{{ child.title }}</span>
               </RouterLink>
             </div>
-          </div>
+          </el-popover>
+
+          <!-- Expanded: normal behavior -->
+          <template v-else>
+            <button
+              class="nav-item nav-item--group"
+              :class="{ 'nav-item--active': isGroupActive(item) }"
+              @click="toggleGroup(item)"
+            >
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path :d="ICONS[item.icon]" />
+              </svg>
+              <span class="nav-label">{{ item.title }}</span>
+              <svg
+                class="nav-chevron"
+                :class="{ 'nav-chevron--open': openGroups.has(item.key) }"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path :d="ICONS.chevron" />
+              </svg>
+            </button>
+
+            <!-- Sub-items -->
+            <div
+              class="sub-items-wrap"
+              :class="{ 'sub-items-wrap--open': openGroups.has(item.key) }"
+            >
+              <div class="sub-items-inner">
+                <RouterLink
+                  v-for="child in item.children"
+                  :key="child.path"
+                  :to="child.path"
+                  class="nav-item nav-item--child"
+                  :class="{ 'nav-item--active': route.path === child.path }"
+                >
+                  <svg class="nav-icon nav-icon--small" viewBox="0 0 24 24" fill="currentColor">
+                    <path :d="ICONS[child.icon]" />
+                  </svg>
+                  <span class="nav-label">{{ child.title }}</span>
+                </RouterLink>
+              </div>
+            </div>
+          </template>
         </div>
 
         <!-- Leaf -->
@@ -341,6 +380,30 @@ function isGroupActive(item: GroupItem): boolean {
 
 .nav-item--child.nav-item--active {
   color: var(--admin-sidebar-text-active);
+}
+
+/* ── Collapsed popover ── */
+
+.sub-menu-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+}
+
+.sub-menu-popover .nav-item--child {
+  padding-left: 12px;
+  height: 34px;
+  gap: 6px;
+}
+
+.sub-menu-popover .nav-icon--small {
+  width: 12px;
+  height: 12px;
+}
+
+.sub-menu-popover .nav-label {
+  font-size: 13px;
 }
 
 /* ── Collapsed state ── */
