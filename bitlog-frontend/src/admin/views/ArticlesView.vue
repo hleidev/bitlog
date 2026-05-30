@@ -318,7 +318,7 @@ function formatViews(n: number) {
               <th class="col-category">分类</th>
               <th class="col-tags">标签</th>
               <th class="col-status">状态</th>
-              <th class="col-views">阅读</th>
+              <th class="col-views" style="text-align: right;">阅读</th>
               <th class="col-time">更新时间</th>
               <th class="col-actions" />
             </tr>
@@ -364,8 +364,8 @@ function formatViews(n: number) {
                   <span v-if="row.latestVersionId !== row.publishedVersionId" class="status-badge status-badge--draft">草稿</span>
                 </div>
               </td>
-              <td class="col-views">
-                <span class="cell-muted">{{ row.status === 'PUBLISHED' ? formatViews(row.readCount) : '—' }}</span>
+              <td class="col-views" style="text-align: right;">
+                <span class="cell-muted" :style="{ textAlign: 'right', display: 'block' }">{{ row.status === 'PUBLISHED' ? formatViews(row.readCount) : '—' }}</span>
               </td>
               <td class="col-time">
                 <span class="cell-muted" :title="row.updateTime">{{ relativeTime(row.updateTime) }}</span>
@@ -707,7 +707,7 @@ function formatViews(n: number) {
 .col-title    { min-width: 240px; }
 .col-category { width: 90px; }
 .col-tags     { min-width: 140px; }
-.col-status   { width: 120px; }
+.col-status   { width: 130px; }
 .col-views    { width: 68px; text-align: right; }
 .col-time     { width: 110px; }
 .col-actions  { width: 150px; text-align: right; }
@@ -769,7 +769,7 @@ function formatViews(n: number) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .status-badge {
@@ -780,6 +780,7 @@ function formatViews(n: number) {
   font-size: 11.5px;
   font-weight: 500;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-badge--published {
