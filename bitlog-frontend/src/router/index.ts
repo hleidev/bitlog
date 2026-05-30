@@ -46,17 +46,12 @@ const router = createRouter({
         },
         {
           path: 'write',
-          component: () => import('@/admin/views/WriteView.vue'),
+          component: () => import('@/admin/views/WriteV2View.vue'),
           meta: { title: '写文章', parent: '文章', requiresAdmin: true },
         },
         {
-          path: 'write-v2/:id(\\d+)',
-          component: () => import('@/admin/views/WriteV2View.vue'),
-          meta: { title: '编辑文章 (v2)', parent: '文章', requiresAdmin: true },
-        },
-        {
           path: 'write/:id(\\d+)',
-          component: () => import('@/admin/views/WriteView.vue'),
+          component: () => import('@/admin/views/WriteV2View.vue'),
           meta: { title: '编辑文章', parent: '文章', requiresAdmin: true },
         },
                 {
