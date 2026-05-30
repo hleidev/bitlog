@@ -33,6 +33,7 @@ export function useToc() {
     const headings = document.querySelectorAll<HTMLElement>(
       '.prose h1, .prose h2, .prose h3, .prose h4',
     )
+    activeSection.value = ''
     toc.value = Array.from(headings).map((el, i) => {
       if (!el.id) el.id = `heading-${i}`
       const tag = el.tagName

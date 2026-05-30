@@ -80,6 +80,7 @@ async function handleFileChange(e: Event) {
     toast.success('头像已更新')
   } catch (err) {
     toast.error(err instanceof Error ? err.message : '头像上传失败，请重试')
+    profile.value = userInfo.value
   } finally {
     avatarUploading.value = false
   }

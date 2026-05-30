@@ -312,7 +312,7 @@ async function performSave() {
       toast.success('已保存')
     } else {
       await updateArticleDraft(articleId!, { title: title.value, content: md })
-      loadVersions()
+      await loadVersions()
       saveState.value  = 'saved'
       hasUnsaved.value = false
       if (publishedVersionId.value !== null) hasDraftAbovePublish.value = true
@@ -396,7 +396,7 @@ async function handlePublishConfirm() {
     hasUnsaved.value           = false
     hasDraftAbovePublish.value = false
     toast.success(wasPublished ? '发布信息已更新' : '文章已发布')
-    loadVersions()
+    await loadVersions()
   } catch (err) {
     handleError(err, '发布失败')
   } finally {

@@ -353,7 +353,7 @@ function formatViews(n: number) {
               </td>
               <td class="col-tags">
                 <div v-if="row.tags.length > 0" class="tags-cell">
-                  <span v-for="tag in row.tags" :key="tag" class="tag-chip">{{ tag }}</span>
+                  <span v-for="tag in row.tags" :key="tag.id" class="tag-chip">{{ tag.name }}</span>
                 </div>
                 <span v-else class="cell-muted">—</span>
               </td>

@@ -118,6 +118,30 @@ watch([filterCategoryIdx, filterTagIds], () => {
   fetchArticles()
 })
 
+// ── Sync filter state from URL on navigation without component remount ──────
+watch(
+  () => route.query,
+  (q) => {
+    if (skipWatch) return
+    const { categoryId, tagId, keyword } = q
+    if (keyword) filterSearch.value = keyword as string
+    else filterSearch.value = ''
+
+    if (categoryId) {
+      const idx = categoryTabs.value.findIndex((c) => c.id === Number(categoryId))
+      filterCategoryIdx.value = idx !== -1 ? idx : 0
+    } else {
+      filterCategoryIdx.value = 0
+    }
+
+    if (tagId) filterTagIds.value = [Number(tagId)]
+    else filterTagIds.value = []
+
+    pageNum.value = 1
+    fetchArticles()
+  },
+)
+
 const visiblePages = computed(() => {
   const total = totalPages.value
   const cur = pageNum.value
@@ -150,7 +174,9 @@ onMounted(async () => {
   if (keyword) filterSearch.value = keyword as string
   if (categoryId) {
     const idx = categoryTabs.value.findIndex((c) => c.id === Number(categoryId))
-    if (idx !== -1) filterCategoryIdx.value = idx
+    filterCategoryIdx.value = idx !== -1 ? idx : 0
+  } else {
+    filterCategoryIdx.value = 0
   }
   if (tagId) filterTagIds.value = [Number(tagId)]
 
