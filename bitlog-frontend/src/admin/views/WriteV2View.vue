@@ -39,8 +39,10 @@ const milkdownRef = ref<InstanceType<typeof MilkdownEditor> | null>(null)
 
 // ── Article metadata ───────────────────────────────────────────────────────────
 const latestVersionId    = ref<number | null>(null)
-const publishedVersionId = ref<number | null>(null)
-const isPublished        = computed(() => publishedVersionId.value !== null)
+const publishedVersionId    = ref<number | null>(null)
+const isPublished           = computed(() => publishedVersionId.value !== null)
+// true when a draft has been saved on top of the published version
+const hasDraftAbovePublish  = ref(false)
 
 // ── Save state ─────────────────────────────────────────────────────────────────
 const saveState  = ref<'idle' | 'saving' | 'saved'>('saved')
@@ -154,7 +156,7 @@ async function loadDraft() {
     saveState.value = 'saved'
     await nextTick()
     autoResizeTitle()
-    setTimeout(() => { suppressChange = false }, 200)
+    suppressChange = false
     return
   }
 
@@ -164,8 +166,9 @@ async function loadDraft() {
     const data = await getArticleDraft(articleId!)
     title.value              = data.title
     content.value            = data.content
-    latestVersionId.value    = data.latestVersionId
-    publishedVersionId.value = data.publishedVersionId
+    latestVersionId.value       = data.latestVersionId
+    publishedVersionId.value    = data.publishedVersionId
+    hasDraftAbovePublish.value  = data.publishedVersionId !== null && data.latestVersionId !== data.publishedVersionId
     publishForm.value = {
       summary:    data.summary ?? '',
       categoryId: data.categoryId,
@@ -181,7 +184,7 @@ async function loadDraft() {
     loading.value = false
     await nextTick()
     autoResizeTitle()
-    setTimeout(() => { suppressChange = false }, 200)
+    suppressChange = false
   }
 }
 
@@ -264,6 +267,7 @@ async function performSave() {
       loadVersions()
       saveState.value  = 'saved'
       hasUnsaved.value = false
+      if (publishedVersionId.value !== null) hasDraftAbovePublish.value = true
       toast.success('已保存')
     }
     clearTimeout(saveTimer)
@@ -337,6 +341,7 @@ async function handlePublishConfirm() {
     publishedVersionId.value   = latestVersionId.value
     publishDialogVisible.value = false
     hasUnsaved.value           = false
+    hasDraftAbovePublish.value = false
     toast.success(wasPublished ? '发布信息已更新' : '文章已发布')
     loadVersions()
   } catch (err) {
@@ -515,15 +520,18 @@ onBeforeRouteLeave(async () => {
               <span>文章列表</span>
             </button>
             <div class="tb-sep" />
-            <span class="status-pill" :class="isPublished ? 'status-pill--published' : 'status-pill--draft'">
-              {{ isPublished ? '已发布' : '草稿' }}
+            <span
+              class="status-pill"
+              :class="hasUnsaved ? 'status-pill--unsaved' : (isPublished && !hasDraftAbovePublish) ? 'status-pill--published' : 'status-pill--draft'"
+            >
+              {{ hasUnsaved ? '未保存' : (isPublished && !hasDraftAbovePublish) ? '已发布' : '草稿' }}
             </span>
           </div>
 
           <div class="tb-right">
             <button class="btn btn--default" @click="openPreview">预览</button>
-            <button class="btn btn--default" :disabled="saving" @click="handleSave">{{ saving ? '保存中…' : '保存' }}</button>
-            <button class="btn btn--primary" @click="openPublishDialog">发布</button>
+            <button class="btn btn--default" :disabled="saving || !hasUnsaved" @click="handleSave">{{ saving ? '保存中…' : '保存' }}</button>
+            <button class="btn btn--primary" :disabled="hasUnsaved || (isPublished && !hasDraftAbovePublish)" @click="openPublishDialog">发布</button>
             <button
               class="sidebar-toggle"
               :title="sidebarOpen ? '收起侧栏' : '展开侧栏'"
@@ -858,6 +866,7 @@ onBeforeRouteLeave(async () => {
 .status-pill { font-size: 12px; font-weight: 500; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
 .status-pill--published { background: #f0fdf4; color: #16a34a; }
 .status-pill--draft     { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+.status-pill--unsaved   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
 
 .save-hint { font-size: 12px; color: #9ca3af; }
 
