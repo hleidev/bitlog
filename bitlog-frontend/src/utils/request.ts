@@ -119,7 +119,7 @@ request.interceptors.response.use(
       subscribers = []
 
       // Refresh Token 也过期（41003），清空登录态并跳转登录
-      const isRefreshExpired = (refreshError as AxiosError<Result>)?.response?.data?.code === REFRESH_EXPIRED_CODE
+      const isRefreshExpired = (refreshError as unknown as { response?: { data?: { code?: number } } })?.response?.data?.code === REFRESH_EXPIRED_CODE
       if (isRefreshExpired || !originalRequest) {
         const { useUserStore } = await import('@/stores/useUserStore')
         const { useModalStore } = await import('@/stores/useModalStore')
@@ -127,7 +127,7 @@ request.interceptors.response.use(
         useModalStore().open('login')
       }
 
-      const message = (refreshError as AxiosError<Result>)?.response?.data?.message ?? '登录已过期，请重新登录'
+      const message = (refreshError as unknown as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '登录已过期，请重新登录'
       return Promise.reject(new ApiError(message, REFRESH_EXPIRED_CODE))
     }
   },
