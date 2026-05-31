@@ -1,10 +1,20 @@
-.prose {
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+.ProseMirror {
   font-size: 16px;
   line-height: 1.85;
   color: var(--color-text-secondary);
+  outline: none;
 }
 
-.prose h1 {
+.article-editor.is-editable .ProseMirror {
+  min-height: 400px;
+  cursor: text;
+}
+
+/* ── Headings ─────────────────────────────────────────────────────────────── */
+
+.ProseMirror h1 {
   font-family: var(--font-serif);
   font-size: 26px;
   font-weight: 500;
@@ -14,7 +24,7 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.prose h2 {
+.ProseMirror h2 {
   font-family: var(--font-serif);
   font-size: 21px;
   font-weight: 500;
@@ -24,43 +34,38 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+.ProseMirror h1:first-child,
+.ProseMirror h2:first-child { margin-top: 0; }
 
-.prose h1:first-child,
-.prose h2:first-child { margin-top: 0; }
-
-.prose h3 {
+.ProseMirror h3 {
   font-size: 17px;
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 28px 0 12px;
 }
 
-.prose h4 {
+.ProseMirror h4 {
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 22px 0 10px;
 }
 
-.prose > p:first-of-type {
-  font-size: 18px;
-  color: var(--color-text-primary);
-  line-height: 1.8;
-}
+/* ── Paragraphs & inline ──────────────────────────────────────────────────── */
 
-.prose p { margin-bottom: 18px; }
+.ProseMirror p { margin-bottom: 18px; }
 
-.prose strong {
+.ProseMirror strong {
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
-.prose em {
+.ProseMirror em {
   font-style: italic;
   color: var(--color-text-muted);
 }
 
-.prose a {
+.ProseMirror a {
   color: var(--color-accent);
   text-decoration: underline;
   text-decoration-color: rgba(184, 92, 56, 0.35);
@@ -68,12 +73,14 @@
   transition: color var(--transition-base), text-decoration-color var(--transition-base);
 }
 
-.prose a:hover {
+.ProseMirror a:hover {
   color: var(--color-accent-dark);
   text-decoration-color: var(--color-accent-dark);
 }
 
-.prose code {
+/* ── Inline code ──────────────────────────────────────────────────────────── */
+
+.ProseMirror code {
   font-family: var(--font-mono);
   font-size: 0.875em;
   background: var(--color-bg-hover);
@@ -83,209 +90,92 @@
   border: 1px solid var(--color-border);
 }
 
-.prose-code-wrap {
-  position: relative;
-  margin: 26px 0;
-  border-radius: 4px;
-  overflow: hidden;
-  isolation: isolate;
-  contain: paint;
-  background: #282828;
-}
-
-.prose-code-controls {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.prose-code-controls .prose-code-copy { pointer-events: all; }
-
-.prose-code-dots {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.prose-code-dots span {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  cursor: pointer;
-  pointer-events: all;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.prose-code-dots span::after {
-  content: '';
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  background-color: rgba(0, 0, 0, 0.5);
-  mask-size: contain; mask-repeat: no-repeat; mask-position: center;
-  -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
-  opacity: 0;
-  transition: opacity 0.12s;
-}
-
-.prose-code-dots:hover span::after,
-.prose-code-dots span:hover ~ span::after { opacity: 1; }
-
-.prose-code-dots span:nth-child(1) { background: radial-gradient(circle at 38% 35%, #ff8a80, #ff5f57); }
-.prose-code-dots span:nth-child(2) { background: radial-gradient(circle at 38% 35%, #ffe57f, #febc2e); }
-.prose-code-dots span:nth-child(3) { background: radial-gradient(circle at 38% 35%, #69f0ae, #28c840); }
-
-.prose-code-dots span:nth-child(1)::after {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2.5 2.5l5 5M7.5 2.5l-5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2.5 2.5l5 5M7.5 2.5l-5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
-}
-.prose-code-dots span:nth-child(2)::after {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 5h6' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 5h6' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
-}
-.prose-code-dots span:nth-child(3)::after {
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 4V1h3M9 6v3H6' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M1.2 1.2l3.3 3.3M8.8 8.8L5.5 5.5' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 4V1h3M9 6v3H6' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M1.2 1.2l3.3 3.3M8.8 8.8L5.5 5.5' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
-}
-
-.prose-code-lang {
-  flex: 1;
-  text-align: center;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.35);
-  font-family: var(--font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  user-select: none;
-}
-
-.prose-code-copy {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  color: rgba(255, 255, 255, 0.45);
+/* Reset inline code styles inside code blocks */
+.ProseMirror pre code {
+  font-size: inherit;
   background: none;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
+  color: inherit;
   padding: 0;
-  transition: color 0.15s, background 0.15s;
+  border: none;
+  border-radius: 0;
 }
 
-.prose-code-copy:hover {
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.1);
-}
+/* ── Code blocks ──────────────────────────────────────────────────────────── */
 
-.prose-code-copy svg { width: 13px; height: 13px; display: block; pointer-events: none; }
-
-.prose-code-block-outer {
-  display: grid;
-  grid-template-rows: 1fr;
-  transition: grid-template-rows 0.28s ease;
-}
-
-.prose-code-wrap.is-collapsed { min-height: 38px; }
-.prose-code-wrap.is-collapsed .prose-code-block-outer { grid-template-rows: 0fr; }
-
-.prose-code-block {
-  margin: 0;
-  background: #282828;
-  min-height: 0;
-}
-
-.prose-code-block .hljs {
-  display: block;
+.ProseMirror pre {
+  background: #1e1e1e;
+  border-radius: 4px;
+  margin: 26px 0;
   overflow-x: auto;
-  padding: 46px 22px 20px;
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-  line-height: 1.65;
-  background: #282828 !important;
-  color: #ffffff;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
-.prose-code-block .hljs::-webkit-scrollbar { height: 3px; }
-.prose-code-block .hljs::-webkit-scrollbar-track { background: transparent; }
-.prose-code-block .hljs::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 2px; }
+.ProseMirror pre::-webkit-scrollbar { height: 3px; }
+.ProseMirror pre::-webkit-scrollbar-track { background: transparent; }
+.ProseMirror pre::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 2px; }
 
-.prose pre:not(.prose-code-block):not(.mermaid) {
-  background: #0d1117;
-  border-radius: 4px;
-  padding: 20px 24px;
-  overflow-x: auto;
-  margin: 24px 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.prose pre:not(.prose-code-block):not(.mermaid) code {
+.ProseMirror pre > code {
+  display: block;
+  padding: 20px 22px;
   font-family: var(--font-mono);
   font-size: 13.5px;
-  background: none;
-  color: #a8c4d8;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  line-height: 1.75;
+  line-height: 1.65;
+  color: #d4d4d4;
   white-space: pre;
 }
 
-.prose blockquote {
+/* ── Blockquote ───────────────────────────────────────────────────────────── */
+
+.ProseMirror blockquote {
   border-left: 2px solid var(--color-accent);
   margin: 28px 0;
   padding: 14px 20px;
   background: rgba(184, 92, 56, 0.04);
 }
 
-.prose blockquote p {
+.ProseMirror blockquote p {
   margin: 0;
   color: var(--color-text-muted);
   font-style: italic;
 }
 
-.prose ul,
-.prose ol {
+/* ── Lists ────────────────────────────────────────────────────────────────── */
+
+.ProseMirror ul,
+.ProseMirror ol {
   padding-left: 24px;
   margin-bottom: 18px;
 }
 
-.prose li {
+.ProseMirror li {
   margin-bottom: 8px;
   line-height: 1.75;
 }
 
-.prose ul li { list-style: disc; }
-.prose ol li { list-style: decimal; }
+.ProseMirror ul li { list-style: disc; }
+.ProseMirror ol li { list-style: decimal; }
 
-.prose hr {
+/* ── Horizontal rule ──────────────────────────────────────────────────────── */
+
+.ProseMirror hr {
   border: none;
   border-top: 1px solid var(--color-border);
   margin: 40px 0;
 }
 
-.prose img {
+/* ── Images ───────────────────────────────────────────────────────────────── */
+
+.ProseMirror img {
   max-width: 100%;
   border-radius: 4px;
   margin: 20px 0;
+  display: block;
 }
 
-.prose table {
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+
+.ProseMirror table {
   width: 100%;
   border-collapse: collapse;
   margin: 24px 0;
@@ -293,7 +183,7 @@
   border: 1px solid var(--color-border);
 }
 
-.prose th {
+.ProseMirror th {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
   font-weight: 600;
@@ -302,26 +192,17 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.prose td {
+.ProseMirror td {
   padding: 10px 16px;
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text-secondary);
 }
 
-.prose tr:last-child td { border-bottom: none; }
+.ProseMirror tr:last-child td { border-bottom: none; }
 
-.prose .mermaid {
-  text-align: center;
-  overflow-x: auto;
-  margin: 24px 0;
-}
-
-.prose .mermaid svg {
-  max-width: 100%;
-  height: auto;
-}
+/* ── Responsive ───────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  .prose { font-size: 15px; }
-  .prose h2 { font-size: 19px; }
+  .ProseMirror { font-size: 15px; }
+  .ProseMirror h2 { font-size: 19px; }
 }
