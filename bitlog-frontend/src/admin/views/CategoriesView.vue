@@ -172,10 +172,6 @@ async function handleCreate() {
 
     <!-- Header -->
     <div class="page-header">
-      <div class="title-row">
-        <h2 class="page-title">分类管理</h2>
-        <div class="title-rule" />
-      </div>
       <div class="header-actions">
         <div class="search-wrap">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -278,11 +274,8 @@ async function handleCreate() {
             @click.stop
             @keyup.enter="saveEdit"
             @keyup.escape="cancelEdit"
+            @blur="saveEdit"
           />
-          <div class="cat-edit-actions">
-            <button class="cat-save-btn cat-save-btn--cancel" @click.stop="cancelEdit">取消</button>
-            <button class="cat-save-btn cat-save-btn--ok" @click.stop="saveEdit">保存</button>
-          </div>
         </template>
       </div>
     </div>
@@ -327,31 +320,7 @@ async function handleCreate() {
 .page-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-  min-width: 0;
-}
-
-.page-title {
-  font-family: var(--font-serif, 'Lora', serif);
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1610;
-  white-space: nowrap;
-  margin: 0;
-}
-
-.title-rule {
-  flex: 1;
-  height: 1px;
-  background: var(--admin-sidebar-border, #e8e4de);
 }
 
 .header-actions {
@@ -645,42 +614,6 @@ async function handleCreate() {
   outline: none;
   box-sizing: border-box;
 }
-
-.cat-edit-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-.cat-save-btn {
-  height: 26px;
-  padding: 0 10px;
-  font-size: 12px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  border-radius: 3px;
-  cursor: pointer;
-  border: 1px solid;
-  transition: background 0.12s;
-}
-
-.cat-save-btn--cancel {
-  background: transparent;
-  color: var(--admin-sidebar-text, #5a5248);
-  border-color: #d4cfc9;
-}
-
-.cat-save-btn--cancel:hover { background: var(--admin-sidebar-hover, #ece9e4); }
-
-.cat-save-btn--ok {
-  background: var(--admin-accent, #b85c38);
-  color: #fff;
-  border-color: var(--admin-accent, #b85c38);
-  font-weight: 500;
-}
-
-.cat-save-btn--ok:hover { background: var(--admin-accent-dark, #924530); }
-
-/* ── Create dialog ── */
 
 .dialog-overlay {
   position: fixed;

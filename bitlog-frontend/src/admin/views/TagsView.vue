@@ -45,7 +45,8 @@ const allSelected = computed(
     && filteredTags.value.every(t => selectedIds.has(t.id)),
 )
 
-function onTagClick(tag: Tag) {
+function onCardClick(tag: Tag) {
+  if (editingId.value === tag.id) return
   selectedIds.has(tag.id) ? selectedIds.delete(tag.id) : selectedIds.add(tag.id)
 }
 
@@ -98,45 +99,63 @@ async function handleDelete() {
   }
 }
 
-// ── Create / Edit dialog ──────────────────────────────────────────────────────
-const dialogVisible  = ref(false)
-const dialogMode     = ref<'create' | 'edit'>('create')
-const editingTag     = ref<Tag | null>(null)
-const formName       = ref('')
-const formLoading    = ref(false)
+// ── Inline edit ───────────────────────────────────────────────────────────────
+const editingId   = ref<number | null>(null)
+const editingName = ref('')
+
+function startEdit(tag: Tag, e: MouseEvent) {
+  e.stopPropagation()
+  editingId.value   = tag.id
+  editingName.value = tag.name
+  nextTick(() => {
+    const input = document.querySelector<HTMLInputElement>('.tag-edit-input')
+    input?.focus()
+    input?.select()
+  })
+}
+
+function cancelEdit() {
+  editingId.value   = null
+  editingName.value = ''
+}
+
+async function saveEdit(e?: KeyboardEvent | MouseEvent) {
+  e?.stopPropagation?.()
+  const name = editingName.value.trim()
+  const tag  = tags.value.find(t => t.id === editingId.value)
+  if (!tag) return
+  if (!name) { toast.warning('请输入标签名称'); return }
+  if (name === tag.name) { cancelEdit(); return }
+
+  try {
+    await updateTag(tag.id, name)
+    toast.success('已更新')
+    cancelEdit()
+    fetchTags()
+  } catch (err: unknown) {
+    const code = (err as { code?: number })?.code
+    if (code === 43202) toast.warning('标签名已存在')
+    else toast.error('操作失败')
+  }
+}
+
+// ── Create dialog ─────────────────────────────────────────────────────────────
+const dialogVisible = ref(false)
+const formName      = ref('')
+const formLoading   = ref(false)
 const dialogInputRef = ref<HTMLInputElement | null>(null)
 
 watch(dialogVisible, val => {
   if (val) nextTick(() => dialogInputRef.value?.focus())
 })
 
-function openCreate() {
-  dialogMode.value    = 'create'
-  editingTag.value    = null
-  formName.value      = ''
-  dialogVisible.value = true
-}
-
-function openEdit(tag: Tag, e: MouseEvent) {
-  e.stopPropagation()
-  dialogMode.value    = 'edit'
-  editingTag.value    = tag
-  formName.value      = tag.name
-  dialogVisible.value = true
-}
-
-async function handleDialogConfirm() {
+async function handleCreate() {
   const name = formName.value.trim()
   if (!name) { toast.warning('请输入标签名称'); return }
   formLoading.value = true
   try {
-    if (dialogMode.value === 'create') {
-      await createTag(name)
-      toast.success('标签已创建')
-    } else if (editingTag.value) {
-      await updateTag(editingTag.value.id, name)
-      toast.success('已更新')
-    }
+    await createTag(name)
+    toast.success('标签已创建')
     dialogVisible.value = false
     formName.value = ''
     fetchTags()
@@ -155,10 +174,6 @@ async function handleDialogConfirm() {
 
     <!-- Header -->
     <div class="page-header">
-      <div class="title-row">
-        <h2 class="page-title">标签管理</h2>
-        <div class="title-rule" />
-      </div>
       <div class="header-actions">
         <div class="search-wrap">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -176,7 +191,7 @@ async function handleDialogConfirm() {
             <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
           </svg>
         </button>
-        <button class="primary-btn" @click="openCreate">
+        <button class="primary-btn" @click="dialogVisible = true">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
           新建标签
         </button>
@@ -217,51 +232,77 @@ async function handleDialogConfirm() {
       <span>{{ keyword ? '没有匹配的标签' : '还没有标签，点击右上角新建' }}</span>
     </div>
 
-    <!-- Tag cloud -->
-    <div v-else class="tag-cloud">
+    <!-- Grid -->
+    <div v-else class="tag-grid">
       <div
         v-for="tag in filteredTags"
         :key="tag.id"
-        class="tag-pill"
-        :class="{ 'tag-pill--selected': selectedIds.has(tag.id) }"
-        @click="onTagClick(tag)"
+        class="tag-card"
+        :class="{
+          'tag-card--selected': selectedIds.has(tag.id) && editingId !== tag.id,
+          'tag-card--editing': editingId === tag.id,
+        }"
+        @click="onCardClick(tag)"
       >
-        <span class="tag-name">{{ tag.name }}</span>
-
-        <span class="tag-count" :class="{ 'tag-count--zero': tag.articleCount === 0 }">
-          {{ tag.articleCount }}
-        </span>
-
-        <button class="tag-edit-btn" title="编辑" @click.stop="openEdit(tag, $event)">
+        <!-- Edit button (hover, non-editing mode) -->
+        <button
+          v-if="editingId !== tag.id"
+          class="tag-edit-btn"
+          title="编辑"
+          @click.stop="startEdit(tag, $event)"
+        >
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
           </svg>
         </button>
+
+        <!-- Normal view -->
+        <template v-if="editingId !== tag.id">
+          <h3 class="tag-name">{{ tag.name }}</h3>
+          <div class="tag-meta">
+            <span class="tag-count" :class="{ 'tag-count--zero': tag.articleCount === 0 }">
+              {{ tag.articleCount }} 篇
+            </span>
+            <span class="tag-date">{{ tag.createTime }}</span>
+          </div>
+        </template>
+
+        <!-- Inline edit view -->
+        <template v-else>
+          <input
+            v-model="editingName"
+            class="tag-edit-input"
+            maxlength="30"
+            @click.stop
+            @keyup.enter="saveEdit"
+            @keyup.escape="cancelEdit"
+            @blur="saveEdit"
+          />
+        </template>
       </div>
     </div>
 
   </div>
 
-  <!-- Create / Edit dialog -->
+  <!-- Create dialog -->
   <Transition name="dialog-fade">
     <div v-if="dialogVisible" class="dialog-overlay" @click.self="dialogVisible = false">
       <div class="dialog-box">
-        <h3 class="dialog-title">{{ dialogMode === 'create' ? '新建标签' : '编辑标签' }}</h3>
+        <h3 class="dialog-title">新建标签</h3>
         <input
           ref="dialogInputRef"
           v-model="formName"
           class="dialog-input"
           placeholder="请输入标签名称"
           maxlength="30"
-          @keyup.enter="handleDialogConfirm"
-          @keyup.escape="dialogVisible = false"
+          @keyup.enter="handleCreate"
         />
         <p class="input-hint">{{ formName.length }} / 30</p>
         <div class="dialog-actions">
           <button class="dialog-btn dialog-btn--cancel" @click="dialogVisible = false">取消</button>
-          <button class="dialog-btn dialog-btn--ok" :disabled="formLoading" @click="handleDialogConfirm">
+          <button class="dialog-btn dialog-btn--ok" :disabled="formLoading" @click="handleCreate">
             <span v-if="formLoading" class="btn-spinner" />
-            {{ dialogMode === 'create' ? '创建' : '保存' }}
+            创建
           </button>
         </div>
       </div>
@@ -281,31 +322,7 @@ async function handleDialogConfirm() {
 .page-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-  min-width: 0;
-}
-
-.page-title {
-  font-family: var(--font-serif, 'Lora', serif);
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1610;
-  white-space: nowrap;
-  margin: 0;
-}
-
-.title-rule {
-  flex: 1;
-  height: 1px;
-  background: var(--admin-sidebar-border, #e8e4de);
 }
 
 .header-actions {
@@ -493,85 +510,114 @@ async function handleDialogConfirm() {
 .empty-icon { width: 36px; height: 36px; opacity: 0.35; }
 .empty-state span { font-size: 13px; font-family: var(--font-sans, 'Inter', sans-serif); }
 
-/* ── Tag cloud ── */
+/* ── Card grid ── */
 
-.tag-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-content: flex-start;
+.tag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
 }
 
-.tag-pill {
+.tag-card {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  background: var(--admin-header-bg, #faf9f7);
   border: 1px solid var(--admin-sidebar-border, #e8e4de);
   border-radius: 4px;
-  background: var(--admin-header-bg, #faf9f7);
+  padding: 14px;
   cursor: pointer;
   user-select: none;
   transition: border-color 0.15s, background 0.15s;
 }
 
-.tag-pill:hover {
-  border-color: #d4cfc9;
-  background: var(--admin-sidebar-hover, #ece9e4);
-}
+.tag-card:hover { border-color: #d4cfc9; background: var(--admin-sidebar-hover, #ece9e4); }
+.tag-card--selected { border-color: var(--admin-accent, #b85c38) !important; background: rgba(184, 92, 56, 0.04) !important; }
+.tag-card--editing { cursor: default; border-color: var(--admin-accent, #b85c38); }
 
-.tag-pill--selected {
-  border-color: var(--admin-accent, #b85c38) !important;
-  background: rgba(184, 92, 56, 0.04) !important;
-}
-
-.tag-name {
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  font-weight: 500;
-  color: #1a1610;
-  white-space: nowrap;
-}
-
-.tag-count {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--admin-accent, #b85c38);
-  background: rgba(184, 92, 56, 0.08);
-  padding: 1px 6px;
-  border-radius: 8px;
-  white-space: nowrap;
-  text-decoration: none;
-  transition: background 0.15s;
-}
-
-.tag-count--zero { color: var(--admin-sidebar-text-muted, #b0a89e); background: rgba(176, 168, 158, 0.1); }
-
-/* Edit button — hidden by default, shown on hover */
+/* Edit button — top-right, hover only */
 .tag-edit-btn {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 0;
-  height: 18px;
-  overflow: hidden;
   border: none;
   border-radius: 3px;
   background: rgba(90, 82, 72, 0.08);
   color: var(--admin-sidebar-text, #5a5248);
   cursor: pointer;
   opacity: 0;
-  transition: width 0.15s ease, opacity 0.15s ease, background 0.12s;
-  padding: 0;
-  flex-shrink: 0;
+  transition: opacity 0.15s, background 0.12s;
 }
 
-.tag-edit-btn svg { width: 11px; height: 11px; flex-shrink: 0; }
-.tag-pill:hover .tag-edit-btn { width: 20px; opacity: 1; }
-.tag-edit-btn:hover { background: rgba(90, 82, 72, 0.16); }
+.tag-edit-btn svg { width: 12px; height: 12px; }
+.tag-card:hover .tag-edit-btn { opacity: 1; }
+.tag-edit-btn:hover { background: rgba(90, 82, 72, 0.15); }
 
-/* ── Create / Edit dialog ── */
+/* Card content */
+.tag-name {
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1610;
+  margin: 0 0 12px;
+  padding-right: 28px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tag-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--admin-accent, #b85c38);
+  background: rgba(184, 92, 56, 0.07);
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.tag-count--zero { color: var(--admin-sidebar-text-muted, #b0a89e); background: rgba(176, 168, 158, 0.1); }
+
+.tag-date {
+  font-size: 11px;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Inline edit ── */
+
+.tag-edit-input {
+  display: block;
+  width: 100%;
+  margin: 10px 0 10px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--admin-accent, #b85c38);
+  border-radius: 3px;
+  background: #fff;
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: #1a1610;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* ── Create dialog ── */
 
 .dialog-overlay {
   position: fixed;
