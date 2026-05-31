@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { useSeoMeta, useHead } from '@unhead/vue'
 import { getArticlePage, type ArticleItemVO } from '@/api/article'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { getTags, type TagVO } from '@/api/tag'
+
+useHead({ title: '文章 | BitLog' })
+useSeoMeta({
+  description: '浏览 BitLog 全部文章，按分类和标签筛选。',
+  ogTitle: '文章 | BitLog',
+  ogDescription: '浏览 BitLog 全部文章，按分类和标签筛选。',
+  ogUrl: 'https://bitlog.harrylei.top/articles',
+})
 
 const route = useRoute()
 let skipWatch = true

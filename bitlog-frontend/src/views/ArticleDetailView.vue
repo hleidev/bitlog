@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
+import { useSeoMeta, useHead } from '@unhead/vue'
 import { getArticleDetail, type ArticleDetailVO } from '@/api/article'
 import { formatDate } from '@/utils/format'
 import ProseContent from '@/components/ProseContent.vue'
@@ -18,6 +19,28 @@ const scrollProgress = ref(0)
 const { toc, activeSection, visibleTocItems, buildToc, scrollToSection } = useToc()
 
 const HEADER_OFFSET = 60
+const SITE_URL = 'https://bitlog.harrylei.top'
+
+function extractDescription(html: string): string {
+  return html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 150)
+}
+
+const articleUrl = computed(() => article.value ? `${SITE_URL}/article/${article.value.id}` : SITE_URL)
+const articleDescription = computed(() =>
+  article.value ? extractDescription(article.value.content) : 'BitLog — 个人技术博客',
+)
+
+useHead({
+  title: () => article.value ? `${article.value.title} | BitLog` : 'BitLog',
+  link: [{ rel: 'canonical', href: articleUrl }],
+})
+useSeoMeta({
+  description: articleDescription,
+  ogType: 'article',
+  ogTitle: () => article.value?.title ?? 'BitLog',
+  ogDescription: articleDescription,
+  ogUrl: articleUrl,
+})
 
 const onScroll = () => {
   const el = document.documentElement
