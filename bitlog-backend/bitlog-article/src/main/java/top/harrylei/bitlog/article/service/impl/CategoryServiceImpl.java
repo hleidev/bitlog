@@ -1,5 +1,6 @@
 package top.harrylei.bitlog.article.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -8,12 +9,18 @@ import top.harrylei.bitlog.api.model.article.req.CategoryCreateParam;
 import top.harrylei.bitlog.api.model.article.req.CategoryUpdateParam;
 import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
 import top.harrylei.bitlog.article.converter.ArticleConverter;
+import top.harrylei.bitlog.article.repository.dao.ArticleDAO;
 import top.harrylei.bitlog.article.repository.dao.CategoryDAO;
+import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.article.repository.entity.CategoryDO;
 import top.harrylei.bitlog.article.service.CategoryService;
+import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 分类业务服务实现
@@ -27,11 +34,23 @@ import java.util.List;
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryDAO categoryDAO;
+    private final ArticleDAO articleDAO;
     private final ArticleConverter articleConverter;
 
     @Override
     public List<CategoryVO> listAll(String name) {
-        return articleConverter.toCategoryVOList(categoryDAO.listAll(name));
+        List<CategoryDO> categories = categoryDAO.listAll(name);
+        if (categories.isEmpty())
+            return List.of();
+
+        List<Long> categoryIds = categories.stream().map(CategoryDO::getId).toList();
+        Map<Long, Long> countByCategory = articleDAO.listPublishedByCategoryIds(categoryIds).stream()
+            .collect(Collectors.groupingBy(ArticleDO::getCategoryId, Collectors.counting()));
+
+        return categories.stream()
+            .map(cat -> articleConverter.toCategoryVO(cat)
+                .setArticleCount(countByCategory.getOrDefault(cat.getId(), 0L).intValue()))
+            .sorted(Comparator.comparingInt(CategoryVO::getArticleCount).reversed()).toList();
     }
 
     @Transactional
@@ -58,7 +77,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     private Long createCategory(String name) {
-        CategoryDO category = new CategoryDO().setName(name).setArticleCount(0);
+        CategoryDO category = new CategoryDO().setName(name);
         categoryDAO.save(category);
         log.info("创建分类 name={} id={}", name, category.getId());
         return category.getId();
@@ -89,7 +108,7 @@ public class CategoryServiceImpl implements CategoryService {
         if (category == null) {
             ResultCode.CATEGORY_NOT_EXISTS.throwException();
         }
-        if (category.getArticleCount() > 0) {
+        if (articleDAO.existsPublishedByCategory(categoryId)) {
             ResultCode.CATEGORY_HAS_ARTICLES.throwException();
         }
         categoryDAO.removeById(categoryId);

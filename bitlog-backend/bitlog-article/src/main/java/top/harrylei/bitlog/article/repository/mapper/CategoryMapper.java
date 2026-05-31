@@ -11,5 +11,4 @@ import top.harrylei.bitlog.article.repository.entity.CategoryDO;
  * @since 2026-04-09
  */
 @Mapper
-public interface CategoryMapper extends BaseMapper<CategoryDO> {
-}
+public interface CategoryMapper extends BaseMapper<CategoryDO> {}

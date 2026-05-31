@@ -19,7 +19,6 @@ import top.harrylei.bitlog.article.repository.dao.TagDAO;
 import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.article.repository.entity.ArticleVersionDO;
 import top.harrylei.bitlog.article.repository.entity.CategoryDO;
-import top.harrylei.bitlog.article.repository.entity.TagDO;
 import top.harrylei.bitlog.article.service.ArticleAiService;
 import top.harrylei.bitlog.common.enums.ResultCode;
 
@@ -86,7 +85,7 @@ public class ArticleAiServiceImpl implements ArticleAiService {
         ArticleVersionDO version = getLatestVersion(article);
 
         List<CategoryDO> categories = categoryDAO.listAll(null);
-        List<TagDO> tags = tagDAO.listAll(null);
+        List<TagVO> tags = tagDAO.listAll(null);
 
         String categoryOptions =
             categories.stream().map(c -> c.getId() + ":" + c.getName()).collect(Collectors.joining("\n"));
@@ -102,7 +101,7 @@ public class ArticleAiServiceImpl implements ArticleAiService {
     }
 
     private AiArticleMetadataVO parseMetadata(Long articleId, String raw, List<CategoryDO> categories,
-        List<TagDO> tags) {
+        List<TagVO> tags) {
         AiRawMetadata parsed;
         try {
             parsed = objectMapper.readValue(raw, AiRawMetadata.class);
@@ -112,7 +111,7 @@ public class ArticleAiServiceImpl implements ArticleAiService {
         }
 
         Map<Long, CategoryDO> categoryMap = categories.stream().collect(Collectors.toMap(CategoryDO::getId, c -> c));
-        Map<Long, TagDO> tagMap = tags.stream().collect(Collectors.toMap(TagDO::getId, t -> t));
+        Map<Long, TagVO> tagMap = tags.stream().collect(Collectors.toMap(TagVO::getId, t -> t));
 
         String summary = parsed.summary != null ? parsed.summary : "";
 
@@ -126,7 +125,7 @@ public class ArticleAiServiceImpl implements ArticleAiService {
         if (parsed.tagIds != null) {
             for (Long tagId : parsed.tagIds) {
                 if (tagMap.containsKey(tagId)) {
-                    TagDO t = tagMap.get(tagId);
+                    TagVO t = tagMap.get(tagId);
                     matchedTags.add(new TagVO().setId(t.getId()).setName(t.getName()));
                 }
             }

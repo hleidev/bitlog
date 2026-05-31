@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.harrylei.bitlog.article.repository.mapper.TagMapper">
+
+    <select id="listAllWithCount" resultType="top.harrylei.bitlog.api.model.article.vo.TagVO">
+        SELECT t.id, t.name, t.create_time, t.update_time,
+               COUNT(a.id) AS article_count
+        FROM tag t
+        LEFT JOIN article_tag at ON at.tag_id = t.id
+        LEFT JOIN article a ON a.id = at.article_id
+            AND a.published_version_id IS NOT NULL
+            AND a.deleted = 0
+        <where>
+            <if test="name != null and name.trim() != ''">
+                AND t.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+        </where>
+        GROUP BY t.id, t.name, t.create_time, t.update_time
+        ORDER BY article_count DESC
+    </select>
+
+</mapper>

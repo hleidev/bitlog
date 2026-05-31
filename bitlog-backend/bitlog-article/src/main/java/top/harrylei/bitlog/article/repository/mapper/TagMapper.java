@@ -2,7 +2,11 @@ package top.harrylei.bitlog.article.repository.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import top.harrylei.bitlog.article.repository.entity.TagDO;
+
+import java.util.List;
 
 /**
  * 标签 Mapper
@@ -12,4 +16,6 @@ import top.harrylei.bitlog.article.repository.entity.TagDO;
  */
 @Mapper
 public interface TagMapper extends BaseMapper<TagDO> {
+
+    List<TagVO> listAllWithCount(@Param("name") String name);
 }

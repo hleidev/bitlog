@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import top.harrylei.bitlog.api.model.article.req.TagSaveParam;
 import top.harrylei.bitlog.api.model.article.req.TagUpdateParam;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
-import top.harrylei.bitlog.article.converter.ArticleConverter;
 import top.harrylei.bitlog.article.repository.dao.ArticleTagDAO;
 import top.harrylei.bitlog.article.repository.dao.TagDAO;
 import top.harrylei.bitlog.article.repository.entity.TagDO;
@@ -29,11 +28,10 @@ public class TagServiceImpl implements TagService {
 
     private final TagDAO tagDAO;
     private final ArticleTagDAO articleTagDAO;
-    private final ArticleConverter articleConverter;
 
     @Override
     public List<TagVO> listAll(String name) {
-        return articleConverter.toTagVOList(tagDAO.listAll(name));
+        return tagDAO.listAll(name);
     }
 
     @Transactional
@@ -86,7 +84,7 @@ public class TagServiceImpl implements TagService {
     }
 
     private Long createTag(String name) {
-        TagDO tag = new TagDO().setName(name).setArticleCount(0);
+        TagDO tag = new TagDO().setName(name);
         tagDAO.save(tag);
         log.info("创建标签 name={} id={}", name, tag.getId());
         return tag.getId();

@@ -27,9 +27,4 @@ public class TagDO extends BaseDO {
      * 标签名称
      */
     private String name;
-
-    /**
-     * 关联文章数
-     */
-    private Integer articleCount;
 }

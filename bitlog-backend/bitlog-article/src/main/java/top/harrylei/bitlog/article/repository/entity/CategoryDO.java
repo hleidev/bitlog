@@ -28,8 +28,4 @@ public class CategoryDO extends BaseDO {
      */
     private String name;
 
-    /**
-     * 关联文章数
-     */
-    private Integer articleCount;
 }

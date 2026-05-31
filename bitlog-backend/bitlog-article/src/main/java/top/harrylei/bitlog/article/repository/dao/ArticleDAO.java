@@ -92,6 +92,20 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
         lambdaUpdate().in(ArticleDO::getId, articleIds).set(ArticleDO::getDeleted, DeleteStatusEnum.DELETED).update();
     }
 
+    /** 判断指定分类下是否存在已发布文章（用于删除前校验） */
+    public boolean existsPublishedByCategory(Long categoryId) {
+        return exists(Wrappers.lambdaQuery(ArticleDO.class).eq(ArticleDO::getCategoryId, categoryId)
+            .isNotNull(ArticleDO::getPublishedVersionId).eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED));
+    }
+
+    /** 批量查询指定分类下的已发布文章（仅返回 categoryId，用于统计） */
+    public List<ArticleDO> listPublishedByCategoryIds(List<Long> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty())
+            return List.of();
+        return lambdaQuery().in(ArticleDO::getCategoryId, categoryIds).isNotNull(ArticleDO::getPublishedVersionId)
+            .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED).select(ArticleDO::getCategoryId).list();
+    }
+
     /** 统计用户全部未删除文章数 */
     public long countByUser(Long userId) {
         return lambdaQuery().eq(ArticleDO::getUserId, userId).eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)

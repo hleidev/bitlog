@@ -123,9 +123,6 @@ public class ArticleServiceImpl implements ArticleService {
             ResultCode.ARTICLE_VERSION_NOT_EXISTS.throwException();
         }
 
-        List<Long> oldTagIds = articleTagDAO.listTagIdsByArticleId(articleId);
-        Long oldCategoryId = article.getCategoryId();
-
         List<Long> newTagIds = req.getTagIds() != null ? req.getTagIds() : List.of();
         Long newCategoryId = req.getCategoryId();
 
@@ -136,10 +133,6 @@ public class ArticleServiceImpl implements ArticleService {
         // 更新标签关联：删除旧的，保存新的
         articleTagDAO.removeByArticleId(articleId);
         saveArticleTags(articleId, newTagIds);
-
-        boolean isRepublish = article.getPublishedVersionId() != null;
-        updateTagCounts(isRepublish, oldTagIds, newTagIds);
-        updateCategoryCount(isRepublish, oldCategoryId, newCategoryId);
 
         log.info("发布文章 articleId={} categoryId={} tagCount={}", articleId, newCategoryId, newTagIds.size());
     }
@@ -165,16 +158,8 @@ public class ArticleServiceImpl implements ArticleService {
             if (article.getPublishTime() == null) {
                 articleDAO.setPublishTime(articleId, LocalDateTime.now());
             }
-            List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(articleId);
-            tagDAO.incrementArticleCount(tagIds);
-            if (article.getCategoryId() != null) {
-                categoryDAO.incrementArticleCount(article.getCategoryId());
-            }
             log.info("重新发布文章 articleId={}", articleId);
         } else if (status == ArticleStatusEnum.DRAFT && isPublished) {
-            List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(articleId);
-            tagDAO.decrementArticleCount(tagIds);
-            categoryDAO.decrementArticleCount(article.getCategoryId());
             articleDAO.unpublish(articleId);
             log.info("取消发布文章 articleId={}", articleId);
         }
@@ -215,23 +200,6 @@ public class ArticleServiceImpl implements ArticleService {
             return;
         }
         articles.forEach(a -> checkOwner(a, userId));
-
-        List<ArticleDO> publishedArticles = articles.stream().filter(a -> a.getPublishedVersionId() != null).toList();
-        if (!publishedArticles.isEmpty()) {
-            List<Long> publishedIds = publishedArticles.stream().map(ArticleDO::getId).toList();
-            List<ArticleTagDO> articleTags = articleTagDAO
-                .list(Wrappers.lambdaQuery(ArticleTagDO.class).in(ArticleTagDO::getArticleId, publishedIds));
-            if (!articleTags.isEmpty()) {
-                Map<Long, Long> tagCountMap =
-                    articleTags.stream().collect(Collectors.groupingBy(ArticleTagDO::getTagId, Collectors.counting()));
-                tagDAO.decrementArticleCountBatch(tagCountMap);
-            }
-            Map<Long, Long> categoryCountMap = publishedArticles.stream().filter(a -> a.getCategoryId() != null)
-                .collect(Collectors.groupingBy(ArticleDO::getCategoryId, Collectors.counting()));
-            if (!categoryCountMap.isEmpty()) {
-                categoryDAO.decrementArticleCountBatch(categoryCountMap);
-            }
-        }
 
         List<Long> existingIds = articles.stream().map(ArticleDO::getId).toList();
         articleDAO.batchDelete(existingIds);
@@ -443,33 +411,6 @@ public class ArticleServiceImpl implements ArticleService {
     private ArticleVersionDO buildVersion(Long articleId, int version, ArticleSaveParam req) {
         return new ArticleVersionDO().setArticleId(articleId).setVersion(version).setTitle(req.getTitle())
             .setContent(req.getContent());
-    }
-
-    private void updateTagCounts(boolean isRepublish, List<Long> oldTagIds, List<Long> newTagIds) {
-        if (isRepublish) {
-            tagDAO.decrementArticleCount(oldTagIds);
-        }
-        if (!newTagIds.isEmpty()) {
-            tagDAO.incrementArticleCount(newTagIds);
-        }
-    }
-
-    private void updateCategoryCount(boolean isRepublish, Long oldCategoryId, Long newCategoryId) {
-        if (!isRepublish) {
-            if (newCategoryId != null) {
-                categoryDAO.incrementArticleCount(newCategoryId);
-            }
-            return;
-        }
-        if (Objects.equals(oldCategoryId, newCategoryId)) {
-            return;
-        }
-        if (oldCategoryId != null) {
-            categoryDAO.decrementArticleCount(oldCategoryId);
-        }
-        if (newCategoryId != null) {
-            categoryDAO.incrementArticleCount(newCategoryId);
-        }
     }
 
     private void saveArticleTags(Long articleId, List<Long> tagIds) {
