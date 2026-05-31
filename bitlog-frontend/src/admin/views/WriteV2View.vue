@@ -349,7 +349,6 @@ function openPreview() {
   }
   // 有未发布的草稿内容 → 预览草稿页；内容一致或从未发布过 → 预览公开页
   const hasUnpublishedChanges = latestVersionId.value !== null &&
-    publishedVersionId.value !== null &&
     latestVersionId.value !== publishedVersionId.value
 
   if (hasUnpublishedChanges) {
