@@ -142,7 +142,10 @@ function autoResizeTitle() {
 }
 
 function onBeforeUnload(e: BeforeUnloadEvent) {
-  if (hasUnsaved.value) e.preventDefault()
+  if (hasUnsaved.value) {
+    e.preventDefault()
+    e.returnValue = true
+  }
 }
 
 // ── Load data ──────────────────────────────────────────────────────────────────
