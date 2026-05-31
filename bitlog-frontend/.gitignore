@@ -1,0 +1,20 @@
+node_modules/
+dist/
+public/sitemap.xml
+
+# IDE
+.idea/
+.claude/
+
+# Local docs and design files
+API_CLEANUP.md
+design-preview.html
+homepage-redesign.html
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build output (if not using /dist)
+# coverage/
