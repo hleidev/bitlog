@@ -146,16 +146,11 @@ defineExpose({ proseRef })
         <div class="code-fs-panel">
           <div class="code-fs-header">
             <span class="code-fs-dots">
-              <span class="code-fs-dot code-fs-dot--red" title="关闭" @click="fullscreenVisible = false" />
+              <span class="code-fs-dot code-fs-dot--red" @click="fullscreenVisible = false" />
               <span class="code-fs-dot code-fs-dot--yellow" />
-              <span class="code-fs-dot code-fs-dot--green" />
+              <span class="code-fs-dot code-fs-dot--green" :class="{ 'code-fs-dot--green-shrink': fullscreenVisible }" @click="fullscreenVisible = false" />
             </span>
             <span class="code-fs-lang">{{ fullscreenLang }}</span>
-            <button class="code-fs-close" title="关闭" @click="fullscreenVisible = false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
           </div>
           <div class="code-fs-body">
             <pre class="code-fs-pre"><code class="hljs" v-html="fullscreenHighlighted" /></pre>
@@ -229,7 +224,8 @@ defineExpose({ proseRef })
   flex-shrink: 0;
 }
 
-.code-fs-dot:hover { filter: brightness(0.85); }
+.code-fs-dots:hover .code-fs-dot::after { opacity: 1; }
+.code-fs-dots .code-fs-dot:hover ~ .code-fs-dot::after { opacity: 1; }
 
 .code-fs-dot--red    { background: radial-gradient(circle at 38% 35%, #ff8a80, #ff5f57); }
 .code-fs-dot--yellow { background: radial-gradient(circle at 38% 35%, #ffe57f, #febc2e); cursor: default; }
@@ -246,8 +242,32 @@ defineExpose({ proseRef })
   -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
   opacity: 0; transition: opacity 0.12s;
 }
-.code-fs-dot--red:hover::after { opacity: 1; }
-
+.code-fs-dot--yellow::after {
+  content: '';
+  position: absolute;
+  width: 7px; height: 7px;
+  background-color: rgba(0, 0, 0, 0.5);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 5h6' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 5h6' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+  -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+  opacity: 0; transition: opacity 0.12s;
+}
+.code-fs-dot--green::after {
+  content: '';
+  position: absolute;
+  width: 7px; height: 7px;
+  background-color: rgba(0, 0, 0, 0.5);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 4V1h3M9 6v3H6' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M1.2 1.2l3.3 3.3M8.8 8.8L5.5 5.5' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 4V1h3M9 6v3H6' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M1.2 1.2l3.3 3.3M8.8 8.8L5.5 5.5' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+  -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+  opacity: 0; transition: opacity 0.12s;
+}
+.code-fs-dot--green-shrink::after {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 6V9h3M9 4v3H6' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M8.8 8.8l-3.3-3.3M1.2 1.2l3.3 3.3' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1 6V9h3M9 4v3H6' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M8.8 8.8l-3.3-3.3M1.2 1.2l3.3 3.3' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+}
 .code-fs-lang {
   flex: 1;
   text-align: center;
@@ -258,28 +278,6 @@ defineExpose({ proseRef })
   text-transform: uppercase;
   user-select: none;
 }
-
-.code-fs-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px; height: 26px;
-  color: rgba(255, 255, 255, 0.45);
-  background: none;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-  padding: 0;
-  transition: color 0.15s, background 0.15s;
-  flex-shrink: 0;
-}
-
-.code-fs-close:hover {
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.code-fs-close svg { width: 13px; height: 13px; display: block; }
 
 .code-fs-body {
   flex: 1;
