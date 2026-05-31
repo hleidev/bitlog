@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/generate-sitemap.mjs",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
@@ -25,6 +26,7 @@
     "@milkdown/kit": "^7.21.1",
     "@milkdown/vue": "^7.21.1",
     "@types/markdown-it": "^14.1.2",
+    "@unhead/vue": "^3.1.1",
     "axios": "^1.14.0",
     "diff": "^9.0.0",
     "dompurify": "^3.4.6",

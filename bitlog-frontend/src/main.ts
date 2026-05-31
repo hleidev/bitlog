@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { createUnhead } from '@unhead/vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import router from '@/router'
@@ -10,6 +11,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)
+app.use(createUnhead())
 app.use(ElementPlus)
 app.component('ConfirmDialog', ConfirmDialog)
 
