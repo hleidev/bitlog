@@ -37,7 +37,7 @@ const filteredCategories = computed(() => {
   return categories.value.filter(c => c.name.toLowerCase().includes(kw))
 })
 
-// ── Selection ─────────────────────────────────────────────────────────────────
+// ── Selection ──────────────────────────────────────────────────────────────────
 const selectedIds = reactive(new Set<number>())
 
 const allSelected = computed(
@@ -45,17 +45,21 @@ const allSelected = computed(
     && filteredCategories.value.every(c => selectedIds.has(c.id)),
 )
 
-function onCardClick(cat: Category) {
-  if (editingId.value === cat.id) return
-  selectedIds.has(cat.id) ? selectedIds.delete(cat.id) : selectedIds.add(cat.id)
-}
+const someSelected = computed(
+  () => filteredCategories.value.some(c => selectedIds.has(c.id)) && !allSelected.value,
+)
 
-function toggleSelectAll() {
+function toggleAll() {
   if (allSelected.value) {
     filteredCategories.value.forEach(c => selectedIds.delete(c.id))
   } else {
     filteredCategories.value.forEach(c => selectedIds.add(c.id))
   }
+}
+
+function toggleRow(id: number) {
+  if (selectedIds.has(id)) selectedIds.delete(id)
+  else                    selectedIds.add(id)
 }
 
 function clearSelection() {
@@ -69,10 +73,10 @@ watch(filteredCategories, cats => {
   }
 })
 
-// ── Delete (batch only) ───────────────────────────────────────────────────────
+// ── Batch delete ───────────────────────────────────────────────────────────
 const batchLoading = ref(false)
 
-async function handleDelete() {
+async function handleBatchDelete() {
   const ids = Array.from(selectedIds)
   try {
     await confirm(
@@ -97,63 +101,58 @@ async function handleDelete() {
   }
 }
 
-// ── Inline edit ───────────────────────────────────────────────────────────────
-const editingId   = ref<number | null>(null)
-const editingName = ref('')
-
-function startEdit(cat: Category, e: MouseEvent) {
-  e.stopPropagation()
-  editingId.value   = cat.id
-  editingName.value = cat.name
-  nextTick(() => {
-    const input = document.querySelector<HTMLInputElement>('.cat-edit-input')
-    input?.focus()
-    input?.select()
-  })
-}
-
-function cancelEdit() {
-  editingId.value   = null
-  editingName.value = ''
-}
-
-async function saveEdit(e?: KeyboardEvent | MouseEvent) {
-  e?.stopPropagation?.()
-  const name = editingName.value.trim()
-  const cat  = categories.value.find(c => c.id === editingId.value)
-  if (!cat) return
-  if (!name) { toast.warning('请输入分类名称'); return }
-  if (name === cat.name) { cancelEdit(); return }
-
+// ── Single row actions ─────────────────────────────────────────────────────
+async function handleSingleDelete(row: Category) {
   try {
-    await updateCategory(cat.id, name)
-    toast.success('已更新')
-    cancelEdit()
+    await confirm(`确认删除「${row.name}」？`, '删除分类', { confirmText: '删除', danger: true })
+  } catch { return }
+  try {
+    await deleteCategories([row.id])
+    toast.success('已删除')
     fetchCategories()
-  } catch (err: unknown) {
-    const code = (err as { code?: number })?.code
-    if (code === 43102) toast.warning('分类名已存在')
-    else toast.error('操作失败')
+  } catch {
+    toast.error('删除失败，请重试')
   }
 }
 
-// ── Create dialog ─────────────────────────────────────────────────────────────
-const dialogVisible = ref(false)
-const formName      = ref('')
-const formLoading   = ref(false)
-const dialogInputRef = ref<HTMLInputElement | null>(null)
+// ── Dialog (create + edit) ────────────────────────────────────────────────
+const dialogVisible    = ref(false)
+const dialogMode      = ref<'create' | 'edit'>('create')
+const editingCategory  = ref<Category | null>(null)
+const formName         = ref('')
+const formLoading      = ref(false)
+const dialogInputRef   = ref<HTMLInputElement | null>(null)
 
 watch(dialogVisible, val => {
   if (val) nextTick(() => dialogInputRef.value?.focus())
 })
 
-async function handleCreate() {
+function openCreateDialog() {
+  dialogMode.value     = 'create'
+  editingCategory.value = null
+  formName.value       = ''
+  dialogVisible.value  = true
+}
+
+function openEditDialog(cat: Category) {
+  dialogMode.value     = 'edit'
+  editingCategory.value = cat
+  formName.value       = cat.name
+  dialogVisible.value  = true
+}
+
+async function handleDialogSubmit() {
   const name = formName.value.trim()
   if (!name) { toast.warning('请输入分类名称'); return }
   formLoading.value = true
   try {
-    await createCategory(name)
-    toast.success('分类已创建')
+    if (dialogMode.value === 'create') {
+      await createCategory(name)
+      toast.success('分类已创建')
+    } else {
+      await updateCategory(editingCategory.value!.id, name)
+      toast.success('已更新')
+    }
     dialogVisible.value = false
     formName.value = ''
     fetchCategories()
@@ -169,138 +168,141 @@ async function handleCreate() {
 
 <template>
   <div class="categories-page">
+    <div class="main-card">
 
-    <!-- Header -->
-    <div class="page-header">
-      <div class="header-actions">
-        <div class="search-wrap">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="7" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          <input v-model="keyword" class="search-input" placeholder="搜索分类" />
-          <button v-if="keyword" class="search-clear" @click="keyword = ''">
+      <!-- Header -->
+      <div class="card-header">
+        <div class="header-left">
+          <p class="stats-text">共 {{ categories.length }} 个分类</p>
+        </div>
+        <div class="header-actions">
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="7" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <input v-model="keyword" class="search-input" placeholder="搜索分类" />
+            <button v-if="keyword" class="search-clear" @click="keyword = ''">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+              </svg>
+            </button>
+          </div>
+          <button class="icon-btn" title="刷新" @click="fetchCategories">
             <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+              <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
             </svg>
           </button>
+          <button class="primary-btn" @click="openCreateDialog">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+            新建分类
+          </button>
         </div>
-        <button class="icon-btn" title="刷新" @click="fetchCategories">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
-          </svg>
-        </button>
-        <button class="primary-btn" @click="dialogVisible = true">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
-          新建分类
-        </button>
       </div>
-    </div>
 
-    <!-- Stats / Action bar — fixed height, no layout jump -->
-    <div class="bar-area">
-      <Transition name="bar-swap" mode="out-in">
-        <div v-if="selectedIds.size > 0" key="bar" class="action-bar">
-          <span class="action-bar-count">已选 {{ selectedIds.size }} 个</span>
-          <button class="bar-btn" @click="toggleSelectAll">
-            {{ allSelected ? '取消全选' : '全选' }}
-          </button>
-          <div class="bar-sep" />
-          <button class="bar-btn bar-btn--danger" :disabled="batchLoading" @click="handleDelete">
-            <span v-if="batchLoading" class="btn-spinner btn-spinner--dark" />
-            删除
-          </button>
-          <button class="bar-btn" @click="clearSelection">取消</button>
-        </div>
-        <p v-else key="stats" class="stats-text">共 {{ categories.length }} 个分类</p>
-      </Transition>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="loading" class="loading-state">
-      <svg class="spinner" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="40" stroke-dashoffset="15" />
-      </svg>
-    </div>
-
-    <!-- Empty -->
-    <div v-else-if="filteredCategories.length === 0" class="empty-state">
-      <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
-        <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
-      </svg>
-      <span>{{ keyword ? '没有匹配的分类' : '还没有分类，点击右上角新建' }}</span>
-    </div>
-
-    <!-- Grid -->
-    <div v-else class="category-grid">
-      <div
-        v-for="cat in filteredCategories"
-        :key="cat.id"
-        class="cat-card"
-        :class="{
-          'cat-card--selected': selectedIds.has(cat.id) && editingId !== cat.id,
-          'cat-card--editing': editingId === cat.id,
-        }"
-        @click="onCardClick(cat)"
-      >
-        <!-- Edit button (hover, non-editing mode) -->
-        <button
-          v-if="editingId !== cat.id"
-          class="cat-edit-btn"
-          title="编辑"
-          @click.stop="startEdit(cat, $event)"
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-          </svg>
-        </button>
-
-        <!-- Normal view -->
-        <template v-if="editingId !== cat.id">
-          <h3 class="cat-name">{{ cat.name }}</h3>
-          <div class="cat-meta">
-            <span class="cat-count" :class="{ 'cat-count--zero': cat.articleCount === 0 }">
-              {{ cat.articleCount }} 篇
-            </span>
-            <span class="cat-date">{{ cat.createTime }}</span>
+      <!-- Selection bar -->
+      <Transition name="sel-bar">
+        <div v-if="selectedIds.size > 0" class="selection-bar">
+          <span class="sel-count">已选 <b>{{ selectedIds.size }}</b> 个</span>
+          <div class="sel-actions">
+            <button class="ghost-btn ghost-btn--sm" @click="toggleAll">
+              {{ allSelected ? '取消全选' : '全选' }}
+            </button>
+            <button class="ghost-btn ghost-btn--sm ghost-btn--danger" :disabled="batchLoading" @click="handleBatchDelete">
+              <span v-if="batchLoading" class="btn-spinner btn-spinner--dark" />
+              批量删除
+            </button>
           </div>
-        </template>
+          <button class="cancel-btn" @click="clearSelection">取消选择</button>
+        </div>
+      </Transition>
 
-        <!-- Inline edit view -->
-        <template v-else>
-          <input
-            v-model="editingName"
-            class="cat-edit-input"
-            maxlength="30"
-            @click.stop
-            @keyup.enter="saveEdit"
-            @keyup.escape="cancelEdit"
-            @blur="saveEdit"
-          />
-        </template>
+      <!-- Table -->
+      <div class="table-wrap" :class="{ 'table-wrap--loading': loading }">
+        <div v-if="loading" class="table-loading">
+          <svg class="spinner" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="40" stroke-dashoffset="15" />
+          </svg>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="col-check">
+                <input
+                  type="checkbox"
+                  class="row-checkbox"
+                  :checked="allSelected"
+                  :indeterminate="someSelected"
+                  @change="toggleAll"
+                />
+              </th>
+              <th class="col-name">名称</th>
+              <th class="col-count">文章数</th>
+              <th class="col-time">创建时间</th>
+              <th class="col-actions" />
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="filteredCategories.length === 0 && !loading">
+              <td colspan="5" class="empty-cell">
+                <div class="empty-state">
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
+                    <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                  </svg>
+                  <span>{{ keyword ? '没有匹配的分类' : '还没有分类，点击右上角新建' }}</span>
+                </div>
+              </td>
+            </tr>
+            <tr
+              v-for="row in filteredCategories"
+              :key="row.id"
+              :class="{ 'row--selected': selectedIds.has(row.id) }"
+            >
+              <td class="col-check">
+                <input type="checkbox" class="row-checkbox" :checked="selectedIds.has(row.id)" @change="toggleRow(row.id)" />
+              </td>
+              <td class="col-name">{{ row.name }}</td>
+              <td class="col-count">
+                <span class="count-badge" :class="{ 'count-badge--zero': row.articleCount === 0 }">
+                  {{ row.articleCount }} 篇
+                </span>
+              </td>
+              <td class="col-time">
+                <span class="cell-muted">{{ row.createTime }}</span>
+              </td>
+              <td class="col-actions">
+                <div class="row-actions">
+                  <button class="action-btn" @click="openEditDialog(row)">编辑</button>
+                  <button class="action-btn action-btn--danger" @click="handleSingleDelete(row)">删除</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </div>
 
+    </div>
   </div>
 
-  <!-- Create dialog -->
+  <!-- Create / Edit dialog -->
   <Transition name="dialog-fade">
     <div v-if="dialogVisible" class="dialog-overlay" @click.self="dialogVisible = false">
       <div class="dialog-box">
-        <h3 class="dialog-title">新建分类</h3>
+        <h3 class="dialog-title">{{ dialogMode === 'create' ? '新建分类' : '编辑分类' }}</h3>
         <input
           ref="dialogInputRef"
           v-model="formName"
           class="dialog-input"
-          placeholder="请输入分类名称"
+          :placeholder="dialogMode === 'create' ? '请输入分类名称' : '请输入分类名称'"
           maxlength="30"
-          @keyup.enter="handleCreate"
+          @keyup.enter="handleDialogSubmit"
         />
         <p class="input-hint">{{ formName.length }} / 30</p>
         <div class="dialog-actions">
           <button class="dialog-btn dialog-btn--cancel" @click="dialogVisible = false">取消</button>
-          <button class="dialog-btn dialog-btn--ok" :disabled="formLoading" @click="handleCreate">
+          <button class="dialog-btn dialog-btn--ok" :disabled="formLoading" @click="handleDialogSubmit">
             <span v-if="formLoading" class="btn-spinner" />
-            创建
+            {{ dialogMode === 'create' ? '创建' : '保存' }}
           </button>
         </div>
       </div>
@@ -309,24 +311,37 @@ async function handleCreate() {
 </template>
 
 <style scoped>
-.categories-page {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.categories-page { display: flex; flex-direction: column; }
+
+.main-card {
+  background: var(--admin-header-bg, #faf9f7);
+  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 /* ── Header ── */
 
-.page-header {
+.card-header {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+  padding: 0 20px;
+  gap: 12px;
+}
+
+.header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 10px 0;
   flex-shrink: 0;
 }
 
@@ -340,7 +355,7 @@ async function handleCreate() {
 
 .search-icon {
   position: absolute;
-  left: 9px;
+  left: 8px;
   width: 14px;
   height: 14px;
   color: var(--admin-sidebar-text-muted, #b0a89e);
@@ -348,17 +363,18 @@ async function handleCreate() {
 }
 
 .search-input {
-  height: 34px;
-  padding: 0 30px 0 30px;
+  height: 32px;
+  padding: 0 28px 0 28px;
   width: 180px;
   border: 1px solid var(--admin-sidebar-border, #e8e4de);
   border-radius: 4px;
-  background: var(--admin-header-bg, #faf9f7);
+  background: #fff;
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
   color: #1a1610;
   outline: none;
   transition: border-color 0.15s;
+  box-sizing: border-box;
 }
 
 .search-input:focus { border-color: var(--admin-accent, #b85c38); }
@@ -366,7 +382,7 @@ async function handleCreate() {
 
 .search-clear {
   position: absolute;
-  right: 8px;
+  right: 6px;
   display: flex;
   align-items: center;
   background: none;
@@ -374,37 +390,37 @@ async function handleCreate() {
   cursor: pointer;
   color: var(--admin-sidebar-text-muted, #b0a89e);
   padding: 0;
-  transition: color 0.15s;
 }
 
-.search-clear svg { width: 13px; height: 13px; }
+.search-clear svg { width: 12px; height: 12px; }
 .search-clear:hover { color: var(--admin-sidebar-text, #5a5248); }
 
 /* ── Buttons ── */
 
 .icon-btn {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--admin-sidebar-border, #e8e4de);
   border-radius: 4px;
-  background: var(--admin-header-bg, #faf9f7);
+  background: transparent;
   color: var(--admin-sidebar-text, #5a5248);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s;
+  flex-shrink: 0;
 }
 
-.icon-btn svg { width: 16px; height: 16px; }
-.icon-btn:hover { background: var(--admin-sidebar-hover, #ece9e4); border-color: #d4cfc9; }
+.icon-btn svg { width: 14px; height: 14px; }
+.icon-btn:hover { background: var(--admin-sidebar-hover, #ece9e4); }
 
 .primary-btn {
-  height: 34px;
+  height: 32px;
   padding: 0 14px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: var(--admin-accent, #b85c38);
   color: #fff;
   border: none;
@@ -414,167 +430,96 @@ async function handleCreate() {
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
+  white-space: nowrap;
 }
 
-.primary-btn svg { width: 16px; height: 16px; }
+.primary-btn svg { width: 13px; height: 13px; }
 .primary-btn:hover { background: var(--admin-accent-dark, #924530); }
 
-/* ── Bar area — fixed height, no layout jump ── */
-
-.bar-area {
-  height: 36px;
-  position: relative;
-}
+/* ── Stats text ── */
 
 .stats-text {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
   font-size: 13px;
   color: var(--admin-sidebar-text-muted, #b0a89e);
-  margin: 0;
+  white-space: nowrap;
 }
 
-.action-bar {
-  position: absolute;
-  inset: 0;
+/* ── Selection bar ── */
+
+.selection-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  background: rgba(184, 92, 56, 0.06);
-  border: 1px solid rgba(184, 92, 56, 0.2);
-  border-radius: 4px;
+  gap: 12px;
+  padding: 9px 20px;
+  background: rgba(184, 92, 56, 0.05);
+  border-bottom: 1px solid rgba(184, 92, 56, 0.15);
 }
 
-.action-bar-count {
+.sel-count {
   font-size: 13px;
-  font-weight: 500;
+  font-family: var(--font-sans, 'Inter', sans-serif);
   color: var(--admin-accent, #b85c38);
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  margin-right: 2px;
+  white-space: nowrap;
 }
 
-.bar-btn {
-  height: 26px;
-  padding: 0 10px;
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  border-radius: 3px;
-  cursor: pointer;
-  border: 1px solid #d4cfc9;
-  background: transparent;
-  color: var(--admin-sidebar-text, #5a5248);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: background 0.12s;
-}
+.sel-count b { font-weight: 700; }
 
-.bar-btn:hover:not(:disabled) { background: var(--admin-sidebar-hover, #ece9e4); }
-.bar-btn--danger { color: #c04040; border-color: rgba(192, 64, 64, 0.3); }
-.bar-btn--danger:hover:not(:disabled) { background: rgba(192, 64, 64, 0.07); }
-.bar-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.sel-actions { display: flex; gap: 6px; }
 
-.bar-sep { flex: 1; }
-
-/* ── Loading / Empty ── */
-
-.loading-state {
-  display: flex;
-  justify-content: center;
-  padding: 60px 0;
-}
-
-.spinner {
-  width: 28px;
+.ghost-btn {
   height: 28px;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
-  animation: spin 0.9s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
-}
-
-.empty-icon { width: 36px; height: 36px; opacity: 0.35; }
-.empty-state span { font-size: 13px; font-family: var(--font-sans, 'Inter', sans-serif); }
-
-/* ── Card grid ── */
-
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.cat-card {
-  position: relative;
-  background: var(--admin-header-bg, #faf9f7);
+  padding: 0 12px;
   border: 1px solid var(--admin-sidebar-border, #e8e4de);
   border-radius: 4px;
-  padding: 14px;
-  cursor: pointer;
-  user-select: none;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.cat-card:hover { border-color: #d4cfc9; background: var(--admin-sidebar-hover, #ece9e4); }
-.cat-card--selected { border-color: var(--admin-accent, #b85c38) !important; background: rgba(184, 92, 56, 0.04) !important; }
-.cat-card--editing { cursor: default; border-color: var(--admin-accent, #b85c38); }
-
-/* Edit button — top-right, hover only */
-.cat-edit-btn {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 3px;
-  background: rgba(90, 82, 72, 0.08);
+  background: #fff;
+  font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
   color: var(--admin-sidebar-text, #5a5248);
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.12s;
-}
-
-.cat-edit-btn svg { width: 12px; height: 12px; }
-.cat-card:hover .cat-edit-btn { opacity: 1; }
-.cat-edit-btn:hover { background: rgba(90, 82, 72, 0.15); }
-
-/* Card content */
-.cat-name {
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  font-size: 14px;
-  font-weight: 500;
-  color: #1a1610;
-  margin: 0 0 12px;
-  padding-right: 28px;
+  transition: background 0.15s;
   white-space: nowrap;
-  overflow: hidden;
+}
+
+.ghost-btn--sm { height: 26px; }
+.ghost-btn:hover { background: var(--admin-sidebar-hover, #ece9e4); }
+.ghost-btn--danger { color: #c0392b; border-color: rgba(192, 57, 43, 0.25); }
+.ghost-btn--danger:hover { background: rgba(192, 57, 43, 0.05); }
+
+.cancel-btn {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.cancel-btn:hover { color: var(--admin-sidebar-text, #5a5248); }
+
+.sel-bar-enter-active,
+.sel-bar-leave-active { transition: opacity 0.15s, transform 0.15s; }
+.sel-bar-enter-from,
+.sel-bar-leave-to { opacity: 0; transform: translateY(-4px); }
+
+/* ── Table ── */
+
+.col-check    { width: 40px; }
+.col-name     { max-width: 200px; }
+.col-count    { width: 80px; text-align: center; }
+.col-time     { width: 120px; white-space: nowrap; }
+.col-actions  { width: 100px; text-align: right; }
+
+.col-name {
   text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-.cat-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
+.row--selected td { background: rgba(184, 92, 56, 0.04); }
 
-.cat-count {
+.count-badge {
   font-size: 12px;
   font-weight: 500;
   color: var(--admin-accent, #b85c38);
@@ -582,163 +527,21 @@ async function handleCreate() {
   padding: 2px 8px;
   border-radius: 10px;
   white-space: nowrap;
-  flex-shrink: 0;
-  text-decoration: none;
-  transition: background 0.15s;
 }
 
-.cat-count--zero { color: var(--admin-sidebar-text-muted, #b0a89e); background: rgba(176, 168, 158, 0.1); }
-
-.cat-date {
-  font-size: 11px;
+.count-badge--zero {
   color: var(--admin-sidebar-text-muted, #b0a89e);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  background: rgba(176, 168, 158, 0.1);
 }
 
-/* ── Inline edit ── */
-
-.cat-edit-input {
-  display: block;
-  width: 100%;
-  margin: 10px 0 10px;
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid var(--admin-accent, #b85c38);
-  border-radius: 3px;
-  background: #fff;
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: #1a1610;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 9000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dialog-box {
-  background: #faf9f7;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
-  border-radius: 4px;
-  padding: 28px 28px 22px;
-  width: 360px;
-  max-width: calc(100vw - 40px);
-}
-
-.dialog-title {
-  font-family: var(--font-serif, 'Lora', serif);
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1610;
-  margin: 0 0 16px;
-}
-
-.dialog-input {
-  width: 100%;
-  height: 38px;
-  padding: 0 12px;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
-  border-radius: 4px;
-  background: #fff;
-  font-size: 13.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: #1a1610;
-  outline: none;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-}
-
-.dialog-input:focus { border-color: var(--admin-accent, #b85c38); }
-.dialog-input::placeholder { color: var(--admin-sidebar-text-muted, #b0a89e); }
-
-.input-hint {
-  font-size: 11px;
+.cell-muted {
+  font-size: 12.5px;
   color: var(--admin-sidebar-text-muted, #b0a89e);
-  text-align: right;
-  margin: 4px 0 20px;
 }
 
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.dialog-btn {
-  height: 34px;
-  padding: 0 18px;
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  border-radius: 4px;
-  cursor: pointer;
-  border: 1px solid;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.dialog-btn--cancel {
-  background: transparent;
-  color: var(--admin-sidebar-text, #5a5248);
-  border-color: #d4cfc9;
-}
-
-.dialog-btn--cancel:hover { background: var(--admin-sidebar-hover, #ece9e4); }
-
-.dialog-btn--ok {
-  background: var(--admin-accent, #b85c38);
-  color: #fff;
-  border-color: var(--admin-accent, #b85c38);
-  font-weight: 500;
-}
-
-.dialog-btn--ok:hover:not(:disabled) { background: var(--admin-accent-dark, #924530); border-color: var(--admin-accent-dark, #924530); }
-.dialog-btn--ok:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.btn-spinner {
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-
-.btn-spinner--dark {
-  border-color: rgba(90, 82, 72, 0.3);
-  border-top-color: var(--admin-sidebar-text, #5a5248);
-}
-
-/* ── Transitions ── */
-
-.bar-swap-enter-active,
-.bar-swap-leave-active {
-  transition: opacity 0.14s ease;
-}
-
-.bar-swap-enter-from,
-.bar-swap-leave-to {
-  opacity: 0;
-}
-
+/* ── Dialog ── */
 .dialog-fade-enter-active,
-.dialog-fade-leave-active {
-  transition: opacity 0.18s ease;
-}
-
+.dialog-fade-leave-active { transition: opacity 0.15s; }
 .dialog-fade-enter-from,
-.dialog-fade-leave-to {
-  opacity: 0;
-}
+.dialog-fade-leave-to { opacity: 0; }
 </style>
