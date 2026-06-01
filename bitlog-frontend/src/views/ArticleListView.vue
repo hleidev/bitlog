@@ -71,16 +71,10 @@ function updateIndicator() {
 
 // ── Article list ──────────────────────────────────────────────────────────────
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-
-function formatMonth(iso: string | null): string {
+function formatDate(iso: string | null): string {
   if (!iso) return '—'
-  return MONTHS[new Date(iso).getMonth()]
-}
-
-function formatYear(iso: string | null): string {
-  if (!iso) return ''
-  return String(new Date(iso).getFullYear())
+  const d = new Date(iso)
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 const PAGE_SIZE = 12
@@ -294,7 +288,7 @@ onMounted(async () => {
               class="article-row"
             >
               <div class="article-date">
-                {{ formatMonth(article.publishTime) }} <span class="article-year">{{ formatYear(article.publishTime) }}</span>
+                {{ formatDate(article.publishTime) }}
               </div>
               <div class="article-body">
                 <span class="article-title">{{ article.title }}</span>
@@ -645,10 +639,6 @@ onMounted(async () => {
   transition: color var(--transition-base);
 }
 
-.article-year {
-  font-size: 11px;
-  opacity: 0.65;
-}
 
 .article-body {
   flex: 1;
