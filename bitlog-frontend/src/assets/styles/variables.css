@@ -22,6 +22,7 @@
 
   /* ── Layout ── */
   --spacing-container:   1280px;
+  --spacing-prose:       800px;
   --spacing-header-height: 48px;
   --spacing-page-padding: 48px;
 

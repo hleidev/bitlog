@@ -16,7 +16,7 @@
 
 .ProseMirror h1 {
   font-family: var(--font-serif);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 500;
   color: var(--color-text-primary);
   margin: 48px 0 18px;
@@ -28,10 +28,9 @@
   font-family: var(--font-serif);
   font-size: 21px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
   margin: 40px 0 16px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--color-border);
+  /* no border-bottom — key visual distinction from H1 */
 }
 
 .ProseMirror h1:first-child,
@@ -40,15 +39,40 @@
 .ProseMirror h3 {
   font-size: 17px;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-text-muted);
   margin: 28px 0 12px;
 }
 
 .ProseMirror h4 {
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-text-muted);
   margin: 22px 0 10px;
+}
+
+/* ── Edit-mode heading level labels ──────────────────────────────────────── */
+
+.article-editor.is-editable .ProseMirror :is(h1, h2, h3, h4) {
+  position: relative;
+}
+
+.article-editor.is-editable .ProseMirror h1::before { content: 'H1'; opacity: 0.85; }
+.article-editor.is-editable .ProseMirror h2::before { content: 'H2'; opacity: 0.60; }
+.article-editor.is-editable .ProseMirror h3::before { content: 'H3'; opacity: 0.40; }
+.article-editor.is-editable .ProseMirror h4::before { content: 'H4'; opacity: 0.28; }
+
+.article-editor.is-editable .ProseMirror :is(h1, h2, h3, h4)::before {
+  position: absolute;
+  left: -2.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent);
+  user-select: none;
+  pointer-events: none;
+  line-height: 1;
 }
 
 /* ── Paragraphs & inline ──────────────────────────────────────────────────── */
@@ -62,6 +86,11 @@
 
 .ProseMirror em {
   font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.ProseMirror s {
+  text-decoration: line-through;
   color: var(--color-text-muted);
 }
 
@@ -90,6 +119,94 @@
   border: 1px solid var(--color-border);
 }
 
+/* ── Code blocks (NodeView structure) ────────────────────────────────────── */
+
+.ProseMirror .code-block-wrapper {
+  background: #282c34;
+  border-radius: 4px;
+  margin: 26px 0;
+  overflow: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.ProseMirror .code-block-wrapper::-webkit-scrollbar { height: 3px; }
+.ProseMirror .code-block-wrapper::-webkit-scrollbar-track { background: transparent; }
+.ProseMirror .code-block-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+.ProseMirror .code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ProseMirror .code-lang-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: lowercase;
+}
+
+.ProseMirror .copy-btn {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 3px;
+  transition: color 0.15s;
+  line-height: 1.6;
+}
+
+.ProseMirror .copy-btn:hover { color: rgba(255, 255, 255, 0.8); }
+
+.ProseMirror .code-lang-input {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  width: 100px;
+  transition: color 0.15s;
+}
+
+.ProseMirror .code-lang-input:focus {
+  color: rgba(255, 255, 255, 0.85);
+  cursor: text;
+}
+
+.ProseMirror pre.code-body {
+  margin: 0;
+  background: transparent;
+  overflow-x: auto;
+}
+
+.ProseMirror pre.code-body code {
+  display: block;
+  padding: 16px 22px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #abb2bf;
+  white-space: pre;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 /* Reset inline code styles inside code blocks */
 .ProseMirror pre code {
   font-size: inherit;
@@ -100,29 +217,32 @@
   border-radius: 0;
 }
 
-/* ── Code blocks ──────────────────────────────────────────────────────────── */
+/* ── Mermaid live preview ─────────────────────────────────────────────────── */
 
-.ProseMirror pre {
-  background: #1e1e1e;
-  border-radius: 4px;
-  margin: 26px 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+.ProseMirror .mermaid-preview {
+  padding: 24px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.ProseMirror pre::-webkit-scrollbar { height: 3px; }
-.ProseMirror pre::-webkit-scrollbar-track { background: transparent; }
-.ProseMirror pre::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 2px; }
+.ProseMirror .mermaid-svg-wrap {
+  width: 100%;
+}
 
-.ProseMirror pre > code {
-  display: block;
-  padding: 20px 22px;
+.ProseMirror .mermaid-svg-wrap svg {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+
+.ProseMirror .mermaid-error {
+  padding: 12px 0;
+  color: #e06c75;
   font-family: var(--font-mono);
-  font-size: 13.5px;
-  line-height: 1.65;
-  color: #d4d4d4;
-  white-space: pre;
+  font-size: 12px;
 }
 
 /* ── Blockquote ───────────────────────────────────────────────────────────── */
@@ -204,5 +324,6 @@
 
 @media (max-width: 900px) {
   .ProseMirror { font-size: 15px; }
+  .ProseMirror h1 { font-size: 24px; }
   .ProseMirror h2 { font-size: 19px; }
 }
