@@ -15,7 +15,7 @@ const router = createRouter({
       children: [
         { path: '', component: () => import('@/views/HomeView.vue'), meta: { darkTop: true } },
         { path: 'articles', component: () => import('@/views/ArticleListView.vue') },
-        { path: 'article/:id(\\d+)', component: () => import('@/views/ArticleDetailView.vue'), meta: { darkTop: true } },
+        { path: 'article/:id(\\d+)', component: () => import('@/views/ArticleDetailView.vue') },
       ],
     },
     {

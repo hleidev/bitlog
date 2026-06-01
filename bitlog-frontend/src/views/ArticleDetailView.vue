@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useSeoMeta, useHead } from '@unhead/vue'
 import { getArticleDetail, type ArticleDetailVO } from '@/api/article'
-import { formatDate } from '@/utils/format'
-import ProseContent from '@/components/ProseContent.vue'
-import TocSidebar from '@/components/TocSidebar.vue'
-import { useToc } from '@/composables/useToc'
+import ArticleEditor from '@/components/ArticleEditor.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -16,13 +13,10 @@ const loading = ref(true)
 const error = ref(false)
 const scrollProgress = ref(0)
 
-const { toc, activeSection, visibleTocItems, buildToc, scrollToSection } = useToc()
-
-const HEADER_OFFSET = 60
 const SITE_URL = 'https://bitlog.harrylei.top'
 
-function extractDescription(html: string): string {
-  return html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 150)
+function extractDescription(md: string): string {
+  return md.replace(/[#*_`\[\]()>!~]/g, '').replace(/\s+/g, ' ').trim().slice(0, 150)
 }
 
 const articleUrl = computed(() => article.value ? `${SITE_URL}/article/${article.value.id}` : SITE_URL)
@@ -56,9 +50,6 @@ onMounted(async () => {
     error.value = true
   }
   loading.value = false
-  if (!article.value) return
-  await nextTick()
-  buildToc()
   window.addEventListener('scroll', onScroll, { passive: true })
 })
 
@@ -72,9 +63,10 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
     <!-- Loading -->
     <div v-if="loading" class="page-state">
-      <div class="skeleton-header" />
       <div class="skeleton-body container">
-        <div class="skeleton-line w-60" />
+        <div class="skeleton-line w-20" />
+        <div class="skeleton-line w-70" />
+        <div class="skeleton-line w-50" />
         <div class="skeleton-line w-100" />
         <div class="skeleton-line w-80" />
         <div class="skeleton-line w-100" />
@@ -91,76 +83,43 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
       <button @click="router.back()">返回上一页</button>
     </div>
 
-    <div v-else-if="article" class="article-detail">
-      <!-- Article header -->
-      <div class="article-header">
-        <div class="article-header__inner">
-          <nav class="article-breadcrumb">
-            <button class="breadcrumb-link" @click="router.back()">文章</button>
-            <template v-if="article.category">
-              <span class="breadcrumb-sep">/</span>
-              <RouterLink
-                :to="{ path: '/articles', query: { categoryId: article.category.id } }"
-                class="breadcrumb-link"
-              >{{ article.category.name }}</RouterLink>
-            </template>
-          </nav>
-          <div class="article-header__label">
-            <div class="header-rule"></div>
-          </div>
-          <h1 class="article-title">{{ article.title }}</h1>
-          <div class="article-header__foot">
-            <span class="meta-date">{{ formatDate(article.publishTime) }}</span>
-          </div>
-        </div>
-      </div>
+    <div v-else-if="article" class="article-layout container view-enter">
+      <article class="article-body">
+        <!-- Category -->
+        <RouterLink
+          v-if="article.category"
+          :to="{ path: '/articles', query: { categoryId: article.category.id } }"
+          class="article-category"
+        >{{ article.category.name }}</RouterLink>
 
-      <!-- Article layout -->
-      <div class="article-layout container view-enter">
-        <article class="article-body">
-          <!-- Tags -->
-          <div v-if="article.tags.length" class="article-tags">
+        <!-- Title -->
+        <h1 class="article-title">{{ article.title }}</h1>
+
+        <div class="article-divider" />
+
+        <ArticleEditor :content="article.content" />
+
+        <!-- Footer tags -->
+        <div class="article-footer">
+          <div class="article-footer__tags">
             <RouterLink
               v-for="tag in article.tags"
               :key="tag.id"
               :to="{ path: '/articles', query: { tagId: tag.id } }"
-              class="article-tag"
+              class="footer-tag"
             >{{ tag.name }}</RouterLink>
           </div>
+        </div>
 
-          <ProseContent :content="article.content" />
-
-          <!-- Footer tags -->
-          <div class="article-footer">
-            <div class="article-footer__tags">
-              <RouterLink
-                v-for="tag in article.tags"
-                :key="tag.id"
-                :to="{ path: '/articles', query: { tagId: tag.id } }"
-                class="footer-tag"
-              >{{ tag.name }}</RouterLink>
-            </div>
+        <!-- Comment section -->
+        <div class="comment-section">
+          <div class="section-header">
+            <span class="section-label">评论</span>
+            <div class="section-rule"></div>
           </div>
-
-          <!-- Comment section -->
-          <div class="comment-section">
-            <div class="section-header">
-              <span class="section-label">评论</span>
-              <div class="section-rule"></div>
-            </div>
-            <p class="comment-placeholder">评论功能开发中。</p>
-          </div>
-        </article>
-
-        <!-- TOC sidebar -->
-        <aside v-if="toc.length" class="toc-sidebar">
-          <TocSidebar
-            :items="visibleTocItems"
-            :active-section="activeSection"
-            @scroll-to="(id: string) => scrollToSection(id, HEADER_OFFSET)"
-          />
-        </aside>
-      </div>
+          <p class="comment-placeholder">评论功能开发中。</p>
+        </div>
+      </article>
     </div>
   </div>
 </template>
@@ -202,17 +161,16 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
 .page-state--error button:hover { background: var(--color-bg-hover); }
 
-.skeleton-header {
-  width: 100%;
-  height: 320px;
-  background: var(--color-hero-bg);
-}
-
 .skeleton-body {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding-top: 40px;
+  padding-top: calc(var(--spacing-header-height) + 64px);
+  max-width: var(--spacing-prose);
+  margin: 0 auto;
+  width: 100%;
+  padding-left: var(--spacing-page-padding);
+  padding-right: var(--spacing-page-padding);
 }
 
 .skeleton-line {
@@ -223,6 +181,8 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   animation: shimmer 1.4s infinite;
 }
 
+.skeleton-line.w-20 { width: 20%; height: 10px; }
+.skeleton-line.w-50 { width: 50%; }
 .skeleton-line.w-60 { width: 60%; }
 .skeleton-line.w-70 { width: 70%; }
 .skeleton-line.w-80 { width: 80%; }
@@ -233,117 +193,46 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   100% { background-position: -200% 0; }
 }
 
-.article-header {
-  background: var(--color-hero-bg);
-  padding-top: var(--spacing-header-height);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.article-header__inner {
-  max-width: var(--spacing-container);
-  margin: 0 auto;
-  padding: 72px var(--spacing-page-padding) 80px;
-}
-
-.article-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 28px;
-}
-
-.breadcrumb-link {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(245, 243, 239, 0.4);
-  padding-bottom: 1px;
-  background-image: linear-gradient(var(--color-accent), var(--color-accent));
-  background-repeat: no-repeat;
-  background-size: 0% 1px;
-  background-position: left bottom;
-  transition: color var(--transition-base), background-size var(--transition-sweep);
-}
-
-.breadcrumb-link:hover {
-  color: rgba(245, 243, 239, 0.75);
-  background-size: 100% 1px;
-}
-
-.breadcrumb-sep {
-  font-size: 11px;
-  color: rgba(245, 243, 239, 0.2);
-  user-select: none;
-}
-
-.article-header__label {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  margin-bottom: 32px;
-}
-
-.header-rule {
-  flex: 1;
-  height: 1px;
-  background: rgba(245, 243, 239, 0.08);
-}
-
-.article-title {
-  font-family: var(--font-serif);
-  font-size: clamp(28px, 4.5vw, 54px);
-  font-weight: 400;
-  line-height: 1.28;
-  color: var(--color-text-on-dark);
-  max-width: 860px;
-  letter-spacing: 0.01em;
-}
-
-.article-header__foot { margin-top: 28px; }
-
-.meta-date {
-  font-size: 12px;
-  color: rgba(245, 243, 239, 0.3);
-  letter-spacing: 0.08em;
-  font-family: var(--font-sans);
-}
-
 .article-layout {
-  display: flex;
-  align-items: flex-start;
-  gap: 48px;
-  padding-top: 56px;
+  padding-top: calc(var(--spacing-header-height) + 64px);
   padding-bottom: 100px;
   padding-left: var(--spacing-page-padding);
   padding-right: var(--spacing-page-padding);
 }
 
 .article-body {
-  flex: 1;
-  min-width: 0;
+  max-width: var(--spacing-prose);
+  margin: 0 auto;
+  width: 100%;
 }
 
-.article-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 36px;
-}
-
-.article-tag {
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  padding: 3px 10px;
-  border-radius: var(--radius-tag);
-  transition: all var(--transition-base);
-}
-
-.article-tag:hover {
+.article-category {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--color-accent);
-  border-color: var(--color-accent);
+  margin-bottom: 20px;
+  transition: color var(--transition-base);
+}
+
+.article-category:hover { color: var(--color-accent-dark); }
+
+.article-title {
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 400;
+  line-height: 1.28;
+  color: var(--color-text-primary);
+  letter-spacing: 0.01em;
+  margin-bottom: 32px;
+}
+
+.article-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin-bottom: 36px;
 }
 
 .article-footer {
@@ -403,22 +292,15 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   letter-spacing: 0.02em;
 }
 
-.toc-sidebar {
-  width: 220px;
-  flex-shrink: 0;
-  position: sticky;
-  top: calc(var(--spacing-header-height) + 24px);
-  max-height: calc(100vh - var(--spacing-header-height) - 48px);
-}
-
 @media (max-width: 900px) {
-  .toc-sidebar { display: none; }
-  .article-title { font-size: 26px; }
-  .article-layout { padding-top: 40px; }
+  .article-title { font-size: 28px; }
 }
 
 @media (max-width: 768px) {
-  .article-header__inner { padding: 48px 20px 56px; }
-  .article-layout { padding-left: 20px; padding-right: 20px; }
+  .article-layout {
+    padding-top: calc(var(--spacing-header-height) + 40px);
+    padding-left: 20px;
+    padding-right: 20px;
+  }
 }
 </style>
