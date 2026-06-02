@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useSeoMeta, useHead } from '@unhead/vue'
 import { getArticleDetail, type ArticleDetailVO } from '@/api/article'
+import { formatDate } from '@/utils/format'
 import ArticleEditor from '@/components/ArticleEditor.vue'
 
 const router = useRouter()
@@ -94,6 +95,8 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
         <!-- Title -->
         <h1 class="article-title">{{ article.title }}</h1>
+
+        <div v-if="article.publishTime" class="article-meta-date">{{ formatDate(article.publishTime) }}</div>
 
         <div class="article-divider" />
 
@@ -233,6 +236,15 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   height: 1px;
   background: var(--color-border);
   margin-bottom: 36px;
+}
+
+.article-meta-date {
+  font-size: 13px;
+  color: var(--color-text-faint);
+  letter-spacing: 0.04em;
+  margin-top: -20px;
+  margin-bottom: 32px;
+  font-family: var(--font-sans);
 }
 
 .article-footer {
