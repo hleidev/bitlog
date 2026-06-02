@@ -3,7 +3,7 @@ let mermaidGlobalId = 0
 </script>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { NodeViewWrapper, NodeViewContent, nodeViewProps } from '@tiptap/vue-3'
 import mermaid from 'mermaid'
 
@@ -12,10 +12,40 @@ const props = defineProps(nodeViewProps)
 const copied = ref(false)
 const mermaidSvg = ref('')
 const mermaidError = ref(false)
+const isCursorInside = ref(false)
 
 const language = computed(() => props.node.attrs.language || '')
 const isMermaid = computed(() => language.value === 'mermaid')
 const displayLang = computed(() => language.value || 'text')
+
+// Show code when: regular block, OR mermaid with cursor inside, OR mermaid not yet rendered
+const showCode = computed(() =>
+  !isMermaid.value ||
+  isCursorInside.value ||
+  (!mermaidSvg.value && !mermaidError.value)
+)
+// Show diagram when: mermaid, cursor outside, and SVG or error is ready
+const showDiagram = computed(() =>
+  isMermaid.value && !isCursorInside.value && (!!mermaidSvg.value || mermaidError.value)
+)
+
+function checkCursor() {
+  if (!props.editor.isEditable) {
+    isCursorInside.value = false
+    return
+  }
+  const pos = props.getPos()
+  if (pos === undefined) return
+  const { from, to } = props.editor.state.selection
+  isCursorInside.value = from >= pos && to <= pos + props.node.nodeSize
+}
+
+function handleDiagramClick() {
+  if (!props.editor.isEditable) return
+  const pos = props.getPos()
+  if (pos === undefined) return
+  props.editor.chain().focus().setTextSelection(pos + 1).run()
+}
 
 async function copyCode() {
   try {
@@ -37,19 +67,29 @@ async function renderMermaid() {
     mermaidError.value = false
   } catch {
     mermaidError.value = true
+    mermaidSvg.value = ''
   }
 }
 
-// Re-render when language switches to mermaid, or when code content changes
+onMounted(() => {
+  props.editor.on('selectionUpdate', checkCursor)
+  checkCursor()
+  renderMermaid()
+})
+
+onUnmounted(() => {
+  props.editor.off('selectionUpdate', checkCursor)
+})
+
 watch(isMermaid, (is) => { if (is) renderMermaid(); else mermaidSvg.value = '' })
 watch(() => props.node.textContent, renderMermaid, { flush: 'post' })
-onMounted(renderMermaid)
 </script>
 
 <template>
   <node-view-wrapper class="code-block-wrapper">
 
-    <div class="code-header" contenteditable="false">
+    <!-- Header: always for regular code; mermaid only when cursor inside (editing) -->
+    <div v-if="!isMermaid || isCursorInside" class="code-header" contenteditable="false">
       <input
         v-if="editor.isEditable"
         class="code-lang-input"
@@ -67,12 +107,18 @@ onMounted(renderMermaid)
       </button>
     </div>
 
-    <pre class="code-body"><node-view-content as="code" /></pre>
+    <!-- NodeViewContent must stay mounted; hide visually when showing diagram -->
+    <pre v-show="showCode" class="code-body"><node-view-content as="code" /></pre>
 
-    <!-- Mermaid live preview: auto-renders below the code as you type -->
-    <div v-if="isMermaid && (mermaidSvg || mermaidError)" class="mermaid-preview">
+    <!-- Mermaid diagram: shown when cursor is outside; click to enter edit mode -->
+    <div
+      v-if="showDiagram"
+      class="mermaid-preview"
+      :class="{ 'mermaid-preview--clickable': editor.isEditable }"
+      @click="handleDiagramClick"
+    >
       <div v-if="mermaidSvg" class="mermaid-svg-wrap" v-html="mermaidSvg" />
-      <div v-else class="mermaid-error">Mermaid 语法错误，请检查代码</div>
+      <div v-else class="mermaid-error">Mermaid 语法错误，点击编辑代码</div>
     </div>
 
   </node-view-wrapper>

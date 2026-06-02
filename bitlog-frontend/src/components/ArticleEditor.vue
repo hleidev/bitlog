@@ -2,6 +2,7 @@
 import { useEditor, EditorContent, VueNodeViewRenderer } from '@tiptap/vue-3'
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 import StarterKit from '@tiptap/starter-kit'
+import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
 import { Markdown } from '@tiptap/markdown'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
@@ -9,6 +10,7 @@ import { createLowlight, common } from 'lowlight'
 import { uploadFile } from '@/api/file'
 import mermaid from 'mermaid'
 import CodeBlockView from './CodeBlockView.vue'
+import { LiveMarkdownPlugin } from '@/extensions/liveMarkdownPlugin'
 import '@/assets/styles/prose.css'
 
 const props = withDefaults(defineProps<{
@@ -28,11 +30,13 @@ const editor = useEditor({
   contentType: 'markdown',
   extensions: [
     StarterKit.configure({ codeBlock: false }),
+    Link.configure({ openOnClick: false }),
     Image.configure({ allowBase64: false }),
     Markdown,
     CodeBlockLowlight
       .extend({ addNodeView() { return VueNodeViewRenderer(CodeBlockView) } })
       .configure({ lowlight }),
+    LiveMarkdownPlugin,
   ],
   editorProps: {
     handlePaste(view, event) {
