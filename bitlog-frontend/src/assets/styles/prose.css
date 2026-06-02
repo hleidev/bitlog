@@ -234,6 +234,10 @@
   background: #f9f9f9;
 }
 
+.ProseMirror .mermaid-preview--zoomable {
+  cursor: zoom-in;
+}
+
 .ProseMirror .mermaid-svg-wrap {
   width: 100%;
 }

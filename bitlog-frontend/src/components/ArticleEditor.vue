@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { watch } from 'vue'
 import { useEditor, EditorContent, VueNodeViewRenderer } from '@tiptap/vue-3'
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 import StarterKit from '@tiptap/starter-kit'
@@ -10,6 +11,7 @@ import { createLowlight, common } from 'lowlight'
 import { uploadFile } from '@/api/file'
 import mermaid from 'mermaid'
 import CodeBlockView from './CodeBlockView.vue'
+import ImageNodeView from './ImageNodeView.vue'
 import { LiveMarkdownPlugin } from '@/extensions/liveMarkdownPlugin'
 import '@/assets/styles/prose.css'
 
@@ -18,7 +20,7 @@ const props = withDefaults(defineProps<{
   editable?: boolean
 }>(), { editable: false })
 
-const emit = defineEmits<{ change: [] }>()
+const emit = defineEmits<{ change: []; error: [message: string] }>()
 
 mermaid.initialize({ startOnLoad: false, theme: 'neutral' })
 
@@ -31,7 +33,8 @@ const editor = useEditor({
   extensions: [
     StarterKit.configure({ codeBlock: false }),
     Link.configure({ openOnClick: false }),
-    Image.configure({ allowBase64: false }),
+    Image.configure({ allowBase64: false })
+      .extend({ addNodeView() { return VueNodeViewRenderer(ImageNodeView) } }),
     Markdown,
     CodeBlockLowlight
       .extend({ addNodeView() { return VueNodeViewRenderer(CodeBlockView) } })
@@ -46,13 +49,18 @@ const editor = useEditor({
       const images = Array.from(files).filter(f => f.type.startsWith('image/'))
       if (!images.length) return false
       event.preventDefault()
+      // Snapshot view state before await: user edits during upload advance view.state
+      const { state, schema } = view
       images.forEach(async (file) => {
         try {
           const { fileUrl } = await uploadFile(file, 'article')
-          view.dispatch(view.state.tr.replaceSelectionWith(
-            view.state.schema.nodes.image.create({ src: fileUrl, alt: file.name })
+          view.dispatch(state.tr.replaceSelectionWith(
+            schema.nodes.image.create({ src: fileUrl, alt: file.name })
           ))
-        } catch {}
+        } catch (e) {
+          console.error('Image upload failed:', e)
+          emit('error', `图片上传失败：${file.name}`)
+        }
       })
       return true
     },
@@ -63,19 +71,31 @@ const editor = useEditor({
       const images = Array.from(files).filter(f => f.type.startsWith('image/'))
       if (!images.length) return false
       event.preventDefault()
+      const { state, schema, posAtCoords } = view
+      const dropPos = posAtCoords({ left: event.clientX, top: event.clientY })?.pos
       images.forEach(async (file) => {
         try {
           const { fileUrl } = await uploadFile(file, 'article')
-          const pos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos ?? view.state.doc.content.size
-          view.dispatch(view.state.tr.insert(pos,
-            view.state.schema.nodes.image.create({ src: fileUrl, alt: file.name })
+          const insertAt = dropPos ?? state.doc.content.size
+          view.dispatch(state.tr.insert(insertAt,
+            schema.nodes.image.create({ src: fileUrl, alt: file.name })
           ))
-        } catch {}
+        } catch (e) {
+          console.error('Image upload failed:', e)
+          emit('error', `图片上传失败：${file.name}`)
+        }
       })
       return true
     },
   },
   onUpdate: () => emit('change'),
+})
+
+// Sync editor when the content prop changes after mount (route reuse, async load)
+watch(() => props.content, (newContent) => {
+  if (!editor.value) return
+  if (editor.value.getMarkdown() === newContent) return
+  editor.value.commands.setContent(newContent, { contentType: 'markdown' })
 })
 
 function getMarkdown(): string {

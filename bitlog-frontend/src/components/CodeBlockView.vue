@@ -6,6 +6,7 @@ let mermaidGlobalId = 0
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { NodeViewWrapper, NodeViewContent, nodeViewProps } from '@tiptap/vue-3'
 import mermaid from 'mermaid'
+import ImageLightbox from './ImageLightbox.vue'
 
 const props = defineProps(nodeViewProps)
 
@@ -13,6 +14,7 @@ const copied = ref(false)
 const mermaidSvg = ref('')
 const mermaidError = ref(false)
 const isCursorInside = ref(false)
+const zoomed = ref(false)
 
 const language = computed(() => props.node.attrs.language || '')
 const isMermaid = computed(() => language.value === 'mermaid')
@@ -41,10 +43,17 @@ function checkCursor() {
 }
 
 function handleDiagramClick() {
-  if (!props.editor.isEditable) return
-  const pos = props.getPos()
-  if (pos === undefined) return
-  props.editor.chain().focus().setTextSelection(pos + 1).run()
+  if (props.editor.isEditable) {
+    const pos = props.getPos()
+    if (pos === undefined) return
+    props.editor.chain().focus().setTextSelection(pos + 1).run()
+  } else if (mermaidSvg.value) {
+    zoomed.value = true
+  }
+}
+
+function closeLightbox() {
+  zoomed.value = false
 }
 
 async function copyCode() {
@@ -116,16 +125,24 @@ watch(() => props.node.textContent, renderMermaid, { flush: 'post' })
     <!-- NodeViewContent must stay mounted; hide visually when showing diagram -->
     <pre v-show="showCode" class="code-body"><node-view-content as="code" /></pre>
 
-    <!-- Mermaid diagram: shown when cursor is outside; click to enter edit mode -->
+    <!-- Mermaid diagram: shown when cursor is outside; click to enter edit mode or open lightbox -->
     <div
       v-if="showDiagram"
       class="mermaid-preview"
-      :class="{ 'mermaid-preview--clickable': editor.isEditable }"
+      :class="{
+        'mermaid-preview--clickable': editor.isEditable,
+        'mermaid-preview--zoomable': !editor.isEditable,
+      }"
       @click="handleDiagramClick"
     >
       <div v-if="mermaidSvg" class="mermaid-svg-wrap" v-html="mermaidSvg" />
-      <div v-else class="mermaid-error">Mermaid 语法错误，点击编辑代码</div>
+      <div v-else class="mermaid-error">{{ editor.isEditable ? 'Mermaid 语法错误，点击编辑代码' : 'Mermaid 语法错误' }}</div>
     </div>
 
   </node-view-wrapper>
+
+  <!-- Lightbox for rendered mermaid diagrams -->
+  <ImageLightbox :open="zoomed" @close="closeLightbox">
+    <div class="mermaid-svg-wrap" v-html="mermaidSvg" />
+  </ImageLightbox>
 </template>

@@ -602,7 +602,7 @@ onBeforeRouteLeave(async () => {
               />
             </div>
             <div class="editor-container">
-              <ArticleEditor ref="editorRef" :content="content" :editable="true" @change="onEditorChange" />
+              <ArticleEditor ref="editorRef" :content="content" :editable="true" @change="onEditorChange" @error="(msg) => toast.error(msg)" />
             </div>
           </div>
 
