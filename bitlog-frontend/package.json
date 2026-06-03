@@ -3,6 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev": "vite",
     "prebuild": "node scripts/generate-sitemap.mjs",
@@ -21,13 +25,14 @@
     "src/**/*.css": "prettier --write"
   },
   "dependencies": {
+    "@bitlog/editor": "*",
     "@element-plus/icons-vue": "^2.3.2",
-    "@tiptap/extension-code-block-lowlight": "^3.24.0",
-    "@tiptap/extension-image": "^3.24.0",
-    "@tiptap/markdown": "^3.24.0",
-    "@tiptap/pm": "^3.24.0",
-    "@tiptap/starter-kit": "^3.24.0",
-    "@tiptap/vue-3": "^3.24.0",
+    "@tiptap/extension-code-block-lowlight": "^3.25.0",
+    "@tiptap/extension-image": "^3.25.0",
+    "@tiptap/markdown": "^3.25.0",
+    "@tiptap/pm": "^3.25.0",
+    "@tiptap/starter-kit": "^3.25.0",
+    "@tiptap/vue-3": "^3.25.0",
     "@unhead/vue": "^3.0.5",
     "axios": "^1.14.0",
     "diff": "^9.0.0",
