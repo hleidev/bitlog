@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getArticleDraft } from '@/api/admin/article'
 import type { ArticleDetailVO } from '@/api/admin/article'
-import ArticleEditor from '@/components/ArticleEditor.vue'
+import { ArticleEditor } from '@bitlog/editor'
 
 const route = useRoute()
 const article = ref<ArticleDetailVO | null>(null)

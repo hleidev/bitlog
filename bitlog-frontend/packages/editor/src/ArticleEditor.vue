@@ -1,27 +1,14 @@
 <script setup lang="ts">
 import { watch } from 'vue'
-import { useEditor, EditorContent, VueNodeViewRenderer } from '@tiptap/vue-3'
+import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { BubbleMenu } from '@tiptap/vue-3/menus'
-import StarterKit from '@tiptap/starter-kit'
-import Link from '@tiptap/extension-link'
-import Image from '@tiptap/extension-image'
-import { Markdown } from '@tiptap/markdown'
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
-import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
-import { createLowlight, common } from 'lowlight'
 import mermaid from 'mermaid'
-import CodeBlockView from './CodeBlockView.vue'
-import ImageNodeView from './ImageNodeView.vue'
-import { LiveMarkdownPlugin } from './extensions/liveMarkdownPlugin'
+import { createExtensions, normalizeMarkdown } from './core'
 import './styles/prose.css'
 
 const props = withDefaults(defineProps<{
   content: string
   editable?: boolean
-  /**
-   * Called when the user pastes or drops an image. Should return the URL to
-   * embed in the document. If omitted, image paste/drop is a no-op.
-   */
   uploadImage?: (file: File) => Promise<string>
 }>(), { editable: false })
 
@@ -29,42 +16,11 @@ const emit = defineEmits<{ change: []; error: [message: string] }>()
 
 mermaid.initialize({ startOnLoad: false, theme: 'neutral' })
 
-const lowlight = createLowlight(common)
-
-// GFM tables require no blank lines between rows; strip them before parsing.
-function normalizeMarkdown(md: string): string {
-  const lines = md.split('\n')
-  const result: string[] = []
-  for (let i = 0; i < lines.length; i++) {
-    const prev = result[result.length - 1] ?? ''
-    const next = lines[i + 1] ?? ''
-    if (lines[i].trim() === '' && prev.trimStart().startsWith('|') && next.trimStart().startsWith('|')) {
-      continue
-    }
-    result.push(lines[i])
-  }
-  return result.join('\n')
-}
-
 const editor = useEditor({
   editable: props.editable,
   content: normalizeMarkdown(props.content),
   contentType: 'markdown',
-  extensions: [
-    StarterKit.configure({ codeBlock: false }),
-    Table.configure({ resizable: false }),
-    TableRow,
-    TableCell,
-    TableHeader,
-    Link.configure({ openOnClick: false }),
-    Image.configure({ allowBase64: false })
-      .extend({ addNodeView() { return VueNodeViewRenderer(ImageNodeView) } }),
-    Markdown,
-    CodeBlockLowlight
-      .extend({ addNodeView() { return VueNodeViewRenderer(CodeBlockView) } })
-      .configure({ lowlight }),
-    LiveMarkdownPlugin,
-  ],
+  extensions: createExtensions(),
   editorProps: {
     handlePaste(view, event) {
       if (!props.editable || !props.uploadImage) return false
@@ -73,12 +29,11 @@ const editor = useEditor({
       const images = Array.from(files).filter(f => f.type.startsWith('image/'))
       if (!images.length) return false
       event.preventDefault()
-      // Snapshot view state before await: user edits during upload advance view.state
-      const { state, schema } = view
+      const { schema } = view.state
       images.forEach(async (file) => {
         try {
           const fileUrl = await props.uploadImage!(file)
-          view.dispatch(state.tr.replaceSelectionWith(
+          view.dispatch(view.state.tr.replaceSelectionWith(
             schema.nodes.image.create({ src: fileUrl, alt: file.name })
           ))
         } catch (e) {
@@ -95,13 +50,13 @@ const editor = useEditor({
       const images = Array.from(files).filter(f => f.type.startsWith('image/'))
       if (!images.length) return false
       event.preventDefault()
-      const { state, schema, posAtCoords } = view
-      const dropPos = posAtCoords({ left: event.clientX, top: event.clientY })?.pos
+      const { schema } = view.state
+      const dropPos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos
       images.forEach(async (file) => {
         try {
           const fileUrl = await props.uploadImage!(file)
-          const insertAt = dropPos ?? state.doc.content.size
-          view.dispatch(state.tr.insert(insertAt,
+          const insertAt = dropPos ?? view.state.doc.content.size
+          view.dispatch(view.state.tr.insert(insertAt,
             schema.nodes.image.create({ src: fileUrl, alt: file.name })
           ))
         } catch (e) {
@@ -115,10 +70,9 @@ const editor = useEditor({
   onUpdate: () => emit('change'),
 })
 
-// Sync editor when the content prop changes after mount (route reuse, async load)
 watch(() => props.content, (newContent) => {
   if (!editor.value) return
-  if (editor.value.getMarkdown() === newContent) return
+  if (editor.value.getMarkdown() === normalizeMarkdown(newContent)) return
   editor.value.commands.setContent(normalizeMarkdown(newContent), { contentType: 'markdown' })
 })
 

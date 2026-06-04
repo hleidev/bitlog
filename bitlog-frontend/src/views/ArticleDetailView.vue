@@ -4,7 +4,7 @@ import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useSeoMeta, useHead } from '@unhead/vue'
 import { getArticleDetail, type ArticleDetailVO } from '@/api/article'
 import { formatDate } from '@/utils/format'
-import ArticleEditor from '@/components/ArticleEditor.vue'
+import { ArticleEditor } from '@bitlog/editor'
 
 const router = useRouter()
 const route = useRoute()

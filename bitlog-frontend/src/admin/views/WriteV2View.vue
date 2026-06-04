@@ -3,8 +3,8 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
-import '@/assets/styles/prose.css'
-import ArticleEditor from '@/components/ArticleEditor.vue'
+import { ArticleEditor } from '@bitlog/editor'
+import { uploadFile } from '@/api/file'
 import {
   createArticle,
   updateArticleDraft,
@@ -492,6 +492,11 @@ watch(title, () => {
   saveState.value  = 'idle'
 })
 
+async function uploadImageFn(file: File): Promise<string> {
+  const { fileUrl } = await uploadFile(file, 'article')
+  return fileUrl
+}
+
 function onEditorChange() {
   if (suppressChange) return
   hasUnsaved.value = true
@@ -602,7 +607,7 @@ onBeforeRouteLeave(async () => {
               />
             </div>
             <div class="editor-container">
-              <ArticleEditor ref="editorRef" :content="content" :editable="true" @change="onEditorChange" @error="(msg) => toast.error(msg)" />
+              <ArticleEditor ref="editorRef" :content="content" :editable="true" :upload-image="uploadImageFn" @change="onEditorChange" @error="(msg) => toast.error(msg)" />
             </div>
           </div>
 

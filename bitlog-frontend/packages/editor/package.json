@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".":        "./src/index.ts",
+    "./core":   "./src/core/index.ts",
+    "./styles": "./src/styles/prose.css"
+  },
   "peerDependencies": {
     "vue": "^3.5.0"
   },

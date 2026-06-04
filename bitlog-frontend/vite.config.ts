@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@bitlog/editor': fileURLToPath(new URL('./packages/editor/src', import.meta.url)),
     },
   },
   server: {
