@@ -94,7 +94,7 @@ const doSearch = () => {
       <!-- Normal mode -->
       <template v-else>
         <RouterLink to="/" class="header__logo">
-          <img src="@/assets/images/logo.jpeg" class="header__logo-icon" alt="Bitlog Logo" />
+          <img src="@/assets/images/logo.png" class="header__logo-icon" alt="Bitlog Logo" />
           <span class="header__logo-text">BitLog</span>
         </RouterLink>
 

@@ -95,7 +95,7 @@ function isGroupActive(item: GroupItem): boolean {
   <div class="sidebar" :class="{ 'sidebar--collapsed': collapsed }">
     <!-- Logo -->
     <a href="/" target="_blank" class="sidebar-logo">
-      <img src="@/assets/images/logo.jpeg" class="logo-img" alt="Bitlog" />
+      <img src="@/assets/images/logo.png" class="logo-img" alt="Bitlog" />
       <span v-show="!collapsed" class="logo-text">Bitlog</span>
     </a>
 
