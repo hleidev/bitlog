@@ -1,0 +1,54 @@
+/* ── Design tokens (mirrors packages/editor design system) ───────────────── */
+:root {
+  --color-bg:             #faf9f7;
+  --color-bg-card:        #f4f2ef;
+  --color-bg-hover:       #f0ede9;
+  --color-text-primary:   #1a1610;
+  --color-text-secondary: #5a5248;
+  --color-text-muted:     #b0a89e;
+  --color-accent:         #b85c38;
+  --color-accent-dark:    #924530;
+  --color-accent-light:   #e07b4f;
+  --color-border:         #e8e4de;
+  --color-border-light:   #f0ede9;
+
+  --font-sans:  'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-serif: 'Lora', 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  --font-mono:  'SF Mono', 'Fira Code', 'Consolas', monospace;
+
+  --transition-base: 0.2s ease;
+
+  /* ── App chrome ── */
+  --toolbar-height: 44px;
+  --toolbar-bg:     #f4f2ef;
+  --toolbar-border: #e8e4de;
+}
+
+[data-theme='dark'] {
+  --color-bg:             #0e0c0b;
+  --color-bg-card:        #161210;
+  --color-bg-hover:       #1e1814;
+  --color-text-primary:   #f0ede8;
+  --color-text-secondary: #c0b8b0;
+  --color-text-muted:     #8a8278;
+  --color-border:         rgba(255, 255, 255, 0.10);
+  --color-border-light:   rgba(255, 255, 255, 0.06);
+  --toolbar-bg:           #161210;
+  --toolbar-border:       rgba(255, 255, 255, 0.08);
+}
+
+/* ── Reset ────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #app {
+  height: 100%;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  /* Disable native text selection drag in app chrome */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Re-enable selection inside the editor */
+.article-editor { -webkit-user-select: text; user-select: text; }
