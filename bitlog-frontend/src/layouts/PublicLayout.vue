@@ -26,7 +26,9 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
     </Transition>
   </RouterView>
   <AppFooter />
-  <LoginModal />
+  <ClientOnly>
+    <LoginModal />
+  </ClientOnly>
   <Transition name="back-top">
     <button v-if="showBackTop" class="back-top" @click="scrollToTop" aria-label="回到顶部">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
