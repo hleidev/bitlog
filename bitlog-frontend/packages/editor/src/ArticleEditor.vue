@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
-import { BubbleMenu } from '@tiptap/vue-3/menus'
 import mermaid from 'mermaid'
 import { createExtensions, normalizeMarkdown } from './core'
+import EditorBubbleMenu from './components/EditorBubbleMenu.vue'
+import EditorFloatingMenu from './components/EditorFloatingMenu.vue'
+import LinkEditorModal from './components/LinkEditorModal.vue'
 import './styles/prose.css'
 
 const props = withDefaults(defineProps<{
@@ -23,25 +25,35 @@ const editor = useEditor({
   extensions: createExtensions(),
   editorProps: {
     handlePaste(view, event) {
-      if (!props.editable || !props.uploadImage) return false
+      if (!props.editable) return false
       const files = event.clipboardData?.files
-      if (!files?.length) return false
-      const images = Array.from(files).filter(f => f.type.startsWith('image/'))
-      if (!images.length) return false
-      event.preventDefault()
-      const { schema } = view.state
-      images.forEach(async (file) => {
-        try {
-          const fileUrl = await props.uploadImage!(file)
-          view.dispatch(view.state.tr.replaceSelectionWith(
-            schema.nodes.image.create({ src: fileUrl, alt: file.name })
-          ))
-        } catch (e) {
-          console.error('Image upload failed:', e)
-          emit('error', `图片上传失败：${file.name}`)
+      if (files?.length) {
+        const images = Array.from(files).filter(f => f.type.startsWith('image/'))
+        if (images.length) {
+          if (!props.uploadImage) return false
+          event.preventDefault()
+          const { schema } = view.state
+          images.forEach(async (file) => {
+            try {
+              const fileUrl = await props.uploadImage!(file)
+              view.dispatch(view.state.tr.replaceSelectionWith(
+                schema.nodes.image.create({ src: fileUrl, alt: file.name })
+              ))
+            } catch (e) {
+              console.error('Image upload failed:', e)
+              emit('error', `图片上传失败：${file.name}`)
+            }
+          })
+          return true
         }
-      })
-      return true
+      }
+      const text = event.clipboardData?.getData('text/plain')
+      if (text && /\|/.test(text)) {
+        event.preventDefault()
+        editor.value?.commands.insertContent(normalizeMarkdown(text), { contentType: 'markdown' })
+        return true
+      }
+      return false
     },
     handleDrop(view, event) {
       if (!props.editable || !props.uploadImage) return false
@@ -76,6 +88,32 @@ watch(() => props.content, (newContent) => {
   editor.value.commands.setContent(normalizeMarkdown(newContent), { contentType: 'markdown' })
 })
 
+// ── Link modal state ──────────────────────────────────────────────────────────
+const linkModalOpen = ref(false)
+const linkModalInitialHref = ref<string | null>(null)
+
+function openLinkModal() {
+  if (!editor.value) return
+  linkModalInitialHref.value = editor.value.isActive('link')
+    ? (editor.value.getAttributes('link').href as string | null) ?? null
+    : null
+  linkModalOpen.value = true
+}
+
+function applyLink(url: string | null) {
+  if (!editor.value) return
+  if (url === null) {
+    editor.value.chain().focus().extendMarkRange('link').unsetLink().run()
+  } else {
+    editor.value.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+  }
+  linkModalOpen.value = false
+}
+
+function closeLinkModal() {
+  linkModalOpen.value = false
+}
+
 function getMarkdown(): string {
   return editor.value?.getMarkdown() ?? ''
 }
@@ -84,71 +122,26 @@ defineExpose({ getMarkdown })
 </script>
 
 <style scoped>
-/* ── BubbleMenu ───────────────────────────────────────────────────────────── */
-:deep(.tippy-box) { background: transparent !important; box-shadow: none !important; }
-
-.bubble-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  background: #1c1917;
-  border: 1px solid #3a3632;
-  border-radius: 6px;
-  padding: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+/* Reset the floating-ui wrapper that surrounds the menu. Tiptap v3 uses
+   @floating-ui/dom instead of tippy, but the wrapper element still needs its
+   default background cleared so the dark toolbar reads correctly. */
+:deep(.tippy-box),
+:deep([data-floating-ui-portal]) {
+  background: transparent !important;
+  box-shadow: none !important;
 }
-
-.bubble-toolbar button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: #c0b8b0;
-  border-radius: 4px;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 13px;
-  transition: background 0.1s, color 0.1s;
-}
-
-.bubble-toolbar button:hover { background: #3a3632; color: #f0ede8; }
-.bubble-toolbar button.is-active { background: var(--admin-accent, #b85c38); color: #fff; }
-.bubble-toolbar button code { font-family: var(--font-mono); font-size: 13px; }
 </style>
 
 <template>
   <div class="article-editor" :class="{ 'is-editable': editable }">
-    <BubbleMenu
-      v-if="editable && editor"
-      :editor="editor"
-      :tippy-options="{ duration: 100, placement: 'top' }"
-    >
-      <div class="bubble-toolbar">
-        <button
-          :class="{ 'is-active': editor.isActive('bold') }"
-          title="粗体 ⌘B"
-          @mousedown.prevent="editor.chain().focus().toggleBold().run()"
-        ><strong>B</strong></button>
-        <button
-          :class="{ 'is-active': editor.isActive('italic') }"
-          title="斜体 ⌘I"
-          @mousedown.prevent="editor.chain().focus().toggleItalic().run()"
-        ><em>I</em></button>
-        <button
-          :class="{ 'is-active': editor.isActive('strike') }"
-          title="删除线"
-          @mousedown.prevent="editor.chain().focus().toggleStrike().run()"
-        ><s>S</s></button>
-        <button
-          :class="{ 'is-active': editor.isActive('code') }"
-          title="行内代码 ⌘⇧C"
-          @mousedown.prevent="editor.chain().focus().toggleCode().run()"
-        ><code>`</code></button>
-      </div>
-    </BubbleMenu>
+    <EditorBubbleMenu v-if="editable && editor" :editor="editor" @open-link="openLinkModal" />
+    <EditorFloatingMenu v-if="editable && editor" :editor="editor" @open-link="openLinkModal" />
     <EditorContent :editor="editor" />
+    <LinkEditorModal
+      :open="linkModalOpen"
+      :initial-href="linkModalInitialHref"
+      @apply="applyLink"
+      @close="closeLinkModal"
+    />
   </div>
 </template>

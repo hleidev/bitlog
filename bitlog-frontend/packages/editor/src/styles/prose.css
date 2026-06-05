@@ -50,26 +50,6 @@
   margin: 24px 0 10px;
 }
 
-/* ── Typora-style: cursor-inside blockquote → show Markdown source ───────── */
-
-.article-editor.is-editable .ProseMirror blockquote.cursor-inside {
-  border-left: none;
-  padding: 2px 0;
-  background: transparent;
-}
-
-.article-editor.is-editable .ProseMirror blockquote.cursor-inside p {
-  color: var(--color-text-secondary);
-  font-style: normal;
-}
-
-.article-editor.is-editable .ProseMirror blockquote.cursor-inside p::before {
-  content: '> ';
-  color: var(--color-accent);
-  font-family: var(--font-mono);
-  font-style: normal;
-}
-
 /* ── Paragraphs & inline ──────────────────────────────────────────────────── */
 
 .ProseMirror p { margin-bottom: 18px; }
