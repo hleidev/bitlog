@@ -40,6 +40,7 @@ export interface PageResult<T> {
 export interface ArticleDetailVO {
   id: number
   title: string
+  summary?: string
   content: string
   category: CategoryRef | null
   tags: TagRef[]

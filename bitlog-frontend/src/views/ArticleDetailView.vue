@@ -21,9 +21,10 @@ function extractDescription(md: string): string {
 }
 
 const articleUrl = computed(() => article.value ? `${SITE_URL}/article/${article.value.id}` : SITE_URL)
-const articleDescription = computed(() =>
-  article.value ? extractDescription(article.value.content) : 'BitLog — 个人技术博客',
-)
+const articleDescription = computed(() => {
+  if (!article.value) return 'BitLog — 个人技术博客'
+  return article.value.summary || extractDescription(article.value.content)
+})
 
 useHead({
   title: () => article.value ? `${article.value.title} | BitLog` : 'BitLog',
@@ -35,6 +36,15 @@ useSeoMeta({
   ogTitle: () => article.value?.title ?? 'BitLog',
   ogDescription: articleDescription,
   ogUrl: articleUrl,
+  ogImage: `${SITE_URL}/og-image.png`,
+  articlePublishedTime: () => article.value ? new Date(article.value.publishTime).toISOString() : undefined,
+  articleAuthor: () => article.value ? ['https://bitlog.harrylei.top'] : undefined,
+  articleSection: () => article.value?.category?.name,
+  articleTag: () => article.value?.tags.map((t) => t.name),
+  twitterCard: 'summary_large_image',
+  twitterTitle: () => article.value?.title ?? 'BitLog',
+  twitterDescription: articleDescription,
+  twitterImage: `${SITE_URL}/og-image.png`,
 })
 
 const onScroll = () => {
