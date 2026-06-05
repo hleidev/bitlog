@@ -16,15 +16,8 @@ const scrollProgress = ref(0)
 
 const SITE_URL = 'https://bitlog.harrylei.top'
 
-function extractDescription(md: string): string {
-  return md.replace(/[#*_`\[\]()>!~]/g, '').replace(/\s+/g, ' ').trim().slice(0, 150)
-}
-
 const articleUrl = computed(() => article.value ? `${SITE_URL}/article/${article.value.id}` : SITE_URL)
-const articleDescription = computed(() => {
-  if (!article.value) return 'BitLog — 个人技术博客'
-  return article.value.summary || extractDescription(article.value.content)
-})
+const articleDescription = computed(() => article.value?.summary ?? 'BitLog — 个人技术博客')
 
 useHead({
   title: () => article.value ? `${article.value.title} | BitLog` : 'BitLog',
