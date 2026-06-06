@@ -31,8 +31,8 @@ onUnmounted(() => {
     <div v-if="open" class="img-lightbox" role="dialog" aria-modal="true" @click="emit('close')">
       <button class="img-lightbox__close" aria-label="关闭" @click.stop="emit('close')">×</button>
       <div class="img-lightbox__stage">
-        <img v-if="src" :src="src" :alt="alt ?? ''" class="img-lightbox__img" @click.stop />
-        <div v-else class="img-lightbox__html"><slot /></div>
+        <img v-if="src" :src="src" :alt="alt ?? ''" class="img-lightbox__img" @click="emit('close')" />
+        <div v-else class="img-lightbox__html" @click="emit('close')"><slot /></div>
       </div>
     </div>
   </Teleport>
