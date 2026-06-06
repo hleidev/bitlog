@@ -24,6 +24,9 @@ public class ArticlePublicDetailVO {
     @Schema(description = "文章标题")
     private String title;
 
+    @Schema(description = "文章摘要")
+    private String summary;
+
     @Schema(description = "文章正文内容")
     private String content;
 
