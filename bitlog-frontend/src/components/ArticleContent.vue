@@ -35,6 +35,8 @@ let mermaidGlobalId = 0
 const lightboxOpen = ref(false)
 const lightboxSrc = ref<string | null>(null)
 const lightboxAlt = ref<string>('')
+// Mermaid SVG 通过 slot 传入（不走 src/alt 路径）
+const lightboxHtml = ref<string | null>(null)
 
 mermaid.initialize({ startOnLoad: false, theme: 'neutral' })
 
@@ -82,10 +84,10 @@ function enhanceCodeBlocks(raw: string): string {
 
 function wrapCodeBlock(lang: string, body: string): string {
   if (lang === 'mermaid') {
-    // Mermaid 留到 mount 后用 mermaid.render() 替换
-    return `<div class="code-block-wrapper" data-mermaid-block="1" data-lang="mermaid">` +
-      `<div class="code-header"><span class="code-lang-label">mermaid</span></div>` +
-      `<pre class="code-body" data-mermaid-source><code class="language-mermaid">${body}</code></pre>` +
+    // Mermaid 块：不要 lang 标签 / 复制按钮 —— 它是图表不是代码，
+    // 复制源码没有意义。客户端 mermaid.render() 替换占位 <pre>。
+    return `<div class="mermaid-block" data-mermaid-block="1">` +
+      `<pre class="mermaid-block__source" data-mermaid-source><code class="language-mermaid">${body}</code></pre>` +
       `</div>`
   }
   // 空代码块：保留原始 <pre>，不显示 lang 标签 / 复制按钮
@@ -105,7 +107,7 @@ function wrapCodeBlock(lang: string, body: string): string {
     `</div>`
 }
 
-// Mermaid 客户端渲染 + 复制按钮事件绑定
+// Mermaid 客户端渲染
 async function hydrateMermaid() {
   if (!rootRef.value) return
   const blocks = rootRef.value.querySelectorAll<HTMLElement>('[data-mermaid-block="1"]')
@@ -117,10 +119,9 @@ async function hydrateMermaid() {
     try {
       const id = `mermaid-render-${++mermaidGlobalId}`
       const { svg } = await mermaid.render(id, source)
-      // 用 .mermaid-preview 包裹（与原 Tiptap 视觉等价），并支持点击放大
+      // 用 .mermaid-svg-wrap 包裹 SVG（轻量 wrapper，无 lang 标签 / 无 header）
       const wrap = document.createElement('div')
-      wrap.className = 'mermaid-preview mermaid-preview--zoomable'
-      wrap.setAttribute('data-mermaid-zoom', '1')
+      wrap.className = 'mermaid-svg-wrap'
       wrap.innerHTML = svg.replace(/max-width:\s*[\d.]+px;?\s*/g, '')
       sourceEl.replaceWith(wrap)
     } catch (e) {
@@ -133,7 +134,7 @@ async function hydrateMermaid() {
   }
 }
 
-// 复制按钮 + 放大弹层（mermaid） + 图片 lightbox
+// 复制按钮 + 图片 lightbox + Mermaid lightbox（共用 ImageLightbox）
 function onRootClick(e: MouseEvent) {
   const target = e.target as HTMLElement
   // 复制按钮
@@ -149,32 +150,39 @@ function onRootClick(e: MouseEvent) {
     }
     return
   }
-  // Mermaid 放大
-  const zoom = target.closest<HTMLElement>('[data-mermaid-zoom]')
-  if (zoom) {
-    const svg = zoom.innerHTML
-    const overlay = document.createElement('div')
-    overlay.className = 'mermaid-lightbox'
-    overlay.setAttribute('data-mermaid-lightbox', '1')
-    overlay.innerHTML = `<div class="mermaid-lightbox__inner">${svg}</div>`
-    document.body.appendChild(overlay)
-    requestAnimationFrame(() => overlay.classList.add('is-open'))
-    return
-  }
-  // 图片点击 → 打开 lightbox
+  // 图片点击 → 打开 lightbox（走 ImageLightbox）
   const img = target.closest<HTMLImageElement>('img')
   if (img) {
     e.preventDefault()
     lightboxSrc.value = img.src
     lightboxAlt.value = img.alt
     lightboxOpen.value = true
+    return
+  }
+  // Mermaid SVG 点击 → 走 ImageLightbox 的 slot 路径，让 SVG 以自然尺寸显示
+  const mermaidWrap = target.closest<HTMLElement>('.mermaid-block .mermaid-svg-wrap')
+  if (mermaidWrap) {
+    e.preventDefault()
+    // 提取 SVG outerHTML，作为 lightbox 的 slot 内容
+    const svg = mermaidWrap.querySelector('svg')
+    if (svg) {
+      lightboxHtml.value = svg.outerHTML
+      lightboxOpen.value = true
+    }
   }
 }
 
 function onRootKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
-    document.querySelectorAll<HTMLElement>('[data-mermaid-lightbox="1"]').forEach(el => el.remove())
+    closeLightbox()
   }
+}
+
+function closeLightbox() {
+  lightboxOpen.value = false
+  lightboxSrc.value = null
+  lightboxHtml.value = null
+  lightboxAlt.value = ''
 }
 
 onMounted(() => {
@@ -184,7 +192,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onRootKeydown)
-  document.querySelectorAll<HTMLElement>('[data-mermaid-lightbox="1"]').forEach(el => el.remove())
+  closeLightbox()
 })
 
 // 内容变化时重新 hydrate mermaid
@@ -209,8 +217,10 @@ function escapeHtml(s: string): string {
     :open="lightboxOpen"
     :src="lightboxSrc ?? undefined"
     :alt="lightboxAlt"
-    @close="lightboxOpen = false"
-  />
+    @close="closeLightbox"
+  >
+    <div v-if="lightboxHtml" class="lightbox-svg-host" v-html="lightboxHtml" />
+  </ImageLightbox>
 </template>
 
 <style scoped>
@@ -220,32 +230,36 @@ function escapeHtml(s: string): string {
 </style>
 
 <style>
-/* 全局样式：Mermaid 放大弹层（不在 .ProseMirror 内） */
-.mermaid-lightbox {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  padding: 40px;
-  cursor: zoom-out;
-  opacity: 0;
-  transition: opacity 0.18s;
-}
-.mermaid-lightbox.is-open { opacity: 1; }
-.mermaid-lightbox__inner {
-  max-width: 90vw;
-  max-height: 90vh;
+/* ── Mermaid 块（详情页）───────────────────────────────────────── */
+/* 没有 lang 标签 / 复制按钮 —— 是图表不是代码。 */
+.mermaid-block {
+  margin: 28px 0;
   background: #fff;
-  padding: 32px;
+  border: 1px solid var(--color-border, #e8e4de);
   border-radius: 4px;
-  overflow: auto;
+  overflow: hidden;
 }
-.mermaid-lightbox__inner svg {
-  width: 100%;
+.mermaid-block__source {
+  display: none; /* 渲染后被 SVG 替换，但保留 fallback 语义 */
+}
+.mermaid-svg-wrap {
+  display: block;
+  padding: 24px 20px;
+  background: #fff;
+  cursor: zoom-in;
+}
+.mermaid-svg-wrap svg {
+  display: block;
+  max-width: 100%;
   height: auto;
-  max-height: 80vh;
+  margin: 0 auto;
+}
+
+/* ── Mermaid 错误的最小兜底样式（如果 Mermaid 渲染失败）────────── */
+.mermaid-error {
+  padding: 16px 20px;
+  color: #e06c75;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
 }
 </style>
