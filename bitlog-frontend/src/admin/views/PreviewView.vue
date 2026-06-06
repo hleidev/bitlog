@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getArticleDraft } from '@/api/admin/article'
 import type { ArticleDetailVO } from '@/api/admin/article'
-import { ArticleEditor } from '@bitlog/editor'
+import ArticleContent from '@/components/ArticleContent.vue'
 
 const route = useRoute()
 const article = ref<ArticleDetailVO | null>(null)
@@ -51,7 +51,7 @@ onMounted(async () => {
 
         <div class="article-divider" />
 
-        <ArticleEditor :content="article.content" />
+        <ArticleContent :content="article.content" />
 
         <!-- Footer tags -->
         <div v-if="article.tags.length" class="article-footer">

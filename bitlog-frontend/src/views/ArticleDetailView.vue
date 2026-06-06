@@ -4,7 +4,7 @@ import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useSeoMeta, useHead } from '@unhead/vue'
 import { getArticleDetail, type ArticleDetailVO } from '@/api/article'
 import { formatDate } from '@/utils/format'
-import { ArticleEditor } from '@bitlog/editor'
+import ArticleContent from '@/components/ArticleContent.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -125,7 +125,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
         <div class="article-divider" />
 
-        <ArticleEditor :content="article.content" />
+        <ArticleContent :content="article.content" />
 
         <!-- Footer tags -->
         <div class="article-footer">
