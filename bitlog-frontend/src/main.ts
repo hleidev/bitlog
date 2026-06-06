@@ -1,6 +1,5 @@
 import { ViteSSG } from 'vite-ssg'
 import { createPinia } from 'pinia'
-import { createHead } from '@unhead/vue'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import ElementPlus from 'element-plus'
@@ -18,7 +17,6 @@ export const createApp = ViteSSG(
   { routes, scrollBehavior: (_to, _from, savedPosition) => savedPosition ?? { top: 0, left: 0 } },
   ({ app, router }) => {
     app.use(createPinia())
-    app.use(createHead())
     app.use(ElementPlus)
     app.component('ConfirmDialog', ConfirmDialog)
 
