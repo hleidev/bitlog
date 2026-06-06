@@ -9,6 +9,7 @@ import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleBatchDeleteParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleVersionBatchDeleteParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleBatchStatusUpdateParam;
+import top.harrylei.bitlog.api.model.article.req.ArticleMetaUpdateParam;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveParam;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
@@ -59,6 +60,14 @@ public class ArticleController {
     @PostMapping("/{id}/publish")
     public Result<Void> publish(@PathVariable Long id, @Valid @RequestBody ArticlePublishParam req) {
         articleService.publishArticle(ReqInfoContext.getContext().getUserId(), id, req);
+        return Result.success();
+    }
+
+    @RequiresLogin
+    @Operation(summary = "快速更新文章元数据（摘要、分类、标签），不影响内容与版本")
+    @PatchMapping("/{id}/meta")
+    public Result<Void> updateMeta(@PathVariable Long id, @Valid @RequestBody ArticleMetaUpdateParam req) {
+        articleService.updateArticleMeta(ReqInfoContext.getContext().getUserId(), id, req);
         return Result.success();
     }
 

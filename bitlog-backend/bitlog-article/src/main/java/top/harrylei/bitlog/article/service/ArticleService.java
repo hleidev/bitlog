@@ -3,6 +3,7 @@ package top.harrylei.bitlog.article.service;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
+import top.harrylei.bitlog.api.model.article.req.ArticleMetaUpdateParam;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveParam;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
@@ -50,6 +51,15 @@ public interface ArticleService {
      * @param req 发布请求
      */
     void publishArticle(Long userId, Long articleId, ArticlePublishParam req);
+
+    /**
+     * 快速更新文章元数据（摘要、分类、标签），不影响文章内容和版本
+     *
+     * @param userId 操作用户 ID
+     * @param articleId 文章 ID
+     * @param req 元数据更新请求
+     */
+    void updateArticleMeta(Long userId, Long articleId, ArticleMetaUpdateParam req);
 
     /**
      * 切换文章状态（草稿 ↔ 已发布）

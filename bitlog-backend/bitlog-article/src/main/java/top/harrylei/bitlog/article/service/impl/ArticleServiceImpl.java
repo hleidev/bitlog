@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
+import top.harrylei.bitlog.api.model.article.req.ArticleMetaUpdateParam;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveParam;
 import top.harrylei.bitlog.api.model.article.vo.ArticleCountVO;
@@ -135,6 +136,23 @@ public class ArticleServiceImpl implements ArticleService {
         saveArticleTags(articleId, newTagIds);
 
         log.info("发布文章 articleId={} categoryId={} tagCount={}", articleId, newCategoryId, newTagIds.size());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateArticleMeta(Long userId, Long articleId, ArticleMetaUpdateParam req) {
+        ArticleDO article = getArticleOrThrow(articleId);
+        checkOwner(article, userId);
+
+        List<Long> newTagIds = req.getTagIds() != null ? req.getTagIds() : List.of();
+        String summary = req.getSummary() != null ? req.getSummary() : "";
+
+        articleDAO.updateMeta(articleId, summary, req.getCategoryId());
+
+        articleTagDAO.removeByArticleId(articleId);
+        saveArticleTags(articleId, newTagIds);
+
+        log.info("快速更新文章元数据 articleId={} categoryId={} tagCount={}", articleId, req.getCategoryId(), newTagIds.size());
     }
 
     @Override

@@ -92,6 +92,12 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
         lambdaUpdate().in(ArticleDO::getId, articleIds).set(ArticleDO::getDeleted, DeleteStatusEnum.DELETED).update();
     }
 
+    /** 快速更新文章元数据（摘要、分类） */
+    public void updateMeta(Long articleId, String summary, Long categoryId) {
+        lambdaUpdate().eq(ArticleDO::getId, articleId).set(ArticleDO::getSummary, summary)
+            .set(ArticleDO::getCategoryId, categoryId).update();
+    }
+
     /** 判断指定分类下是否存在已发布文章（用于删除前校验） */
     public boolean existsPublishedByCategory(Long categoryId) {
         return exists(Wrappers.lambdaQuery(ArticleDO.class).eq(ArticleDO::getCategoryId, categoryId)
