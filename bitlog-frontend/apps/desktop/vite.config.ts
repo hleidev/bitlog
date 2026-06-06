@@ -7,7 +7,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@bitlog/editor': fileURLToPath(new URL('../../packages/editor/src', import.meta.url)),
     },
   },
   // Tauri expects a fixed port in dev mode
@@ -15,10 +14,6 @@ export default defineConfig({
   server: {
     port: 5174,
     strictPort: true,
-    watch: {
-      // Watch the shared editor package for hot reload
-      ignored: ['!**/packages/editor/**'],
-    },
   },
   envPrefix: ['VITE_', 'TAURI_'],
   build: {

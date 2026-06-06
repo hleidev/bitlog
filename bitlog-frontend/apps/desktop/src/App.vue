@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { ArticleEditor } from '@bitlog/editor'
+import VditorWriter from './components/VditorWriter.vue'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile, writeFile } from '@tauri-apps/plugin-fs'
 import { convertFileSrc } from '@tauri-apps/api/core'
 
 const content = ref('')
 const filePath = ref<string | null>(null)
-const editorRef = ref<InstanceType<typeof ArticleEditor> | null>(null)
+const editorRef = ref<InstanceType<typeof VditorWriter> | null>(null)
 const isDirty = ref(false)
 const saveError = ref<string | null>(null)
 
@@ -128,7 +128,7 @@ onUnmounted(() => {
 
     <!-- Editor -->
     <main class="editor-wrap">
-      <ArticleEditor
+      <VditorWriter
         ref="editorRef"
         :content="content"
         :editable="true"
