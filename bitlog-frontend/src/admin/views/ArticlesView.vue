@@ -7,11 +7,14 @@ import {
   getMyArticles,
   updateArticlesStatus,
   deleteArticles,
+  generateAiMetadata,
+  updateArticleMeta,
   type ArticleVO,
   type ArticleCounts,
   type ArticleStatus,
 } from '@/api/admin/article'
 import { ApiError } from '@/utils/request'
+import ArticleMetaDialog from '@/admin/components/ArticleMetaDialog.vue'
 
 const route   = useRoute()
 const router  = useRouter()
@@ -209,6 +212,105 @@ const pageNumbers = computed(() => {
   return pages
 })
 
+// ── Quick meta edit ───────────────────────────────────────────────────────────
+const metaModalVisible = ref(false)
+const metaModalSaving  = ref(false)
+const metaArticle      = ref<ArticleVO | null>(null)
+const metaDialogRef    = ref<InstanceType<typeof ArticleMetaDialog> | null>(null)
+
+const metaSummary  = ref('')
+const metaCategory = ref<{ id: number; name: string } | null>(null)
+const metaTags     = ref<{ id: number; name: string }[]>([])
+
+// AI state
+const aiGenerating    = ref(false)
+const aiSummaryResult = ref<string | null>(null)
+const aiCatResult     = ref<{ id: number; name: string } | false | null>(null)
+const aiTagsResult    = ref<{ existing: Array<{ id: number; name: string }>; suggested: string[] } | null>(null)
+
+function openMetaModal(row: ArticleVO) {
+  metaArticle.value      = row
+  metaSummary.value      = row.summary ?? ''
+  metaCategory.value     = row.category ?? null
+  metaTags.value         = [...row.tags]
+  aiSummaryResult.value  = null
+  aiCatResult.value      = null
+  aiTagsResult.value     = null
+  aiGenerating.value     = false
+  metaModalVisible.value = true
+}
+
+async function runAiRecommend() {
+  aiGenerating.value    = true
+  aiSummaryResult.value = null
+  aiCatResult.value     = null
+  aiTagsResult.value    = null
+  try {
+    const data = await generateAiMetadata(metaArticle.value!.id)
+    aiSummaryResult.value = data.summary
+    aiCatResult.value     = data.category ?? false
+    aiTagsResult.value    = { existing: data.tags, suggested: data.suggestedTags }
+  } catch (err) {
+    toast.error(err instanceof ApiError ? (err.message || 'AI 推荐失败') : 'AI 推荐失败')
+  } finally {
+    aiGenerating.value = false
+  }
+}
+
+function acceptAiSummary() {
+  if (!aiSummaryResult.value) return
+  metaDialogRef.value?.setSummary(aiSummaryResult.value)
+  aiSummaryResult.value = null
+}
+
+function applyAiCategory() {
+  if (!aiCatResult.value) return
+  metaDialogRef.value?.setCategory(aiCatResult.value as { id: number; name: string })
+  aiCatResult.value = null
+}
+
+function applyAiExistingTag(tag: { id: number; name: string }) {
+  metaDialogRef.value?.addTag(tag)
+}
+
+async function applyAiSuggestedTag(name: string) {
+  await metaDialogRef.value?.createAndAddTag(name)
+}
+
+async function handleMetaSave(data: {
+  summary: string; categoryId: number | null; tagIds: number[]
+  category: { id: number; name: string } | null
+  tags: { id: number; name: string }[]
+}) {
+  if (!data.categoryId) {
+    toast.warning('请选择文章分类')
+    return
+  }
+  metaModalSaving.value = true
+  try {
+    await updateArticleMeta(metaArticle.value!.id, {
+      summary:    data.summary || null,
+      categoryId: data.categoryId!,
+      tagIds:     data.tagIds,
+    })
+    const idx = articles.value.findIndex(a => a.id === metaArticle.value!.id)
+    if (idx !== -1) {
+      articles.value[idx] = {
+        ...articles.value[idx],
+        summary:  data.summary || null,
+        category: data.category,
+        tags:     data.tags,
+      }
+    }
+    metaModalVisible.value = false
+    toast.success('已保存')
+  } catch (err) {
+    handleApiError(err, '保存失败')
+  } finally {
+    metaModalSaving.value = false
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function relativeTime(d: string) {
   const diff = Date.now() - new Date(d).getTime()
@@ -372,6 +474,7 @@ function formatViews(n: number) {
               <td class="col-actions">
                 <div class="row-actions">
                   <button class="action-btn" @click="handlePreview(row)">预览</button>
+                  <button class="action-btn" @click="openMetaModal(row)">属性</button>
                   <button v-if="row.status === 'PUBLISHED'" class="action-btn" @click="handleTogglePublish(row)">撤回</button>
                   <button class="action-btn action-btn--danger" @click="handleDelete(row)">删除</button>
                 </div>
@@ -410,6 +513,87 @@ function formatViews(n: number) {
 
     </div>
   </div>
+
+  <ArticleMetaDialog
+    ref="metaDialogRef"
+    v-model:visible="metaModalVisible"
+    :summary="metaSummary"
+    :category="metaCategory"
+    :tags="metaTags"
+    :saving="metaModalSaving"
+    title="编辑文章信息"
+    confirm-text="保存"
+    @save="handleMetaSave"
+  >
+    <template #header-extra>
+      <button
+        class="ai-trigger-btn"
+        :class="{ 'ai-trigger-btn--loading': aiGenerating }"
+        :disabled="aiGenerating"
+        type="button"
+        title="AI 智能填写"
+        @click="runAiRecommend"
+      >
+        <span :style="aiGenerating ? 'display:inline-block;animation:ai-spin 1.2s linear infinite' : ''">✦</span>
+      </button>
+    </template>
+
+    <template #summary-extra>
+      <transition name="ai-slide">
+        <div v-if="aiSummaryResult" class="pf-ai-inline">
+          <p class="pf-ai-inline-body">{{ aiSummaryResult }}</p>
+          <div class="pf-ai-inline-actions">
+            <button type="button" class="ai-action ai-action--dismiss" @click="aiSummaryResult = null">忽略</button>
+            <button type="button" class="ai-action ai-action--primary" @click="acceptAiSummary">应用</button>
+          </div>
+        </div>
+      </transition>
+    </template>
+
+    <template #category-extra>
+      <transition name="ai-slide">
+        <div v-if="aiCatResult !== null" class="pf-ai-inline pf-ai-inline--row">
+          <template v-if="aiCatResult">
+            <span class="pf-ai-inline-val">{{ aiCatResult.name }}</span>
+            <div class="pf-ai-inline-actions">
+              <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">忽略</button>
+              <button type="button" class="ai-action ai-action--primary" @click="applyAiCategory">应用</button>
+            </div>
+          </template>
+          <template v-else>
+            <span class="pf-ai-inline-no-match">现有分类均不适配，请手动选择</span>
+            <button type="button" class="pf-ai-inline-dismiss" @click="aiCatResult = null">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </template>
+        </div>
+      </transition>
+    </template>
+
+    <template #tags-extra>
+      <transition name="ai-slide">
+        <div v-if="aiTagsResult" class="pf-ai-inline pf-ai-inline--chips">
+          <button
+            v-for="tag in aiTagsResult.existing"
+            :key="tag.id"
+            type="button"
+            class="ai-meta-chip ai-meta-chip--existing ai-meta-chip--action"
+            @click="applyAiExistingTag(tag)"
+          >{{ tag.name }}<span class="ai-meta-chip__plus">+</span></button>
+          <button
+            v-for="name in aiTagsResult.suggested"
+            :key="name"
+            type="button"
+            class="ai-meta-chip ai-meta-chip--new ai-meta-chip--action"
+            @click="applyAiSuggestedTag(name)"
+          >{{ name }}<span class="ai-meta-chip__badge">新</span><span class="ai-meta-chip__plus">+</span></button>
+          <button type="button" class="pf-ai-inline-dismiss" @click="aiTagsResult = null">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </transition>
+    </template>
+  </ArticleMetaDialog>
 </template>
 
 <style scoped>
@@ -709,7 +893,7 @@ function formatViews(n: number) {
 .col-status   { width: 130px; }
 .col-views    { width: 68px; text-align: right; }
 .col-time     { width: 110px; }
-.col-actions  { width: 150px; text-align: right; }
+.col-actions  { width: 190px; text-align: right; }
 
 .row-checkbox { cursor: pointer; accent-color: var(--admin-accent, #b85c38); }
 
@@ -916,6 +1100,68 @@ function formatViews(n: number) {
   cursor: pointer;
   margin-left: 8px;
 }
+
+/* ── AI (rendered via slots into ArticleMetaDialog) ─────────────────────────── */
+.ai-trigger-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; flex-shrink: 0;
+  background: #f5f3ff; border: 1px solid #ddd6fe;
+  border-radius: 4px; cursor: pointer;
+  color: #7c3aed; font-size: 13px; font-family: inherit;
+  transition: background 0.15s;
+}
+.ai-trigger-btn:hover:not(:disabled) { background: #ede9fe; }
+.ai-trigger-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.pf-ai-inline {
+  border: 1px solid #ede9fe; border-radius: 4px;
+  background: #faf9ff; padding: 10px 12px;
+}
+.pf-ai-inline--row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pf-ai-inline--chips { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.pf-ai-inline-body { margin: 0; font-size: 13px; line-height: 1.7; color: #374151; padding-bottom: 10px; }
+.pf-ai-inline-actions { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.pf-ai-inline--row .pf-ai-inline-actions { margin-left: auto; flex-shrink: 0; }
+.pf-ai-inline-val { font-size: 13px; color: #374151; font-weight: 500; flex: 1; }
+.pf-ai-inline-no-match { font-size: 12px; color: #9ca3af; font-style: italic; flex: 1; }
+.pf-ai-inline-dismiss {
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; flex-shrink: 0;
+  border: none; background: transparent; cursor: pointer;
+  color: #9ca3af; border-radius: 3px; padding: 0; margin-left: auto;
+  transition: color 0.15s;
+}
+.pf-ai-inline-dismiss:hover { color: #374151; }
+
+.ai-action {
+  padding: 3px 10px; font-size: 12px; font-weight: 500;
+  border-radius: 4px; border: 1px solid transparent;
+  cursor: pointer; transition: background 0.15s; font-family: inherit;
+}
+.ai-action--dismiss { color: #6b7280; background: #f3f4f6; border-color: #e5e7eb; }
+.ai-action--dismiss:hover { background: #e5e7eb; }
+.ai-action--primary { color: #fff; background: #7c3aed; border-color: #7c3aed; }
+.ai-action--primary:hover { background: #6d28d9; }
+
+.ai-meta-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; font-size: 12px; font-weight: 500;
+  border-radius: 4px; border: 1px solid transparent;
+  line-height: 20px; font-family: inherit;
+}
+.ai-meta-chip--existing { color: #7c3aed; background: #ede9fe; border-color: #ddd6fe; }
+.ai-meta-chip--new { color: #6b7280; background: #f9fafb; border-color: #d1d5db; border-style: dashed; }
+.ai-meta-chip--action { cursor: pointer; transition: background 0.15s; }
+.ai-meta-chip--action.ai-meta-chip--existing:hover { background: #ddd6fe; }
+.ai-meta-chip--action.ai-meta-chip--new:hover { background: #f3f4f6; }
+.ai-meta-chip__badge { font-size: 10px; font-weight: 600; color: #9ca3af; background: #e5e7eb; padding: 0 4px; border-radius: 3px; }
+.ai-meta-chip__plus { font-size: 14px; font-weight: 400; line-height: 1; color: #a78bfa; margin-left: 1px; }
+.ai-meta-chip--new .ai-meta-chip__plus { color: #9ca3af; }
+
+.ai-slide-enter-active, .ai-slide-leave-active { transition: opacity 0.18s, transform 0.18s; }
+.ai-slide-enter-from, .ai-slide-leave-to { opacity: 0; transform: translateY(-3px); }
+
+@keyframes ai-spin { to { transform: rotate(360deg); } }
 
 /* ── Mobile ── */
 

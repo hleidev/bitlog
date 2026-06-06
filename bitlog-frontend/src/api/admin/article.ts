@@ -103,6 +103,12 @@ export interface PublishArticleParams {
   tagIds?: number[]
 }
 
+export interface UpdateArticleMetaParams {
+  summary?: string | null
+  categoryId: number
+  tagIds?: number[]
+}
+
 // ── Draft editing ─────────────────────────────────────────────────────────────
 
 export function createArticle(data: { title: string; content: string }): Promise<number> {
@@ -119,6 +125,10 @@ export function getArticleDraft(id: number): Promise<ArticleDetailVO> {
 
 export function publishArticle(id: number, params: PublishArticleParams): Promise<void> {
   return request.post<never, void>(`/v1/article/${id}/publish`, params)
+}
+
+export function updateArticleMeta(id: number, params: UpdateArticleMetaParams): Promise<void> {
+  return request.patch<never, void>(`/v1/article/${id}/meta`, params)
 }
 
 // ── Version history ───────────────────────────────────────────────────────────
