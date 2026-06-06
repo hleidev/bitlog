@@ -35,6 +35,8 @@ export const createApp = ViteSSG(
     })
 
     if (!import.meta.env.SSR) {
+      useUserStore().initSession()
+
       router.beforeEach(async (to) => {
         NProgress.start()
         const userStore = useUserStore()
