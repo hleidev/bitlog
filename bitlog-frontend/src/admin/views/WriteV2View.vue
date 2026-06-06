@@ -4,6 +4,7 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
 import { ArticleEditor } from '@bitlog/editor'
+import VditorWriter from '@/admin/components/VditorWriter.vue'
 import { uploadFile } from '@/api/file'
 import {
   createArticle,
@@ -32,6 +33,11 @@ const content    = ref('')
 const loading    = ref(true)
 const titleRef   = ref<HTMLTextAreaElement | null>(null)
 const editorRef = ref<InstanceType<typeof ArticleEditor> | null>(null)
+const vditorRef = ref<InstanceType<typeof VditorWriter> | null>(null)
+
+// ── PoC: 切换 Tiptap ↔ Vditor IR 模式（验证完成后会移除此 flag）───────────────
+// 默认 false = 保持 Tiptap 行为；URL 加 ?editor=vditor 启用
+const useVditor = ref(route.query.editor === 'vditor')
 
 // ── Article metadata ───────────────────────────────────────────────────────────
 const latestVersionId    = ref<number | null>(null)
@@ -170,7 +176,9 @@ async function performSave() {
   saving.value    = true
   saveState.value = 'saving'
   try {
-    const md = editorRef.value?.getMarkdown() ?? ''
+    const md = useVditor.value
+    ? (vditorRef.value?.getMarkdown() ?? '')
+    : (editorRef.value?.getMarkdown() ?? '')
     if (isNew) {
       const newId = await createArticle({ title: title.value, content: md })
       router.replace(`/admin/write/${newId}`)
@@ -228,7 +236,9 @@ async function openPublishDialog() {
     toast.warning('请先输入文章标题')
     return
   }
-  const md = editorRef.value?.getMarkdown() ?? ''
+  const md = useVditor.value
+    ? (vditorRef.value?.getMarkdown() ?? '')
+    : (editorRef.value?.getMarkdown() ?? '')
   if (!md.trim()) {
     toast.warning('请先输入文章内容')
     return
@@ -433,6 +443,7 @@ onBeforeRouteLeave(async () => {
             >
               {{ hasUnsaved ? '未保存' : (isPublished && !hasDraftAbovePublish) ? '已发布' : '草稿' }}
             </span>
+            <span v-if="useVditor" class="status-pill status-pill--poc" title="PoC: Vditor IR 模式 (Typora-like)">IR 模式</span>
           </div>
 
           <div class="tb-right">
@@ -467,7 +478,24 @@ onBeforeRouteLeave(async () => {
               />
             </div>
             <div class="editor-container">
-              <ArticleEditor ref="editorRef" :content="content" :editable="true" :upload-image="uploadImageFn" @change="onEditorChange" @error="(msg) => toast.error(msg)" />
+              <VditorWriter
+                v-if="useVditor"
+                ref="vditorRef"
+                :content="content"
+                :editable="true"
+                :upload-image="uploadImageFn"
+                @change="onEditorChange"
+                @error="(msg) => toast.error(msg)"
+              />
+              <ArticleEditor
+                v-else
+                ref="editorRef"
+                :content="content"
+                :editable="true"
+                :upload-image="uploadImageFn"
+                @change="onEditorChange"
+                @error="(msg) => toast.error(msg)"
+              />
             </div>
           </div>
 
@@ -709,6 +737,7 @@ onBeforeRouteLeave(async () => {
 .status-pill--published { background: #f0fdf4; color: #16a34a; }
 .status-pill--draft     { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
 .status-pill--unsaved   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+.status-pill--poc       { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; font-size: 11px; }
 
 .save-hint { font-size: 12px; color: #9ca3af; }
 
