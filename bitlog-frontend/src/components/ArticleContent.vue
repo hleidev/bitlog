@@ -19,6 +19,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, useTemplateRef } from 'vue'
 import mermaid from 'mermaid'
 import { renderMarkdownToHtml } from '@/utils/lute-renderer'
+import ImageLightbox from './ImageLightbox.vue'
 import './prose.css'
 
 const props = withDefaults(defineProps<{
@@ -29,6 +30,11 @@ const rootRef = useTemplateRef<HTMLElement>('rootRef')
 const html = ref('')
 const mermaidError = ref<string | null>(null)
 let mermaidGlobalId = 0
+
+// 图片 lightbox 状态
+const lightboxOpen = ref(false)
+const lightboxSrc = ref<string | null>(null)
+const lightboxAlt = ref<string>('')
 
 mermaid.initialize({ startOnLoad: false, theme: 'neutral' })
 
@@ -82,6 +88,11 @@ function wrapCodeBlock(lang: string, body: string): string {
       `<pre class="code-body" data-mermaid-source><code class="language-mermaid">${body}</code></pre>` +
       `</div>`
   }
+  // 空代码块：保留原始 <pre>，不显示 lang 标签 / 复制按钮
+  // （防止某些边界场景下出现「只有头没有身体」的孤悬 code header）
+  if (!body.trim()) {
+    return `<pre><code class="language-${lang}">${body}</code></pre>`
+  }
   return `<div class="code-block-wrapper" data-lang="${lang}">` +
     `<div class="code-header">` +
     `<span class="code-lang-label">${lang}</span>` +
@@ -122,7 +133,7 @@ async function hydrateMermaid() {
   }
 }
 
-// 复制按钮 + 放大弹层（mermaid）
+// 复制按钮 + 放大弹层（mermaid） + 图片 lightbox
 function onRootClick(e: MouseEvent) {
   const target = e.target as HTMLElement
   // 复制按钮
@@ -148,6 +159,15 @@ function onRootClick(e: MouseEvent) {
     overlay.innerHTML = `<div class="mermaid-lightbox__inner">${svg}</div>`
     document.body.appendChild(overlay)
     requestAnimationFrame(() => overlay.classList.add('is-open'))
+    return
+  }
+  // 图片点击 → 打开 lightbox
+  const img = target.closest<HTMLImageElement>('img')
+  if (img) {
+    e.preventDefault()
+    lightboxSrc.value = img.src
+    lightboxAlt.value = img.alt
+    lightboxOpen.value = true
   }
 }
 
@@ -185,6 +205,12 @@ function escapeHtml(s: string): string {
 
 <template>
   <div ref="rootRef" class="ProseMirror article-content" @click="onRootClick" v-html="html" />
+  <ImageLightbox
+    :open="lightboxOpen"
+    :src="lightboxSrc ?? undefined"
+    :alt="lightboxAlt"
+    @close="lightboxOpen = false"
+  />
 </template>
 
 <style scoped>
