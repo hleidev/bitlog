@@ -19,9 +19,31 @@ const SITE_URL = 'https://bitlog.harrylei.top'
 const articleUrl = computed(() => article.value ? `${SITE_URL}/article/${article.value.id}` : SITE_URL)
 const articleDescription = computed(() => article.value?.summary ?? 'BitLog — 个人技术博客')
 
+const jsonLd = computed(() => {
+  if (!article.value) return null
+  const iso = new Date(article.value.publishTime).toISOString()
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    mainEntityOfPage: { '@type': 'WebPage', '@id': articleUrl.value },
+    headline: article.value.title,
+    description: articleDescription.value,
+    datePublished: iso,
+    dateModified: iso,
+    author: { '@type': 'Person', name: 'Harry Lei', url: SITE_URL },
+    publisher: {
+      '@type': 'Organization',
+      name: 'BitLog',
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.jpeg` },
+    },
+    image: `${SITE_URL}/og-image.png`,
+  }
+})
+
 useHead({
   title: () => article.value ? `${article.value.title} | BitLog` : 'BitLog',
   link: [{ rel: 'canonical', href: articleUrl }],
+  script: () => jsonLd.value ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(jsonLd.value) }] : [],
 })
 useSeoMeta({
   description: articleDescription,
