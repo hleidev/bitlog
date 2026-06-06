@@ -15,9 +15,8 @@ import {
   deleteArticleVersions,
   type ArticleVersionVO,
 } from '@/api/admin/article'
-import { getCategories, getOrCreateCategory, type Category } from '@/api/admin/category'
-import { getTags, getOrCreateTag, type Tag } from '@/api/admin/tag'
 import { ApiError } from '@/utils/request'
+import ArticleMetaDialog from '@/admin/components/ArticleMetaDialog.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -77,38 +76,12 @@ const allDeletableSelected = computed(() =>
 // ── Publish dialog ─────────────────────────────────────────────────────────────
 const publishDialogVisible = ref(false)
 const publishing           = ref(false)
+const metaDialogRef        = ref<InstanceType<typeof ArticleMetaDialog> | null>(null)
 
-const publishForm = ref({
-  summary:    '',
-  categoryId: null as number | null,
-  tagIds:     [] as number[],
-})
-
-// ── Category / tag options ─────────────────────────────────────────────────────
-const categoryOptions = ref<Category[]>([])
-const tagOptions      = ref<Tag[]>([])
-
-// Category combobox
-const categoryInput        = ref('')
-const categoryDropdownOpen = ref(false)
-const selectedCategory     = ref<{ id: number; name: string } | null>(null)
-const filteredCategories   = computed(() => {
-  const q = categoryInput.value.trim().toLowerCase()
-  if (!q) return categoryOptions.value
-  return categoryOptions.value.filter(c => c.name.toLowerCase().includes(q))
-})
-
-// Tags combobox
-const tagInput        = ref('')
-const tagDropdownOpen = ref(false)
-const selectedTags    = ref<{ id: number; name: string }[]>([])
-const filteredTags    = computed(() => {
-  const selectedIds = new Set(selectedTags.value.map(t => t.id))
-  const base = tagOptions.value.filter(t => !selectedIds.has(t.id))
-  const q = tagInput.value.trim().toLowerCase()
-  if (!q) return base
-  return base.filter(t => t.name.toLowerCase().includes(q))
-})
+// Article metadata (seeds the dialog on open)
+const draftSummary  = ref('')
+const draftCategory = ref<{ id: number; name: string } | null>(null)
+const draftTags     = ref<{ id: number; name: string }[]>([])
 
 // ── AI recommendation ─────────────────────────────────────────────────────────
 const aiGenerating    = ref(false)
@@ -146,16 +119,6 @@ function onBeforeUnload(e: BeforeUnloadEvent) {
 }
 
 // ── Load data ──────────────────────────────────────────────────────────────────
-async function loadCategoriesAndTags() {
-  try {
-    const [cats, tags] = await Promise.all([getCategories(), getTags()])
-    categoryOptions.value = cats
-    tagOptions.value      = tags
-  } catch {
-    // non-critical
-  }
-}
-
 async function loadVersions() {
   try {
     const data = await getArticleVersions(articleId)
@@ -186,11 +149,9 @@ async function loadDraft() {
     latestVersionId.value       = data.latestVersionId
     publishedVersionId.value    = data.publishedVersionId
     hasDraftAbovePublish.value  = data.publishedVersionId !== null && data.latestVersionId !== data.publishedVersionId
-    publishForm.value = {
-      summary:    data.summary ?? '',
-      categoryId: data.category?.id ?? null,
-      tagIds:     data.tags.map(t => t.id),
-    }
+    draftSummary.value  = data.summary ?? ''
+    draftCategory.value = data.category ?? null
+    draftTags.value     = data.tags
     await loadVersions()
     saveState.value = 'saved'
   } catch (err) {
@@ -200,100 +161,6 @@ async function loadDraft() {
     await nextTick()
     autoResizeTitle()
     suppressChange = false
-  }
-}
-
-// ── Category combobox handlers ─────────────────────────────────────────────────
-function selectCategory(cat: { id: number; name: string }) {
-  selectedCategory.value = cat
-  categoryInput.value    = cat.name
-  publishForm.value.categoryId = cat.id
-  categoryDropdownOpen.value   = false
-}
-
-async function createAndSelectCategory(name: string) {
-  try {
-    const id = await getOrCreateCategory(name)
-    selectCategory({ id, name })
-    if (!categoryOptions.value.find(c => c.id === id)) {
-      categoryOptions.value = [...categoryOptions.value, { id, name, articleCount: 0, createTime: '' }]
-    }
-  } catch {
-    toast.error('创建分类失败')
-  }
-}
-
-function clearCategory() {
-  selectedCategory.value       = null
-  categoryInput.value          = ''
-  publishForm.value.categoryId = null
-}
-
-function onCategoryInput() {
-  if (selectedCategory.value && categoryInput.value !== selectedCategory.value.name) {
-    selectedCategory.value       = null
-    publishForm.value.categoryId = null
-  }
-  categoryDropdownOpen.value = true
-}
-
-function onCategoryEnter() {
-  const q = categoryInput.value.trim()
-  if (!q) return
-  const exact = filteredCategories.value[0]
-  if (exact && exact.name.toLowerCase() === q.toLowerCase()) {
-    selectCategory(exact)
-  } else if (filteredCategories.value.length === 1) {
-    selectCategory(filteredCategories.value[0])
-  } else {
-    createAndSelectCategory(q)
-  }
-}
-
-function closeCategoryDropdown() {
-  if (!selectedCategory.value) categoryInput.value = ''
-  categoryDropdownOpen.value = false
-}
-
-// ── Tag combobox handlers ──────────────────────────────────────────────────────
-function addTag(tag: { id: number; name: string }) {
-  if (selectedTags.value.find(t => t.id === tag.id)) return
-  selectedTags.value       = [...selectedTags.value, tag]
-  publishForm.value.tagIds = selectedTags.value.map(t => t.id)
-  tagInput.value           = ''
-  tagDropdownOpen.value    = false
-}
-
-async function createAndAddTag(name: string) {
-  try {
-    const id = await getOrCreateTag(name)
-    if (!selectedTags.value.find(t => t.id === id)) {
-      selectedTags.value       = [...selectedTags.value, { id, name }]
-      publishForm.value.tagIds = selectedTags.value.map(t => t.id)
-    }
-    if (!tagOptions.value.find(t => t.id === id)) {
-      tagOptions.value = [...tagOptions.value, { id, name, articleCount: 0, createTime: '', updateTime: '' }]
-    }
-    tagInput.value        = ''
-    tagDropdownOpen.value = false
-  } catch {
-    toast.error('创建标签失败')
-  }
-}
-
-function removeTag(id: number) {
-  selectedTags.value       = selectedTags.value.filter(t => t.id !== id)
-  publishForm.value.tagIds = selectedTags.value.map(t => t.id)
-}
-
-function onTagEnter() {
-  const q = tagInput.value.trim()
-  if (!q) return
-  const exact = tagOptions.value.find(t => t.name.toLowerCase() === q.toLowerCase())
-  if (exact) {
-    addTag(exact)
-  } else {
-    createAndAddTag(q)
   }
 }
 
@@ -377,8 +244,12 @@ async function openPublishDialog() {
   publishDialogVisible.value = true
 }
 
-async function handlePublishConfirm() {
-  if (!publishForm.value.categoryId) {
+async function handlePublishConfirm(data: {
+  summary: string; categoryId: number | null; tagIds: number[]
+  category: { id: number; name: string } | null
+  tags: { id: number; name: string }[]
+}) {
+  if (!data.categoryId) {
     toast.warning('请选择文章分类')
     return
   }
@@ -386,14 +257,17 @@ async function handlePublishConfirm() {
   const wasPublished = isPublished.value
   try {
     await publishArticle(articleId, {
-      summary:    publishForm.value.summary || null,
-      categoryId: publishForm.value.categoryId,
-      tagIds:     publishForm.value.tagIds,
+      summary:    data.summary || null,
+      categoryId: data.categoryId,
+      tagIds:     data.tagIds,
     })
     publishedVersionId.value   = latestVersionId.value
     publishDialogVisible.value = false
     hasUnsaved.value           = false
     hasDraftAbovePublish.value = false
+    draftSummary.value  = data.summary
+    draftCategory.value = data.category
+    draftTags.value     = data.tags
     toast.success(wasPublished ? '发布信息已更新' : '文章已发布')
     await loadVersions()
   } catch (err) {
@@ -423,26 +297,22 @@ async function runAiRecommend() {
 
 function acceptAiSummary() {
   if (!aiSummaryResult.value) return
-  publishForm.value.summary = aiSummaryResult.value
-  aiSummaryResult.value     = null
+  metaDialogRef.value?.setSummary(aiSummaryResult.value)
+  aiSummaryResult.value = null
 }
 
 function applyAiCategory() {
   if (!aiCatResult.value) return
-  selectCategory(aiCatResult.value as { id: number; name: string })
+  metaDialogRef.value?.setCategory(aiCatResult.value as { id: number; name: string })
   aiCatResult.value = null
 }
 
 function applyAiExistingTag(tag: { id: number; name: string }) {
-  addTag(tag)
-}
-
-function isSuggestedTagApplied(name: string): boolean {
-  return selectedTags.value.some(t => t.name === name)
+  metaDialogRef.value?.addTag(tag)
 }
 
 async function applyAiSuggestedTag(name: string) {
-  await createAndAddTag(name)
+  await metaDialogRef.value?.createAndAddTag(name)
 }
 
 // ── Version management ─────────────────────────────────────────────────────────
@@ -515,17 +385,7 @@ function onKeydown(e: KeyboardEvent) {
 onMounted(async () => {
   window.addEventListener('beforeunload', onBeforeUnload)
   window.addEventListener('keydown', onKeydown)
-  await Promise.all([loadDraft(), loadCategoriesAndTags()])
-  // Resolve display names for pre-selected category / tags after both loads complete
-  if (publishForm.value.categoryId) {
-    const cat = categoryOptions.value.find(c => c.id === publishForm.value.categoryId)
-    if (cat) selectCategory(cat)
-  }
-  selectedTags.value = publishForm.value.tagIds
-    .flatMap(id => {
-      const t = tagOptions.value.find(tag => tag.id === id)
-      return t ? [{ id: t.id, name: t.name }] : []
-    })
+  await loadDraft()
 })
 
 onUnmounted(() => {
@@ -691,199 +551,86 @@ onBeforeRouteLeave(async () => {
       </template>
 
       <!-- ── Publish Dialog ────────────────────────────────────────────────── -->
-      <Teleport to="body">
-        <Transition name="dialog-fade">
-          <div v-if="publishDialogVisible" class="dialog-overlay" @click.self="publishDialogVisible = false">
-            <div class="dialog-panel">
-              <div class="dialog-header">
-                <div class="dialog-title-row">
-                  <span class="dialog-title">{{ isPublished ? '更新发布' : '发布文章' }}</span>
-                  <button
-                    class="ai-trigger-btn"
-                    :class="{ 'ai-trigger-btn--loading': aiGenerating }"
-                    :disabled="aiGenerating"
-                    type="button"
-                    title="AI 智能填写"
-                    @click="runAiRecommend"
-                  >
-                    <span :style="aiGenerating ? 'display:inline-block;animation:ai-spin 1.2s linear infinite' : ''">✦</span>
-                  </button>
-                </div>
-                <button class="dialog-x" @click="publishDialogVisible = false">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                </button>
-              </div>
+      <ArticleMetaDialog
+        ref="metaDialogRef"
+        v-model:visible="publishDialogVisible"
+        :summary="draftSummary"
+        :category="draftCategory"
+        :tags="draftTags"
+        :saving="publishing"
+        :title="isPublished ? '更新发布' : '发布文章'"
+        :confirm-text="publishing ? '发布中…' : (isPublished ? '更新' : '立即发布')"
+        @save="handlePublishConfirm"
+      >
+        <template #header-extra>
+          <button
+            class="ai-trigger-btn"
+            :class="{ 'ai-trigger-btn--loading': aiGenerating }"
+            :disabled="aiGenerating"
+            type="button"
+            title="AI 智能填写"
+            @click="runAiRecommend"
+          >
+            <span :style="aiGenerating ? 'display:inline-block;animation:ai-spin 1.2s linear infinite' : ''">✦</span>
+          </button>
+        </template>
 
-              <div class="dialog-body">
-                <div class="publish-form">
-
-                  <div class="pf-item">
-                    <div class="pf-label">摘要 <span class="pf-optional">可选</span></div>
-                    <textarea
-                      v-model="publishForm.summary"
-                      class="pf-textarea"
-                      placeholder="留空则自动截取正文前 200 字..."
-                      maxlength="512"
-                      rows="3"
-                    />
-                    <div class="pf-char-count">{{ publishForm.summary.length }} / 512</div>
-                    <transition name="ai-slide">
-                      <div v-if="aiSummaryResult" class="pf-ai-inline">
-                        <p class="pf-ai-inline-body">{{ aiSummaryResult }}</p>
-                        <div class="pf-ai-inline-actions">
-                          <span class="pf-ai-badge">✦ AI</span>
-                          <button type="button" class="ai-action ai-action--dismiss" @click="aiSummaryResult = null">忽略</button>
-                          <button type="button" class="ai-action ai-action--primary" @click="acceptAiSummary">应用</button>
-                        </div>
-                      </div>
-                    </transition>
-                  </div>
-
-                  <div class="pf-item">
-                    <div class="pf-label">分类 <span class="pf-required">必填</span></div>
-                    <div class="pf-combo" v-click-outside="closeCategoryDropdown">
-                      <div class="pf-combo-field" :class="{ 'pf-combo-field--focused': categoryDropdownOpen }">
-                        <input
-                          v-model="categoryInput"
-                          class="pf-combo-input"
-                          placeholder="搜索或输入新分类..."
-                          @input="onCategoryInput"
-                          @focus="categoryDropdownOpen = true"
-                          @keydown.enter.prevent="onCategoryEnter"
-                          @keydown.escape="closeCategoryDropdown"
-                          @keydown.tab="closeCategoryDropdown"
-                        />
-                        <button
-                          v-if="selectedCategory"
-                          type="button"
-                          class="pf-combo-clear"
-                          tabindex="-1"
-                          @click="clearCategory"
-                        >
-                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                        </button>
-                      </div>
-                      <div v-if="categoryDropdownOpen" class="pf-combo-dropdown">
-                        <button
-                          v-for="cat in filteredCategories"
-                          :key="cat.id"
-                          type="button"
-                          class="pf-combo-opt"
-                          :class="{ 'pf-combo-opt--active': selectedCategory?.id === cat.id }"
-                          @mousedown.prevent="selectCategory(cat)"
-                        >{{ cat.name }}</button>
-                        <button
-                          v-if="categoryInput.trim() && !filteredCategories.find(c => c.name.toLowerCase() === categoryInput.trim().toLowerCase())"
-                          type="button"
-                          class="pf-combo-opt"
-                          @mousedown.prevent="createAndSelectCategory(categoryInput.trim())"
-                        >{{ categoryInput.trim() }}</button>
-                        <div v-if="!filteredCategories.length && !categoryInput.trim()" class="pf-combo-empty">
-                          暂无分类，输入名称即可创建
-                        </div>
-                      </div>
-                    </div>
-                    <transition name="ai-slide">
-                      <div v-if="aiCatResult !== null" class="pf-ai-inline pf-ai-inline--row">
-                        <span class="pf-ai-badge">✦ AI</span>
-                        <template v-if="aiCatResult">
-                          <span class="pf-ai-inline-val">{{ aiCatResult.name }}</span>
-                          <div class="pf-ai-inline-actions">
-                            <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">忽略</button>
-                            <button type="button" class="ai-action ai-action--primary" @click="applyAiCategory">应用</button>
-                          </div>
-                        </template>
-                        <template v-else>
-                          <span class="pf-ai-inline-no-match">现有分类均不适配，请手动选择</span>
-                          <button type="button" class="pf-ai-inline-dismiss" @click="aiCatResult = null">
-                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                          </button>
-                        </template>
-                      </div>
-                    </transition>
-                  </div>
-
-                  <div class="pf-item">
-                    <div class="pf-label">标签 <span class="pf-optional">可选</span></div>
-                    <div v-if="selectedTags.length" class="pf-selected-chips">
-                      <span v-for="tag in selectedTags" :key="tag.id" class="pf-sel-chip">
-                        {{ tag.name }}
-                        <button type="button" class="pf-sel-chip-x" @click="removeTag(tag.id)">
-                          <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                        </button>
-                      </span>
-                    </div>
-                    <div class="pf-combo" v-click-outside="() => { tagDropdownOpen = false; tagInput = '' }">
-                      <div class="pf-combo-field" :class="{ 'pf-combo-field--focused': tagDropdownOpen }">
-                        <input
-                          v-model="tagInput"
-                          class="pf-combo-input"
-                          placeholder="搜索或输入新标签..."
-                          @input="tagDropdownOpen = true"
-                          @focus="tagDropdownOpen = true"
-                          @keydown.enter.prevent="onTagEnter"
-                          @keydown.escape="tagDropdownOpen = false; tagInput = ''"
-                          @keydown.tab="tagDropdownOpen = false"
-                        />
-                      </div>
-                      <div v-if="tagDropdownOpen" class="pf-combo-dropdown">
-                        <button
-                          v-for="tag in filteredTags"
-                          :key="tag.id"
-                          type="button"
-                          class="pf-combo-opt"
-                          @mousedown.prevent="addTag(tag)"
-                        >{{ tag.name }}</button>
-                        <button
-                          v-if="tagInput.trim() && !tagOptions.find(t => t.name.toLowerCase() === tagInput.trim().toLowerCase())"
-                          type="button"
-                          class="pf-combo-opt"
-                          @mousedown.prevent="createAndAddTag(tagInput.trim())"
-                        >{{ tagInput.trim() }}</button>
-                        <div v-if="!filteredTags.length && !tagInput.trim()" class="pf-combo-empty">
-                          暂无更多标签，输入名称即可创建
-                        </div>
-                      </div>
-                    </div>
-                    <transition name="ai-slide">
-                      <div v-if="aiTagsResult" class="pf-ai-inline pf-ai-inline--chips">
-                        <span class="pf-ai-badge">✦ AI</span>
-                        <button
-                          v-for="tag in aiTagsResult.existing"
-                          :key="tag.id"
-                          type="button"
-                          :class="['ai-meta-chip ai-meta-chip--existing ai-meta-chip--action', { 'ai-meta-chip--applied': !!selectedTags.find(t => t.id === tag.id) }]"
-                          :disabled="!!selectedTags.find(t => t.id === tag.id)"
-                          @click="applyAiExistingTag(tag)"
-                        >{{ tag.name }}<span v-if="!selectedTags.find(t => t.id === tag.id)" class="ai-meta-chip__plus">+</span></button>
-                        <button
-                          v-for="name in aiTagsResult.suggested"
-                          :key="name"
-                          type="button"
-                          :class="['ai-meta-chip ai-meta-chip--new ai-meta-chip--action', { 'ai-meta-chip--applied': isSuggestedTagApplied(name) }]"
-                          :disabled="isSuggestedTagApplied(name)"
-                          @click="applyAiSuggestedTag(name)"
-                        >{{ name }}<span class="ai-meta-chip__badge">新</span><span v-if="!isSuggestedTagApplied(name)" class="ai-meta-chip__plus">+</span></button>
-                        <button type="button" class="pf-ai-inline-dismiss" @click="aiTagsResult = null">
-                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                        </button>
-                      </div>
-                    </transition>
-                  </div>
-
-                </div>
-              </div>
-
-              <div class="dialog-footer">
-                <button class="btn btn--cancel" @click="publishDialogVisible = false">取消</button>
-                <button class="btn btn--primary" :disabled="publishing" @click="handlePublishConfirm">
-                  {{ publishing ? '发布中…' : (isPublished ? '更新' : '立即发布') }}
-                </button>
+        <template #summary-extra>
+          <transition name="ai-slide">
+            <div v-if="aiSummaryResult" class="pf-ai-inline">
+              <p class="pf-ai-inline-body">{{ aiSummaryResult }}</p>
+              <div class="pf-ai-inline-actions">
+                <button type="button" class="ai-action ai-action--dismiss" @click="aiSummaryResult = null">忽略</button>
+                <button type="button" class="ai-action ai-action--primary" @click="acceptAiSummary">应用</button>
               </div>
             </div>
-          </div>
-        </Transition>
-      </Teleport>
+          </transition>
+        </template>
+
+        <template #category-extra>
+          <transition name="ai-slide">
+            <div v-if="aiCatResult !== null" class="pf-ai-inline pf-ai-inline--row">
+              <template v-if="aiCatResult">
+                <span class="pf-ai-inline-val">{{ aiCatResult.name }}</span>
+                <div class="pf-ai-inline-actions">
+                  <button type="button" class="ai-action ai-action--dismiss" @click="aiCatResult = null">忽略</button>
+                  <button type="button" class="ai-action ai-action--primary" @click="applyAiCategory">应用</button>
+                </div>
+              </template>
+              <template v-else>
+                <span class="pf-ai-inline-no-match">现有分类均不适配，请手动选择</span>
+                <button type="button" class="pf-ai-inline-dismiss" @click="aiCatResult = null">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </template>
+            </div>
+          </transition>
+        </template>
+
+        <template #tags-extra>
+          <transition name="ai-slide">
+            <div v-if="aiTagsResult" class="pf-ai-inline pf-ai-inline--chips">
+              <button
+                v-for="tag in aiTagsResult.existing"
+                :key="tag.id"
+                type="button"
+                class="ai-meta-chip ai-meta-chip--existing ai-meta-chip--action"
+                @click="applyAiExistingTag(tag)"
+              >{{ tag.name }}<span class="ai-meta-chip__plus">+</span></button>
+              <button
+                v-for="name in aiTagsResult.suggested"
+                :key="name"
+                type="button"
+                class="ai-meta-chip ai-meta-chip--new ai-meta-chip--action"
+                @click="applyAiSuggestedTag(name)"
+              >{{ name }}<span class="ai-meta-chip__badge">新</span><span class="ai-meta-chip__plus">+</span></button>
+              <button type="button" class="pf-ai-inline-dismiss" @click="aiTagsResult = null">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </transition>
+        </template>
+      </ArticleMetaDialog>
 
     </div>
 </template>
@@ -1099,15 +846,7 @@ onBeforeRouteLeave(async () => {
 .version-delete-btn:hover:not(:disabled) { background: #dc2626; }
 .version-delete-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* ── Publish dialog ───────────────────────────────────────────────────────────── */
-.publish-form { display: flex; flex-direction: column; gap: 20px; }
-.pf-item      { display: flex; flex-direction: column; gap: 8px; }
-.pf-label     { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151; }
-.pf-optional  { font-size: 11px; font-weight: 400; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 3px; }
-.pf-required  { font-size: 11px; font-weight: 500; color: #dc2626; background: #fef2f2; padding: 1px 6px; border-radius: 3px; }
-
-/* ── Dialog title row with AI button ─────────────────────────────────────────*/
-.dialog-title-row { display: flex; align-items: center; gap: 8px; }
+/* ── AI trigger button (rendered via slot into ArticleMetaDialog) ────────────*/
 .ai-trigger-btn {
   display: flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; flex-shrink: 0;
@@ -1141,7 +880,6 @@ onBeforeRouteLeave(async () => {
   display: flex; align-items: center; gap: 6px; justify-content: flex-end;
 }
 .pf-ai-inline--row .pf-ai-inline-actions { margin-left: auto; flex-shrink: 0; }
-.pf-ai-badge { font-size: 11px; font-weight: 500; color: #a78bfa; flex-shrink: 0; }
 .pf-ai-inline-val { font-size: 13px; color: #374151; font-weight: 500; flex: 1; }
 .pf-ai-inline-no-match { font-size: 12px; color: #9ca3af; font-style: italic; flex: 1; }
 .pf-ai-inline-dismiss {
@@ -1243,142 +981,9 @@ onBeforeRouteLeave(async () => {
 .btn--cancel { background: transparent; color: #6b7280; border-color: #d4cfc9; }
 .btn--cancel:hover:not(:disabled) { background: #ece9e4; border-color: #c8c2ba; }
 
-/* ── Dialog ──────────────────────────────────────────────────────────────────── */
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 9000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.dialog-panel {
-  background: #faf9f7;
-  border: 1px solid #e8e4de;
-  border-radius: 4px;
-  width: 540px;
-  max-width: calc(100vw - 40px);
-  max-height: calc(100vh - 60px);
-  display: flex;
-  flex-direction: column;
-}
-.dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px 0;
-}
-.dialog-title {
-  font-family: var(--font-serif, 'Lora', serif);
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1610;
-}
-.dialog-x {
-  display: flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px;
-  background: none; border: none; cursor: pointer;
-  color: #9ca3af; border-radius: 4px;
-  transition: background 0.15s, color 0.15s;
-}
-.dialog-x:hover { background: #ece9e4; color: #374151; }
-.dialog-body { padding: 20px 24px 16px; overflow-y: auto; flex: 1; }
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 0 24px 20px;
-  flex-shrink: 0;
-}
-
 /* ── AI inline transition ────────────────────────────────────────────────────── */
 .ai-slide-enter-active, .ai-slide-leave-active { transition: opacity 0.18s, transform 0.18s; }
 .ai-slide-enter-from, .ai-slide-leave-to { opacity: 0; transform: translateY(-3px); }
-
-/* ── Dialog transition ───────────────────────────────────────────────────────── */
-.dialog-fade-enter-active { transition: opacity 0.2s ease; }
-.dialog-fade-leave-active { transition: opacity 0.15s ease; }
-.dialog-fade-enter-from,
-.dialog-fade-leave-to { opacity: 0; }
-.dialog-fade-enter-active .dialog-panel { transition: transform 0.2s ease; }
-.dialog-fade-leave-active .dialog-panel { transition: transform 0.15s ease; }
-.dialog-fade-enter-from .dialog-panel { transform: scale(0.97); }
-
-/* ── Form controls ───────────────────────────────────────────────────────────── */
-.pf-textarea {
-  display: block;
-  width: 100%;
-  height: auto;
-  padding: 8px 10px;
-  font-size: 13px;
-  font-family: inherit;
-  border: 1px solid #d4cfc9;
-  border-radius: 4px;
-  background: #fff;
-  color: #374151;
-  outline: none;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-  resize: none;
-  line-height: 1.6;
-}
-.pf-textarea:focus { border-color: var(--admin-accent, #b85c38); }
-.pf-char-count { font-size: 11px; color: #9ca3af; text-align: right; margin-top: 2px; }
-
-/* ── Combobox ─────────────────────────────────────────────────────────────────── */
-.pf-combo { position: relative; }
-.pf-combo-field {
-  display: flex; align-items: center;
-  border: 1px solid #d4cfc9; border-radius: 4px; background: #fff;
-  transition: border-color 0.15s;
-  padding: 0 6px 0 10px;
-}
-.pf-combo-field--focused { border-color: var(--admin-accent, #b85c38); }
-.pf-combo-input {
-  flex: 1; height: 34px;
-  border: none; outline: none; background: transparent;
-  font-size: 13px; font-family: inherit; color: #374151;
-}
-.pf-combo-input::placeholder { color: #9ca3af; }
-.pf-combo-clear {
-  display: flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; flex-shrink: 0;
-  border: none; background: transparent; cursor: pointer;
-  color: #9ca3af; border-radius: 3px;
-  transition: color 0.15s, background 0.15s;
-}
-.pf-combo-clear:hover { color: #374151; background: #f3f4f6; }
-.pf-combo-dropdown {
-  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-  background: #fff; border: 1px solid #e5e7eb; border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  z-index: 200; max-height: 176px; overflow-y: auto; padding: 4px 0;
-}
-.pf-combo-opt {
-  display: block; width: 100%; text-align: left;
-  padding: 7px 12px; font-size: 13px; color: #374151;
-  background: transparent; border: none; cursor: pointer;
-  font-family: inherit; transition: background 0.1s;
-}
-.pf-combo-opt:hover { background: #f3f4f6; }
-.pf-combo-opt--active { color: var(--admin-accent, #b85c38); font-weight: 500; }
-.pf-combo-empty { padding: 8px 12px; font-size: 12px; color: #9ca3af; font-style: italic; }
-
-/* ── Selected tag chips ──────────────────────────────────────────────────────── */
-.pf-selected-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.pf-sel-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 6px 3px 10px; font-size: 12px; font-weight: 500;
-  border-radius: 4px; background: #ede9fe; color: #7c3aed; border: 1px solid #ddd6fe;
-}
-.pf-sel-chip-x {
-  display: flex; align-items: center; justify-content: center;
-  width: 16px; height: 16px; border: none; background: transparent;
-  cursor: pointer; color: #a78bfa; border-radius: 2px; padding: 0;
-  transition: color 0.15s, background 0.15s;
-}
-.pf-sel-chip-x:hover { color: #7c3aed; background: #ddd6fe; }
 
 /* ── Checkbox ────────────────────────────────────────────────────────────────── */
 .checkbox-label {
