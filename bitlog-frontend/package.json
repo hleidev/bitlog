@@ -42,6 +42,7 @@
     "mermaid": "^11.15.0",
     "nprogress": "^0.2.0",
     "pinia": "^3.0.4",
+    "vditor": "^3.11.2",
     "vite-ssg": "^28.3.0",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"
