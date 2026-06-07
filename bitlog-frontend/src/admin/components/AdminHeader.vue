@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import { storeToRefs } from 'pinia'
 import UserDropdown from '@/components/common/UserDropdown.vue'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
 defineProps<{ collapsed: boolean; isMobile?: boolean }>()
 const emit = defineEmits<{ toggle: [] }>()
@@ -24,7 +25,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
   <div class="admin-header">
     <div class="header-left">
       <!-- Sidebar toggle -->
-      <button class="toggle-btn" @click="emit('toggle')" aria-label="切换侧边栏">
+      <button class="toggle-btn" aria-label="切换侧边栏" @click="emit('toggle')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <line x1="9" y1="3" x2="9" y2="21" />
@@ -40,6 +41,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
     </div>
 
     <div class="header-right">
+      <ThemeToggle />
       <div class="user-menu" @mouseenter="menuOpen = true" @mouseleave="menuOpen = false">
         <button class="user-trigger">
           <img
@@ -136,6 +138,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 .header-right {
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .user-menu {

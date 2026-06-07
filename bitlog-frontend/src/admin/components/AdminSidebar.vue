@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import { storeToRefs } from 'pinia'
@@ -62,6 +62,39 @@ const menus = computed<MenuItem[]>(() => (isAdmin.value ? adminMenus : userMenus
 
 const openGroups = ref<Set<string>>(new Set())
 
+// Per-trigger popover position. Popover is teleported to <body> with
+// position:fixed so it escapes AdminLayout's overflow/isolation ancestors.
+// A short close-delay (250ms) gives the cursor time to bridge the gap
+// between the trigger and the popover without the popover dismissing.
+const popoverPos = ref<{ top: number; left: number; key: string } | null>(null)
+let closeTimer: ReturnType<typeof setTimeout> | null = null
+
+function cancelClose() {
+  if (closeTimer) {
+    clearTimeout(closeTimer)
+    closeTimer = null
+  }
+}
+
+function positionPopover(key: string, triggerEl: HTMLElement) {
+  cancelClose()
+  const r = triggerEl.getBoundingClientRect()
+  popoverPos.value = { top: r.top, left: r.right + 6, key }
+}
+
+function clearPopover() {
+  cancelClose()
+  closeTimer = setTimeout(() => {
+    popoverPos.value = null
+    closeTimer = null
+  }, 250)
+}
+
+onBeforeUnmount(() => {
+  cancelClose()
+  popoverPos.value = null
+})
+
 function syncOpenGroups() {
   for (const item of menus.value) {
     if (isGroup(item) && item.children.some(c => route.path.startsWith(c.path))) {
@@ -105,43 +138,48 @@ function isGroupActive(item: GroupItem): boolean {
 
         <!-- Group -->
         <div v-if="isGroup(item)" class="nav-group">
-          <!-- Collapsed: click → first child, hover → popover -->
-          <el-popover
+          <!-- Collapsed: click → first child, hover/focus → popover (position:fixed, JS-synced) -->
+          <div
             v-if="collapsed"
-            trigger="hover"
-            placement="right-start"
-            :show-after="0"
-            :hide-after="200"
-            :persistent="false"
-            :width="140"
-            popper-class="sidebar-popover"
+            class="nav-group-popover-wrap"
+            @mouseenter="(e) => positionPopover(item.key, e.currentTarget.querySelector('button'))"
+            @mouseleave="clearPopover"
           >
-            <template #reference>
-              <button
-                class="nav-item nav-item--group"
-                :class="{ 'nav-item--active': isGroupActive(item) }"
-                @click="toggleGroup(item)"
+            <button
+              class="nav-item nav-item--group nav-group-trigger"
+              :class="{ 'nav-item--active': isGroupActive(item) }"
+              :aria-haspopup="'menu'"
+              :aria-expanded="popoverPos?.key === item.key"
+              @click="toggleGroup(item)"
+            >
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path :d="ICONS[item.icon]" />
+              </svg>
+            </button>
+            <Teleport v-if="popoverPos?.key === item.key" to="body">
+              <div
+                class="sub-menu-popover"
+                role="menu"
+                :style="{ top: popoverPos.top + 'px', left: popoverPos.left + 'px' }"
+                @mouseenter="cancelClose"
+                @mouseleave="clearPopover"
               >
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
-                  <path :d="ICONS[item.icon]" />
-                </svg>
-              </button>
-            </template>
-            <div class="sub-menu-popover">
-              <RouterLink
-                v-for="child in item.children"
-                :key="child.path"
-                :to="child.path"
-                class="nav-item nav-item--child"
-                :class="{ 'nav-item--active': route.path === child.path }"
-              >
-                <svg class="nav-icon nav-icon--small" viewBox="0 0 24 24" fill="currentColor">
-                  <path :d="ICONS[child.icon]" />
-                </svg>
-                <span class="nav-label">{{ child.title }}</span>
-              </RouterLink>
-            </div>
-          </el-popover>
+                <RouterLink
+                  v-for="child in item.children"
+                  :key="child.path"
+                  :to="child.path"
+                  class="nav-item nav-item--child"
+                  :class="{ 'nav-item--active': route.path === child.path }"
+                  role="menuitem"
+                >
+                  <svg class="nav-icon nav-icon--small" viewBox="0 0 24 24" fill="currentColor">
+                    <path :d="ICONS[child.icon]" />
+                  </svg>
+                  <span class="nav-label">{{ child.title }}</span>
+                </RouterLink>
+              </div>
+            </Teleport>
+          </div>
 
           <!-- Expanded: normal behavior -->
           <template v-else>
@@ -383,12 +421,29 @@ function isGroupActive(item: GroupItem): boolean {
 }
 
 /* ── Collapsed popover ── */
+/* Teleported to <body> with position:fixed so it escapes AdminLayout's
+   overflow/isolation ancestors. Position is JS-synced on hover/focus
+   from the trigger's bounding rect. */
 
 .sub-menu-popover {
+  position: fixed;
+  min-width: 140px;
+  background: var(--admin-sidebar-bg);
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: var(--admin-radius);
+  padding: 4px;
+  z-index: 1100;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0;
+  box-shadow: 0 2px 8px var(--admin-overlay);
+  /* Slide-in feel */
+  animation: popoverIn 0.12s ease-out;
+}
+
+@keyframes popoverIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 .sub-menu-popover .nav-item--child {
