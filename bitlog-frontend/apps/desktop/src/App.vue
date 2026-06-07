@@ -3,7 +3,8 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import VditorWriter from './components/VditorWriter.vue'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile, writeFile } from '@tauri-apps/plugin-fs'
-import { convertFileSrc } from '@tauri-apps/api/core'
+import { convertFileSrc, invoke } from '@tauri-apps/api/core'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 const content = ref('')
 const filePath = ref<string | null>(null)
@@ -22,10 +23,15 @@ async function openFile() {
     multiple: false,
   })
   if (!selected || typeof selected !== 'string') return
-  const text = await readTextFile(selected)
+  await loadPath(selected)
+}
+
+async function loadPath(path: string) {
+  const text = await readTextFile(path)
   content.value = text
-  filePath.value = selected
+  filePath.value = path
   isDirty.value = false
+  saveError.value = null
 }
 
 async function saveFile() {
@@ -78,6 +84,7 @@ function onEditorChange() {
 
 // Auto-save 1.5s after last change, only when file is already saved to disk
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+let unlistenOpened: UnlistenFn | null = null
 watch(isDirty, (dirty) => {
   if (!dirty || !filePath.value) return
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
@@ -108,10 +115,28 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', handleKeydown))
+onMounted(async () => {
+  window.addEventListener('keydown', handleKeydown)
+
+  // Cold-start: drain URLs buffered by the Rust side before the webview was up.
+  const buffered = await invoke<string[]>('opened_urls')
+  if (buffered.length > 0) {
+    await loadPath(buffered[0])
+  }
+
+  // Warm-runtime: handle subsequent `open file.md` invocations.
+  unlistenOpened = await listen<string[]>('opened', (event) => {
+    const first = event.payload[0]
+    if (first) loadPath(first).catch((err: unknown) => {
+      saveError.value = err instanceof Error ? err.message : '打开失败'
+    })
+  })
+})
+
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
+  unlistenOpened?.()
 })
 </script>
 
