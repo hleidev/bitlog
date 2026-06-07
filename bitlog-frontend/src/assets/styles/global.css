@@ -5,15 +5,15 @@
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--color-bg); }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
-* { scrollbar-width: thin; scrollbar-color: #d1d5db var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-faint); }
+* { scrollbar-width: thin; scrollbar-color: var(--color-border) var(--color-bg); }
 
 /* Container */
 .container {
   max-width: var(--spacing-container);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--spacing-page-padding);
 }
 
 /* Page enter animation */
