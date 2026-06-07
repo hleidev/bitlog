@@ -131,12 +131,13 @@
 
 .ProseMirror .code-block-wrapper,
 .vditor-ir .code-block-wrapper {
-  background: #282c34;
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
   border-radius: 4px;
   margin: 26px 0;
   overflow: hidden;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: var(--code-scrollbar) transparent;
 }
 
 .ProseMirror .code-block-wrapper::-webkit-scrollbar,
@@ -145,7 +146,7 @@
 .vditor-ir .code-block-wrapper::-webkit-scrollbar-track { background: transparent; }
 .ProseMirror .code-block-wrapper::-webkit-scrollbar-thumb,
 .vditor-ir .code-block-wrapper::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--code-scrollbar);
   border-radius: 2px;
 }
 
@@ -155,15 +156,15 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--code-header-bg);
+  border-bottom: 1px solid var(--code-header-border);
 }
 
 .ProseMirror .code-lang-label,
 .vditor-ir .code-lang-label {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--code-text-muted);
   text-transform: lowercase;
 }
 
@@ -172,7 +173,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--code-text-muted);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -183,17 +184,17 @@
 }
 
 .ProseMirror .copy-btn:hover,
-.vditor-ir .copy-btn:hover { color: rgba(255, 255, 255, 0.75); }
+.vditor-ir .copy-btn:hover { color: var(--code-text); }
 .ProseMirror .copy-btn--copied,
-.vditor-ir .copy-btn--copied { color: #4ade80; }
+.vditor-ir .copy-btn--copied { color: var(--code-copy-done); }
 .ProseMirror .copy-btn--copied:hover,
-.vditor-ir .copy-btn--copied:hover { color: #4ade80; }
+.vditor-ir .copy-btn--copied:hover { color: var(--code-copy-done); }
 
 .ProseMirror .code-lang-input,
 .vditor-ir .code-lang-input {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--code-text-muted);
   background: transparent;
   border: none;
   outline: none;
@@ -205,7 +206,7 @@
 
 .ProseMirror .code-lang-input:focus,
 .vditor-ir .code-lang-input:focus {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--code-text);
   cursor: text;
 }
 
@@ -223,7 +224,7 @@
   font-family: var(--font-mono);
   font-size: 13.5px;
   line-height: 1.65;
-  color: #abb2bf;
+  color: var(--code-text);
   white-space: pre;
   background: none;
   border: none;
@@ -404,3 +405,77 @@
   .ProseMirror h2, .vditor-ir h2 { font-size: 20px; }
   .ProseMirror h3, .vditor-ir h3 { font-size: 17px; }
 }
+
+/* ── Syntax token colors (hljs) ───────────────────────────────────────────
+ * 自定义暖色调主题，取代全局 atom-one-dark.css 导入。
+ * 变量在 variables.css 中按 [data-theme] 切换：
+ *   浅色 → 暖纸色背景 (#f2ede6) + 深色暖调语法色
+ *   深色 → 暖深棕背景 (#1a120e) + 暖调亮色语法色
+ * ─────────────────────────────────────────────────────────────────────── */
+
+.hljs {
+  color: var(--code-text);
+  background: var(--code-bg);
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+.hljs-doctag,
+.hljs-keyword,
+.hljs-formula {
+  color: var(--code-keyword);
+}
+
+.hljs-section,
+.hljs-name,
+.hljs-selector-tag,
+.hljs-deletion,
+.hljs-subst {
+  color: var(--code-section);
+}
+
+.hljs-literal {
+  color: var(--code-literal);
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-attribute,
+.hljs-meta .hljs-string {
+  color: var(--code-string);
+}
+
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-type,
+.hljs-selector-class,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-number {
+  color: var(--code-number);
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link,
+.hljs-meta,
+.hljs-selector-id,
+.hljs-title {
+  color: var(--code-meta);
+}
+
+.hljs-built_in,
+.hljs-title.class_,
+.hljs-class .hljs-title {
+  color: var(--code-builtin);
+}
+
+.hljs-emphasis { font-style: italic; }
+.hljs-strong   { font-weight: bold; }
+.hljs-link     { text-decoration: underline; }

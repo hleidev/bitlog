@@ -1,6 +1,5 @@
 @import './variables.css';
 @import './reset.css';
-@import 'highlight.js/styles/atom-one-dark.css';
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
