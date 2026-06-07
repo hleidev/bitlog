@@ -34,9 +34,6 @@ onUnmounted(() => {
         <img v-if="src" :src="src" :alt="alt ?? ''" class="img-lightbox__img" @click="emit('close')" />
         <div v-else class="img-lightbox__html" @click="emit('close')">
           <slot />
-          <div v-if="$slots.interactive" class="img-lightbox__interactive" @click.stop>
-            <slot name="interactive" />
-          </div>
         </div>
       </div>
     </div>
