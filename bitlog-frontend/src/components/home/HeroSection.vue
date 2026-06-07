@@ -147,7 +147,7 @@ import { RouterLink } from 'vue-router'
   width: 2.5px;
   height: 28px;
   background: var(--color-accent);
-  border-radius: 2px;
+  border-radius: var(--admin-radius);
   flex-shrink: 0;
   opacity: 0.8;
 }

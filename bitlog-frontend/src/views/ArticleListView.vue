@@ -440,7 +440,7 @@ onMounted(async () => {
   top: 4px;
   bottom: 4px;
   background: var(--color-bg-card);
-  border-radius: 2px;
+  border-radius: var(--admin-radius);
   border: 1px solid var(--color-border-light);
   transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
               width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
@@ -452,7 +452,7 @@ onMounted(async () => {
   position: relative;
   z-index: 1;
   padding: 6px 14px;
-  border-radius: 2px;
+  border-radius: var(--admin-radius);
   font-size: 13px;
   font-family: var(--font-sans);
   color: var(--color-text-muted);
