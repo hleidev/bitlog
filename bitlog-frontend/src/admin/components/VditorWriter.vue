@@ -26,6 +26,19 @@ const emit = defineEmits<{ change: []; error: [message: string] }>()
 
 const containerRef = ref<HTMLDivElement | null>(null)
 let vditor: Vditor | null = null
+let themeObserver: MutationObserver | null = null
+
+function isDarkTheme(): boolean {
+  return document.documentElement.dataset.theme === 'dark'
+}
+
+function syncEditorTheme() {
+  if (!vditor) return
+  // setTheme(theme, contentTheme): theme 控编辑器本体, contentTheme 控 preview 区域
+  // 内置 contentTheme: 'light' | 'dark'
+  const contentTheme = isDarkTheme() ? 'dark' : 'light'
+  vditor.setTheme(contentTheme === 'dark' ? 'dark' : 'classic', contentTheme)
+}
 
 onMounted(() => {
   if (!containerRef.value) return
@@ -34,8 +47,8 @@ onMounted(() => {
     mode: 'ir',
     height: props.minHeight,
     placeholder: '开始写吧…',
-    // 主题：先 light；后续步骤 5 接项目暗色模式
-    theme: 'classic',
+    // 主题：跟随项目 [data-theme='dark']，由 syncEditorTheme 在 after 时设置
+    theme: isDarkTheme() ? 'dark' : 'classic',
     icon: 'ant',
     cache: { enable: false },
     // 输入回调：只在 IR 模式触发
@@ -82,10 +95,14 @@ onMounted(() => {
       },
       // 关闭数学公式的 MathJax 引擎（节省 6.4MB）—— 后续如果需要再开 KaTeX
       math: { enable: false },
-      // 关闭 mermaid 由 Vditor 渲染，避免与项目现有 mermaid 冲突；保留 KaTeX 选项
-      // mermaid 留给详情页 Tiptap 处理
+      // Vditor 内置 mermaid / flowchart / graphviz 渲染（CDN 加载,无需 enable 开关）
+      // 写作者在 IR 模式下输入 ```mermaid 代码块 → 立即看到图表,
+      // 与发布后详情页的 Lute + 客户端 mermaid.render() 路径视觉一致。
+      mermaid: {
+        theme: isDarkTheme() ? 'dark' : 'default',
+      },
       theme: {
-        current: 'light',
+        current: isDarkTheme() ? 'dark' : 'light',
         list: { light: 'Light', dark: 'Dark' },
       },
       // markdown 选项：开启 GFM 全部特性，与项目 CommonMark + GFM 对齐
@@ -108,6 +125,13 @@ onMounted(() => {
     ],
     after: () => {
       vditor!.setValue(props.content || '')
+      syncEditorTheme()
+      // 监听项目暗色模式变化,跟随切换 Vditor 主题
+      themeObserver = new MutationObserver(() => syncEditorTheme())
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme'],
+      })
       // PoC 调试：暴露到 window 便于 DevTools 验证双向 I/O
       if (import.meta.env.DEV) {
         (window as unknown as { __vditorWriter: Vditor }).__vditorWriter = vditor!
@@ -117,6 +141,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  themeObserver?.disconnect()
+  themeObserver = null
   vditor?.destroy()
   vditor = null
 })
@@ -153,56 +179,65 @@ defineExpose({ getMarkdown, setMarkdown, focus })
   width: 100%;
 }
 
-/* 套上项目 warm editorial + Lora 衬线 */
+/* 套上项目 warm editorial + Lora 衬线 —— 用 CSS 变量,暗色模式自动切换 */
 :deep(.vditor-ir) {
   font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
   font-size: 16px;
   line-height: 1.75;
-  color: #2a2520;
+  color: var(--color-text-primary, #2a2520);
+  background: var(--color-bg, #faf9f7);
 }
 
 :deep(.vditor-ir__preview) {
   font-family: inherit;
 }
 
-/* 主色与项目 --color-accent (#b85c38) 对齐 */
+/* 主色与项目 --color-accent 对齐 */
 :deep(.vditor-ir__node--expand),
 :deep(.vditor-ir__link) {
-  color: #b85c38;
+  color: var(--color-accent, #b85c38);
 }
 
 :deep(.vditor-ir__blockquote) {
-  border-left: 3px solid #b85c38;
-  color: #5a5248;
+  border-left: 3px solid var(--color-accent, #b85c38);
+  color: var(--color-text-secondary, #5a5248);
 }
 
 :deep(.vditor-ir__marker--link) {
-  color: #b85c38;
+  color: var(--color-accent, #b85c38);
 }
 
 :deep(.vditor-ir a) {
-  color: #b85c38;
+  color: var(--color-accent, #b85c38);
   text-decoration: none;
-  border-bottom: 1px solid #e07b4f;
+  border-bottom: 1px solid var(--color-accent-light, #e07b4f);
 }
 
-/* 工具栏：去掉默认阴影，套项目字体 */
+/* 工具栏：去掉默认阴影,套项目字体 + 暗色 */
 :deep(.vditor-toolbar) {
   font-family: 'Inter', -apple-system, 'PingFang SC', sans-serif;
-  background: #faf9f7;
-  border-bottom: 1px solid #e8e4de;
+  background: var(--color-bg, #faf9f7);
+  border-bottom: 1px solid var(--color-border, #e8e4de);
   box-shadow: none;
+  color: var(--color-text-primary, #1a1610);
 }
 
 /* 工具栏激活按钮用 accent */
 :deep(.vditor-menu--current) {
-  color: #b85c38 !important;
-  background: #fff5f0 !important;
+  color: var(--color-accent, #b85c38) !important;
+  background: rgba(184, 92, 56, 0.08) !important;
 }
 
 /* 去掉 Vditor 默认的 hover 阴影（项目 design system：--shadow-card: none） */
 :deep(.vditor-ir__node) {
   box-shadow: none !important;
   border-radius: 0 !important;
+}
+
+/* Vditor 自带分隔线/暗背景硬编码,这里覆盖避免暗色下反白 */
+:deep(.vditor-ir__node--expand),
+:deep(.vditor-ir__node--code) {
+  background: var(--color-bg-card, #f4f2ef) !important;
+  color: var(--color-text-primary, #1a1610) !important;
 }
 </style>
