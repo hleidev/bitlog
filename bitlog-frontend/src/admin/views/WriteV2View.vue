@@ -838,7 +838,7 @@ onBeforeRouteLeave(async () => {
 .write-body { flex: 1; display: flex; min-height: 0; overflow: hidden; }
 
 /* ── Editor area ─────────────────────────────────────────────────────────────── */
-.editor-area { flex: 1; min-width: 0; overflow-y: auto; }
+.editor-area { flex: 1; min-width: 0; overflow-y: auto; background: transparent; }
 
 .editor-header {
   padding: 28px 64px 16px;
@@ -868,6 +868,7 @@ onBeforeRouteLeave(async () => {
 
 .editor-container {
   padding: 0 64px 60px;
+  background: transparent;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────────── */

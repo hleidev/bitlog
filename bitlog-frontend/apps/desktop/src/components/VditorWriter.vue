@@ -19,8 +19,7 @@ const props = withDefaults(defineProps<{
   content: string
   editable?: boolean
   uploadImage?: (file: File) => Promise<string>
-  minHeight?: number
-}>(), { editable: true, minHeight: 600 })
+}>(), { editable: true })
 
 const emit = defineEmits<{ change: []; error: [message: string] }>()
 
@@ -32,7 +31,7 @@ onMounted(() => {
 
   vditor = new Vditor(containerRef.value, {
     mode: 'ir',
-    height: props.minHeight,
+    height: 'auto',
     placeholder: '开始写吧…',
     // 主题：先 light；后续步骤 5 接项目暗色模式
     theme: 'classic',
@@ -99,13 +98,10 @@ onMounted(() => {
         sanitize: true,
       },
     },
-    // 工具栏：保留常用项，去掉与项目无关的微信/知乎导出
-    toolbar: [
-      'emoji', 'headings', 'bold', 'italic', 'strike', '|',
-      'line', 'quote', 'list', 'ordered-list', 'check', '|',
-      'code', 'inline-code', 'link', 'table', 'upload', '|',
-      'undo', 'redo', 'fullscreen',
-    ],
+    // 工具栏：禁用。IR 模式 + Markdown 快捷键已覆盖所有操作，
+    // 工具栏在两个端都是冗余 chrome（Web 后台有侧栏/顶栏/表单，桌面端是
+    // 整窗即编辑器），留着反而把页面切成"工具栏→工具栏→编辑区"三段。
+    toolbar: [],
     after: () => {
       vditor!.setValue(props.content || '')
       // PoC 调试：暴露到 window 便于 DevTools 验证双向 I/O
@@ -148,60 +144,76 @@ defineExpose({ getMarkdown, setMarkdown, focus })
   <div ref="containerRef" class="vditor-writer" />
 </template>
 
-<style scoped>
+<style>
+/* unscoped：Vditor 接管容器后会把 class "vditor" 加在 .vditor-writer 上,scoped
+   data-v 不再挂在 .vditor 元素上,:deep() 编译出的 [data-v-xxx] .vditor
+   匹配不上。改用 .vditor-writer 作命名空间前缀,无需 scoped 也能定位。 */
+
+/* Typora 模式：去掉 Vditor 自带容器边框/圆角/背景/阴影/outline,让编辑区"成为页面本身" */
 .vditor-writer {
-  width: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+}
+.vditor-writer .vditor-toolbar {
+  display: none;
+}
+.vditor-writer .vditor-content {
+  min-height: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.vditor-writer .vditor-reset,
+.vditor-writer pre.vditor-reset {
+  background: transparent !important;
+}
+.vditor-writer .vditor-reset:focus,
+.vditor-writer pre.vditor-reset:focus {
+  background: transparent !important;
 }
 
 /* 套上项目 warm editorial + Lora 衬线 */
-:deep(.vditor-ir) {
+.vditor-writer .vditor-ir {
   font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
   font-size: 16px;
   line-height: 1.75;
   color: #2a2520;
+  background: transparent;
+  padding: 0;
 }
 
-:deep(.vditor-ir__preview) {
+.vditor-writer .vditor-ir__preview {
   font-family: inherit;
 }
 
 /* 主色与项目 --color-accent (#b85c38) 对齐 */
-:deep(.vditor-ir__node--expand),
-:deep(.vditor-ir__link) {
+.vditor-writer .vditor-ir__node--expand,
+.vditor-writer .vditor-ir__link {
   color: #b85c38;
 }
 
-:deep(.vditor-ir__blockquote) {
+.vditor-writer .vditor-ir__blockquote {
   border-left: 3px solid #b85c38;
   color: #5a5248;
 }
 
-:deep(.vditor-ir__marker--link) {
+.vditor-writer .vditor-ir__marker--link {
   color: #b85c38;
 }
 
-:deep(.vditor-ir a) {
+.vditor-writer .vditor-ir a {
   color: #b85c38;
   text-decoration: none;
   border-bottom: 1px solid #e07b4f;
 }
 
-/* 工具栏：去掉默认阴影，套项目字体 */
-:deep(.vditor-toolbar) {
-  font-family: 'Inter', -apple-system, 'PingFang SC', sans-serif;
-  background: #faf9f7;
-  border-bottom: 1px solid #e8e4de;
-  box-shadow: none;
-}
-
-/* 工具栏激活按钮用 accent */
-:deep(.vditor-menu--current) {
-  color: #b85c38 !important;
-  background: #fff5f0 !important;
-}
+/* 工具栏已禁用（toolbar: []），保留 IR 渲染与节点样式即可 */
 
 /* 去掉 Vditor 默认的 hover 阴影（项目 design system：--shadow-card: none） */
-:deep(.vditor-ir__node) {
+.vditor-writer .vditor-ir__node {
   box-shadow: none !important;
   border-radius: 0 !important;
 }

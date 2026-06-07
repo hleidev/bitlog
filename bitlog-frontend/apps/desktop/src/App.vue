@@ -204,6 +204,7 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 48px max(48px, calc((100vw - 800px) / 2));
+  background: transparent;
 }
 
 /* ── Empty state ──────────────────────────────────────────────────────────── */
