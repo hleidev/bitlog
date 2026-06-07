@@ -351,13 +351,13 @@ function roleLabel(role: number) {
 .avatar-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--admin-overlay);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  color: #fff;
+  color: var(--admin-text-on-accent);
   font-size: 10px;
   font-family: var(--font-sans, 'Inter', sans-serif);
   opacity: 0;
@@ -384,7 +384,7 @@ function roleLabel(role: number) {
   font-family: var(--font-serif, 'Lora', serif);
   font-size: 17px;
   font-weight: 600;
-  color: #1a1610;
+  color: var(--admin-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -437,7 +437,7 @@ function roleLabel(role: number) {
   font-family: var(--font-sans, 'Inter', sans-serif);
   font-size: 13.5px;
   font-weight: 600;
-  color: #1a1610;
+  color: var(--admin-text-primary);
   white-space: nowrap;
 }
 
@@ -476,7 +476,7 @@ function roleLabel(role: number) {
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
   font-weight: 500;
-  color: #1a1610;
+  color: var(--admin-text-primary);
 }
 
 .field-hint { font-size: 11px; font-weight: 400; color: var(--admin-sidebar-text-muted, #b0a89e); }
@@ -489,10 +489,10 @@ function roleLabel(role: number) {
   padding: 0 10px;
   border: 1px solid var(--admin-sidebar-border, #e8e4de);
   border-radius: 4px;
-  background: #fff;
+  background: var(--admin-surface-input);
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: #1a1610;
+  color: var(--admin-text-primary);
   outline: none;
   transition: border-color 0.15s;
   box-sizing: border-box;
@@ -508,10 +508,10 @@ function roleLabel(role: number) {
   padding: 8px 10px;
   border: 1px solid var(--admin-sidebar-border, #e8e4de);
   border-radius: 4px;
-  background: #fff;
+  background: var(--admin-surface-input);
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: #1a1610;
+  color: var(--admin-text-primary);
   outline: none;
   transition: border-color 0.15s;
   resize: vertical;
@@ -552,7 +552,7 @@ function roleLabel(role: number) {
   align-items: center;
   gap: 6px;
   background: var(--admin-accent, #b85c38);
-  color: #fff;
+  color: var(--admin-text-on-accent);
   border: none;
   border-radius: 4px;
   font-size: 13px;
@@ -585,7 +585,7 @@ function roleLabel(role: number) {
   width: 12px;
   height: 12px;
   border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #fff;
+  border-top-color: var(--admin-text-on-accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;

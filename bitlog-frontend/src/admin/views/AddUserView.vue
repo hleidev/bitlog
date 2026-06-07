@@ -235,7 +235,7 @@ function handleSuccessClose() {
   font-family: var(--font-sans, 'Inter', sans-serif);
   font-size: 13.5px;
   font-weight: 600;
-  color: #1a1610;
+  color: var(--admin-text-primary);
   white-space: nowrap;
 }
 
@@ -279,7 +279,7 @@ function handleSuccessClose() {
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
   font-weight: 500;
-  color: #1a1610;
+  color: var(--admin-text-primary);
 }
 
 .field-hint { font-size: 11px; font-weight: 400; color: var(--admin-sidebar-text-muted, #b0a89e); }
@@ -292,10 +292,10 @@ function handleSuccessClose() {
   padding: 0 10px;
   border: 1px solid var(--admin-sidebar-border, #e8e4de);
   border-radius: 4px;
-  background: #fff;
+  background: var(--admin-surface-input);
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: #1a1610;
+  color: var(--admin-text-primary);
   outline: none;
   transition: border-color 0.15s;
   box-sizing: border-box;
@@ -313,10 +313,10 @@ function handleSuccessClose() {
   padding: 8px 10px;
   border: 1px solid var(--admin-sidebar-border, #e8e4de);
   border-radius: 4px;
-  background: #fff;
+  background: var(--admin-surface-input);
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: #1a1610;
+  color: var(--admin-text-primary);
   outline: none;
   transition: border-color 0.15s;
   resize: vertical;
@@ -337,7 +337,7 @@ function handleSuccessClose() {
   align-items: center;
   gap: 6px;
   background: var(--admin-accent, #b85c38);
-  color: #fff;
+  color: var(--admin-text-on-accent);
   border: none;
   border-radius: 4px;
   font-size: 13px;
@@ -354,7 +354,7 @@ function handleSuccessClose() {
   width: 12px;
   height: 12px;
   border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #fff;
+  border-top-color: var(--admin-text-on-accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
@@ -409,7 +409,7 @@ function handleSuccessClose() {
   font-family: var(--font-serif, 'Lora', serif);
   font-size: 16px;
   font-weight: 600;
-  color: #1a1610;
+  color: var(--admin-text-primary);
   margin: 0;
 }
 

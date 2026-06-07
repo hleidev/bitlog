@@ -226,7 +226,7 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
               <!-- Category -->
               <div class="pf-item">
                 <div class="pf-label">分类 <span class="pf-required">必填</span></div>
-                <div class="pf-combo" v-click-outside="closeCatDropdown">
+                <div v-click-outside="closeCatDropdown" class="pf-combo">
                   <div class="pf-combo-field" :class="{ 'pf-combo-field--focused': catOpen }">
                     <input
                       v-model="catInput"
@@ -286,7 +286,7 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
                     </button>
                   </span>
                 </div>
-                <div class="pf-combo" v-click-outside="() => { tagOpen = false; tagInput = '' }">
+                <div v-click-outside="() => { tagOpen = false; tagInput = '' }" class="pf-combo">
                   <div class="pf-combo-field" :class="{ 'pf-combo-field--focused': tagOpen }">
                     <input
                       v-model="tagInput"
@@ -378,7 +378,7 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   font-family: var(--font-serif, 'Lora', serif);
   font-size: 18px;
   font-weight: 600;
-  color: #1a1610;
+  color: var(--admin-text-primary);
   flex-shrink: 0;
   line-height: 1.2;
   margin: 0;
@@ -446,8 +446,8 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
 .publish-form { display: flex; flex-direction: column; gap: 20px; }
 .pf-item      { display: flex; flex-direction: column; gap: 8px; }
 .pf-label     { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151; }
-.pf-optional  { font-size: 11px; font-weight: 400; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 3px; }
-.pf-required  { font-size: 11px; font-weight: 500; color: #dc2626; background: #fef2f2; padding: 1px 6px; border-radius: 3px; }
+.pf-optional  { font-size: 11px; font-weight: 400; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: var(--admin-radius); }
+.pf-required  { font-size: 11px; font-weight: 500; color: #dc2626; background: #fef2f2; padding: 1px 6px; border-radius: var(--admin-radius); }
 
 .pf-textarea {
   display: block;
@@ -488,7 +488,7 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   display: flex; align-items: center; justify-content: center;
   width: 22px; height: 22px; flex-shrink: 0;
   border: none; background: transparent; cursor: pointer;
-  color: #9ca3af; border-radius: 3px;
+  color: #9ca3af; border-radius: var(--admin-radius);
   transition: color 0.15s, background 0.15s;
 }
 .pf-combo-clear:hover { color: #374151; background: #f3f4f6; }
@@ -513,14 +513,14 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
 .pf-sel-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 3px 6px 3px 10px; font-size: 12px; font-weight: 500;
-  border-radius: 4px; background: #ede9fe; color: #7c3aed; border: 1px solid #ddd6fe;
+  border-radius: 4px; background: rgba(184, 92, 56, 0.08); color: var(--admin-accent); border: 1px solid rgba(184, 92, 56, 0.22);
 }
 .pf-sel-chip-x {
   display: flex; align-items: center; justify-content: center;
   width: 16px; height: 16px; flex-shrink: 0;
   border: none; background: transparent; cursor: pointer;
-  color: #a78bfa; border-radius: 3px; padding: 0;
+  color: var(--admin-accent-light); border-radius: var(--admin-radius); padding: 0;
   transition: color 0.15s, background 0.15s;
 }
-.pf-sel-chip-x:hover { color: #7c3aed; background: #ddd6fe; }
+.pf-sel-chip-x:hover { color: var(--admin-accent); background: rgba(184, 92, 56, 0.14); }
 </style>

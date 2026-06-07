@@ -373,10 +373,10 @@ async function handleDialogSubmit() {
   width: 180px;
   border: 1px solid var(--admin-sidebar-border, #e8e4de);
   border-radius: 4px;
-  background: #fff;
+  background: var(--admin-surface-input);
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: #1a1610;
+  color: var(--admin-text-primary);
   outline: none;
   transition: border-color 0.15s;
   box-sizing: border-box;
@@ -427,7 +427,7 @@ async function handleDialogSubmit() {
   align-items: center;
   gap: 5px;
   background: var(--admin-accent, #b85c38);
-  color: #fff;
+  color: var(--admin-text-on-accent);
   border: none;
   border-radius: 4px;
   font-size: 13px;
@@ -476,7 +476,7 @@ async function handleDialogSubmit() {
   padding: 0 12px;
   border: 1px solid var(--admin-sidebar-border, #e8e4de);
   border-radius: 4px;
-  background: #fff;
+  background: var(--admin-surface-input);
   font-size: 12.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
   color: var(--admin-sidebar-text, #5a5248);
@@ -487,7 +487,7 @@ async function handleDialogSubmit() {
 
 .ghost-btn--sm { height: 26px; }
 .ghost-btn:hover { background: var(--admin-sidebar-hover, #ece9e4); }
-.ghost-btn--danger { color: #c0392b; border-color: rgba(192, 57, 43, 0.25); }
+.ghost-btn--danger { color: var(--admin-danger); border-color: var(--admin-danger-border); }
 .ghost-btn--danger:hover { background: rgba(192, 57, 43, 0.05); }
 
 .cancel-btn {

@@ -46,8 +46,8 @@ const { remove } = useToast()
   align-items: center;
   gap: 10px;
   padding: 11px 14px;
-  background: #faf9f7;
-  border: 1px solid #e8e4de;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
   border-left-width: 3px;
   border-radius: 4px;
   min-width: 240px;
@@ -58,9 +58,9 @@ const { remove } = useToast()
   pointer-events: auto;
 }
 
-.toast--success { border-left-color: #5c8a5c; }
-.toast--error   { border-left-color: #c04040; }
-.toast--warning { border-left-color: #b87028; }
+.toast--success { border-left-color: var(--admin-success); }
+.toast--error   { border-left-color: var(--admin-danger); }
+.toast--warning { border-left-color: var(--admin-warning); }
 
 .toast-icon {
   width: 16px;
@@ -68,9 +68,9 @@ const { remove } = useToast()
   flex-shrink: 0;
 }
 
-.toast--success .toast-icon { color: #5c8a5c; }
-.toast--error   .toast-icon { color: #c04040; }
-.toast--warning .toast-icon { color: #b87028; }
+.toast--success .toast-icon { color: var(--admin-success); }
+.toast--error   .toast-icon { color: var(--admin-danger); }
+.toast--warning .toast-icon { color: var(--admin-warning); }
 
 .toast-msg {
   flex: 1;
@@ -89,7 +89,7 @@ const { remove } = useToast()
   cursor: pointer;
   color: var(--admin-sidebar-text-muted, #b0a89e);
   padding: 0;
-  border-radius: 2px;
+  border-radius: var(--admin-radius);
   transition: color 0.15s;
 }
 

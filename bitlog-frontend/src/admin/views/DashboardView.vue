@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AdminEmptyState from '@/admin/components/AdminEmptyState.vue'
+
 const stats = [
   {
     label: '文章总数',
@@ -61,12 +63,10 @@ const stats = [
         <span class="section-label">最近文章</span>
         <div class="section-rule" />
       </div>
-      <div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z" />
-        </svg>
-        <span>暂无数据</span>
-      </div>
+      <AdminEmptyState
+        message="暂无数据"
+        icon-path="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"
+      />
     </div>
 
   </div>
@@ -97,7 +97,7 @@ const stats = [
   font-family: var(--font-serif, 'Lora', serif);
   font-size: 18px;
   font-weight: 600;
-  color: #1a1610;
+  color: var(--admin-text-primary);
   white-space: nowrap;
   margin: 0;
 }
@@ -160,7 +160,7 @@ const stats = [
   font-size: 22px;
   font-weight: 700;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: #1a1610;
+  color: var(--admin-text-primary);
   line-height: 1;
 }
 
@@ -191,7 +191,7 @@ const stats = [
   font-family: var(--font-sans, 'Inter', sans-serif);
   font-size: 13.5px;
   font-weight: 600;
-  color: #1a1610;
+  color: var(--admin-text-primary);
   white-space: nowrap;
 }
 
@@ -199,28 +199,6 @@ const stats = [
   flex: 1;
   height: 1px;
   background: var(--admin-sidebar-border, #e8e4de);
-}
-
-/* ── Empty state ── */
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 40px 0;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
-}
-
-.empty-icon {
-  width: 32px;
-  height: 32px;
-  opacity: 0.3;
-}
-
-.empty-state span {
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
 }
 
 /* ── Responsive ── */

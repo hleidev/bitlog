@@ -132,8 +132,8 @@ async function handleLogin() {
 .login-card {
   width: 360px;
   max-width: calc(100vw - 32px);
-  background: #faf9f7;
-  border: 1px solid #e8e4de;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
   border-radius: 4px;
   padding: 40px 36px 32px;
 }
@@ -150,7 +150,7 @@ async function handleLogin() {
   font-family: var(--font-serif, 'Lora', serif);
   font-size: 30px;
   font-weight: 700;
-  color: #1a1610;
+  color: var(--admin-text-primary);
   letter-spacing: 0.5px;
   line-height: 1;
 }
@@ -172,7 +172,7 @@ async function handleLogin() {
   padding: 10px 14px;
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: #c04040;
+  color: var(--admin-danger);
   margin-bottom: 20px;
 }
 
@@ -209,12 +209,12 @@ async function handleLogin() {
   width: 100%;
   height: 40px;
   padding: 0 38px 0 36px;
-  border: 1px solid #e8e4de;
+  border: 1px solid var(--admin-border);
   border-radius: 4px;
-  background: #fff;
+  background: var(--admin-surface-input);
   font-size: 13.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: #1a1610;
+  color: var(--admin-text-primary);
   outline: none;
   transition: border-color 0.15s;
   box-sizing: border-box;
@@ -249,7 +249,7 @@ async function handleLogin() {
   justify-content: center;
   gap: 8px;
   background: var(--admin-accent, #b85c38);
-  color: #fff;
+  color: var(--admin-text-on-accent);
   border: none;
   border-radius: 4px;
   font-size: 14px;
