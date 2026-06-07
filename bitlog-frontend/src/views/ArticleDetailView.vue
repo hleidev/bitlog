@@ -339,5 +339,12 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
     padding-left: 20px;
     padding-right: 20px;
   }
+  /* 移动端:阅读进度条与 iOS 顶部状态栏重叠,改为底部 1px 条 */
+  .progress-bar {
+    top: auto;
+    bottom: 0;
+    height: 1px;
+    background: var(--color-accent);
+  }
 }
 </style>
