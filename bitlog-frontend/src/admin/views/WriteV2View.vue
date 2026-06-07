@@ -45,6 +45,48 @@ const saveState  = ref<'idle' | 'saving' | 'saved'>('saved')
 const saving     = ref(false)
 const hasUnsaved = ref(false)
 let saveTimer: ReturnType<typeof setTimeout> | undefined
+let autoSaveTimer: ReturnType<typeof setTimeout> | undefined
+
+// ── LocalStorage auto-save ──────────────────────────────────────────────────────
+// 独立于"保存草稿"按钮的本地兜底:Vditor cache 已关,用户忘记手动保存时防丢字。
+// 键名按 articleId(或 "new") 隔离,避免不同文章覆盖。
+const AUTO_SAVE_KEY = (id: number | 'new') => `bitlog:autosave:${id}`
+const AUTO_SAVE_DEBOUNCE_MS = 800
+const AUTO_SAVE_TTL_MS = 7 * 24 * 3600 * 1000 // 7 天过期
+
+interface AutoSavePayload {
+  title: string
+  content: string
+  ts: number
+}
+
+function writeAutoSave() {
+  if (isNew && !title.value.trim() && !content.value.trim()) return
+  const payload: AutoSavePayload = {
+    title:   title.value,
+    content: vditorRef.value?.getMarkdown() ?? content.value,
+    ts:      Date.now(),
+  }
+  try {
+    localStorage.setItem(AUTO_SAVE_KEY(articleId ?? 'new'), JSON.stringify(payload))
+  } catch {
+    // localStorage 满 / 隐私模式不可用 —— 静默
+  }
+}
+
+function clearAutoSave() {
+  try { localStorage.removeItem(AUTO_SAVE_KEY(articleId ?? 'new')) } catch { /* noop */ }
+}
+
+function readAutoSave(): AutoSavePayload | null {
+  try {
+    const raw = localStorage.getItem(AUTO_SAVE_KEY(articleId ?? 'new'))
+    if (!raw) return null
+    const data = JSON.parse(raw) as AutoSavePayload
+    if (Date.now() - data.ts > AUTO_SAVE_TTL_MS) return null
+    return data
+  } catch { return null }
+}
 
 const saveStateText = computed(() => {
   if (saveState.value === 'saving') return '保存中...'
@@ -137,6 +179,11 @@ async function loadDraft() {
     await nextTick()
     autoResizeTitle()
     suppressChange = false
+    // 新建草稿:检查 localStorage 是否有未确认的内容,提示恢复
+    const cached = readAutoSave()
+    if (cached && (cached.title.trim() || cached.content.trim())) {
+      await maybeRestoreFromCache(cached, null)
+    }
     return
   }
 
@@ -154,6 +201,12 @@ async function loadDraft() {
     draftTags.value     = data.tags
     await loadVersions()
     saveState.value = 'saved'
+    // 已有文章:localStorage 草稿比服务器版更新 → 提示恢复
+    const cached = readAutoSave()
+    if (cached && (cached.title.trim() || cached.content.trim()) &&
+        (cached.title !== data.title || cached.content !== data.content)) {
+      await maybeRestoreFromCache(cached, data.updateTime)
+    }
   } catch (err) {
     handleError(err, '加载文章失败')
   } finally {
@@ -162,6 +215,47 @@ async function loadDraft() {
     autoResizeTitle()
     suppressChange = false
   }
+}
+
+async function maybeRestoreFromCache(
+  cached: AutoSavePayload,
+  serverUpdateTime: string | null,
+) {
+  // 服务器版比 localStorage 还新 → 忽略缓存
+  if (serverUpdateTime) {
+    const serverTs = new Date(serverUpdateTime).getTime()
+    if (serverTs > cached.ts) {
+      clearAutoSave()
+      return
+    }
+  }
+  const ago = formatRelative(cached.ts)
+  try {
+    await confirm(
+      `检测到 ${ago} 的本地未保存草稿,是否恢复？\n（选择「忽略」将清除本地草稿）`,
+      '恢复本地草稿',
+      { confirmText: '恢复', cancelText: '忽略' },
+    )
+    title.value   = cached.title
+    content.value = cached.content
+    vditorRef.value?.setMarkdown(cached.content)
+    hasUnsaved.value = true
+    saveState.value  = 'idle'
+    await nextTick(); autoResizeTitle()
+    toast.success('已恢复本地草稿')
+  } catch {
+    clearAutoSave()
+  }
+}
+
+function formatRelative(ts: number): string {
+  const diff = Date.now() - ts
+  const m = Math.floor(diff / 60000)
+  if (m < 1)    return '刚刚'
+  if (m < 60)   return `${m} 分钟前`
+  const h = Math.floor(diff / 3600000)
+  if (h < 24)   return `${h} 小时前`
+  return `${Math.floor(diff / 86400000)} 天前`
 }
 
 // ── Save ───────────────────────────────────────────────────────────────────────
@@ -173,6 +267,8 @@ async function performSave() {
     const md = vditorRef.value?.getMarkdown() ?? ''
     if (isNew) {
       const newId = await createArticle({ title: title.value, content: md })
+      // 切换到带 id 的路由:清掉 "new" 键,新 key 由后续写入建立
+      clearAutoSave()
       router.replace(`/admin/write/${newId}`)
       saveState.value  = 'saved'
       hasUnsaved.value = false
@@ -180,6 +276,7 @@ async function performSave() {
     } else {
       await updateArticleDraft(articleId!, { title: title.value, content: md })
       await loadVersions()
+      clearAutoSave()
       saveState.value  = 'saved'
       hasUnsaved.value = false
       if (publishedVersionId.value !== null) hasDraftAbovePublish.value = true
@@ -360,6 +457,7 @@ watch(title, () => {
   if (suppressChange) return
   hasUnsaved.value = true
   saveState.value  = 'idle'
+  scheduleAutoSave()
 })
 
 async function uploadImageFn(file: File): Promise<string> {
@@ -371,6 +469,12 @@ function onEditorChange() {
   if (suppressChange) return
   hasUnsaved.value = true
   saveState.value  = 'idle'
+  scheduleAutoSave()
+}
+
+function scheduleAutoSave() {
+  clearTimeout(autoSaveTimer)
+  autoSaveTimer = setTimeout(writeAutoSave, AUTO_SAVE_DEBOUNCE_MS)
 }
 
 // ── Keyboard shortcut ──────────────────────────────────────────────────────────
@@ -390,6 +494,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearTimeout(saveTimer)
+  clearTimeout(autoSaveTimer)
   window.removeEventListener('beforeunload', onBeforeUnload)
   window.removeEventListener('keydown', onKeydown)
 })
