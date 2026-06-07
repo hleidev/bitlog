@@ -103,6 +103,19 @@ const someChecked = computed(() =>
   articles.value.some(a => selected.has(a.id)) && !allChecked.value,
 )
 
+// ── Status derivation ──────────────────────────────────────────────────────────
+// 后端 status 字段只有 DRAFT / PUBLISHED 二值,但列表要表达三种状态:
+//   1) published       —  publishedVersionId !== null
+//   2) draft (on top)  —  publishedVersionId !== null && latestVersionId !== publishedVersionId
+//   3) pure draft      —  publishedVersionId === null
+// 提供统一函数避免各处重复推导,并保证和未来 API 字段调整同步。
+function isPureDraft(row: ArticleVO): boolean {
+  return row.publishedVersionId === null
+}
+function hasDraftAbovePublish(row: ArticleVO): boolean {
+  return row.publishedVersionId !== null && row.latestVersionId !== row.publishedVersionId
+}
+
 function toggleAll() {
   if (allChecked.value) articles.value.forEach(a => selected.delete(a.id))
   else                  articles.value.forEach(a => selected.add(a.id))
@@ -135,8 +148,10 @@ async function handleEdit(row: ArticleVO) {
 }
 
 function handlePreview(row: ArticleVO) {
-  if (row.status === 'PUBLISHED') window.open(`/article/${row.id}`, '_blank')
-  else                            window.open(`/admin/preview/${row.id}`, '_blank')
+  // 预览策略:有未发布草稿 → 预览草稿页;否则 → 公开页
+  // 走版本号判断,避免遗漏 "已发布 + 有未发布草稿" 这种中间态
+  if (hasDraftAbovePublish(row)) window.open(`/admin/preview/${row.id}`, '_blank')
+  else                           window.open(`/article/${row.id}`, '_blank')
 }
 
 async function handleTogglePublish(row: ArticleVO) {
@@ -439,13 +454,13 @@ function formatViews(n: number) {
             <tr
               v-for="row in articles"
               :key="row.id"
-              :class="{ 'row--draft': row.status === 'DRAFT', 'row--selected': selected.has(row.id) }"
+              :class="{ 'row--draft': isPureDraft(row), 'row--selected': selected.has(row.id) }"
             >
               <td class="col-check">
                 <input type="checkbox" class="row-checkbox" :checked="selected.has(row.id)" @change="toggleRow(row.id)" />
               </td>
               <td class="col-title">
-                <span class="article-title" :class="{ 'article-title--draft': row.status === 'DRAFT' }" @click="handleEdit(row)">
+                <span class="article-title" :class="{ 'article-title--draft': isPureDraft(row) }" @click="handleEdit(row)">
                   {{ row.title }}
                 </span>
               </td>
@@ -461,12 +476,12 @@ function formatViews(n: number) {
               </td>
               <td class="col-status">
                 <div class="status-cell">
-                  <span v-if="row.publishedVersionId !== null" class="status-badge status-badge--published">已发布</span>
-                  <span v-if="row.latestVersionId !== row.publishedVersionId" class="status-badge status-badge--draft">草稿</span>
+                  <span v-if="!isPureDraft(row)" class="status-badge status-badge--published">已发布</span>
+                  <span v-if="hasDraftAbovePublish(row)" class="status-badge status-badge--draft">草稿</span>
                 </div>
               </td>
               <td class="col-views" style="text-align: right;">
-                <span class="cell-muted" :style="{ textAlign: 'right', display: 'block' }">{{ row.status === 'PUBLISHED' ? formatViews(row.readCount) : '—' }}</span>
+                <span class="cell-muted" :style="{ textAlign: 'right', display: 'block' }">{{ isPureDraft(row) ? '—' : formatViews(row.readCount) }}</span>
               </td>
               <td class="col-time">
                 <span class="cell-muted" :title="row.updateTime">{{ relativeTime(row.updateTime) }}</span>
@@ -475,13 +490,50 @@ function formatViews(n: number) {
                 <div class="row-actions">
                   <button class="action-btn" @click="handlePreview(row)">预览</button>
                   <button class="action-btn" @click="openMetaModal(row)">属性</button>
-                  <button v-if="row.status === 'PUBLISHED'" class="action-btn" @click="handleTogglePublish(row)">撤回</button>
+                  <button v-if="!isPureDraft(row)" class="action-btn" @click="handleTogglePublish(row)">撤回</button>
                   <button class="action-btn action-btn--danger" @click="handleDelete(row)">删除</button>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
+
+        <!-- Mobile cards (同源数据,CSS 在 <768px 隐藏表格显示卡片) -->
+        <ul class="data-cards">
+          <li
+            v-for="row in articles"
+            :key="`c-${row.id}`"
+            class="data-card"
+            :class="{ 'data-card--draft': isPureDraft(row), 'data-card--selected': selected.has(row.id) }"
+          >
+            <div class="data-card__head">
+              <input
+                type="checkbox"
+                class="row-checkbox"
+                :checked="selected.has(row.id)"
+                @change="toggleRow(row.id)"
+              />
+              <span class="data-card__title" @click="handleEdit(row)">{{ row.title }}</span>
+            </div>
+            <div class="data-card__meta">
+              <span v-if="row.category" class="category-tag">{{ row.category.name }}</span>
+              <div v-if="row.tags.length > 0" class="data-card__tags">
+                <span v-for="tag in row.tags" :key="tag.id" class="tag-chip">{{ tag.name }}</span>
+              </div>
+              <div class="data-card__status">
+                <span v-if="!isPureDraft(row)" class="status-badge status-badge--published">已发布</span>
+                <span v-if="hasDraftAbovePublish(row)" class="status-badge status-badge--draft">草稿</span>
+                <span class="cell-muted">{{ relativeTime(row.updateTime) }}</span>
+              </div>
+            </div>
+            <div class="data-card__actions">
+              <button class="action-btn" @click="handlePreview(row)">预览</button>
+              <button class="action-btn" @click="openMetaModal(row)">属性</button>
+              <button v-if="!isPureDraft(row)" class="action-btn" @click="handleTogglePublish(row)">撤回</button>
+              <button class="action-btn action-btn--danger" @click="handleDelete(row)">删除</button>
+            </div>
+          </li>
+        </ul>
       </div>
 
       <!-- ── Pagination ── -->
@@ -1165,6 +1217,8 @@ function formatViews(n: number) {
 
 /* ── Mobile ── */
 
+.data-cards { display: none; }
+
 @media (max-width: 768px) {
   .card-header { flex-direction: column; align-items: stretch; padding: 0 12px; gap: 0; }
   .view-tabs { overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de); }
@@ -1176,5 +1230,62 @@ function formatViews(n: number) {
   .sel-cancel { margin-left: 0; }
   .pagination-bar { padding: 10px 12px; flex-wrap: wrap; gap: 6px; }
   .page-size-select { margin-left: 0; }
+
+  /* 切到卡片视图 */
+  .data-table { display: none; }
+  .data-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+  .data-card {
+    background: #fff;
+    border: 1px solid var(--admin-sidebar-border, #e8e4de);
+    border-radius: 4px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .data-card--draft { border-left: 3px solid var(--admin-sidebar-border, #e8e4de); }
+  .data-card--selected { background: rgba(184, 92, 56, 0.04); }
+  .data-card__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .data-card__title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-primary, #1a1610);
+    cursor: pointer;
+  }
+  .data-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .data-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .data-card__status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .data-card__actions {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--admin-sidebar-border, #e8e4de);
+    padding-top: 8px;
+  }
 }
 </style>
