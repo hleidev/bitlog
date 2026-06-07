@@ -14,6 +14,7 @@
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
+import '@/components/prose.css'
 
 const props = withDefaults(defineProps<{
   content: string
@@ -33,10 +34,12 @@ function isDarkTheme(): boolean {
 
 function syncEditorTheme() {
   if (!vditor) return
-  // setTheme(theme, contentTheme): theme 控编辑器本体, contentTheme 控 preview 区域
-  // 内置 contentTheme: 'light' | 'dark'
-  const contentTheme = isDarkTheme() ? 'dark' : 'light'
-  vditor.setTheme(contentTheme === 'dark' ? 'dark' : 'classic', contentTheme)
+  // We use 'classic' with path='' so Vditor never injects the
+  // dark.css <link> (which would win the cascade over prose.css).
+  // The data-theme transition observer still re-runs this so any
+  // background-color overrides in VditorWriter.vue stay in sync via
+  // prose.css' dark-mode token mapping.
+  vditor.setTheme('classic', 'classic')
 }
 
 onMounted(() => {
@@ -46,8 +49,11 @@ onMounted(() => {
     mode: 'ir',
     height: 'auto',
     placeholder: '开始写吧…',
-    // 主题：跟随项目 [data-theme='dark']，由 syncEditorTheme 在 after 时设置
-    theme: isDarkTheme() ? 'dark' : 'classic',
+    // 主题：永远 classic + path='' 避免 Vditor 注入 dark.css link。
+    // 否则 unpkg.com/.../content-theme/dark.css 作为 <body> 末尾的 <link>
+    // 会赢过 prose.css 的 cascade,导致 blockquote / inline code 与详情页不一致。
+    // 我们自己已经在 VditorWriter <style> 里处理 IR preview 的暗色配色。
+    theme: { current: 'classic', path: '' },
     icon: 'ant',
     cache: { enable: false },
     // 输入回调：只在 IR 模式触发
@@ -201,39 +207,21 @@ defineExpose({ getMarkdown, setMarkdown, focus })
   background: transparent !important;
 }
 
-/* 套上项目 warm editorial + Lora 衬线 —— 用 CSS 变量,暗色模式自动切换 */
-.vditor-writer .vditor-ir {
-  font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
-  font-size: 16px;
-  line-height: 1.75;
-  color: var(--color-text-primary, #2a2520);
-  background: transparent;
-  padding: 0;
+/* Most typography/blockquote/code colors now come from prose.css
+   (imported above) which targets .vditor-ir directly so the IR container
+   matches the read-side ArticleContent pixel-for-pixel. */
+
+/* Placeholder tone: warmer than the default cool grey in dark mode */
+.vditor-writer .vditor-ir__node:empty::before,
+.vditor-writer pre.vditor-reset[placeholder]:empty::before {
+  color: var(--write-placeholder, var(--color-text-faint, #ccc5bc)) !important;
 }
 
-.vditor-writer .vditor-ir__preview {
-  font-family: inherit;
-}
-
-/* 主色与项目 --color-accent 对齐 */
+/* Accent color for the live-edit caret markers and link hint. */
 .vditor-writer .vditor-ir__node--expand,
-.vditor-writer .vditor-ir__link {
-  color: var(--color-accent, #b85c38);
-}
-
-.vditor-writer .vditor-ir__blockquote {
-  border-left: 3px solid var(--color-accent, #b85c38);
-  color: var(--color-text-secondary, #5a5248);
-}
-
+.vditor-writer .vditor-ir__link,
 .vditor-writer .vditor-ir__marker--link {
   color: var(--color-accent, #b85c38);
-}
-
-.vditor-writer .vditor-ir a {
-  color: var(--color-accent, #b85c38);
-  text-decoration: none;
-  border-bottom: 1px solid var(--color-accent-light, #e07b4f);
 }
 
 /* 工具栏已禁用（toolbar: []），保留 IR 渲染与节点样式即可 */
@@ -244,10 +232,20 @@ defineExpose({ getMarkdown, setMarkdown, focus })
   border-radius: 0 !important;
 }
 
-/* Vditor 自带分隔线/暗背景硬编码,这里覆盖避免暗色下反白 */
-.vditor-writer .vditor-ir__node--expand,
-.vditor-writer .vditor-ir__node--code {
-  background: var(--color-bg-card, #f4f2ef) !important;
-  color: var(--color-text-primary, #1a1610) !important;
+/* Vditor's default blockquote style is a thin grey bar. Reset to match
+   prose.css — done in prose.css via .vditor-ir blockquote, so no override
+   needed here. Vditor's default pre block IS white, however; force it to
+   transparent so prose.css .code-block-wrapper (when wrapped by
+   ArticleContent) shows its dark background. The plain IR view does not
+   have a wrapper, so we explicitly theme its <pre> here. */
+.vditor-writer pre.vditor-reset {
+  background: #282c34 !important;
+  color: #abb2bf;
+  padding: 16px 22px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.65;
+  margin: 26px 0;
 }
 </style>

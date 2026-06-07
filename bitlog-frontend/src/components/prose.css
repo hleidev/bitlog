@@ -1,6 +1,12 @@
-/* ── Base ─────────────────────────────────────────────────────────────────── */
+/* ── Base ───────────────────────────────────────────────────────────────────
+ * Styles are scoped to two host selectors on purpose:
+ *   .ProseMirror     — Tiptap (read-only ArticleContent in legacy / future)
+ *   .vditor-ir       — Vditor IR mode (the actual write-side renderer)
+ * Both rendering paths must look identical to readers.
+ */
 
-.ProseMirror {
+.ProseMirror,
+.vditor-ir {
   font-size: 16px;
   line-height: 1.85;
   color: var(--color-text-secondary);
@@ -14,7 +20,8 @@
 
 /* ── Headings ─────────────────────────────────────────────────────────────── */
 
-.ProseMirror h1 {
+.ProseMirror h1,
+.vditor-ir h1 {
   font-family: var(--font-serif);
   font-size: 28px;
   font-weight: 600;
@@ -24,7 +31,8 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.ProseMirror h2 {
+.ProseMirror h2,
+.vditor-ir h2 {
   font-family: var(--font-serif);
   font-size: 23px;
   font-weight: 600;
@@ -33,16 +41,20 @@
 }
 
 .ProseMirror h1:first-child,
-.ProseMirror h2:first-child { margin-top: 0; }
+.ProseMirror h2:first-child,
+.vditor-ir h1:first-child,
+.vditor-ir h2:first-child { margin-top: 0; }
 
-.ProseMirror h3 {
+.ProseMirror h3,
+.vditor-ir h3 {
   font-size: 19px;
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 32px 0 12px;
 }
 
-.ProseMirror h4 {
+.ProseMirror h4,
+.vditor-ir h4 {
   font-size: 16px;
   font-weight: 700;
   color: var(--color-text-secondary);
@@ -52,24 +64,29 @@
 
 /* ── Paragraphs & inline ──────────────────────────────────────────────────── */
 
-.ProseMirror p { margin-bottom: 18px; }
+.ProseMirror p,
+.vditor-ir p { margin-bottom: 18px; }
 
-.ProseMirror strong {
+.ProseMirror strong,
+.vditor-ir strong {
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
-.ProseMirror em {
+.ProseMirror em,
+.vditor-ir em {
   font-style: italic;
   color: var(--color-text-muted);
 }
 
-.ProseMirror s {
+.ProseMirror s,
+.vditor-ir s {
   text-decoration: line-through;
   color: var(--color-text-muted);
 }
 
-.ProseMirror a {
+.ProseMirror a,
+.vditor-ir a {
   color: var(--color-accent);
   text-decoration: underline;
   text-decoration-color: rgba(184, 92, 56, 0.35);
@@ -77,14 +94,28 @@
   transition: color var(--transition-base), text-decoration-color var(--transition-base);
 }
 
-.ProseMirror a:hover {
+.ProseMirror a:hover,
+.vditor-ir a:hover {
   color: var(--color-accent-dark);
   text-decoration-color: var(--color-accent-dark);
 }
 
 /* ── Inline code ──────────────────────────────────────────────────────────── */
 
-.ProseMirror code {
+/* Plain Vditor <code> (no language-*) — inline code, warm chip style.
+   In ArticleContent we run enhanceCodeBlocks() which wraps any <code> in
+   a .code-block-wrapper, so the plain <code> rule only matters for the
+   write-side IR where inline code is the *only* code path (no wrappers).
+
+   NOTE: specificity must beat Vditor's own
+   `.vditor-reset code:not(.hljs):not(.highlight-chroma)` (0,2,1).
+   The double-class selectors below are 0,2,1 / 0,2,1, so order wins;
+   since prose.css is imported after vditor/dist/index.css in
+   VditorWriter.vue, ours loads later and wins the cascade. */
+.ProseMirror code,
+.ProseMirror code:not(.hljs):not(.highlight-chroma),
+.vditor-ir code,
+.vditor-ir code:not(.hljs):not(.highlight-chroma) {
   font-family: var(--font-mono);
   font-size: 0.875em;
   background: var(--color-bg-hover);
@@ -92,11 +123,14 @@
   padding: 2px 6px;
   border-radius: 4px;
   border: 1px solid var(--color-border);
+  /* Override Vditor's monospace font + 85% size */
+  font-family: var(--font-mono);
 }
 
-/* ── Code blocks (NodeView structure) ────────────────────────────────────── */
+/* ── Code blocks (ArticleContent NodeView-equivalent) ────────────────────── */
 
-.ProseMirror .code-block-wrapper {
+.ProseMirror .code-block-wrapper,
+.vditor-ir .code-block-wrapper {
   background: #282c34;
   border-radius: 4px;
   margin: 26px 0;
@@ -105,14 +139,18 @@
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
-.ProseMirror .code-block-wrapper::-webkit-scrollbar { height: 3px; }
-.ProseMirror .code-block-wrapper::-webkit-scrollbar-track { background: transparent; }
-.ProseMirror .code-block-wrapper::-webkit-scrollbar-thumb {
+.ProseMirror .code-block-wrapper::-webkit-scrollbar,
+.vditor-ir .code-block-wrapper::-webkit-scrollbar { height: 3px; }
+.ProseMirror .code-block-wrapper::-webkit-scrollbar-track,
+.vditor-ir .code-block-wrapper::-webkit-scrollbar-track { background: transparent; }
+.ProseMirror .code-block-wrapper::-webkit-scrollbar-thumb,
+.vditor-ir .code-block-wrapper::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 2px;
 }
 
-.ProseMirror .code-header {
+.ProseMirror .code-header,
+.vditor-ir .code-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -121,14 +159,16 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.ProseMirror .code-lang-label {
+.ProseMirror .code-lang-label,
+.vditor-ir .code-lang-label {
   font-family: var(--font-mono);
   font-size: 12px;
   color: rgba(255, 255, 255, 0.45);
   text-transform: lowercase;
 }
 
-.ProseMirror .copy-btn {
+.ProseMirror .copy-btn,
+.vditor-ir .copy-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -142,11 +182,15 @@
   line-height: 1;
 }
 
-.ProseMirror .copy-btn:hover { color: rgba(255, 255, 255, 0.75); }
-.ProseMirror .copy-btn--copied { color: #4ade80; }
-.ProseMirror .copy-btn--copied:hover { color: #4ade80; }
+.ProseMirror .copy-btn:hover,
+.vditor-ir .copy-btn:hover { color: rgba(255, 255, 255, 0.75); }
+.ProseMirror .copy-btn--copied,
+.vditor-ir .copy-btn--copied { color: #4ade80; }
+.ProseMirror .copy-btn--copied:hover,
+.vditor-ir .copy-btn--copied:hover { color: #4ade80; }
 
-.ProseMirror .code-lang-input {
+.ProseMirror .code-lang-input,
+.vditor-ir .code-lang-input {
   font-family: var(--font-mono);
   font-size: 12px;
   color: rgba(255, 255, 255, 0.45);
@@ -159,18 +203,21 @@
   transition: color 0.15s;
 }
 
-.ProseMirror .code-lang-input:focus {
+.ProseMirror .code-lang-input:focus,
+.vditor-ir .code-lang-input:focus {
   color: rgba(255, 255, 255, 0.85);
   cursor: text;
 }
 
-.ProseMirror pre.code-body {
+.ProseMirror pre.code-body,
+.vditor-ir pre.code-body {
   margin: 0;
   background: transparent;
   overflow-x: auto;
 }
 
-.ProseMirror pre.code-body code {
+.ProseMirror pre.code-body code,
+.vditor-ir pre.code-body code {
   display: block;
   padding: 16px 22px;
   font-family: var(--font-mono);
@@ -186,7 +233,8 @@
 }
 
 /* Reset inline code styles inside code blocks */
-.ProseMirror pre code {
+.ProseMirror pre code,
+.vditor-ir pre code {
   font-size: inherit;
   background: none;
   color: inherit;
@@ -197,7 +245,8 @@
 
 /* ── Mermaid diagram view ─────────────────────────────────────────────────── */
 
-.ProseMirror .mermaid-preview {
+.ProseMirror .mermaid-preview,
+.vditor-ir .mermaid-preview {
   padding: 24px 20px;
   background: #fff;
   display: flex;
@@ -206,29 +255,35 @@
   border-radius: 0 0 4px 4px;
 }
 
-.ProseMirror .mermaid-preview--clickable {
+.ProseMirror .mermaid-preview--clickable,
+.vditor-ir .mermaid-preview--clickable {
   cursor: pointer;
 }
 
-.ProseMirror .mermaid-preview--clickable:hover {
+.ProseMirror .mermaid-preview--clickable:hover,
+.vditor-ir .mermaid-preview--clickable:hover {
   background: #f9f9f9;
 }
 
-.ProseMirror .mermaid-preview--zoomable {
+.ProseMirror .mermaid-preview--zoomable,
+.vditor-ir .mermaid-preview--zoomable {
   cursor: zoom-in;
 }
 
-.ProseMirror .mermaid-svg-wrap {
+.ProseMirror .mermaid-svg-wrap,
+.vditor-ir .mermaid-svg-wrap {
   width: 100%;
 }
 
-.ProseMirror .mermaid-svg-wrap svg {
+.ProseMirror .mermaid-svg-wrap svg,
+.vditor-ir .mermaid-svg-wrap svg {
   width: 100%;
   max-width: 100%;
   height: auto;
 }
 
-.ProseMirror .mermaid-error {
+.ProseMirror .mermaid-error,
+.vditor-ir .mermaid-error {
   padding: 12px 0;
   color: #e06c75;
   font-family: var(--font-mono);
@@ -237,14 +292,16 @@
 
 /* ── Blockquote ───────────────────────────────────────────────────────────── */
 
-.ProseMirror blockquote {
+.ProseMirror blockquote,
+.vditor-ir blockquote {
   border-left: 2px solid var(--color-accent);
   margin: 28px 0;
   padding: 14px 20px;
   background: rgba(184, 92, 56, 0.04);
 }
 
-.ProseMirror blockquote p {
+.ProseMirror blockquote p,
+.vditor-ir blockquote p {
   margin: 0;
   color: var(--color-text-muted);
   font-style: italic;
@@ -253,22 +310,28 @@
 /* ── Lists ────────────────────────────────────────────────────────────────── */
 
 .ProseMirror ul,
-.ProseMirror ol {
+.ProseMirror ol,
+.vditor-ir ul,
+.vditor-ir ol {
   padding-left: 24px;
   margin-bottom: 18px;
 }
 
-.ProseMirror li {
+.ProseMirror li,
+.vditor-ir li {
   margin-bottom: 8px;
   line-height: 1.75;
 }
 
-.ProseMirror ul li { list-style: disc; }
-.ProseMirror ol li { list-style: decimal; }
+.ProseMirror ul li,
+.vditor-ir ul li { list-style: disc; }
+.ProseMirror ol li,
+.vditor-ir ol li { list-style: decimal; }
 
 /* ── Horizontal rule ──────────────────────────────────────────────────────── */
 
-.ProseMirror hr {
+.ProseMirror hr,
+.vditor-ir hr {
   border: none;
   border-top: 1px solid var(--color-border);
   margin: 40px 0;
@@ -276,7 +339,8 @@
 
 /* ── Images ───────────────────────────────────────────────────────────────── */
 
-.ProseMirror img {
+.ProseMirror img,
+.vditor-ir img {
   max-width: 100%;
   border-radius: 4px;
   margin: 20px 0;
@@ -285,7 +349,8 @@
 
 /* ── Tables ───────────────────────────────────────────────────────────────── */
 
-.ProseMirror table {
+.ProseMirror table,
+.vditor-ir table {
   width: 100%;
   border-collapse: collapse;
   margin: 28px 0;
@@ -293,7 +358,8 @@
   border: 1px solid var(--color-border);
 }
 
-.ProseMirror th {
+.ProseMirror th,
+.vditor-ir th {
   background: var(--color-bg-card);
   color: var(--color-text-primary);
   font-weight: 600;
@@ -303,31 +369,38 @@
   border-right: 1px solid var(--color-border);
 }
 
-.ProseMirror th:last-child { border-right: none; }
+.ProseMirror th:last-child,
+.vditor-ir th:last-child { border-right: none; }
 
-.ProseMirror td {
+.ProseMirror td,
+.vditor-ir td {
   padding: 10px 16px;
   border-bottom: 1px solid var(--color-border);
   border-right: 1px solid var(--color-border-light);
   color: var(--color-text-secondary);
 }
 
-.ProseMirror td:last-child { border-right: none; }
+.ProseMirror td:last-child,
+.vditor-ir td:last-child { border-right: none; }
 
-.ProseMirror tr:last-child td { border-bottom: none; }
+.ProseMirror tr:last-child td,
+.vditor-ir tr:last-child td { border-bottom: none; }
 
 .ProseMirror td p,
-.ProseMirror th p { margin-bottom: 0; }
+.ProseMirror th p,
+.vditor-ir td p,
+.vditor-ir th p { margin-bottom: 0; }
 
-.ProseMirror tbody tr:hover td {
+.ProseMirror tbody tr:hover td,
+.vditor-ir tbody tr:hover td {
   background: var(--color-bg-hover);
 }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  .ProseMirror { font-size: 15px; }
-  .ProseMirror h1 { font-size: 24px; }
-  .ProseMirror h2 { font-size: 20px; }
-  .ProseMirror h3 { font-size: 17px; }
+  .ProseMirror, .vditor-ir { font-size: 15px; }
+  .ProseMirror h1, .vditor-ir h1 { font-size: 24px; }
+  .ProseMirror h2, .vditor-ir h2 { font-size: 20px; }
+  .ProseMirror h3, .vditor-ir h3 { font-size: 17px; }
 }
