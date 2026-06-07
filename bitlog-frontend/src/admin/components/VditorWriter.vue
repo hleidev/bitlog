@@ -232,20 +232,4 @@ defineExpose({ getMarkdown, setMarkdown, focus })
   border-radius: 0 !important;
 }
 
-/* Vditor's default blockquote style is a thin grey bar. Reset to match
-   prose.css — done in prose.css via .vditor-ir blockquote, so no override
-   needed here. Vditor's default pre block IS white, however; force it to
-   transparent so prose.css .code-block-wrapper (when wrapped by
-   ArticleContent) shows its dark background. The plain IR view does not
-   have a wrapper, so we explicitly theme its <pre> here. */
-.vditor-writer pre.vditor-reset {
-  background: #282c34 !important;
-  color: #abb2bf;
-  padding: 16px 22px;
-  border-radius: 4px;
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-  line-height: 1.65;
-  margin: 26px 0;
-}
 </style>
