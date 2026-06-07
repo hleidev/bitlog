@@ -219,7 +219,9 @@ function escapeHtml(s: string): string {
     :alt="lightboxAlt"
     @close="closeLightbox"
   >
-    <div v-if="lightboxHtml" class="lightbox-svg-host" v-html="lightboxHtml" />
+    <template v-if="lightboxHtml" #interactive>
+      <div class="lightbox-svg-host" v-html="lightboxHtml" />
+    </template>
   </ImageLightbox>
 </template>
 
