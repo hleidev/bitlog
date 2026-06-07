@@ -1,13 +1,7 @@
+<script setup lang="ts">
+import AdminEmptyState from '@/admin/components/AdminEmptyState.vue'
+</script>
+
 <template>
-  <div class="placeholder-page">
-    <el-card shadow="never">
-
-      <el-empty description="功能开发中" :image-size="100" />
-    </el-card>
-  </div>
+  <AdminEmptyState message="功能开发中" />
 </template>
-
-<style scoped>
-.placeholder-page { display: flex; flex-direction: column; gap: 16px; }
-.card-title { font-size: 15px; font-weight: 600; color: #262626; }
-</style>
