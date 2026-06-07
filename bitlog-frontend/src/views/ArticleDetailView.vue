@@ -344,7 +344,6 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
     top: auto;
     bottom: 0;
     height: 1px;
-    background: var(--color-accent);
   }
 }
 </style>
