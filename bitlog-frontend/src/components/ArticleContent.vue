@@ -18,6 +18,7 @@
  */
 import { ref, onMounted, onBeforeUnmount, watch, useTemplateRef } from 'vue'
 import mermaid from 'mermaid'
+import hljs from 'highlight.js/lib/common'
 import { renderMarkdownToHtml } from '@/utils/lute-renderer'
 import ImageLightbox from './ImageLightbox.vue'
 import './prose.css'
@@ -195,12 +196,21 @@ onBeforeUnmount(() => {
   closeLightbox()
 })
 
-// 内容变化时重新 hydrate mermaid
+function hydrateHighlight() {
+  if (!rootRef.value) return
+  const codeEls = rootRef.value.querySelectorAll<HTMLElement>('pre.code-body code')
+  for (const el of Array.from(codeEls)) {
+    hljs.highlightElement(el)
+  }
+}
+
+// 内容变化时重新 hydrate mermaid + highlight.js
 watch(html, () => nextTickHydrate())
 
 async function nextTickHydrate() {
   await new Promise(r => setTimeout(r, 0))
   hydrateMermaid()
+  hydrateHighlight()
 }
 
 function escapeHtml(s: string): string {

@@ -43,7 +43,9 @@ export const SHARED_MARKDOWN_OPTIONS: MarkdownRenderOptions = {
   // ── 安全阀 ────────────────────────────────────────────────────────────────
   sanitize: true,
   // ── 代码块 ────────────────────────────────────────────────────────────────
-  codeSyntaxHighlight: true,
+  // 关闭 Lute 内置 Chroma 高亮：Chroma 会给 <code> 注入浅色内联 background，
+  // 与 .code-block-wrapper 的深色背景冲突。读取侧改用 highlight.js 客户端渲染。
+  codeSyntaxHighlight: false,
   headingID: true,
   headingAnchor: true,
 }
