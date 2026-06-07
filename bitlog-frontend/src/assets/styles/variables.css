@@ -43,8 +43,8 @@
   /* ── Code block (light: warm paper) ── */
   --code-bg:             #f2ede6;
   --code-border:         #e0d5c8;
-  --code-header-bg:      rgba(60, 30, 10, 0.04);
-  --code-header-border:  #e0d5c8;
+  --code-header-bg:      transparent;
+  --code-header-border:  rgba(60, 30, 10, 0.08);
   --code-text:           #2e2318;
   --code-text-muted:     #9e8878;
   --code-copy-done:      #4f7a30;
@@ -75,8 +75,8 @@
   /* ── Code block (dark: warm espresso) ── */
   --code-bg:             #1a120e;
   --code-border:         rgba(255, 155, 90, 0.10);
-  --code-header-bg:      rgba(255, 155, 90, 0.05);
-  --code-header-border:  rgba(255, 155, 90, 0.10);
+  --code-header-bg:      transparent;
+  --code-header-border:  rgba(255, 155, 90, 0.08);
   --code-text:           #c4b5aa;
   --code-text-muted:     rgba(196, 181, 170, 0.50);
   --code-copy-done:      #8aad72;
