@@ -1,6 +1,10 @@
 import type { RouteRecordRaw } from 'vue-router'
 
 export const routes: RouteRecordRaw[] = [
+  // DEV-only:编辑/阅读渲染一致性对照页,不进生产构建
+  ...(import.meta.env.DEV
+    ? [{ path: '/dev/vditor', component: () => import('@/views/DevVditorView.vue') }]
+    : []),
   {
     path: '/',
     component: () => import('@/layouts/PublicLayout.vue'),
