@@ -53,6 +53,9 @@
   --admin-radius-sm:       3px;
   --admin-radius:          4px;
   --admin-radius-lg:       6px;
+
+  /* ── Editor palette (light: mirrors public site bg #faf9f7) ── */
+  --write-bg:              #faf9f7;
 }
 
 [data-theme='dark'] {

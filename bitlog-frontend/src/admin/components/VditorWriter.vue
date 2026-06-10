@@ -15,6 +15,7 @@ import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import '@/components/prose.css'
+import './vditor-bridge.css'
 
 const props = withDefaults(defineProps<{
   content: string
@@ -27,6 +28,23 @@ const emit = defineEmits<{ change: []; error: [message: string] }>()
 const containerRef = ref<HTMLDivElement | null>(null)
 let vditor: Vditor | null = null
 let themeObserver: MutationObserver | null = null
+let codeLangObserver: MutationObserver | null = null
+
+/**
+ * 给每个 IR 代码块节点标注 data-lang,供 vditor-bridge.css 的
+ * ::before { content: attr(data-lang) } 渲染 lang 标签
+ * (无语言回退 'text',与 ArticleContent 的 wrapCodeBlock 一致)。
+ * 只在值变化时写入 → 不触发 childList/characterData,无观察环。
+ */
+function annotateCodeBlocks(root: HTMLElement) {
+  root
+    .querySelectorAll<HTMLElement>('.vditor-ir__node[data-type="code-block"]')
+    .forEach((node) => {
+      const info = node.querySelector('[data-type="code-block-info"]')?.textContent ?? ''
+      const lang = info.replace(/\u200b/g, '').trim().toLowerCase() || 'text'
+      if (node.dataset.lang !== lang) node.dataset.lang = lang
+    })
+}
 
 function isDarkTheme(): boolean {
   return document.documentElement.dataset.theme === 'dark'
@@ -93,6 +111,9 @@ onMounted(() => {
       },
     },
     preview: {
+      // Vditor 用内联 padding 把编辑列居中到该宽度,
+      // 与阅读侧 --spacing-prose (800px) 保持一致
+      maxWidth: 800,
       hljs: {
         enable: true,
         style: 'github',
@@ -101,10 +122,11 @@ onMounted(() => {
       // 关闭数学公式的 MathJax 引擎（节省 6.4MB）—— 后续如果需要再开 KaTeX
       math: { enable: false },
       // Vditor 内置 mermaid / flowchart / graphviz 渲染（CDN 加载,无需 enable 开关）
-      // 写作者在 IR 模式下输入 ```mermaid 代码块 → 立即看到图表,
-      // 与发布后详情页的 Lute + 客户端 mermaid.render() 路径视觉一致。
+      // 写作者在 IR 模式下输入 ```mermaid 代码块 → 立即看到图表。
+      // neutral 主题 + 白底卡片(vditor-bridge.css),与详情页的
+      // mermaid.initialize({ theme: 'neutral' }) 渲染路径视觉一致。
       mermaid: {
-        theme: isDarkTheme() ? 'dark' : 'default',
+        theme: 'neutral',
       },
       theme: {
         current: isDarkTheme() ? 'dark' : 'light',
@@ -134,6 +156,14 @@ onMounted(() => {
         attributes: true,
         attributeFilter: ['data-theme'],
       })
+      // 代码块 data-lang 标注:Lute spin 会整块重建 DOM,用 MutationObserver
+      // 兜住所有重渲染路径(输入/粘贴/setValue/展开折叠)
+      const irRoot = containerRef.value?.querySelector<HTMLElement>('.vditor-ir .vditor-reset')
+      if (irRoot) {
+        annotateCodeBlocks(irRoot)
+        codeLangObserver = new MutationObserver(() => annotateCodeBlocks(irRoot))
+        codeLangObserver.observe(irRoot, { childList: true, subtree: true, characterData: true })
+      }
       // PoC 调试：暴露到 window 便于 DevTools 验证双向 I/O
       if (import.meta.env.DEV) {
         (window as unknown as { __vditorWriter: Vditor }).__vditorWriter = vditor!
@@ -145,6 +175,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   themeObserver?.disconnect()
   themeObserver = null
+  codeLangObserver?.disconnect()
+  codeLangObserver = null
   vditor?.destroy()
   vditor = null
 })

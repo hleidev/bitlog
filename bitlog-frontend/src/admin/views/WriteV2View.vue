@@ -1064,12 +1064,6 @@ onBeforeRouteLeave(async () => {
   cursor: not-allowed;
 }
 
-/* ── Editor max-width constraint ─────────────────────────────────────────── */
-:deep(.article-editor.is-editable .ProseMirror) {
-  max-width: var(--spacing-prose);
-  margin: 0 auto;
-}
-
 /* ── Buttons ─────────────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
