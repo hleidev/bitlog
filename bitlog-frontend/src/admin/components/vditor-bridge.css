@@ -26,6 +26,51 @@
   .vditor-writer .vditor-reset { font-size: 15px; }
 }
 
+/* 标题行高:中和 .vditor-reset 的 1.25,对齐阅读侧(无显式行高,继承 1.85) */
+.vditor-writer .vditor-reset h1,
+.vditor-writer .vditor-reset h2,
+.vditor-writer .vditor-reset h3,
+.vditor-writer .vditor-reset h4,
+.vditor-writer .vditor-reset h5,
+.vditor-writer .vditor-reset h6 {
+  line-height: 1.85;
+}
+
+/* 引用块文字色:中和 .vditor-reset blockquote 的 GitHub 冷灰 */
+.vditor-writer .vditor-reset blockquote {
+  color: inherit;
+}
+
+/* 表格:中和 .vditor-reset 的 GitHub 默认(display:block 自适应宽、
+   padding 6/13、全 1px 边框),对齐 prose.css 的 100% 宽与 th/td 参数 */
+.vditor-writer .vditor-reset table {
+  display: table;
+  width: 100%;
+}
+.vditor-writer .vditor-reset table th {
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 2px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+}
+.vditor-writer .vditor-reset table td {
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border-light);
+}
+.vditor-writer .vditor-reset table th:last-child { border-right: none; }
+.vditor-writer .vditor-reset table td:last-child { border-right: none; }
+.vditor-writer .vditor-reset table tr:last-child td { border-bottom: none; }
+
+/* 分隔线:中和 .vditor-reset hr 的灰色填充块,对齐阅读侧 1px 边线 */
+.vditor-writer .vditor-reset hr {
+  height: 0;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
 /* ── 2. IR 标记调色:融入主题,不抢内容 ─────────────────────────────────── */
 
 .vditor-writer .vditor-ir__node--expand .vditor-ir__marker {
@@ -37,25 +82,36 @@
   color: var(--color-text-muted);
 }
 
-/* 展开态的语言标记沿用折叠态 lang 标签的字体,展开/折叠切换视觉连贯 */
-.vditor-writer .vditor-ir__node--expand[data-type='code-block'] .vditor-ir__marker--info {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--code-text-muted);
-}
+/* ── 展开态(源码编辑) = 折叠态的几何复刻 ─────────────────────────────────
+ * 点击代码块进出编辑时,卡片高宽、标签行、代码体逐像素不动,唯一视觉
+ * 变化是 token 高亮变单色(这正是"在编辑源码"的信号)。
+ * Vditor 的 ``` 围栏只是节点 ::before/::after 伪元素(真实围栏 span
+ * 永远 display:none),纯装饰、不可编辑,可整体隐藏;语言名由真实的
+ * --info span 原位顶替折叠态的 ::before 标签,并因此可点击编辑。 */
 
-/* 代码块展开态的 ``` 围栏(Vditor 用 ::before/::after 绘制) */
+/* 隐藏展开态 ``` 围栏(覆盖 Vditor 的 content:'```') */
 .vditor-writer .vditor-ir__node--expand[data-type='code-block']::before,
 .vditor-writer .vditor-ir__node--expand[data-type='code-block']::after {
-  display: block;
-  color: var(--color-text-faint);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  padding: 6px 14px 0;
+  content: none;
 }
 
-.vditor-writer .vditor-ir__node--expand[data-type='code-block']::after {
-  padding: 0 14px 6px;
+/* 语言名复刻折叠态 lang 标签:margin/字号/行高须与下方折叠态
+   ::before 标签规则严格一致,两态头部才同高。Lute 在 span 内置有
+   零宽空格,语言为空时行盒不塌,头部高度仍成立。 */
+.vditor-writer .vditor-ir__node--expand[data-type='code-block'] .vditor-ir__marker--info {
+  display: block;
+  margin: 8px 14px 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--code-text-muted);
+  text-transform: lowercase;
+}
+
+/* 源码 pre 块化:Vditor 展开态默认把它转 inline,行内级盒会产生多余的
+   匿名行盒;块级化后源码与预览共享同一套盒参数(见下方 pre > code) */
+.vditor-writer .vditor-ir__node--expand[data-type='code-block'] .vditor-ir__marker--pre {
+  display: block;
 }
 
 /* ── 3. 代码块卡片(视觉等价于详情页 .code-block-wrapper) ─────────────── */
@@ -81,6 +137,19 @@
 
 .vditor-writer .vditor-ir__node[data-type='code-block']:not(.vditor-ir__node--expand)::after {
   content: none;
+}
+
+/* 折叠态把 0×0 标记(语言 span/源码 pre)从 Vditor 默认的 inline-block
+   改为 block:行内级盒会在标签与预览之间撑出一个依赖字体度量的匿名
+   行盒(实测 ~5px),块级 0 尺寸盒不产生行盒,头部高度回到确定的
+   8+17+6,与展开态严格同高。 */
+.vditor-writer
+  .vditor-ir__node[data-type='code-block']:not(.vditor-ir__node--expand)
+  .vditor-ir__marker {
+  display: block;
+  width: 0;
+  height: 0;
+  overflow: hidden;
 }
 
 /* 编辑展开态:隐藏渲染预览,只留源码(Typora 式)。源码与预览同色同底,
@@ -159,6 +228,8 @@
 
 .vditor-writer .vditor-ir__preview .language-mermaid {
   display: block;
+  /* 中和 Vditor 的 margin-bottom:16px——外边距会从白卡下缘漏出节点底色 */
+  margin: 0;
   background: #fff;
   padding: 24px 20px;
   text-align: center;
@@ -169,9 +240,11 @@
   height: auto;
 }
 
-/* mermaid 块整卡白底、无 lang 标签(它是图表不是代码,详情页同样无 header) */
+/* mermaid 块:折叠态无 lang 标签(它是图表不是代码,详情页同样无 header)。
+   白底由预览区(.language-mermaid)自带,节点保持 --code-bg——折叠态
+   白卡观感不变,展开态语言行+源码落在 --code-bg 上,暗色主题下源码
+   (亮色 --code-text)才不会贴在白底上不可读。 */
 .vditor-writer .vditor-ir__node[data-type='code-block'][data-lang='mermaid'] {
-  background: #fff;
   border-color: var(--color-border);
 }
 
