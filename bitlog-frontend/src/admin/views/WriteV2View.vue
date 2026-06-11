@@ -12,11 +12,12 @@ import {
   publishArticle,
   getArticleVersions,
   generateAiMetadata,
-  deleteArticleVersions,
   type ArticleVersionVO,
 } from '@/api/admin/article'
 import { ApiError } from '@/utils/request'
 import ArticleMetaDialog from '@/admin/components/ArticleMetaDialog.vue'
+import VersionSidebar from '@/admin/components/VersionSidebar.vue'
+import { useLocalDraft, formatRelative, type LocalDraftPayload } from '@/admin/composables/useLocalDraft'
 
 const route  = useRoute()
 const router = useRouter()
@@ -45,75 +46,16 @@ const saveState  = ref<'idle' | 'saving' | 'saved'>('saved')
 const saving     = ref(false)
 const hasUnsaved = ref(false)
 let saveTimer: ReturnType<typeof setTimeout> | undefined
-let autoSaveTimer: ReturnType<typeof setTimeout> | undefined
 
-// ── LocalStorage auto-save ──────────────────────────────────────────────────────
-// 独立于"保存草稿"按钮的本地兜底:Vditor cache 已关,用户忘记手动保存时防丢字。
-// 键名按 articleId(或 "new") 隔离,避免不同文章覆盖。
-const AUTO_SAVE_KEY = (id: number | 'new') => `bitlog:autosave:${id}`
-const AUTO_SAVE_DEBOUNCE_MS = 800
-const AUTO_SAVE_TTL_MS = 7 * 24 * 3600 * 1000 // 7 天过期
-
-interface AutoSavePayload {
-  title: string
-  content: string
-  ts: number
-}
-
-function writeAutoSave() {
-  if (isNew && !title.value.trim() && !content.value.trim()) return
-  const payload: AutoSavePayload = {
-    title:   title.value,
-    content: vditorRef.value?.getMarkdown() ?? content.value,
-    ts:      Date.now(),
-  }
-  try {
-    localStorage.setItem(AUTO_SAVE_KEY(articleId ?? 'new'), JSON.stringify(payload))
-  } catch {
-    // localStorage 满 / 隐私模式不可用 —— 静默
-  }
-}
-
-function clearAutoSave() {
-  try { localStorage.removeItem(AUTO_SAVE_KEY(articleId ?? 'new')) } catch { /* noop */ }
-}
-
-function readAutoSave(): AutoSavePayload | null {
-  try {
-    const raw = localStorage.getItem(AUTO_SAVE_KEY(articleId ?? 'new'))
-    if (!raw) return null
-    const data = JSON.parse(raw) as AutoSavePayload
-    if (Date.now() - data.ts > AUTO_SAVE_TTL_MS) return null
-    return data
-  } catch { return null }
-}
-
-const saveStateText = computed(() => {
-  if (saveState.value === 'saving') return '保存中...'
-  if (hasUnsaved.value) return '未保存'
-  if (saveState.value === 'saved') return '已保存'
-  return ''
-})
+// LocalStorage 本地兜底草稿(见 useLocalDraft)
+const localDraft = useLocalDraft(articleId ?? 'new', () => ({
+  title:   title.value,
+  content: vditorRef.value?.getMarkdown() ?? content.value,
+}))
 
 // ── Sidebar & versions ─────────────────────────────────────────────────────────
 const sidebarOpen = ref(false)
 const versions    = ref<ArticleVersionVO[]>([])
-
-// ── Version management ─────────────────────────────────────────────────────────
-const versionManageMode  = ref(false)
-const selectedVersionIds = ref<number[]>([])
-const deletingVersions   = ref(false)
-
-const deletableVersionIds = computed(() =>
-  versions.value
-    .filter(v => !v.latest && v.id !== publishedVersionId.value)
-    .map(v => v.id)
-)
-
-const allDeletableSelected = computed(() =>
-  deletableVersionIds.value.length > 0 &&
-  deletableVersionIds.value.every(id => selectedVersionIds.value.includes(id))
-)
 
 // ── Publish dialog ─────────────────────────────────────────────────────────────
 const publishDialogVisible = ref(false)
@@ -138,12 +80,6 @@ let suppressChange = true
 function handleError(err: unknown, fallback = '操作失败') {
   const msg = err instanceof ApiError ? err.message : null
   toast.error(msg || fallback)
-}
-
-function shortTime(d: string) {
-  return new Date(d)
-    .toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
-    .replace(/\//g, '-')
 }
 
 function autoResizeTitle() {
@@ -180,7 +116,7 @@ async function loadDraft() {
     autoResizeTitle()
     suppressChange = false
     // 新建草稿:检查 localStorage 是否有未确认的内容,提示恢复
-    const cached = readAutoSave()
+    const cached = localDraft.read()
     if (cached && (cached.title.trim() || cached.content.trim())) {
       await maybeRestoreFromCache(cached, null)
     }
@@ -202,7 +138,7 @@ async function loadDraft() {
     await loadVersions()
     saveState.value = 'saved'
     // 已有文章:localStorage 草稿比服务器版更新 → 提示恢复
-    const cached = readAutoSave()
+    const cached = localDraft.read()
     if (cached && (cached.title.trim() || cached.content.trim()) &&
         (cached.title !== data.title || cached.content !== data.content)) {
       await maybeRestoreFromCache(cached, data.updateTime)
@@ -218,14 +154,14 @@ async function loadDraft() {
 }
 
 async function maybeRestoreFromCache(
-  cached: AutoSavePayload,
+  cached: LocalDraftPayload,
   serverUpdateTime: string | null,
 ) {
   // 服务器版比 localStorage 还新 → 忽略缓存
   if (serverUpdateTime) {
     const serverTs = new Date(serverUpdateTime).getTime()
     if (serverTs > cached.ts) {
-      clearAutoSave()
+      localDraft.clear()
       return
     }
   }
@@ -244,18 +180,8 @@ async function maybeRestoreFromCache(
     await nextTick(); autoResizeTitle()
     toast.success('已恢复本地草稿')
   } catch {
-    clearAutoSave()
+    localDraft.clear()
   }
-}
-
-function formatRelative(ts: number): string {
-  const diff = Date.now() - ts
-  const m = Math.floor(diff / 60000)
-  if (m < 1)    return '刚刚'
-  if (m < 60)   return `${m} 分钟前`
-  const h = Math.floor(diff / 3600000)
-  if (h < 24)   return `${h} 小时前`
-  return `${Math.floor(diff / 86400000)} 天前`
 }
 
 // ── Save ───────────────────────────────────────────────────────────────────────
@@ -268,7 +194,7 @@ async function performSave() {
     if (isNew) {
       const newId = await createArticle({ title: title.value, content: md })
       // 切换到带 id 的路由:清掉 "new" 键,新 key 由后续写入建立
-      clearAutoSave()
+      localDraft.clear()
       router.replace(`/admin/write/${newId}`)
       saveState.value  = 'saved'
       hasUnsaved.value = false
@@ -276,7 +202,7 @@ async function performSave() {
     } else {
       await updateArticleDraft(articleId!, { title: title.value, content: md })
       await loadVersions()
-      clearAutoSave()
+      localDraft.clear()
       saveState.value  = 'saved'
       hasUnsaved.value = false
       if (publishedVersionId.value !== null) hasDraftAbovePublish.value = true
@@ -412,52 +338,12 @@ async function applyAiSuggestedTag(name: string) {
   await metaDialogRef.value?.createAndAddTag(name)
 }
 
-// ── Version management ─────────────────────────────────────────────────────────
-function toggleVersionSelect(id: number) {
-  const idx = selectedVersionIds.value.indexOf(id)
-  if (idx >= 0) selectedVersionIds.value.splice(idx, 1)
-  else          selectedVersionIds.value.push(id)
-}
-
-function toggleSelectAll() {
-  if (allDeletableSelected.value) selectedVersionIds.value = []
-  else selectedVersionIds.value = [...deletableVersionIds.value]
-}
-
-function exitVersionManage() {
-  versionManageMode.value  = false
-  selectedVersionIds.value = []
-}
-
-async function handleDeleteVersions() {
-  if (!selectedVersionIds.value.length) return
-  const count = selectedVersionIds.value.length
-  try {
-    await confirm(
-      `确定删除选中的 ${count} 个版本？此操作不可恢复。`,
-      '删除版本',
-      { confirmText: '删除', cancelText: '取消', danger: true }
-    )
-  } catch { return }
-  deletingVersions.value = true
-  try {
-    await deleteArticleVersions(articleId, [...selectedVersionIds.value])
-    await loadVersions()
-    exitVersionManage()
-    toast.success(`已删除 ${count} 个版本`)
-  } catch (err) {
-    handleError(err, '删除版本失败')
-  } finally {
-    deletingVersions.value = false
-  }
-}
-
 // ── Watchers ───────────────────────────────────────────────────────────────────
 watch(title, () => {
   if (suppressChange) return
   hasUnsaved.value = true
   saveState.value  = 'idle'
-  scheduleAutoSave()
+  localDraft.schedule()
 })
 
 async function uploadImageFn(file: File): Promise<string> {
@@ -469,12 +355,7 @@ function onEditorChange() {
   if (suppressChange) return
   hasUnsaved.value = true
   saveState.value  = 'idle'
-  scheduleAutoSave()
-}
-
-function scheduleAutoSave() {
-  clearTimeout(autoSaveTimer)
-  autoSaveTimer = setTimeout(writeAutoSave, AUTO_SAVE_DEBOUNCE_MS)
+  localDraft.schedule()
 }
 
 // ── Keyboard shortcut ──────────────────────────────────────────────────────────
@@ -494,7 +375,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearTimeout(saveTimer)
-  clearTimeout(autoSaveTimer)
+  localDraft.stop()
   window.removeEventListener('beforeunload', onBeforeUnload)
   window.removeEventListener('keydown', onKeydown)
 })
@@ -584,79 +465,13 @@ onBeforeRouteLeave(async () => {
           </div>
 
           <!-- Version sidebar -->
-          <div class="meta-sidebar" :class="{ 'meta-sidebar--closed': !sidebarOpen }">
-            <div class="sidebar-scroll">
-              <div class="sidebar-section">
-                <div class="version-header-row">
-                  <span class="section-label">历史版本</span>
-                  <button
-                    class="version-manage-toggle"
-                    :class="{ 'version-manage-toggle--cancel': versionManageMode }"
-                    @click="versionManageMode ? exitVersionManage() : (versionManageMode = true)"
-                  >
-                    {{ versionManageMode ? '取消' : '管理' }}
-                  </button>
-                </div>
-
-                <div class="version-list">
-
-                  <div v-if="versionManageMode" class="version-select-all">
-                    <label class="checkbox-label">
-                      <input type="checkbox" :checked="allDeletableSelected" :disabled="deletableVersionIds.length === 0" @change="toggleSelectAll" />
-                      全选可删除
-                    </label>
-                  </div>
-
-                  <div
-                    v-for="v in versions"
-                    :key="v.id"
-                    class="version-item"
-                    :class="{
-                      'version-item--current':     v.latest,
-                      'version-item--manage':      versionManageMode,
-                      'version-item--undeletable': versionManageMode && (v.latest || v.id === publishedVersionId),
-                    }"
-                  >
-                    <input
-                      v-if="versionManageMode"
-                      type="checkbox"
-                      class="version-checkbox"
-                      :checked="selectedVersionIds.includes(v.id)"
-                      :disabled="v.latest || v.id === publishedVersionId"
-                      @change="() => toggleVersionSelect(v.id)"
-                    />
-
-                    <div class="version-info">
-                      <div class="version-label-row">
-                        <span class="version-label">版本 {{ v.version }}</span>
-                        <span v-if="v.latest" class="version-tag version-tag--current">当前</span>
-                        <span v-else-if="v.id === publishedVersionId" class="version-tag version-tag--published">已发布</span>
-                      </div>
-                      <span class="version-time">{{ shortTime(v.createTime) }}</span>
-                    </div>
-
-                    <template v-if="!versionManageMode">
-                      <span v-if="v.latest" class="current-dot" />
-                    </template>
-                  </div>
-
-                  <div v-if="versionManageMode" class="version-manage-footer">
-                    <span class="version-manage-count">
-                      已选 {{ selectedVersionIds.length }} / {{ deletableVersionIds.length }}
-                    </span>
-                    <button
-                      class="version-delete-btn"
-                      :disabled="selectedVersionIds.length === 0 || deletingVersions"
-                      @click="handleDeleteVersions"
-                    >
-                      {{ deletingVersions ? '删除中…' : '删除' }}
-                    </button>
-                  </div>
-
-                </div>
-              </div>
-            </div>
-          </div>
+          <VersionSidebar
+            :open="sidebarOpen"
+            :article-id="articleId"
+            :versions="versions"
+            :published-version-id="publishedVersionId"
+            @reload="loadVersions"
+          />
 
         </div>
 
@@ -872,94 +687,6 @@ onBeforeRouteLeave(async () => {
   background: transparent;
 }
 
-/* ── Sidebar ─────────────────────────────────────────────────────────────────── */
-.meta-sidebar {
-  width: 260px; flex-shrink: 0;
-  border-left: 1px solid var(--admin-border-soft); background: var(--admin-surface-soft);
-  transition: width 0.25s ease, opacity 0.2s ease;
-  overflow: hidden;
-}
-.meta-sidebar--closed { width: 0; opacity: 0; }
-
-.sidebar-scroll { width: 100%; height: 100%; overflow-y: auto; }
-
-.sidebar-section { padding: 16px 20px; border-bottom: 1px solid var(--admin-border-soft); }
-
-.section-label {
-  font-size: 11px; font-weight: 600; color: var(--admin-text-muted);
-  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;
-}
-
-.version-header-row {
-  display: flex; align-items: center; justify-content: space-between;
-}
-.version-header-row .section-label { margin-bottom: 0; }
-
-.version-manage-toggle {
-  flex-shrink: 0;
-  font-size: 11px; font-weight: 500; color: var(--admin-accent);
-  background: transparent; border: none; cursor: pointer;
-  padding: 2px 4px; border-radius: var(--admin-radius);
-  transition: color 0.15s;
-}
-.version-manage-toggle:hover { color: var(--admin-accent); }
-.version-manage-toggle--cancel { color: var(--admin-text-muted); }
-.version-manage-toggle--cancel:hover { color: var(--admin-text-muted); }
-
-.version-list { margin-top: 12px; display: flex; flex-direction: column; }
-
-.version-item {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 0; border-bottom: 1px solid #f3f4f6; gap: 8px;
-  border-radius: 4px;
-  transition: background 0.15s;
-}
-.version-item:last-child { border-bottom: none; padding-bottom: 0; }
-
-.version-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.version-label { font-size: 13px; font-weight: 500; color: var(--admin-text-secondary); }
-.version-time  { font-size: 11px; color: var(--admin-text-muted); }
-
-.current-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--admin-success); flex-shrink: 0; }
-
-.version-select-all {
-  padding: 8px 0 8px;
-  border-bottom: 1px solid var(--admin-border-soft);
-  margin-bottom: 2px;
-}
-
-.version-item--manage      { gap: 10px; }
-.version-item--undeletable { opacity: 0.45; }
-
-.version-checkbox { flex-shrink: 0; }
-
-.version-label-row { display: flex; align-items: center; gap: 5px; }
-
-.version-tag {
-  font-size: 10px; font-weight: 500; line-height: 1;
-  padding: 2px 5px; border-radius: var(--admin-radius);
-}
-.version-tag--current   { color: var(--admin-success); background: rgba(92, 138, 92, 0.15); }
-.version-tag--published { color: var(--admin-accent); background: rgba(30, 64, 175, 0.12); }
-
-.version-manage-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 0 2px;
-  border-top: 1px solid #f0f0f0;
-  margin-top: 6px;
-}
-.version-manage-count { font-size: 12px; color: var(--admin-text-muted); }
-
-.version-delete-btn {
-  font-size: 12px; font-weight: 500;
-  color: var(--admin-text-on-accent); background: var(--admin-danger-bg-strong);
-  border: none; border-radius: 4px;
-  padding: 4px 14px; cursor: pointer;
-  transition: background 0.15s;
-}
-.version-delete-btn:hover:not(:disabled) { background: var(--admin-danger-strong); }
-.version-delete-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
 /* ── AI trigger button (rendered via slot into ArticleMetaDialog) ────────────*/
 .ai-trigger-btn {
   display: flex; align-items: center; justify-content: center;
@@ -1093,13 +820,6 @@ onBeforeRouteLeave(async () => {
 .ai-slide-enter-active, .ai-slide-leave-active { transition: opacity 0.18s, transform 0.18s; }
 .ai-slide-enter-from, .ai-slide-leave-to { opacity: 0; transform: translateY(-3px); }
 
-/* ── Checkbox ────────────────────────────────────────────────────────────────── */
-.checkbox-label {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--admin-text-muted); cursor: pointer;
-}
-.checkbox-label input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; }
-
 /* ── Mobile ──────────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .write-v2    { margin: -16px -12px; }
@@ -1108,12 +828,5 @@ onBeforeRouteLeave(async () => {
   .editor-header { padding: 24px 20px 16px; }
   .title-input { font-size: 24px; }
   .editor-container { padding: 0 20px 40px; }
-
-  .meta-sidebar {
-    position: fixed; top: var(--admin-header-height); right: 0;
-    height: calc(100vh - var(--admin-header-height)); z-index: 100;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
-  }
-  .meta-sidebar--closed { width: 0; opacity: 0; box-shadow: none; }
 }
 </style>
