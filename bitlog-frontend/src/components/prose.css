@@ -80,7 +80,9 @@
 }
 
 .ProseMirror s,
-.vditor-ir s {
+.ProseMirror del,
+.vditor-ir s,
+.vditor-ir del {
   text-decoration: line-through;
   color: var(--color-text-muted);
 }
