@@ -13,7 +13,29 @@ if (useRoute().query.theme === 'dark') {
   document.documentElement.dataset.theme = 'dark'
 }
 
-const content = `对照段落:这是一段普通正文,用于核对字号、行高与颜色。
+const content = `# 一级标题 H1
+
+对照段落:这是一段普通正文,用于核对字号、行高与颜色。包含**粗体**、*斜体*、~~删除线~~、\`行内代码\`和[链接文本](https://example.com)。
+
+## 二级标题 H2
+
+> 引用块:用于核对左边框、背景与斜体文字。
+
+### 三级标题 H3
+
+- 无序列表项一
+- 无序列表项二
+
+1. 有序列表项一
+2. 有序列表项二
+
+#### 四级标题 H4
+
+| 表头一 | 表头二 |
+| --- | --- |
+| 单元格 | 单元格 |
+
+---
 
 ![测试图片](https://picsum.photos/seed/bitlog/600/300)
 
@@ -28,6 +50,11 @@ function greet(name: string): string {
 skills/hl-diagram/
 ├── SKILL.md
 └── references/
+\`\`\`
+
+\`\`\`mermaid
+graph TD
+  A[开始] --> B{判断}
 \`\`\`
 
 结尾段落,用于核对代码块下方间距。`
