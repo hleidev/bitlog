@@ -25,10 +25,8 @@
     "src/**/*.css": "prettier --write"
   },
   "dependencies": {
-    "@element-plus/icons-vue": "^2.3.2",
     "@unhead/vue": "^3.0.5",
     "axios": "^1.14.0",
-    "element-plus": "^2.13.6",
     "highlight.js": "^11.11.1",
     "mermaid": "^11.15.0",
     "nprogress": "^0.2.0",

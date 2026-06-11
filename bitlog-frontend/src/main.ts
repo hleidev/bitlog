@@ -2,8 +2,6 @@ import { ViteSSG } from 'vite-ssg'
 import { createPinia } from 'pinia'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
 import { routes } from '@/router'
 import { useUserStore } from '@/stores/useUserStore'
 import App from './App.vue'
@@ -17,7 +15,6 @@ export const createApp = ViteSSG(
   { routes, scrollBehavior: (_to, _from, savedPosition) => savedPosition ?? { top: 0, left: 0 } },
   ({ app, router }) => {
     app.use(createPinia())
-    app.use(ElementPlus)
     app.component('ConfirmDialog', ConfirmDialog)
 
     app.directive('click-outside', {
