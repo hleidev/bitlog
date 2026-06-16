@@ -2,7 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useSeoMeta, useHead } from '@unhead/vue'
-import { getArticleDetail, type ArticleDetailVO } from '@/api/article'
+import { type ArticleDetailVO } from '@/api/article'
+import { getCachedArticleDetail, fetchArticleDetail } from '@/api/articleCache'
 import { formatDate } from '@/utils/format'
 import ArticleContent from '@/components/ArticleContent.vue'
 
@@ -12,6 +13,8 @@ const route = useRoute()
 const article = ref<ArticleDetailVO | null>(null)
 const loading = ref(true)
 const error = ref(false)
+const slow = ref(false)
+let slowTimer: ReturnType<typeof setTimeout> | null = null
 const scrollProgress = ref(0)
 
 const SITE_URL = 'https://bitlog.harrylei.top'
@@ -70,16 +73,39 @@ const onScroll = () => {
 
 onMounted(async () => {
   const id = Number(route.params.id)
-  try {
-    article.value = await getArticleDetail(id)
-  } catch {
-    error.value = true
+
+  slowTimer = setTimeout(() => {
+    if (loading.value) slow.value = true
+  }, 6000)
+
+  // 命中缓存（预取或上次访问）→ 立即渲染，跳过骨架
+  const cached = getCachedArticleDetail(id)
+  if (cached) {
+    article.value = cached
+    loading.value = false
   }
-  loading.value = false
+
+  // 始终拉一次最新，刷新缓存内容（SWR）
+  try {
+    article.value = await fetchArticleDetail(id)
+  } catch {
+    if (!cached) error.value = true
+  } finally {
+    loading.value = false
+    if (slowTimer) {
+      clearTimeout(slowTimer)
+      slowTimer = null
+    }
+    slow.value = false
+  }
+
   window.addEventListener('scroll', onScroll, { passive: true })
 })
 
-onUnmounted(() => window.removeEventListener('scroll', onScroll))
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll)
+  if (slowTimer) clearTimeout(slowTimer)
+})
 </script>
 
 <template>
@@ -97,6 +123,9 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
         <div class="skeleton-line w-80" />
         <div class="skeleton-line w-100" />
         <div class="skeleton-line w-70" />
+        <Transition name="fade">
+          <p v-if="slow" class="slow-hint">加载较慢，仍在努力…</p>
+        </Transition>
       </div>
     </div>
 
@@ -345,5 +374,22 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
     bottom: 0;
     height: 1px;
   }
+}
+
+.slow-hint {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--color-text-faint);
+  text-align: center;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

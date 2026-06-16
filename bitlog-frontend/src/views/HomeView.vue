@@ -3,6 +3,8 @@ import { ref, nextTick, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import HeroSection from '@/components/home/HeroSection.vue'
 import { getArticlePage, type ArticleItemVO } from '@/api/article'
+import ArticleListSkeleton from '@/components/common/ArticleListSkeleton.vue'
+import { prefetchArticleDetail } from '@/api/articleCache'
 
 const articles = ref<ArticleItemVO[]>([])
 const loading = ref(false)
@@ -46,12 +48,21 @@ onMounted(async () => {
         <div class="section-rule"></div>
       </div>
 
-      <div ref="articleListRef" class="article-list" :class="{ 'article-list--loading': loading }">
+      <ArticleListSkeleton v-if="loading && articles.length === 0" :rows="7" />
+
+      <div
+        v-else
+        ref="articleListRef"
+        class="article-list"
+        :class="{ 'article-list--loading': loading }"
+      >
         <RouterLink
           v-for="article in articles"
           :key="article.id"
           :to="`/article/${article.id}`"
           class="article-row"
+          @mouseenter="prefetchArticleDetail(article.id)"
+          @focus="prefetchArticleDetail(article.id)"
         >
           <div class="article-date">
             {{ formatDate(article.publishTime) }}

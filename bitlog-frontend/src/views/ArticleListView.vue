@@ -5,6 +5,8 @@ import { useSeoMeta, useHead } from '@unhead/vue'
 import { getArticlePage, type ArticleItemVO } from '@/api/article'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { getTags, type TagVO } from '@/api/tag'
+import ArticleListSkeleton from '@/components/common/ArticleListSkeleton.vue'
+import { prefetchArticleDetail } from '@/api/articleCache'
 
 useHead({
   title: '文章 | BitLog',
@@ -83,6 +85,8 @@ function formatDate(iso: string | null): string {
 const PAGE_SIZE = 12
 const pageNum = ref(1)
 const loading = ref(false)
+const slow = ref(false)
+let slowTimer: ReturnType<typeof setTimeout> | null = null
 const articles = ref<ArticleItemVO[]>([])
 const totalElements = ref(0)
 const totalPages = ref(1)
@@ -91,6 +95,10 @@ const hasNext = ref(false)
 
 async function fetchArticles() {
   loading.value = true
+  if (slowTimer) clearTimeout(slowTimer)
+  slowTimer = setTimeout(() => {
+    if (loading.value) slow.value = true
+  }, 6000)
   try {
     const res = await getArticlePage({
       pageNum: pageNum.value,
@@ -106,6 +114,11 @@ async function fetchArticles() {
     hasNext.value = res.hasNext
   } finally {
     loading.value = false
+    if (slowTimer) {
+      clearTimeout(slowTimer)
+      slowTimer = null
+    }
+    slow.value = false
   }
 }
 
@@ -270,9 +283,16 @@ onMounted(async () => {
         </Transition>
       </div>
 
-      <!-- Empty -->
+      <!-- Skeleton (首屏加载，尚无数据) / Empty / List -->
       <Transition name="fade" mode="out-in">
-        <div v-if="!loading && articles.length === 0" key="empty" class="empty-state">
+        <div v-if="loading && articles.length === 0" key="skeleton">
+          <ArticleListSkeleton :rows="6" />
+          <Transition name="fade">
+            <p v-if="slow" class="slow-hint">加载较慢，仍在努力…</p>
+          </Transition>
+        </div>
+
+        <div v-else-if="articles.length === 0" key="empty" class="empty-state">
           <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
             <rect x="8" y="12" width="48" height="40" rx="2" />
             <line x1="20" y1="24" x2="44" y2="24" />
@@ -289,6 +309,8 @@ onMounted(async () => {
               :key="article.id"
               :to="`/article/${article.id}`"
               class="article-row"
+              @mouseenter="prefetchArticleDetail(article.id)"
+              @focus="prefetchArticleDetail(article.id)"
             >
               <div class="article-date">
                 {{ formatDate(article.publishTime) }}
@@ -841,5 +863,12 @@ onMounted(async () => {
   .article-date {
     display: none;
   }
+}
+
+.slow-hint {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--color-text-faint);
+  text-align: center;
 }
 </style>
