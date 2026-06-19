@@ -265,6 +265,13 @@ function escapeHtml(s: string): string {
   margin: 0 auto;
 }
 
+/* 深色模式：Mermaid 用 neutral(深字浅底)主题，深底会让图表不可读，
+   故保留浅底，但用暖纸色替代刺眼纯白，与整页暖色调协调。 */
+[data-theme='dark'] .mermaid-block,
+[data-theme='dark'] .mermaid-svg-wrap {
+  background: #f3efe8;
+}
+
 /* ── Mermaid 错误的最小兜底样式（如果 Mermaid 渲染失败）────────── */
 .mermaid-error {
   padding: 16px 20px;
