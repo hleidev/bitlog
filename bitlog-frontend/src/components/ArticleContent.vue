@@ -23,9 +23,12 @@ import { renderMarkdownToHtml } from '@/utils/lute-renderer'
 import ImageLightbox from './ImageLightbox.vue'
 import './prose.css'
 
-const props = withDefaults(defineProps<{
-  content: string
-}>(), { content: '' })
+const props = withDefaults(
+  defineProps<{
+    content: string
+  }>(),
+  { content: '' },
+)
 
 const rootRef = useTemplateRef<HTMLElement>('rootRef')
 const html = ref('')
@@ -72,13 +75,11 @@ function enhanceCodeBlocks(raw: string): string {
     /<pre><code class="language-([^"]+)">([\s\S]*?)<\/code><\/pre>/g,
     (_m, lang, body) => wrapCodeBlock(lang, body),
   )
-  out = out.replace(
-    /<pre><code>([\s\S]*?)<\/code><\/pre>/g,
-    (_m, body) => wrapCodeBlock('text', body),
+  out = out.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (_m, body) =>
+    wrapCodeBlock('text', body),
   )
-  out = out.replace(
-    /<div class="language-mermaid">([\s\S]*?)<\/div>/g,
-    (_m, body) => wrapCodeBlock('mermaid', body),
+  out = out.replace(/<div class="language-mermaid">([\s\S]*?)<\/div>/g, (_m, body) =>
+    wrapCodeBlock('mermaid', body),
   )
   return out
 }
@@ -87,16 +88,19 @@ function wrapCodeBlock(lang: string, body: string): string {
   if (lang === 'mermaid') {
     // Mermaid 块：不要 lang 标签 / 复制按钮 —— 它是图表不是代码，
     // 复制源码没有意义。客户端 mermaid.render() 替换占位 <pre>。
-    return `<div class="mermaid-block" data-mermaid-block="1">` +
+    return (
+      `<div class="mermaid-block" data-mermaid-block="1">` +
       `<pre class="mermaid-block__source" data-mermaid-source><code class="language-mermaid">${body}</code></pre>` +
       `</div>`
+    )
   }
   // 空代码块：保留原始 <pre>，不显示 lang 标签 / 复制按钮
   // （防止某些边界场景下出现「只有头没有身体」的孤悬 code header）
   if (!body.trim()) {
     return `<pre><code class="language-${lang}">${body}</code></pre>`
   }
-  return `<div class="code-block-wrapper" data-lang="${lang}">` +
+  return (
+    `<div class="code-block-wrapper" data-lang="${lang}">` +
     `<div class="code-header">` +
     `<span class="code-lang-label">${lang}</span>` +
     `<button class="copy-btn" data-copy-btn type="button" title="Copy">` +
@@ -106,6 +110,7 @@ function wrapCodeBlock(lang: string, body: string): string {
     `</svg></button></div>` +
     `<pre class="code-body"><code class="language-${lang}">${body}</code></pre>` +
     `</div>`
+  )
 }
 
 // Mermaid 客户端渲染
@@ -144,10 +149,15 @@ function onRootClick(e: MouseEvent) {
     const wrapper = btn.closest<HTMLElement>('.code-block-wrapper')
     const code = wrapper?.querySelector<HTMLElement>('pre.code-body code')
     if (code?.textContent) {
-      navigator.clipboard.writeText(code.textContent).then(() => {
-        btn.classList.add('copy-btn--copied')
-        setTimeout(() => btn.classList.remove('copy-btn--copied'), 2000)
-      }).catch(() => {/* 静默：clipboard 不可用 */})
+      navigator.clipboard
+        .writeText(code.textContent)
+        .then(() => {
+          btn.classList.add('copy-btn--copied')
+          setTimeout(() => btn.classList.remove('copy-btn--copied'), 2000)
+        })
+        .catch(() => {
+          /* 静默：clipboard 不可用 */
+        })
     }
     return
   }
@@ -208,16 +218,13 @@ function hydrateHighlight() {
 watch(html, () => nextTickHydrate())
 
 async function nextTickHydrate() {
-  await new Promise(r => setTimeout(r, 0))
+  await new Promise((r) => setTimeout(r, 0))
   hydrateMermaid()
   hydrateHighlight()
 }
 
 function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 </script>
 

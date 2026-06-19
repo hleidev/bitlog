@@ -119,7 +119,9 @@ onMounted(async () => {
   background-size: 0% 1px;
   background-position: left bottom;
   padding-bottom: 1px;
-  transition: color var(--transition-base), background-size 0.28s ease;
+  transition:
+    color var(--transition-base),
+    background-size 0.28s ease;
 }
 
 .more-link:hover {

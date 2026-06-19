@@ -4,53 +4,70 @@ import { useRouter } from 'vue-router'
 import { useToast } from '@/admin/composables/useToast'
 import { createUser, type CreateUserResult } from '@/api/admin/user'
 
-const router    = useRouter()
-const toast     = useToast()
+const router = useRouter()
+const toast = useToast()
 
 const form = reactive({
   username: '',
-  email:    '',
+  email: '',
   userRole: 0 as 0 | 1,
   position: '',
-  company:  '',
-  profile:  '',
+  company: '',
+  profile: '',
 })
 
 const submitting = ref(false)
 
 const successVisible = ref(false)
-const createResult   = ref<CreateUserResult | null>(null)
+const createResult = ref<CreateUserResult | null>(null)
 
 async function handleSubmit() {
-  if (!form.username.trim()) { toast.warning('请输入用户名'); return }
+  if (!form.username.trim()) {
+    toast.warning('请输入用户名')
+    return
+  }
   if (!/^[a-zA-Z0-9_-]{4,16}$/.test(form.username)) {
-    toast.warning('用户名为 4-16 位字母、数字、下划线或连字符'); return
+    toast.warning('用户名为 4-16 位字母、数字、下划线或连字符')
+    return
   }
   if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    toast.warning('邮箱格式不正确'); return
+    toast.warning('邮箱格式不正确')
+    return
   }
-  if (form.email && form.email.length > 128) { toast.warning('邮箱最长 128 个字符'); return }
-  if (form.position.length > 64)  { toast.warning('职位最长 64 个字符'); return }
-  if (form.company.length  > 64)  { toast.warning('公司最长 64 个字符'); return }
-  if (form.profile.length  > 500) { toast.warning('个人简介最长 500 个字符'); return }
+  if (form.email && form.email.length > 128) {
+    toast.warning('邮箱最长 128 个字符')
+    return
+  }
+  if (form.position.length > 64) {
+    toast.warning('职位最长 64 个字符')
+    return
+  }
+  if (form.company.length > 64) {
+    toast.warning('公司最长 64 个字符')
+    return
+  }
+  if (form.profile.length > 500) {
+    toast.warning('个人简介最长 500 个字符')
+    return
+  }
 
   submitting.value = true
   try {
     const result = await createUser({
       username: form.username,
-      email:    form.email    || undefined,
+      email: form.email || undefined,
       userRole: form.userRole,
       position: form.position || undefined,
-      company:  form.company  || undefined,
-      profile:  form.profile  || undefined,
+      company: form.company || undefined,
+      profile: form.profile || undefined,
     })
     createResult.value = result
     successVisible.value = true
     copyCredentials(result)
   } catch (err: any) {
-    if      (err?.code === 42001) toast.error('用户名已存在')
+    if (err?.code === 42001) toast.error('用户名已存在')
     else if (err?.code === 40001) toast.error('参数校验失败，请检查用户名或邮箱格式')
-    else                          toast.error('创建失败，请稍后重试')
+    else toast.error('创建失败，请稍后重试')
   } finally {
     submitting.value = false
   }
@@ -74,12 +91,11 @@ function handleSuccessClose() {
 
 <template>
   <div class="add-user-page">
-
     <!-- 顶部操作栏 -->
     <div class="top-bar">
       <button class="back-btn" @click="router.back()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 5l-7 7 7 7"/>
+          <path d="M19 12H5M12 5l-7 7 7 7" />
         </svg>
         返回
       </button>
@@ -90,7 +106,6 @@ function handleSuccessClose() {
     </div>
 
     <div class="form-wrap">
-
       <!-- 基本信息 -->
       <section class="form-card">
         <div class="card-head">
@@ -101,11 +116,21 @@ function handleSuccessClose() {
           <div class="field-row">
             <div class="field">
               <label class="field-label">用户名 <span class="required">*</span></label>
-              <input v-model="form.username" class="field-input" placeholder="请输入用户名" maxlength="16" />
+              <input
+                v-model="form.username"
+                class="field-input"
+                placeholder="请输入用户名"
+                maxlength="16"
+              />
             </div>
             <div class="field">
               <label class="field-label">邮箱</label>
-              <input v-model="form.email" class="field-input" placeholder="user@example.com" maxlength="128" />
+              <input
+                v-model="form.email"
+                class="field-input"
+                placeholder="user@example.com"
+                maxlength="128"
+              />
             </div>
           </div>
           <div class="field field--half">
@@ -129,11 +154,21 @@ function handleSuccessClose() {
           <div class="field-row">
             <div class="field">
               <label class="field-label">职位</label>
-              <input v-model="form.position" class="field-input" placeholder="如：前端工程师" maxlength="64" />
+              <input
+                v-model="form.position"
+                class="field-input"
+                placeholder="如：前端工程师"
+                maxlength="64"
+              />
             </div>
             <div class="field">
               <label class="field-label">公司</label>
-              <input v-model="form.company" class="field-input" placeholder="如：Acme Inc." maxlength="64" />
+              <input
+                v-model="form.company"
+                class="field-input"
+                placeholder="如：Acme Inc."
+                maxlength="64"
+              />
             </div>
           </div>
           <div class="field">
@@ -141,11 +176,16 @@ function handleSuccessClose() {
               个人简介
               <span class="field-hint">{{ form.profile.length }} / 500</span>
             </label>
-            <textarea v-model="form.profile" class="field-textarea" rows="3" placeholder="简单介绍一下这个用户…" maxlength="500" />
+            <textarea
+              v-model="form.profile"
+              class="field-textarea"
+              rows="3"
+              placeholder="简单介绍一下这个用户…"
+              maxlength="500"
+            />
           </div>
         </div>
       </section>
-
     </div>
   </div>
 
@@ -156,11 +196,13 @@ function handleSuccessClose() {
         <div v-if="createResult" class="dialog-inner">
           <div class="dialog-check">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"/>
+              <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
           <p class="dialog-title">用户已创建</p>
-          <p class="dialog-sub">账号 <b>{{ createResult.username }}</b> · 初始密码</p>
+          <p class="dialog-sub">
+            账号 <b>{{ createResult.username }}</b> · 初始密码
+          </p>
           <div class="dialog-password">{{ createResult.initialPassword }}</div>
           <p class="dialog-copied">账号和密码已自动复制到剪贴板</p>
         </div>
@@ -203,8 +245,13 @@ function handleSuccessClose() {
   transition: background 0.15s;
 }
 
-.back-btn svg { width: 14px; height: 14px; }
-.back-btn:hover { background: var(--admin-sidebar-hover, #ece9e4); }
+.back-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.back-btn:hover {
+  background: var(--admin-sidebar-hover, #ece9e4);
+}
 
 /* ── Form wrap ── */
 
@@ -268,9 +315,14 @@ function handleSuccessClose() {
   flex: 1;
 }
 
-.field--half { max-width: calc(50% - 6px); }
+.field--half {
+  max-width: calc(50% - 6px);
+}
 
-.field-row { display: flex; gap: 12px; }
+.field-row {
+  display: flex;
+  gap: 12px;
+}
 
 .field-label {
   display: flex;
@@ -282,9 +334,16 @@ function handleSuccessClose() {
   color: var(--admin-text-primary);
 }
 
-.field-hint { font-size: 11px; font-weight: 400; color: var(--admin-sidebar-text-muted, #b0a89e); }
+.field-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+}
 
-.required { color: #ef4444; margin-left: 2px; }
+.required {
+  color: #ef4444;
+  margin-left: 2px;
+}
 
 .field-input,
 .field-select {
@@ -303,11 +362,18 @@ function handleSuccessClose() {
 }
 
 .field-input:focus,
-.field-select:focus { border-color: var(--admin-accent, #b85c38); }
+.field-select:focus {
+  border-color: var(--admin-accent, #b85c38);
+}
 
-.field-input::placeholder { color: var(--admin-sidebar-text-muted, #b0a89e); }
+.field-input::placeholder {
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+}
 
-.field-select { cursor: pointer; appearance: auto; }
+.field-select {
+  cursor: pointer;
+  appearance: auto;
+}
 
 .field-textarea {
   padding: 8px 10px;
@@ -325,8 +391,12 @@ function handleSuccessClose() {
   min-height: 80px;
 }
 
-.field-textarea:focus { border-color: var(--admin-accent, #b85c38); }
-.field-textarea::placeholder { color: var(--admin-sidebar-text-muted, #b0a89e); }
+.field-textarea:focus {
+  border-color: var(--admin-accent, #b85c38);
+}
+.field-textarea::placeholder {
+  color: var(--admin-sidebar-text-muted, #b0a89e);
+}
 
 /* ── Buttons ── */
 
@@ -347,8 +417,13 @@ function handleSuccessClose() {
   transition: background 0.15s;
 }
 
-.primary-btn:hover:not(:disabled) { background: var(--admin-accent-dark, #924530); }
-.primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.primary-btn:hover:not(:disabled) {
+  background: var(--admin-accent-dark, #924530);
+}
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .btn-spinner {
   width: 12px;
@@ -360,7 +435,11 @@ function handleSuccessClose() {
   flex-shrink: 0;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ── Success dialog ── */
 
@@ -403,7 +482,10 @@ function handleSuccessClose() {
   margin-bottom: 4px;
 }
 
-.dialog-check svg { width: 20px; height: 20px; }
+.dialog-check svg {
+  width: 20px;
+  height: 20px;
+}
 
 .dialog-title {
   font-family: var(--font-serif, 'Lora', serif);
@@ -449,8 +531,14 @@ function handleSuccessClose() {
 /* ── Responsive ── */
 
 @media (max-width: 768px) {
-  .field-row { flex-direction: column; }
-  .field--half { max-width: 100%; }
-  .card-body { padding: 16px; }
+  .field-row {
+    flex-direction: column;
+  }
+  .field--half {
+    max-width: 100%;
+  }
+  .card-body {
+    padding: 16px;
+  }
 }
 </style>

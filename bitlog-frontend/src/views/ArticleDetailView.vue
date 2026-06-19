@@ -19,7 +19,9 @@ const scrollProgress = ref(0)
 
 const SITE_URL = 'https://bitlog.harrylei.top'
 
-const articleUrl = computed(() => article.value ? `${SITE_URL}/article/${article.value.id}` : SITE_URL)
+const articleUrl = computed(() =>
+  article.value ? `${SITE_URL}/article/${article.value.id}` : SITE_URL,
+)
 const articleDescription = computed(() => article.value?.summary ?? 'BitLog — 个人技术博客')
 
 const jsonLd = computed(() => {
@@ -44,9 +46,10 @@ const jsonLd = computed(() => {
 })
 
 useHead({
-  title: () => article.value ? `${article.value.title} | BitLog` : 'BitLog',
+  title: () => (article.value ? `${article.value.title} | BitLog` : 'BitLog'),
   link: [{ rel: 'canonical', href: articleUrl }],
-  script: () => jsonLd.value ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(jsonLd.value) }] : [],
+  script: () =>
+    jsonLd.value ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(jsonLd.value) }] : [],
 })
 useSeoMeta({
   description: articleDescription,
@@ -55,8 +58,9 @@ useSeoMeta({
   ogDescription: articleDescription,
   ogUrl: articleUrl,
   ogImage: `${SITE_URL}/og-image.png`,
-  articlePublishedTime: () => article.value ? new Date(article.value.publishTime).toISOString() : undefined,
-  articleAuthor: () => article.value ? ['https://bitlog.harrylei.top'] : undefined,
+  articlePublishedTime: () =>
+    article.value ? new Date(article.value.publishTime).toISOString() : undefined,
+  articleAuthor: () => (article.value ? ['https://bitlog.harrylei.top'] : undefined),
   articleSection: () => article.value?.category?.name,
   articleTag: () => article.value?.tags.map((t) => t.name),
   twitterCard: 'summary_large_image',
@@ -132,7 +136,9 @@ onUnmounted(() => {
     <!-- Error -->
     <div v-else-if="error" class="page-state page-state--error">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
       </svg>
       <p>文章加载失败</p>
       <button @click="router.back()">返回上一页</button>
@@ -145,12 +151,15 @@ onUnmounted(() => {
           v-if="article.category"
           :to="{ path: '/articles', query: { categoryId: article.category.id } }"
           class="article-category"
-        >{{ article.category.name }}</RouterLink>
+          >{{ article.category.name }}</RouterLink
+        >
 
         <!-- Title -->
         <h1 class="article-title">{{ article.title }}</h1>
 
-        <div v-if="article.publishTime" class="article-meta-date">{{ formatDate(article.publishTime) }}</div>
+        <div v-if="article.publishTime" class="article-meta-date">
+          {{ formatDate(article.publishTime) }}
+        </div>
 
         <div class="article-divider" />
 
@@ -164,7 +173,8 @@ onUnmounted(() => {
               :key="tag.id"
               :to="{ path: '/articles', query: { tagId: tag.id } }"
               class="footer-tag"
-            >{{ tag.name }}</RouterLink>
+              >{{ tag.name }}</RouterLink
+            >
           </div>
         </div>
 
@@ -184,7 +194,8 @@ onUnmounted(() => {
 <style scoped>
 .progress-bar {
   position: fixed;
-  top: 0; left: 0;
+  top: 0;
+  left: 0;
   height: 2px;
   background: var(--color-accent);
   z-index: 1000;
@@ -201,8 +212,14 @@ onUnmounted(() => {
   color: var(--color-text-muted);
 }
 
-.page-state--error svg { width: 40px; height: 40px; color: var(--color-text-faint); }
-.page-state--error p { font-size: 15px; }
+.page-state--error svg {
+  width: 40px;
+  height: 40px;
+  color: var(--color-text-faint);
+}
+.page-state--error p {
+  font-size: 15px;
+}
 
 .page-state--error button {
   font-size: 13px;
@@ -216,7 +233,9 @@ onUnmounted(() => {
   font-family: var(--font-sans);
 }
 
-.page-state--error button:hover { background: var(--color-bg-hover); }
+.page-state--error button:hover {
+  background: var(--color-bg-hover);
+}
 
 .skeleton-body {
   display: flex;
@@ -233,21 +252,43 @@ onUnmounted(() => {
 .skeleton-line {
   height: 14px;
   border-radius: var(--radius-tag);
-  background: linear-gradient(90deg, var(--color-bg-hover) 25%, var(--color-border) 50%, var(--color-bg-hover) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-hover) 25%,
+    var(--color-border) 50%,
+    var(--color-bg-hover) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
 
-.skeleton-line.w-20 { width: 20%; height: 10px; }
-.skeleton-line.w-50 { width: 50%; }
-.skeleton-line.w-60 { width: 60%; }
-.skeleton-line.w-70 { width: 70%; }
-.skeleton-line.w-80 { width: 80%; }
-.skeleton-line.w-100 { width: 100%; }
+.skeleton-line.w-20 {
+  width: 20%;
+  height: 10px;
+}
+.skeleton-line.w-50 {
+  width: 50%;
+}
+.skeleton-line.w-60 {
+  width: 60%;
+}
+.skeleton-line.w-70 {
+  width: 70%;
+}
+.skeleton-line.w-80 {
+  width: 80%;
+}
+.skeleton-line.w-100 {
+  width: 100%;
+}
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .article-layout {
@@ -274,7 +315,9 @@ onUnmounted(() => {
   transition: color var(--transition-base);
 }
 
-.article-category:hover { color: var(--color-accent-dark); }
+.article-category:hover {
+  color: var(--color-accent-dark);
+}
 
 .article-title {
   font-family: var(--font-serif);
@@ -328,7 +371,9 @@ onUnmounted(() => {
   border-color: var(--color-accent);
 }
 
-.comment-section { margin-top: 56px; }
+.comment-section {
+  margin-top: 56px;
+}
 
 .section-header {
   display: flex;
@@ -359,7 +404,9 @@ onUnmounted(() => {
 }
 
 @media (max-width: 900px) {
-  .article-title { font-size: 28px; }
+  .article-title {
+    font-size: 28px;
+  }
 }
 
 @media (max-width: 768px) {

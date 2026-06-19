@@ -25,7 +25,12 @@ const request = axios.create({
 })
 
 // 不需要携带 Access Token 的端点（login/register/refresh 靠 Cookie 或无需认证）
-const NO_AUTH_URLS = new Set(['/v1/auth/login', '/v1/auth/register', '/v1/auth/refresh', '/v1/auth/logout'])
+const NO_AUTH_URLS = new Set([
+  '/v1/auth/login',
+  '/v1/auth/register',
+  '/v1/auth/refresh',
+  '/v1/auth/logout',
+])
 
 // --- Token 刷新队列机制 ---
 let isRefreshing = false
@@ -70,7 +75,9 @@ request.interceptors.response.use(
     // 判断是否需要触发 Token 刷新
     const isAuthRoute = originalRequest?.url?.startsWith('/v1/auth/')
     const needsTokenRefresh =
-      (status === 401 || status === 403 || TOKEN_EXPIRED_CODES.has(resCode!)) && !originalRequest?._retry && !isAuthRoute
+      (status === 401 || status === 403 || TOKEN_EXPIRED_CODES.has(resCode!)) &&
+      !originalRequest?._retry &&
+      !isAuthRoute
 
     if (!needsTokenRefresh) {
       const message = axiosError.response?.data?.message ?? '网络错误，请稍后重试'
@@ -119,7 +126,9 @@ request.interceptors.response.use(
       subscribers = []
 
       // Refresh Token 也过期（41003），清空登录态并跳转登录
-      const isRefreshExpired = (refreshError as unknown as { response?: { data?: { code?: number } } })?.response?.data?.code === REFRESH_EXPIRED_CODE
+      const isRefreshExpired =
+        (refreshError as unknown as { response?: { data?: { code?: number } } })?.response?.data
+          ?.code === REFRESH_EXPIRED_CODE
       if (isRefreshExpired || !originalRequest) {
         const { useUserStore } = await import('@/stores/useUserStore')
         const { useModalStore } = await import('@/stores/useModalStore')
@@ -127,7 +136,9 @@ request.interceptors.response.use(
         useModalStore().open('login')
       }
 
-      const message = (refreshError as unknown as { response?: { data?: { message?: string } } })?.response?.data?.message ?? '登录已过期，请重新登录'
+      const message =
+        (refreshError as unknown as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ?? '登录已过期，请重新登录'
       return Promise.reject(new ApiError(message, REFRESH_EXPIRED_CODE))
     }
   },

@@ -43,7 +43,9 @@
 .ProseMirror h1:first-child,
 .ProseMirror h2:first-child,
 .vditor-ir h1:first-child,
-.vditor-ir h2:first-child { margin-top: 0; }
+.vditor-ir h2:first-child {
+  margin-top: 0;
+}
 
 .ProseMirror h3,
 .vditor-ir h3 {
@@ -65,7 +67,9 @@
 /* ── Paragraphs & inline ──────────────────────────────────────────────────── */
 
 .ProseMirror p,
-.vditor-ir p { margin-bottom: 18px; }
+.vditor-ir p {
+  margin-bottom: 18px;
+}
 
 .ProseMirror strong,
 .vditor-ir strong {
@@ -93,7 +97,9 @@
   text-decoration: underline;
   text-decoration-color: rgba(184, 92, 56, 0.35);
   text-underline-offset: 3px;
-  transition: color var(--transition-base), text-decoration-color var(--transition-base);
+  transition:
+    color var(--transition-base),
+    text-decoration-color var(--transition-base);
 }
 
 .ProseMirror a:hover,
@@ -143,9 +149,13 @@
 }
 
 .ProseMirror .code-block-wrapper::-webkit-scrollbar,
-.vditor-ir .code-block-wrapper::-webkit-scrollbar { height: 3px; }
+.vditor-ir .code-block-wrapper::-webkit-scrollbar {
+  height: 3px;
+}
 .ProseMirror .code-block-wrapper::-webkit-scrollbar-track,
-.vditor-ir .code-block-wrapper::-webkit-scrollbar-track { background: transparent; }
+.vditor-ir .code-block-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
 .ProseMirror .code-block-wrapper::-webkit-scrollbar-thumb,
 .vditor-ir .code-block-wrapper::-webkit-scrollbar-thumb {
   background: var(--code-scrollbar);
@@ -185,11 +195,17 @@
 }
 
 .ProseMirror .copy-btn:hover,
-.vditor-ir .copy-btn:hover { color: var(--code-text); }
+.vditor-ir .copy-btn:hover {
+  color: var(--code-text);
+}
 .ProseMirror .copy-btn--copied,
-.vditor-ir .copy-btn--copied { color: var(--code-copy-done); }
+.vditor-ir .copy-btn--copied {
+  color: var(--code-copy-done);
+}
 .ProseMirror .copy-btn--copied:hover,
-.vditor-ir .copy-btn--copied:hover { color: var(--code-copy-done); }
+.vditor-ir .copy-btn--copied:hover {
+  color: var(--code-copy-done);
+}
 
 .ProseMirror .code-lang-input,
 .vditor-ir .code-lang-input {
@@ -326,9 +342,13 @@
 }
 
 .ProseMirror ul li,
-.vditor-ir ul li { list-style: disc; }
+.vditor-ir ul li {
+  list-style: disc;
+}
 .ProseMirror ol li,
-.vditor-ir ol li { list-style: decimal; }
+.vditor-ir ol li {
+  list-style: decimal;
+}
 
 /* ── Horizontal rule ──────────────────────────────────────────────────────── */
 
@@ -372,7 +392,9 @@
 }
 
 .ProseMirror th:last-child,
-.vditor-ir th:last-child { border-right: none; }
+.vditor-ir th:last-child {
+  border-right: none;
+}
 
 .ProseMirror td,
 .vditor-ir td {
@@ -383,15 +405,21 @@
 }
 
 .ProseMirror td:last-child,
-.vditor-ir td:last-child { border-right: none; }
+.vditor-ir td:last-child {
+  border-right: none;
+}
 
 .ProseMirror tr:last-child td,
-.vditor-ir tr:last-child td { border-bottom: none; }
+.vditor-ir tr:last-child td {
+  border-bottom: none;
+}
 
 .ProseMirror td p,
 .ProseMirror th p,
 .vditor-ir td p,
-.vditor-ir th p { margin-bottom: 0; }
+.vditor-ir th p {
+  margin-bottom: 0;
+}
 
 .ProseMirror tbody tr:hover td,
 .vditor-ir tbody tr:hover td {
@@ -401,10 +429,22 @@
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  .ProseMirror, .vditor-ir { font-size: 15px; }
-  .ProseMirror h1, .vditor-ir h1 { font-size: 24px; }
-  .ProseMirror h2, .vditor-ir h2 { font-size: 20px; }
-  .ProseMirror h3, .vditor-ir h3 { font-size: 17px; }
+  .ProseMirror,
+  .vditor-ir {
+    font-size: 15px;
+  }
+  .ProseMirror h1,
+  .vditor-ir h1 {
+    font-size: 24px;
+  }
+  .ProseMirror h2,
+  .vditor-ir h2 {
+    font-size: 20px;
+  }
+  .ProseMirror h3,
+  .vditor-ir h3 {
+    font-size: 17px;
+  }
 }
 
 /* ── Syntax token colors (hljs) ───────────────────────────────────────────
@@ -477,6 +517,12 @@
   color: var(--code-builtin);
 }
 
-.hljs-emphasis { font-style: italic; }
-.hljs-strong   { font-weight: bold; }
-.hljs-link     { text-decoration: underline; }
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: bold;
+}
+.hljs-link {
+  text-decoration: underline;
+}

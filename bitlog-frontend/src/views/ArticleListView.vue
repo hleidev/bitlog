@@ -27,7 +27,10 @@ let skipWatch = true
 const categories = ref<CategoryVO[]>([])
 const tags = ref<TagVO[]>([])
 
-const categoryTabs = computed(() => [{ id: null as number | null, name: '全部' }, ...categories.value])
+const categoryTabs = computed(() => [
+  { id: null as number | null, name: '全部' },
+  ...categories.value,
+])
 
 // ── Filter state ──────────────────────────────────────────────────────────────
 
@@ -36,9 +39,7 @@ const filterCategoryIdx = ref(0)
 const filterTagIds = ref<number[]>([])
 const searchFocused = ref(false)
 
-const filterCategoryId = computed(
-  () => categoryTabs.value[filterCategoryIdx.value]?.id ?? null,
-)
+const filterCategoryId = computed(() => categoryTabs.value[filterCategoryIdx.value]?.id ?? null)
 
 const hasFilters = computed(
   () => filterSearch.value || filterCategoryIdx.value !== 0 || filterTagIds.value.length > 0,
@@ -207,8 +208,15 @@ onMounted(async () => {
       <div class="filter-bar__row container">
         <!-- Search -->
         <div class="search-wrap" :class="{ 'search-wrap--focused': searchFocused }">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-            <circle cx="11" cy="11" r="7" /><line x1="20" y1="20" x2="15.5" y2="15.5" />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <line x1="20" y1="20" x2="15.5" y2="15.5" />
           </svg>
           <input
             v-model="filterSearch"
@@ -218,9 +226,15 @@ onMounted(async () => {
             @blur="searchFocused = false"
           />
           <Transition name="fade">
-            <button v-if="filterSearch" class="search-clear" @click="filterSearch = ''" tabindex="-1">
+            <button
+              v-if="filterSearch"
+              class="search-clear"
+              tabindex="-1"
+              @click="filterSearch = ''"
+            >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </Transition>
@@ -232,7 +246,11 @@ onMounted(async () => {
           <button
             v-for="(cat, i) in categoryTabs"
             :key="cat.name"
-            :ref="(el) => { if (el) tabEls[i] = el as HTMLButtonElement }"
+            :ref="
+              (el) => {
+                if (el) tabEls[i] = el as HTMLButtonElement
+              }
+            "
             class="cat-tab"
             :class="{ 'cat-tab--active': i === filterCategoryIdx }"
             @click="selectCategory(i)"
@@ -307,7 +325,9 @@ onMounted(async () => {
               class="page-btn page-btn--arrow"
               :disabled="!hasPrevious"
               @click="changePage(pageNum - 1)"
-            >←</button>
+            >
+              ←
+            </button>
             <template v-for="(p, i) in visiblePages" :key="i">
               <span v-if="p === '...'" class="page-ellipsis">…</span>
               <button
@@ -315,13 +335,17 @@ onMounted(async () => {
                 class="page-btn"
                 :class="{ 'page-btn--active': p === pageNum }"
                 @click="changePage(p as number)"
-              >{{ p }}</button>
+              >
+                {{ p }}
+              </button>
             </template>
             <button
               class="page-btn page-btn--arrow"
               :disabled="!hasNext"
               @click="changePage(pageNum + 1)"
-            >→</button>
+            >
+              →
+            </button>
           </div>
         </div>
       </Transition>
@@ -369,7 +393,9 @@ onMounted(async () => {
   border-radius: 4px;
   padding: 7px 12px;
   width: 180px;
-  transition: width 0.3s ease, border-color var(--transition-base);
+  transition:
+    width 0.3s ease,
+    border-color var(--transition-base);
   flex-shrink: 0;
 }
 
@@ -440,9 +466,10 @@ onMounted(async () => {
   background: var(--color-bg-card);
   border-radius: var(--radius-tag);
   border: 1px solid var(--color-border-light);
-  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.15s;
+  transition:
+    left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.15s;
   pointer-events: none;
 }
 
@@ -535,8 +562,12 @@ onMounted(async () => {
 }
 
 @keyframes filter-sweep {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(100%); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 
 /* ── Content ──────────────────────────────────────────────────────────────── */

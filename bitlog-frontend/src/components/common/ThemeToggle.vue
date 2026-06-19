@@ -29,34 +29,104 @@ function pick(mode: ThemeMode) {
       :aria-expanded="open"
       @click="open = !open"
     >
-      <svg v-if="themeMode === 'system'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+      <svg
+        v-if="themeMode === 'system'"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
       </svg>
-      <svg v-else-if="!isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      <svg
+        v-else-if="!isDark"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="12" cy="12" r="5" />
+        <path
+          d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+        />
       </svg>
-      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      <svg
+        v-else
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
       </svg>
     </button>
 
     <Transition name="theme-menu">
       <div v-if="open" class="theme-toggle__menu" role="menu">
-        <button class="theme-toggle__item" :class="{ 'is-active': themeMode === 'system' }" role="menuitem" @click="pick('system')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        <button
+          class="theme-toggle__item"
+          :class="{ 'is-active': themeMode === 'system' }"
+          role="menuitem"
+          @click="pick('system')"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="2" y="3" width="20" height="14" rx="2" />
+            <line x1="8" y1="21" x2="16" y2="21" />
+            <line x1="12" y1="17" x2="12" y2="21" />
           </svg>
           跟随系统
         </button>
-        <button class="theme-toggle__item" :class="{ 'is-active': themeMode === 'light' }" role="menuitem" @click="pick('light')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        <button
+          class="theme-toggle__item"
+          :class="{ 'is-active': themeMode === 'light' }"
+          role="menuitem"
+          @click="pick('light')"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <path
+              d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+            />
           </svg>
           浅色
         </button>
-        <button class="theme-toggle__item" :class="{ 'is-active': themeMode === 'dark' }" role="menuitem" @click="pick('dark')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        <button
+          class="theme-toggle__item"
+          :class="{ 'is-active': themeMode === 'dark' }"
+          role="menuitem"
+          @click="pick('dark')"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
           </svg>
           深色
         </button>
@@ -67,17 +137,30 @@ function pick(mode: ThemeMode) {
 
 <style>
 /* Public-site uses surface tokens; admin overrides locally */
-.theme-toggle { position: relative; }
+.theme-toggle {
+  position: relative;
+}
 
 .theme-toggle__btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px;
-  background: transparent; border: none; cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
   color: var(--color-text-secondary, #5a5248);
   border-radius: 4px;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
-.theme-toggle__btn svg { width: 17px; height: 17px; display: block; }
+.theme-toggle__btn svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
 .theme-toggle__btn:hover,
 .theme-toggle__btn--active {
   color: var(--color-accent, #b85c38);
@@ -94,24 +177,50 @@ function pick(mode: ThemeMode) {
   border-radius: 4px;
   padding: 4px;
   z-index: 1100;
-  display: flex; flex-direction: column; gap: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .theme-toggle__item {
-  display: flex; align-items: center; gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 7px 10px;
-  font-size: 13px; font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
   color: var(--color-text-primary, #1a1610);
-  background: transparent; border: none; cursor: pointer; text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
   border-radius: var(--admin-radius, 4px);
-  transition: background 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
 }
-.theme-toggle__item svg { width: 15px; height: 15px; flex-shrink: 0; }
-.theme-toggle__item:hover { background: var(--color-bg-hover, #f0ede9); }
-.theme-toggle__item.is-active { color: var(--color-accent, #b85c38); font-weight: 500; }
+.theme-toggle__item svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.theme-toggle__item:hover {
+  background: var(--color-bg-hover, #f0ede9);
+}
+.theme-toggle__item.is-active {
+  color: var(--color-accent, #b85c38);
+  font-weight: 500;
+}
 
 .theme-menu-enter-active,
-.theme-menu-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
+.theme-menu-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
 .theme-menu-enter-from,
-.theme-menu-leave-to { opacity: 0; transform: translateY(-4px); }
+.theme-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
 </style>

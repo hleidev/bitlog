@@ -1,8 +1,7 @@
 <script setup lang="ts">
 const START_YEAR = 2026
 const currentYear = new Date().getFullYear()
-const copyrightYear =
-  currentYear > START_YEAR ? `${START_YEAR}–${currentYear}` : `${START_YEAR}`
+const copyrightYear = currentYear > START_YEAR ? `${START_YEAR}–${currentYear}` : `${START_YEAR}`
 </script>
 
 <template>

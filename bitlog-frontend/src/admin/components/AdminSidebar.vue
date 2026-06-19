@@ -13,37 +13,51 @@ const { isAdmin } = storeToRefs(useUserStore())
 
 const ICONS: Record<string, string> = {
   dashboard: 'M3 3h8v8H3V3zm0 10h8v8H3v-8zm10-10h8v8h-8V3zm0 10h8v8h-8v-8z',
-  articles:  'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM13 9V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z',
-  folder:    'M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z',
-  tag:       'M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z',
-  chat:      'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z',
-  users:     'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
-  user:      'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
-  list:      'M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z',
-  chevron:   'M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z',
+  articles:
+    'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM13 9V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z',
+  folder: 'M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z',
+  tag: 'M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z',
+  chat: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z',
+  users:
+    'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
+  user: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
+  list: 'M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z',
+  chevron: 'M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z',
 }
 
 // ── Menu definition ───────────────────────────────────────────────────────────
 
-type LeafItem  = { title: string; icon: string; path: string }
-type GroupItem = { title: string; icon: string; key: string; defaultPath?: string; children: LeafItem[] }
-type MenuItem  = LeafItem | GroupItem
+type LeafItem = { title: string; icon: string; path: string }
+type GroupItem = {
+  title: string
+  icon: string
+  key: string
+  defaultPath?: string
+  children: LeafItem[]
+}
+type MenuItem = LeafItem | GroupItem
 
 const isGroup = (item: MenuItem): item is GroupItem => 'children' in item
 
 const adminMenus: MenuItem[] = [
   { title: '仪表盘', icon: 'dashboard', path: '/admin/dashboard' },
   {
-    title: '文章', icon: 'articles', key: 'articles', defaultPath: '/admin/articles',
+    title: '文章',
+    icon: 'articles',
+    key: 'articles',
+    defaultPath: '/admin/articles',
     children: [
-      { title: '文章管理', icon: 'list',   path: '/admin/articles' },
+      { title: '文章管理', icon: 'list', path: '/admin/articles' },
       { title: '分类管理', icon: 'folder', path: '/admin/categories' },
-      { title: '标签管理', icon: 'tag',    path: '/admin/tags' },
+      { title: '标签管理', icon: 'tag', path: '/admin/tags' },
     ],
   },
   { title: '评论', icon: 'chat', path: '/admin/comments' },
   {
-    title: '用户', icon: 'users', key: 'users', defaultPath: '/admin/users',
+    title: '用户',
+    icon: 'users',
+    key: 'users',
+    defaultPath: '/admin/users',
     children: [
       { title: '用户管理', icon: 'users', path: '/admin/users' },
       { title: '个人资料', icon: 'user', path: '/admin/profile' },
@@ -53,7 +67,7 @@ const adminMenus: MenuItem[] = [
 
 const userMenus: MenuItem[] = [
   { title: '仪表盘', icon: 'dashboard', path: '/admin/dashboard' },
-  { title: '个人资料', icon: 'user',    path: '/admin/profile' },
+  { title: '个人资料', icon: 'user', path: '/admin/profile' },
 ]
 
 const menus = computed<MenuItem[]>(() => (isAdmin.value ? adminMenus : userMenus))
@@ -97,7 +111,7 @@ onBeforeUnmount(() => {
 
 function syncOpenGroups() {
   for (const item of menus.value) {
-    if (isGroup(item) && item.children.some(c => route.path.startsWith(c.path))) {
+    if (isGroup(item) && item.children.some((c) => route.path.startsWith(c.path))) {
       openGroups.value.add(item.key)
     }
   }
@@ -119,9 +133,8 @@ function toggleGroup(item: GroupItem) {
 }
 
 function isGroupActive(item: GroupItem): boolean {
-  return item.children.some(c => route.path === c.path)
+  return item.children.some((c) => route.path === c.path)
 }
-
 </script>
 
 <template>
@@ -135,7 +148,6 @@ function isGroupActive(item: GroupItem): boolean {
     <!-- Nav -->
     <nav class="sidebar-nav">
       <template v-for="item in menus" :key="isGroup(item) ? item.key : item.path">
-
         <!-- Group -->
         <div v-if="isGroup(item)" class="nav-group">
           <!-- Collapsed: click → first child, hover/focus → popover (position:fixed, JS-synced) -->
@@ -237,10 +249,8 @@ function isGroupActive(item: GroupItem): boolean {
           </svg>
           <span v-show="!collapsed" class="nav-label">{{ item.title }}</span>
         </RouterLink>
-
       </template>
     </nav>
-
   </div>
 </template>
 
@@ -323,7 +333,10 @@ function isGroupActive(item: GroupItem): boolean {
   background: transparent;
   border: none;
   border-left: 2px solid transparent;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .nav-item:hover {
@@ -442,8 +455,14 @@ function isGroupActive(item: GroupItem): boolean {
 }
 
 @keyframes popoverIn {
-  from { opacity: 0; transform: translateX(-4px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .sub-menu-popover .nav-item--child {
@@ -471,5 +490,4 @@ function isGroupActive(item: GroupItem): boolean {
 .sidebar--collapsed .sidebar-logo {
   padding: 0;
 }
-
 </style>

@@ -41,10 +41,13 @@ function unlockScroll() {
   previouslyFocused = null
 }
 
-watch(() => props.visible, (val) => {
-  if (val) lockScroll()
-  else unlockScroll()
-})
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) lockScroll()
+    else unlockScroll()
+  },
+)
 
 onMounted(() => window.addEventListener('keydown', handleKeydown))
 onUnmounted(() => {
@@ -102,7 +105,9 @@ onUnmounted(() => {
 
 .modal-enter-active .modal-container,
 .modal-leave-active .modal-container {
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.25s ease;
 }
 
 .modal-enter-from,

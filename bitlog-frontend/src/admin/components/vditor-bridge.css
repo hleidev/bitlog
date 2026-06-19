@@ -23,7 +23,9 @@
 }
 
 @media (max-width: 900px) {
-  .vditor-writer .vditor-reset { font-size: 15px; }
+  .vditor-writer .vditor-reset {
+    font-size: 15px;
+  }
 }
 
 /* 标题行高:中和 .vditor-reset 的 1.25,对齐阅读侧(无显式行高,继承 1.85) */
@@ -59,9 +61,15 @@
   border-bottom: 1px solid var(--color-border);
   border-right: 1px solid var(--color-border-light);
 }
-.vditor-writer .vditor-reset table th:last-child { border-right: none; }
-.vditor-writer .vditor-reset table td:last-child { border-right: none; }
-.vditor-writer .vditor-reset table tr:last-child td { border-bottom: none; }
+.vditor-writer .vditor-reset table th:last-child {
+  border-right: none;
+}
+.vditor-writer .vditor-reset table td:last-child {
+  border-right: none;
+}
+.vditor-writer .vditor-reset table tr:last-child td {
+  border-bottom: none;
+}
 
 /* 分隔线:中和 .vditor-reset hr 的灰色填充块,对齐阅读侧 1px 边线 */
 .vditor-writer .vditor-reset hr {
@@ -178,8 +186,7 @@
    给每个代码块节点标注 data-lang(无语言回退 'text',与 ArticleContent 的
    wrapCodeBlock 一致),用 ::before 渲染,不依赖 Vditor 的标记元素。
    Vditor 对折叠标记有 padding:0 !important,间距用 margin 实现。 */
-.vditor-writer
-  .vditor-ir__node[data-type='code-block']:not(.vditor-ir__node--expand)::before {
+.vditor-writer .vditor-ir__node[data-type='code-block']:not(.vditor-ir__node--expand)::before {
   content: attr(data-lang);
   display: block;
   /* 8+17+6 ≈ 阅读侧 header(padding 8/6 + 12px 标签行)的 31px 总高 */
@@ -249,7 +256,9 @@
 }
 
 .vditor-writer
-  .vditor-ir__node[data-type='code-block'][data-lang='mermaid']:not(.vditor-ir__node--expand)::before {
+  .vditor-ir__node[data-type='code-block'][data-lang='mermaid']:not(
+    .vditor-ir__node--expand
+  )::before {
   content: none;
 }
 
@@ -321,6 +330,12 @@
   color: var(--code-builtin);
 }
 
-.vditor-writer .hljs-emphasis { font-style: italic; }
-.vditor-writer .hljs-strong   { font-weight: bold; }
-.vditor-writer .hljs-link     { text-decoration: underline; }
+.vditor-writer .hljs-emphasis {
+  font-style: italic;
+}
+.vditor-writer .hljs-strong {
+  font-weight: bold;
+}
+.vditor-writer .hljs-link {
+  text-decoration: underline;
+}

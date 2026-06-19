@@ -36,7 +36,9 @@ onMounted(async () => {
 
     <div v-else-if="error" class="page-state page-state--error">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12.01" y1="16" x2="12.01" y2="16" />
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12.01" y1="16" x2="12.01" y2="16" />
       </svg>
       <p>文章加载失败</p>
     </div>
@@ -56,11 +58,7 @@ onMounted(async () => {
         <!-- Footer tags -->
         <div v-if="article.tags.length" class="article-footer">
           <div class="article-footer__tags">
-            <span
-              v-for="tag in article.tags"
-              :key="tag.id"
-              class="footer-tag"
-            >{{ tag.name }}</span>
+            <span v-for="tag in article.tags" :key="tag.id" class="footer-tag">{{ tag.name }}</span>
           </div>
         </div>
       </article>
@@ -79,8 +77,14 @@ onMounted(async () => {
   color: var(--color-text-muted);
 }
 
-.page-state--error svg { width: 40px; height: 40px; color: var(--color-text-faint); }
-.page-state--error p { font-size: 15px; }
+.page-state--error svg {
+  width: 40px;
+  height: 40px;
+  color: var(--color-text-faint);
+}
+.page-state--error p {
+  font-size: 15px;
+}
 
 .skeleton-body {
   display: flex;
@@ -95,20 +99,40 @@ onMounted(async () => {
 .skeleton-line {
   height: 14px;
   border-radius: var(--admin-radius);
-  background: linear-gradient(90deg, var(--color-bg-hover) 25%, var(--color-border) 50%, var(--color-bg-hover) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-hover) 25%,
+    var(--color-border) 50%,
+    var(--color-bg-hover) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
 
-.skeleton-line.w-20 { width: 20%; height: 10px; }
-.skeleton-line.w-50 { width: 50%; }
-.skeleton-line.w-70 { width: 70%; }
-.skeleton-line.w-80 { width: 80%; }
-.skeleton-line.w-100 { width: 100%; }
+.skeleton-line.w-20 {
+  width: 20%;
+  height: 10px;
+}
+.skeleton-line.w-50 {
+  width: 50%;
+}
+.skeleton-line.w-70 {
+  width: 70%;
+}
+.skeleton-line.w-80 {
+  width: 80%;
+}
+.skeleton-line.w-100 {
+  width: 100%;
+}
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .article-layout {
@@ -169,6 +193,8 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
-  .article-layout { padding: 40px 20px 80px; }
+  .article-layout {
+    padding: 40px 20px 80px;
+  }
 }
 </style>

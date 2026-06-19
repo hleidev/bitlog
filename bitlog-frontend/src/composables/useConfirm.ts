@@ -2,16 +2,16 @@ import { ref } from 'vue'
 
 export interface ConfirmOptions {
   confirmText?: string
-  cancelText?:  string
-  danger?:      boolean
+  cancelText?: string
+  danger?: boolean
 }
 
 export interface PendingConfirm {
   message: string
-  title:   string
+  title: string
   options: Required<ConfirmOptions>
   resolve: () => void
-  reject:  () => void
+  reject: () => void
 }
 
 const pending = ref<PendingConfirm | null>(null)
@@ -28,8 +28,8 @@ export function useConfirm() {
         title,
         options: {
           confirmText: options.confirmText ?? '确认',
-          cancelText:  options.cancelText  ?? '取消',
-          danger:      options.danger      ?? false,
+          cancelText: options.cancelText ?? '取消',
+          danger: options.danger ?? false,
         },
         resolve,
         reject,

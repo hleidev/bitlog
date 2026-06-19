@@ -87,7 +87,10 @@ function onCancel() {
   border-radius: 4px;
   cursor: pointer;
   border: 1px solid;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .confirm-btn--cancel {
@@ -134,7 +137,9 @@ function onCancel() {
 }
 
 .confirm-scale-enter-active {
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
 }
 .confirm-scale-enter-from {
   transform: scale(0.96);

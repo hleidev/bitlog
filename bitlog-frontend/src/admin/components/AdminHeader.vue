@@ -15,7 +15,7 @@ const { userInfo } = storeToRefs(userStore)
 
 const menuOpen = ref(false)
 
-const pageTitle   = computed(() => route.meta.title ?? '')
+const pageTitle = computed(() => route.meta.title ?? '')
 const parentTitle = computed(() => route.meta.parent ?? '')
 const displayName = computed(() => userInfo.value?.nickname ?? 'Admin')
 const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
@@ -26,7 +26,13 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
     <div class="header-left">
       <!-- Sidebar toggle -->
       <button class="toggle-btn" aria-label="切换侧边栏" @click="emit('toggle')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        >
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <line x1="9" y1="3" x2="9" y2="21" />
         </svg>
@@ -34,7 +40,9 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 
       <!-- Breadcrumb -->
       <nav v-if="pageTitle" class="breadcrumb">
-        <span v-if="parentTitle" class="breadcrumb-item breadcrumb-item--parent">{{ parentTitle }}</span>
+        <span v-if="parentTitle" class="breadcrumb-item breadcrumb-item--parent">{{
+          parentTitle
+        }}</span>
         <span v-if="parentTitle" class="breadcrumb-sep">/</span>
         <span class="breadcrumb-item">{{ pageTitle }}</span>
       </nav>
@@ -93,7 +101,9 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
   border: none;
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .toggle-btn svg {
@@ -198,7 +208,9 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 
 .dropdown-enter-active,
 .dropdown-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .dropdown-enter-from,

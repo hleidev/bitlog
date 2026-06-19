@@ -17,7 +17,10 @@ function lockScroll(lock: boolean) {
   document.body.style.overflow = lock ? 'hidden' : ''
 }
 
-watch(() => props.open, (open) => lockScroll(open))
+watch(
+  () => props.open,
+  (open) => lockScroll(open),
+)
 
 onMounted(() => window.addEventListener('keydown', handleKeydown))
 onUnmounted(() => {
@@ -31,7 +34,13 @@ onUnmounted(() => {
     <div v-if="open" class="img-lightbox" role="dialog" aria-modal="true" @click="emit('close')">
       <button class="img-lightbox__close" aria-label="关闭" @click.stop="emit('close')">×</button>
       <div class="img-lightbox__stage">
-        <img v-if="src" :src="src" :alt="alt ?? ''" class="img-lightbox__img" @click="emit('close')" />
+        <img
+          v-if="src"
+          :src="src"
+          :alt="alt ?? ''"
+          class="img-lightbox__img"
+          @click="emit('close')"
+        />
         <div v-else class="img-lightbox__html" @click="emit('close')">
           <slot />
         </div>
@@ -65,7 +74,9 @@ onUnmounted(() => {
   line-height: 1;
   cursor: pointer;
   font-family: var(--font-sans);
-  transition: background 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    transform 0.15s;
 }
 
 .img-lightbox__close:hover {
@@ -122,7 +133,11 @@ onUnmounted(() => {
 }
 
 @keyframes img-lightbox-fade {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 </style>

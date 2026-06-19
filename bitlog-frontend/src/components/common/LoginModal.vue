@@ -20,8 +20,8 @@ const loginErrors = ref({ username: '', password: '' })
 const registerForm = ref({ username: '', password: '', confirmPassword: '' })
 const registerErrors = ref({ username: '', password: '', confirmPassword: '' })
 
-const loading        = ref(false)
-const apiError       = ref('')
+const loading = ref(false)
+const apiError = ref('')
 const usernameInputRef = ref<HTMLInputElement | null>(null)
 
 const USERNAME_RE = /^[a-zA-Z0-9_-]{4,16}$/
@@ -161,11 +161,14 @@ watch(
 </script>
 
 <template>
-  <BaseModal :visible="modalStore.visible && modalStore.activeModal === 'login'" @close="modalStore.close()">
+  <BaseModal
+    :visible="modalStore.visible && modalStore.activeModal === 'login'"
+    @close="modalStore.close()"
+  >
     <div class="auth-modal">
-      <button class="auth-modal__close" @click="modalStore.close()" aria-label="关闭">
+      <button class="auth-modal__close" aria-label="关闭" @click="modalStore.close()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6 6 18M6 6l12 12"/>
+          <path d="M18 6 6 18M6 6l12 12" />
         </svg>
       </button>
 
@@ -220,7 +223,14 @@ watch(
         </button>
         <p class="auth-switch">
           没有账号？
-          <button type="button" class="auth-switch__btn auth-switch__btn--disabled" disabled title="注册功能暂未开放">立即注册</button>
+          <button
+            type="button"
+            class="auth-switch__btn auth-switch__btn--disabled"
+            disabled
+            title="注册功能暂未开放"
+          >
+            立即注册
+          </button>
         </p>
       </form>
 
@@ -271,7 +281,9 @@ watch(
             :disabled="loading"
             @blur="validateRegConfirm"
           />
-          <p v-if="registerErrors.confirmPassword" class="field-error">{{ registerErrors.confirmPassword }}</p>
+          <p v-if="registerErrors.confirmPassword" class="field-error">
+            {{ registerErrors.confirmPassword }}
+          </p>
         </div>
 
         <p v-if="apiError" class="form-error">{{ apiError }}</p>
@@ -281,7 +293,9 @@ watch(
         </button>
         <p class="auth-switch">
           已有账号？
-          <button type="button" class="auth-switch__btn" @click="switchMode('login')">立即登录</button>
+          <button type="button" class="auth-switch__btn" @click="switchMode('login')">
+            立即登录
+          </button>
         </p>
       </form>
     </div>
@@ -317,7 +331,6 @@ watch(
   color: var(--color-text-primary);
   background: var(--color-bg-hover);
 }
-
 
 .auth-modal__title {
   font-family: var(--font-serif);

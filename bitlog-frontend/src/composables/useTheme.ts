@@ -12,9 +12,8 @@ function readSaved(): ThemeMode {
   return old === 'dark' ? 'dark' : old === 'light' ? 'light' : 'system'
 }
 
-const systemDark = typeof window !== 'undefined'
-  ? window.matchMedia('(prefers-color-scheme: dark)')
-  : null
+const systemDark =
+  typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)') : null
 
 const systemIsDark = ref(systemDark ? systemDark.matches : false)
 const themeMode = ref<ThemeMode>(readSaved())
@@ -30,17 +29,15 @@ if (systemDark) {
 
 function applyTheme() {
   if (typeof document === 'undefined') return
-  const isDark =
-    themeMode.value === 'dark' ||
-    (themeMode.value === 'system' && systemIsDark.value)
+  const isDark = themeMode.value === 'dark' || (themeMode.value === 'system' && systemIsDark.value)
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
 }
 
 applyTheme()
 
 export function useTheme() {
-  const isDark = computed(() =>
-    themeMode.value === 'dark' || (themeMode.value === 'system' && systemIsDark.value),
+  const isDark = computed(
+    () => themeMode.value === 'dark' || (themeMode.value === 'system' && systemIsDark.value),
   )
 
   function setTheme(mode: ThemeMode) {
@@ -55,4 +52,3 @@ export function useTheme() {
 
   return { themeMode, isDark, setTheme, toggleTheme }
 }
-

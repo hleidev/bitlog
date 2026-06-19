@@ -52,5 +52,7 @@ const router = useRouter()
   transition: background 0.15s;
 }
 
-.not-found-btn:hover { background: var(--admin-accent-dark, #924530); }
+.not-found-btn:hover {
+  background: var(--admin-accent-dark, #924530);
+}
 </style>

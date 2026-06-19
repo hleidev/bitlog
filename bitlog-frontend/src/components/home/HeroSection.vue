@@ -1,13 +1,12 @@
 <template>
-  <section class="hero" id="hero">
+  <section id="hero" class="hero">
     <div class="hero__after"></div>
     <div class="hero__inner">
-
       <div class="hero__left">
         <h1 class="hero__title">
           <span class="hero__char" style="animation-delay: 0.08s">B</span>
           <span class="hero__char" style="animation-delay: 0.14s">i</span>
-          <span class="hero__char" style="animation-delay: 0.20s">t</span>
+          <span class="hero__char" style="animation-delay: 0.2s">t</span>
           <span class="hero__char" style="animation-delay: 0.26s">L</span>
           <span class="hero__char" style="animation-delay: 0.32s">o</span>
           <span class="hero__char" style="animation-delay: 0.38s">g</span>
@@ -21,14 +20,19 @@
           <div class="hero__accent-bar"></div>
           <div class="hero__author-name">Harry</div>
         </div>
-        <div class="hero__author-bio">后端工程师，<br>在奔波里记录生活的边角料。</div>
+        <div class="hero__author-bio">后端工程师，<br />在奔波里记录生活的边角料。</div>
         <div class="hero__author-links">
-          <a href="https://github.com/hleidev" target="_blank" rel="noopener noreferrer" class="hero__link">GitHub</a>
+          <a
+            href="https://github.com/hleidev"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hero__link"
+            >GitHub</a
+          >
           <span class="hero__sep">·</span>
           <RouterLink to="/about" class="hero__link">关于我</RouterLink>
         </div>
       </div>
-
     </div>
   </section>
 </template>

@@ -40,7 +40,9 @@
   background-size: 0% 1px;
   background-position: left bottom;
   padding-bottom: 1px;
-  transition: color var(--transition-base), background-size var(--transition-sweep);
+  transition:
+    color var(--transition-base),
+    background-size var(--transition-sweep);
 }
 
 .not-found__link:hover {

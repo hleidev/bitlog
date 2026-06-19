@@ -18,14 +18,14 @@ function add(type: ToastType, message: string) {
 }
 
 function remove(id: number) {
-  const idx = toasts.value.findIndex(t => t.id === id)
+  const idx = toasts.value.findIndex((t) => t.id === id)
   if (idx !== -1) toasts.value.splice(idx, 1)
 }
 
 export function useToast() {
   return {
     success: (msg: string) => add('success', msg),
-    error:   (msg: string) => add('error', msg),
+    error: (msg: string) => add('error', msg),
     warning: (msg: string) => add('warning', msg),
     remove,
   }

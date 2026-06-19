@@ -6,7 +6,7 @@ export interface UserProfile {
   nickname: string
   avatar: string
   email: string
-  userRole: number  // 0: 普通用户, 1: 管理员
+  userRole: number // 0: 普通用户, 1: 管理员
   position: string
   company: string
   profile: string

@@ -44,27 +44,30 @@ function handleToggle() {
 }
 
 const route = useRoute()
-watch(() => route.path, () => {
-  if (isMobile.value) drawerOpen.value = false
-  showBackTop.value = false
-})
+watch(
+  () => route.path,
+  () => {
+    if (isMobile.value) drawerOpen.value = false
+    showBackTop.value = false
+  },
+)
 </script>
 
 <template>
   <div class="admin-layout">
     <!-- Mobile backdrop -->
     <Transition name="backdrop">
-      <div
-        v-if="isMobile && drawerOpen"
-        class="admin-backdrop"
-        @click="drawerOpen = false"
-      />
+      <div v-if="isMobile && drawerOpen" class="admin-backdrop" @click="drawerOpen = false" />
     </Transition>
 
     <!-- Sidebar -->
     <div
       class="admin-aside"
-      :class="{ 'is-collapsed': !isMobile && collapsed, 'is-mobile': isMobile, 'drawer-open': isMobile && drawerOpen }"
+      :class="{
+        'is-collapsed': !isMobile && collapsed,
+        'is-mobile': isMobile,
+        'drawer-open': isMobile && drawerOpen,
+      }"
     >
       <AdminSidebar :collapsed="isMobile ? false : collapsed" />
     </div>
@@ -94,8 +97,16 @@ watch(() => route.path, () => {
         aria-label="回到顶部"
         @click="scrollToTop"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="12" y1="19" x2="12" y2="5" />
+          <polyline points="5 12 12 5 19 12" />
         </svg>
       </button>
     </Transition>
@@ -196,20 +207,37 @@ watch(() => route.path, () => {
   color: var(--admin-text-muted);
   cursor: pointer;
   z-index: 200;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
 }
-.back-top svg { width: 15px; height: 15px; display: block; }
+.back-top svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
 .back-top:hover {
   color: var(--admin-accent);
   border-color: var(--admin-accent);
 }
 
 .back-top-enter-active,
-.back-top-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.back-top-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
 .back-top-enter-from,
-.back-top-leave-to { opacity: 0; transform: translateY(8px); }
+.back-top-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
 
 @media (max-width: 768px) {
-  .back-top { bottom: 20px; right: 16px; }
+  .back-top {
+    bottom: 20px;
+    right: 16px;
+  }
 }
 </style>

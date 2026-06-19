@@ -31,7 +31,6 @@ const stats = [
 
 <template>
   <div class="dashboard">
-
     <!-- Page title -->
     <div class="page-header">
       <div class="title-row">
@@ -68,7 +67,6 @@ const stats = [
         icon-path="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"
       />
     </div>
-
   </div>
 </template>
 
@@ -204,12 +202,21 @@ const stats = [
 /* ── Responsive ── */
 
 @media (max-width: 900px) {
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
-  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .stat-card { padding: 14px; }
-  .stat-value { font-size: 18px; }
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .stat-card {
+    padding: 14px;
+  }
+  .stat-value {
+    font-size: 18px;
+  }
 }
 </style>

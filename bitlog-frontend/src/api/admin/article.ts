@@ -115,7 +115,10 @@ export function createArticle(data: { title: string; content: string }): Promise
   return request.post<never, number>('/v1/article', data)
 }
 
-export function updateArticleDraft(id: number, data: { title: string; content: string }): Promise<void> {
+export function updateArticleDraft(
+  id: number,
+  data: { title: string; content: string },
+): Promise<void> {
   return request.put<never, void>(`/v1/article/${id}`, data)
 }
 
@@ -137,7 +140,10 @@ export function getArticleVersions(id: number): Promise<ArticleVersionVO[]> {
   return request.get<never, ArticleVersionVO[]>(`/v1/article/${id}/versions`)
 }
 
-export function getArticleVersionDetail(id: number, versionId: number): Promise<ArticleVersionDetailVO> {
+export function getArticleVersionDetail(
+  id: number,
+  versionId: number,
+): Promise<ArticleVersionDetailVO> {
   return request.get<never, ArticleVersionDetailVO>(`/v1/article/${id}/versions/${versionId}`)
 }
 
@@ -153,11 +159,11 @@ export async function getMyArticles(params: GetMyArticlesParams): Promise<Articl
     pageSize: params.pageSize,
   }
   if (params.status !== undefined) apiParams.status = STATUS_TO_API[params.status]
-  if (params.keyword)              apiParams.keyword = params.keyword
+  if (params.keyword) apiParams.keyword = params.keyword
   if (params.categoryId !== undefined) apiParams.categoryId = params.categoryId
 
   const res = await request.get<never, ArticleListResult>('/v1/article/my', { params: apiParams })
-  res.page.content = res.page.content.map(a => ({
+  res.page.content = res.page.content.map((a) => ({
     ...a,
     status: STATUS_FROM_API[a.status as unknown as number] ?? a.status,
   }))
@@ -165,7 +171,10 @@ export async function getMyArticles(params: GetMyArticlesParams): Promise<Articl
 }
 
 export function updateArticlesStatus(ids: number[], status: ArticleStatus): Promise<void> {
-  return request.patch<never, void>('/v1/article/batch/status', { ids, status: STATUS_TO_API[status] })
+  return request.patch<never, void>('/v1/article/batch/status', {
+    ids,
+    status: STATUS_TO_API[status],
+  })
 }
 
 export function deleteArticles(ids: number[]): Promise<void> {
@@ -173,9 +182,9 @@ export function deleteArticles(ids: number[]): Promise<void> {
 }
 
 export interface AiMetadataVO {
-  summary:       string
-  category:      { id: number; name: string } | null
-  tags:          Array<{ id: number; name: string }>
+  summary: string
+  category: { id: number; name: string } | null
+  tags: Array<{ id: number; name: string }>
   suggestedTags: string[]
 }
 
@@ -184,5 +193,7 @@ export function generateAiMetadata(id: number): Promise<AiMetadataVO> {
 }
 
 export function deleteArticleVersions(articleId: number, versionIds: number[]): Promise<void> {
-  return request.delete<never, void>(`/v1/article/${articleId}/versions/batch`, { data: { versionIds } })
+  return request.delete<never, void>(`/v1/article/${articleId}/versions/batch`, {
+    data: { versionIds },
+  })
 }

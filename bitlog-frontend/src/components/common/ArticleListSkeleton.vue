@@ -64,11 +64,17 @@ withDefaults(defineProps<{ rows?: number }>(), { rows: 6 })
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 @media (max-width: 640px) {
-  .sk-date { display: none; }
+  .sk-date {
+    display: none;
+  }
 }
 </style>

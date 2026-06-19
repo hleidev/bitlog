@@ -81,7 +81,11 @@ function stripTableRowBlankLines(md: string): string {
   for (let i = 0; i < lines.length; i++) {
     const prev = out[out.length - 1] ?? ''
     const next = lines[i + 1] ?? ''
-    if (lines[i].trim() === '' && prev.trimStart().startsWith('|') && next.trimStart().startsWith('|')) {
+    if (
+      lines[i].trim() === '' &&
+      prev.trimStart().startsWith('|') &&
+      next.trimStart().startsWith('|')
+    ) {
       continue
     }
     out.push(lines[i])

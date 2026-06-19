@@ -39,6 +39,11 @@ const doSearch = () => {
   router.push({ path: '/articles', query: { keyword: kw } })
   closeSearch()
 }
+
+const handleMobileLogin = () => {
+  modalStore.open('login')
+  mobileMenuOpen.value = false
+}
 </script>
 
 <template>
@@ -46,8 +51,16 @@ const doSearch = () => {
     <div class="header__inner">
       <!-- Search mode -->
       <div v-if="searchOpen" class="header__search-mode">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
         <input
           ref="searchInputRef"
@@ -59,7 +72,8 @@ const doSearch = () => {
         />
         <button class="header__search-close" aria-label="关闭搜索" @click="closeSearch">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </div>
@@ -78,16 +92,30 @@ const doSearch = () => {
 
         <div class="header__actions">
           <button class="header__search-btn" aria-label="搜索" @click="openSearch">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </button>
           <!-- 主题切换 -->
           <ThemeToggle />
           <!-- 登录按钮 / 用户头像 -->
-          <button v-if="!isLoggedIn" class="header__login-btn" @click="modalStore.open('login')">登录</button>
+          <button v-if="!isLoggedIn" class="header__login-btn" @click="modalStore.open('login')">
+            登录
+          </button>
           <template v-else>
-            <div class="header__user" @mouseenter="dropdownOpen = true" @mouseleave="dropdownOpen = false">
+            <div
+              class="header__user"
+              @mouseenter="dropdownOpen = true"
+              @mouseleave="dropdownOpen = false"
+            >
               <button class="header__avatar-btn" aria-label="用户菜单">
                 <img
                   v-if="userInfo?.avatar"
@@ -100,18 +128,18 @@ const doSearch = () => {
                 </span>
               </button>
               <Transition name="dropdown">
-                <UserDropdown
-                  v-if="dropdownOpen"
-                  show-admin-links
-                  class="header__dropdown"
-                />
+                <UserDropdown v-if="dropdownOpen" show-admin-links class="header__dropdown" />
               </Transition>
             </div>
           </template>
         </div>
 
         <!-- Mobile hamburger -->
-        <button class="header__hamburger" aria-label="菜单" @click="mobileMenuOpen = !mobileMenuOpen">
+        <button
+          class="header__hamburger"
+          aria-label="菜单"
+          @click="mobileMenuOpen = !mobileMenuOpen"
+        >
           <span></span><span></span><span></span>
         </button>
       </template>
@@ -120,14 +148,32 @@ const doSearch = () => {
     <!-- Mobile drawer -->
     <div class="mobile-drawer" :class="{ 'mobile-drawer--open': mobileMenuOpen }">
       <nav class="mobile-drawer__nav">
-        <RouterLink to="/" class="mobile-drawer__link" @click="mobileMenuOpen = false">首页</RouterLink>
-        <RouterLink to="/articles" class="mobile-drawer__link" @click="mobileMenuOpen = false">文章</RouterLink>
+        <RouterLink to="/" class="mobile-drawer__link" @click="mobileMenuOpen = false"
+          >首页</RouterLink
+        >
+        <RouterLink to="/articles" class="mobile-drawer__link" @click="mobileMenuOpen = false"
+          >文章</RouterLink
+        >
         <div class="mobile-theme-row">
-          <button class="mobile-theme-btn" :class="{ 'mobile-theme-btn--active': isDark }" @click="setTheme(isDark ? 'light' : 'dark')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path v-if="isDark" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          <button
+            class="mobile-theme-btn"
+            :class="{ 'mobile-theme-btn--active': isDark }"
+            @click="setTheme(isDark ? 'light' : 'dark')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path v-if="isDark" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               <g v-else>
-                <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                <circle cx="12" cy="12" r="5" />
+                <path
+                  d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+                />
               </g>
             </svg>
             {{ isDark ? '深色' : '浅色' }}
@@ -135,7 +181,7 @@ const doSearch = () => {
         </div>
       </nav>
       <div class="mobile-drawer__actions">
-        <button v-if="!isLoggedIn" class="mobile-login-btn" @click="modalStore.open('login'); mobileMenuOpen = false">登录</button>
+        <button v-if="!isLoggedIn" class="mobile-login-btn" @click="handleMobileLogin">登录</button>
       </div>
     </div>
     <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
@@ -150,7 +196,9 @@ const doSearch = () => {
   right: var(--scrollbar-width, 0px);
   height: var(--spacing-header-height);
   z-index: 1000;
-  transition: background var(--transition-header), border-color var(--transition-header);
+  transition:
+    background var(--transition-header),
+    border-color var(--transition-header);
   border-bottom: 1px solid transparent;
 }
 
@@ -221,7 +269,9 @@ const doSearch = () => {
   background-repeat: no-repeat;
   background-size: 0% 1px;
   background-position: left bottom;
-  transition: color var(--transition-header), background-size var(--transition-sweep);
+  transition:
+    color var(--transition-header),
+    background-size var(--transition-sweep);
 }
 
 .header--scrolled .header__nav-link {
@@ -255,7 +305,9 @@ const doSearch = () => {
   width: 20px;
   height: 20px;
   color: rgba(245, 243, 239, 0.7);
-  transition: color var(--transition-header), opacity var(--transition-base);
+  transition:
+    color var(--transition-header),
+    opacity var(--transition-base);
   flex-shrink: 0;
 }
 
@@ -405,7 +457,9 @@ const doSearch = () => {
 
 .dropdown-enter-active,
 .dropdown-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .dropdown-enter-from,
@@ -533,8 +587,12 @@ const doSearch = () => {
   flex-shrink: 0;
 }
 
-.mobile-theme-btn:hover { color: var(--color-text-primary); }
-.mobile-theme-btn--active { color: var(--color-accent); }
+.mobile-theme-btn:hover {
+  color: var(--color-text-primary);
+}
+.mobile-theme-btn--active {
+  color: var(--color-accent);
+}
 
 .mobile-overlay {
   position: fixed;

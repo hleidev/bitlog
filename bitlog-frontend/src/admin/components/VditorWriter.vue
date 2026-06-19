@@ -17,11 +17,14 @@ import 'vditor/dist/index.css'
 import '@/components/prose.css'
 import './vditor-bridge.css'
 
-const props = withDefaults(defineProps<{
-  content: string
-  editable?: boolean
-  uploadImage?: (file: File) => Promise<string>
-}>(), { editable: true })
+const props = withDefaults(
+  defineProps<{
+    content: string
+    editable?: boolean
+    uploadImage?: (file: File) => Promise<string>
+  }>(),
+  { editable: true },
+)
 
 const emit = defineEmits<{ change: []; error: [message: string] }>()
 
@@ -37,13 +40,15 @@ let codeLangObserver: MutationObserver | null = null
  * 只在值变化时写入 → 不触发 childList/characterData,无观察环。
  */
 function annotateCodeBlocks(root: HTMLElement) {
-  root
-    .querySelectorAll<HTMLElement>('.vditor-ir__node[data-type="code-block"]')
-    .forEach((node) => {
-      const info = node.querySelector('[data-type="code-block-info"]')?.textContent ?? ''
-      const lang = info.replace(/\u200b/g, '').trim().toLowerCase() || 'text'
-      if (node.dataset.lang !== lang) node.dataset.lang = lang
-    })
+  root.querySelectorAll<HTMLElement>('.vditor-ir__node[data-type="code-block"]').forEach((node) => {
+    const info = node.querySelector('[data-type="code-block-info"]')?.textContent ?? ''
+    const lang =
+      info
+        .replace(/\u200b/g, '')
+        .trim()
+        .toLowerCase() || 'text'
+    if (node.dataset.lang !== lang) node.dataset.lang = lang
+  })
 }
 
 function isDarkTheme(): boolean {
@@ -166,7 +171,7 @@ onMounted(() => {
       }
       // PoC 调试：暴露到 window 便于 DevTools 验证双向 I/O
       if (import.meta.env.DEV) {
-        (window as unknown as { __vditorWriter: Vditor }).__vditorWriter = vditor!
+        ;(window as unknown as { __vditorWriter: Vditor }).__vditorWriter = vditor!
       }
     },
   })
@@ -182,12 +187,15 @@ onBeforeUnmount(() => {
 })
 
 // 外部 content 变化时回灌（防循环：仅在 vditor 内部值与外部不一致时）
-watch(() => props.content, (newContent) => {
-  if (!vditor) return
-  const current = vditor.getValue()
-  if (current === newContent) return
-  vditor.setValue(newContent || '', true)
-})
+watch(
+  () => props.content,
+  (newContent) => {
+    if (!vditor) return
+    const current = vditor.getValue()
+    if (current === newContent) return
+    vditor.setValue(newContent || '', true)
+  },
+)
 
 function getMarkdown(): string {
   return vditor?.getValue() ?? ''
@@ -263,5 +271,4 @@ defineExpose({ getMarkdown, setMarkdown, focus })
   box-shadow: none !important;
   border-radius: 0 !important;
 }
-
 </style>

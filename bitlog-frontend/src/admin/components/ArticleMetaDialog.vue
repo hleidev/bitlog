@@ -15,94 +15,104 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  summary:     null,
-  category:    null,
-  tags:        () => [],
-  saving:      false,
-  title:       '编辑文章信息',
+  summary: null,
+  category: null,
+  tags: () => [],
+  saving: false,
+  title: '编辑文章信息',
   confirmText: '保存',
 })
 
 const emit = defineEmits<{
   'update:visible': [v: boolean]
-  'save': [data: {
-    summary:    string
-    categoryId: number | null
-    tagIds:     number[]
-    category:   { id: number; name: string } | null
-    tags:       { id: number; name: string }[]
-  }]
+  save: [
+    data: {
+      summary: string
+      categoryId: number | null
+      tagIds: number[]
+      category: { id: number; name: string } | null
+      tags: { id: number; name: string }[]
+    },
+  ]
 }>()
 
 const toast = useToast()
 
 // ── Internal form state ────────────────────────────────────────────────────────
 const internalSummary = ref('')
-const internalCatId   = ref<number | null>(null)
+const internalCatId = ref<number | null>(null)
 
 const categoryOpts = ref<Category[]>([])
-const tagOpts      = ref<Tag[]>([])
+const tagOpts = ref<Tag[]>([])
 
 // Category combobox
-const catInput    = ref('')
-const catOpen     = ref(false)
+const catInput = ref('')
+const catOpen = ref(false)
 const selectedCat = ref<{ id: number; name: string } | null>(null)
 const filteredCats = computed(() => {
   const q = catInput.value.trim().toLowerCase()
   if (!q) return categoryOpts.value
-  return categoryOpts.value.filter(c => c.name.toLowerCase().includes(q))
+  return categoryOpts.value.filter((c) => c.name.toLowerCase().includes(q))
 })
 
 // Tag combobox
-const tagInput     = ref('')
-const tagOpen      = ref(false)
+const tagInput = ref('')
+const tagOpen = ref(false)
+
+function closeTagDropdown() {
+  tagOpen.value = false
+  tagInput.value = ''
+}
 const selectedTags = ref<{ id: number; name: string }[]>([])
 const filteredTags = computed(() => {
-  const ids  = new Set(selectedTags.value.map(t => t.id))
-  const base = tagOpts.value.filter(t => !ids.has(t.id))
-  const q    = tagInput.value.trim().toLowerCase()
+  const ids = new Set(selectedTags.value.map((t) => t.id))
+  const base = tagOpts.value.filter((t) => !ids.has(t.id))
+  const q = tagInput.value.trim().toLowerCase()
   if (!q) return base
-  return base.filter(t => t.name.toLowerCase().includes(q))
+  return base.filter((t) => t.name.toLowerCase().includes(q))
 })
 
 // ── Seed state when dialog opens ───────────────────────────────────────────────
-watch(() => props.visible, async (open) => {
-  if (!open) return
-  internalSummary.value = props.summary ?? ''
-  internalCatId.value   = props.category?.id ?? null
-  selectedCat.value     = props.category ? { ...props.category } : null
-  catInput.value        = props.category?.name ?? ''
-  selectedTags.value    = [...(props.tags ?? [])]
-  tagInput.value        = ''
-  catOpen.value         = false
-  tagOpen.value         = false
+watch(
+  () => props.visible,
+  async (open) => {
+    if (!open) return
+    internalSummary.value = props.summary ?? ''
+    internalCatId.value = props.category?.id ?? null
+    selectedCat.value = props.category ? { ...props.category } : null
+    catInput.value = props.category?.name ?? ''
+    selectedTags.value = [...(props.tags ?? [])]
+    tagInput.value = ''
+    catOpen.value = false
+    tagOpen.value = false
 
-  try {
-    const [cats, tags] = await Promise.all([getCategories(), getTags()])
-    categoryOpts.value = cats
-    tagOpts.value      = tags
-  } catch {
-    // non-critical
-  }
-})
+    try {
+      const [cats, tags] = await Promise.all([getCategories(), getTags()])
+      categoryOpts.value = cats
+      tagOpts.value = tags
+    } catch {
+      // non-critical
+    }
+  },
+)
 
 // ── Category handlers ──────────────────────────────────────────────────────────
 function selectCat(cat: { id: number; name: string }) {
-  selectedCat.value   = cat
-  catInput.value      = cat.name
+  selectedCat.value = cat
+  catInput.value = cat.name
   internalCatId.value = cat.id
-  catOpen.value       = false
+  catOpen.value = false
 }
 
 function clearCat() {
-  selectedCat.value   = null
-  catInput.value      = ''
+  selectedCat.value = null
+  catInput.value = ''
   internalCatId.value = null
 }
 
 function onCatInput() {
   if (selectedCat.value && catInput.value !== selectedCat.value.name) {
-    selectedCat.value   = null
+    selectedCat.value = null
     internalCatId.value = null
   }
   catOpen.value = true
@@ -112,8 +122,14 @@ function onCatEnter() {
   const q = catInput.value.trim()
   if (!q) return
   const first = filteredCats.value[0]
-  if (first && first.name.toLowerCase() === q.toLowerCase()) { selectCat(first); return }
-  if (filteredCats.value.length === 1) { selectCat(filteredCats.value[0]); return }
+  if (first && first.name.toLowerCase() === q.toLowerCase()) {
+    selectCat(first)
+    return
+  }
+  if (filteredCats.value.length === 1) {
+    selectCat(filteredCats.value[0])
+    return
+  }
   createAndSelectCat(q)
 }
 
@@ -121,7 +137,7 @@ async function createAndSelectCat(name: string) {
   try {
     const id = await getOrCreateCategory(name)
     selectCat({ id, name })
-    if (!categoryOpts.value.find(c => c.id === id)) {
+    if (!categoryOpts.value.find((c) => c.id === id)) {
       categoryOpts.value = [...categoryOpts.value, { id, name, articleCount: 0, createTime: '' }]
     }
   } catch {
@@ -136,36 +152,39 @@ function closeCatDropdown() {
 
 // ── Tag handlers ───────────────────────────────────────────────────────────────
 function addTag(tag: { id: number; name: string }) {
-  if (selectedTags.value.find(t => t.id === tag.id)) return
+  if (selectedTags.value.find((t) => t.id === tag.id)) return
   selectedTags.value = [...selectedTags.value, tag]
-  tagInput.value     = ''
-  tagOpen.value      = false
+  tagInput.value = ''
+  tagOpen.value = false
 }
 
 async function createAndAddTag(name: string) {
   try {
     const id = await getOrCreateTag(name)
-    if (!selectedTags.value.find(t => t.id === id)) {
+    if (!selectedTags.value.find((t) => t.id === id)) {
       selectedTags.value = [...selectedTags.value, { id, name }]
     }
-    if (!tagOpts.value.find(t => t.id === id)) {
-      tagOpts.value = [...tagOpts.value, { id, name, articleCount: 0, createTime: '', updateTime: '' }]
+    if (!tagOpts.value.find((t) => t.id === id)) {
+      tagOpts.value = [
+        ...tagOpts.value,
+        { id, name, articleCount: 0, createTime: '', updateTime: '' },
+      ]
     }
     tagInput.value = ''
-    tagOpen.value  = false
+    tagOpen.value = false
   } catch {
     toast.error('创建标签失败')
   }
 }
 
 function removeTag(id: number) {
-  selectedTags.value = selectedTags.value.filter(t => t.id !== id)
+  selectedTags.value = selectedTags.value.filter((t) => t.id !== id)
 }
 
 function onTagEnter() {
   const q = tagInput.value.trim()
   if (!q) return
-  const exact = tagOpts.value.find(t => t.name.toLowerCase() === q.toLowerCase())
+  const exact = tagOpts.value.find((t) => t.name.toLowerCase() === q.toLowerCase())
   if (exact) addTag(exact)
   else createAndAddTag(q)
 }
@@ -173,17 +192,21 @@ function onTagEnter() {
 // ── Save ───────────────────────────────────────────────────────────────────────
 function handleSave() {
   emit('save', {
-    summary:    internalSummary.value,
+    summary: internalSummary.value,
     categoryId: internalCatId.value,
-    tagIds:     selectedTags.value.map(t => t.id),
-    category:   selectedCat.value,
-    tags:       [...selectedTags.value],
+    tagIds: selectedTags.value.map((t) => t.id),
+    category: selectedCat.value,
+    tags: [...selectedTags.value],
   })
 }
 
 // ── Expose for parent AI integration ──────────────────────────────────────────
-function setSummary(v: string) { internalSummary.value = v }
-function setCategory(cat: { id: number; name: string }) { selectCat(cat) }
+function setSummary(v: string) {
+  internalSummary.value = v
+}
+function setCategory(cat: { id: number; name: string }) {
+  selectCat(cat)
+}
 
 defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
 </script>
@@ -193,22 +216,27 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
     <Transition name="dialog-fade">
       <div v-if="visible" class="dialog-overlay" @click.self="emit('update:visible', false)">
         <div class="dialog-panel">
-
           <div class="dialog-header">
             <div class="dialog-title-row">
               <span class="dialog-title">{{ title }}</span>
               <slot name="header-extra" />
             </div>
             <button class="dialog-x" @click="emit('update:visible', false)">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 6L6 18M6 6l12 12"/>
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           <div class="dialog-body">
             <div class="publish-form">
-
               <!-- Summary -->
               <div class="pf-item">
                 <div class="pf-label">摘要 <span class="pf-optional">可选</span></div>
@@ -245,8 +273,15 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
                       tabindex="-1"
                       @click="clearCat"
                     >
-                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M18 6L6 18M6 6l12 12"/>
+                      <svg
+                        viewBox="0 0 24 24"
+                        width="12"
+                        height="12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                      >
+                        <path d="M18 6L6 18M6 6l12 12" />
                       </svg>
                     </button>
                   </div>
@@ -258,13 +293,22 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
                       class="pf-combo-opt"
                       :class="{ 'pf-combo-opt--active': selectedCat?.id === cat.id }"
                       @mousedown.prevent="selectCat(cat)"
-                    >{{ cat.name }}</button>
+                    >
+                      {{ cat.name }}
+                    </button>
                     <button
-                      v-if="catInput.trim() && !filteredCats.find(c => c.name.toLowerCase() === catInput.trim().toLowerCase())"
+                      v-if="
+                        catInput.trim() &&
+                        !filteredCats.find(
+                          (c) => c.name.toLowerCase() === catInput.trim().toLowerCase(),
+                        )
+                      "
                       type="button"
                       class="pf-combo-opt"
                       @mousedown.prevent="createAndSelectCat(catInput.trim())"
-                    >{{ catInput.trim() }}</button>
+                    >
+                      {{ catInput.trim() }}
+                    </button>
                     <div v-if="!filteredCats.length && !catInput.trim()" class="pf-combo-empty">
                       暂无分类，输入名称即可创建
                     </div>
@@ -280,13 +324,28 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
                   <span v-for="tag in selectedTags" :key="tag.id" class="pf-sel-chip">
                     {{ tag.name }}
                     <button type="button" class="pf-sel-chip-x" @click="removeTag(tag.id)">
-                      <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M18 6L6 18M6 6l12 12"/>
+                      <svg
+                        viewBox="0 0 24 24"
+                        width="10"
+                        height="10"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                      >
+                        <path d="M18 6L6 18M6 6l12 12" />
                       </svg>
                     </button>
                   </span>
                 </div>
-                <div v-click-outside="() => { tagOpen = false; tagInput = '' }" class="pf-combo">
+                <div
+                  v-click-outside="
+                    () => {
+                      tagOpen = false
+                      tagInput = ''
+                    }
+                  "
+                  class="pf-combo"
+                >
                   <div class="pf-combo-field" :class="{ 'pf-combo-field--focused': tagOpen }">
                     <input
                       v-model="tagInput"
@@ -295,7 +354,7 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
                       @input="tagOpen = true"
                       @focus="tagOpen = true"
                       @keydown.enter.prevent="onTagEnter"
-                      @keydown.escape="tagOpen = false; tagInput = ''"
+                      @keydown.escape="closeTagDropdown"
                       @keydown.tab="tagOpen = false"
                     />
                   </div>
@@ -306,13 +365,20 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
                       type="button"
                       class="pf-combo-opt"
                       @mousedown.prevent="addTag(tag)"
-                    >{{ tag.name }}</button>
+                    >
+                      {{ tag.name }}
+                    </button>
                     <button
-                      v-if="tagInput.trim() && !tagOpts.find(t => t.name.toLowerCase() === tagInput.trim().toLowerCase())"
+                      v-if="
+                        tagInput.trim() &&
+                        !tagOpts.find((t) => t.name.toLowerCase() === tagInput.trim().toLowerCase())
+                      "
                       type="button"
                       class="pf-combo-opt"
                       @mousedown.prevent="createAndAddTag(tagInput.trim())"
-                    >{{ tagInput.trim() }}</button>
+                    >
+                      {{ tagInput.trim() }}
+                    </button>
                     <div v-if="!filteredTags.length && !tagInput.trim()" class="pf-combo-empty">
                       暂无更多标签，输入名称即可创建
                     </div>
@@ -320,7 +386,6 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
                 </div>
                 <slot name="tags-extra" />
               </div>
-
             </div>
           </div>
 
@@ -330,7 +395,6 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
               {{ saving ? '保存中…' : confirmText }}
             </button>
           </div>
-
         </div>
       </div>
     </Transition>
@@ -385,15 +449,29 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
 }
 
 .dialog-x {
-  display: flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px;
-  background: none; border: none; cursor: pointer;
-  color: #9ca3af; border-radius: 4px;
-  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  border-radius: 4px;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
-.dialog-x:hover { background: #ece9e4; color: #374151; }
+.dialog-x:hover {
+  background: #ece9e4;
+  color: #374151;
+}
 
-.dialog-body { padding: 20px 24px 16px; overflow: visible; }
+.dialog-body {
+  padding: 20px 24px 16px;
+  overflow: visible;
+}
 
 .dialog-footer {
   display: flex;
@@ -404,13 +482,25 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
 }
 
 /* ── Dialog transition ───────────────────────────────────────────────────────── */
-.dialog-fade-enter-active { transition: opacity 0.2s ease; }
-.dialog-fade-leave-active { transition: opacity 0.15s ease; }
+.dialog-fade-enter-active {
+  transition: opacity 0.2s ease;
+}
+.dialog-fade-leave-active {
+  transition: opacity 0.15s ease;
+}
 .dialog-fade-enter-from,
-.dialog-fade-leave-to { opacity: 0; }
-.dialog-fade-enter-active .dialog-panel { transition: transform 0.2s ease; }
-.dialog-fade-leave-active .dialog-panel { transition: transform 0.15s ease; }
-.dialog-fade-enter-from .dialog-panel { transform: scale(0.97); }
+.dialog-fade-leave-to {
+  opacity: 0;
+}
+.dialog-fade-enter-active .dialog-panel {
+  transition: transform 0.2s ease;
+}
+.dialog-fade-leave-active .dialog-panel {
+  transition: transform 0.15s ease;
+}
+.dialog-fade-enter-from .dialog-panel {
+  transform: scale(0.97);
+}
 
 /* ── Buttons ─────────────────────────────────────────────────────────────────── */
 .btn {
@@ -424,11 +514,17 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   border-radius: 4px;
   cursor: pointer;
   border: 1px solid;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
   white-space: nowrap;
   line-height: 1;
 }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .btn--primary {
   background: var(--admin-accent, #b85c38);
   color: #fff;
@@ -439,15 +535,51 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   background: var(--admin-accent-dark, #924530);
   border-color: var(--admin-accent-dark, #924530);
 }
-.btn--cancel { background: transparent; color: #6b7280; border-color: #d4cfc9; }
-.btn--cancel:hover:not(:disabled) { background: #ece9e4; border-color: #c8c2ba; }
+.btn--cancel {
+  background: transparent;
+  color: #6b7280;
+  border-color: #d4cfc9;
+}
+.btn--cancel:hover:not(:disabled) {
+  background: #ece9e4;
+  border-color: #c8c2ba;
+}
 
 /* ── Form ────────────────────────────────────────────────────────────────────── */
-.publish-form { display: flex; flex-direction: column; gap: 20px; }
-.pf-item      { display: flex; flex-direction: column; gap: 8px; }
-.pf-label     { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151; }
-.pf-optional  { font-size: 11px; font-weight: 400; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: var(--admin-radius); }
-.pf-required  { font-size: 11px; font-weight: 500; color: #dc2626; background: #fef2f2; padding: 1px 6px; border-radius: var(--admin-radius); }
+.publish-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.pf-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pf-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+.pf-optional {
+  font-size: 11px;
+  font-weight: 400;
+  color: #9ca3af;
+  background: #f3f4f6;
+  padding: 1px 6px;
+  border-radius: var(--admin-radius);
+}
+.pf-required {
+  font-size: 11px;
+  font-weight: 500;
+  color: #dc2626;
+  background: #fef2f2;
+  padding: 1px 6px;
+  border-radius: var(--admin-radius);
+}
 
 .pf-textarea {
   display: block;
@@ -466,61 +598,143 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   resize: none;
   line-height: 1.6;
 }
-.pf-textarea:focus { border-color: var(--admin-accent, #b85c38); }
-.pf-char-count { font-size: 11px; color: #9ca3af; text-align: right; margin-top: 2px; }
+.pf-textarea:focus {
+  border-color: var(--admin-accent, #b85c38);
+}
+.pf-char-count {
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: right;
+  margin-top: 2px;
+}
 
 /* ── Combobox ─────────────────────────────────────────────────────────────────── */
-.pf-combo { position: relative; }
+.pf-combo {
+  position: relative;
+}
 .pf-combo-field {
-  display: flex; align-items: center;
-  border: 1px solid #d4cfc9; border-radius: 4px; background: #fff;
+  display: flex;
+  align-items: center;
+  border: 1px solid #d4cfc9;
+  border-radius: 4px;
+  background: #fff;
   transition: border-color 0.15s;
   padding: 0 6px 0 10px;
 }
-.pf-combo-field--focused { border-color: var(--admin-accent, #b85c38); }
+.pf-combo-field--focused {
+  border-color: var(--admin-accent, #b85c38);
+}
 .pf-combo-input {
-  flex: 1; height: 34px;
-  border: none; outline: none; background: transparent;
-  font-size: 13px; font-family: inherit; color: #374151;
+  flex: 1;
+  height: 34px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  font-family: inherit;
+  color: #374151;
 }
-.pf-combo-input::placeholder { color: #9ca3af; }
+.pf-combo-input::placeholder {
+  color: #9ca3af;
+}
 .pf-combo-clear {
-  display: flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; flex-shrink: 0;
-  border: none; background: transparent; cursor: pointer;
-  color: #9ca3af; border-radius: var(--admin-radius);
-  transition: color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #9ca3af;
+  border-radius: var(--admin-radius);
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
-.pf-combo-clear:hover { color: #374151; background: #f3f4f6; }
+.pf-combo-clear:hover {
+  color: #374151;
+  background: #f3f4f6;
+}
 .pf-combo-dropdown {
-  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-  background: #fff; border: 1px solid #e5e7eb; border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  z-index: 200; max-height: 176px; overflow-y: auto; padding: 4px 0;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 200;
+  max-height: 176px;
+  overflow-y: auto;
+  padding: 4px 0;
 }
 .pf-combo-opt {
-  display: block; width: 100%; text-align: left;
-  padding: 7px 12px; font-size: 13px; color: #374151;
-  background: transparent; border: none; cursor: pointer;
-  font-family: inherit; transition: background 0.1s;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: #374151;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.1s;
 }
-.pf-combo-opt:hover { background: #f3f4f6; }
-.pf-combo-opt--active { color: var(--admin-accent, #b85c38); font-weight: 500; }
-.pf-combo-empty { padding: 8px 12px; font-size: 12px; color: #9ca3af; font-style: italic; }
+.pf-combo-opt:hover {
+  background: #f3f4f6;
+}
+.pf-combo-opt--active {
+  color: var(--admin-accent, #b85c38);
+  font-weight: 500;
+}
+.pf-combo-empty {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #9ca3af;
+  font-style: italic;
+}
 
 /* ── Selected tag chips ──────────────────────────────────────────────────────── */
-.pf-selected-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf-selected-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .pf-sel-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 6px 3px 10px; font-size: 12px; font-weight: 500;
-  border-radius: 4px; background: rgba(184, 92, 56, 0.08); color: var(--admin-accent); border: 1px solid rgba(184, 92, 56, 0.22);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  background: rgba(184, 92, 56, 0.08);
+  color: var(--admin-accent);
+  border: 1px solid rgba(184, 92, 56, 0.22);
 }
 .pf-sel-chip-x {
-  display: flex; align-items: center; justify-content: center;
-  width: 16px; height: 16px; flex-shrink: 0;
-  border: none; background: transparent; cursor: pointer;
-  color: var(--admin-accent-light); border-radius: var(--admin-radius); padding: 0;
-  transition: color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--admin-accent-light);
+  border-radius: var(--admin-radius);
+  padding: 0;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
-.pf-sel-chip-x:hover { color: var(--admin-accent); background: rgba(184, 92, 56, 0.14); }
+.pf-sel-chip-x:hover {
+  color: var(--admin-accent);
+  background: rgba(184, 92, 56, 0.14);
+}
 </style>

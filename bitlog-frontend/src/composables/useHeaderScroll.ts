@@ -33,10 +33,7 @@ export function useHeaderScroll() {
     update()
     // If this is a dark-top page but its sentinel isn't in DOM yet
     // (article still loading), watch for it
-    if (
-      !document.getElementById('hero') &&
-      !document.querySelector('.article-header')
-    ) {
+    if (!document.getElementById('hero') && !document.querySelector('.article-header')) {
       mo = new MutationObserver(() => {
         if (document.getElementById('hero') || document.querySelector('.article-header')) {
           update()
@@ -48,7 +45,10 @@ export function useHeaderScroll() {
     }
   }
 
-  watch(() => route.path, () => nextTick(attach))
+  watch(
+    () => route.path,
+    () => nextTick(attach),
+  )
 
   onMounted(() => {
     attach()
