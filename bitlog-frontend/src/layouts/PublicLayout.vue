@@ -30,9 +30,17 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
     <LoginModal />
   </ClientOnly>
   <Transition name="back-top">
-    <button v-if="showBackTop" class="back-top" @click="scrollToTop" aria-label="回到顶部">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+    <button v-if="showBackTop" class="back-top" aria-label="回到顶部" @click="scrollToTop">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="12" y1="19" x2="12" y2="5" />
+        <polyline points="5 12 12 5 19 12" />
       </svg>
     </button>
   </Transition>
@@ -61,13 +69,16 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface, #f4f2ef);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: 4px;
   color: var(--color-text-muted);
   cursor: pointer;
   z-index: 200;
-  transition: color var(--transition-base), border-color var(--transition-base), background var(--transition-base);
+  transition:
+    color var(--transition-base),
+    border-color var(--transition-base),
+    background var(--transition-base);
 }
 
 .back-top svg {
@@ -83,7 +94,9 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
 .back-top-enter-active,
 .back-top-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .back-top-enter-from,
