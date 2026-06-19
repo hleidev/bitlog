@@ -15,7 +15,8 @@
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"src/**/*.{vue,ts,css}\""
+    "format": "prettier --write \"src/**/*.{vue,ts,css}\"",
+    "prepare": "husky"
   },
   "lint-staged": {
     "src/**/*.{vue,ts}": [
@@ -46,6 +47,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.8.0",
     "globals": "^17.4.0",
+    "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "sharp": "^0.34.5",
