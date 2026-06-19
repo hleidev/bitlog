@@ -37,3 +37,22 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+/* Keyboard focus indicator (WCAG 2.4.7) — only shows for keyboard nav,
+   not mouse clicks. reset.css clears outlines, so this restores them. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Respect users who reduce motion (prefers-reduced-motion). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
