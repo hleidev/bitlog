@@ -1,8 +1,16 @@
+<script setup lang="ts">
+const START_YEAR = 2026
+const currentYear = new Date().getFullYear()
+const copyrightYear =
+  currentYear > START_YEAR ? `${START_YEAR}–${currentYear}` : `${START_YEAR}`
+</script>
+
 <template>
   <footer class="footer">
     <div class="footer__inner">
-      <span class="footer__copy">© 2026 BitLog · Harry</span>
-      <span class="footer__slogan">落笔有痕，代码留迹。</span>
+      <span class="footer__rule" aria-hidden="true"></span>
+      <p class="footer__slogan">落笔有痕，代码留迹。</p>
+      <p class="footer__copy">© {{ copyrightYear }} BitLog · Harry</p>
     </div>
   </footer>
 </template>
@@ -15,31 +23,36 @@
 .footer__inner {
   max-width: var(--spacing-container);
   margin: 0 auto;
-  padding: 36px var(--spacing-page-padding);
+  padding: 48px var(--spacing-page-padding);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  gap: 13px;
 }
 
-.footer__copy {
-  font-size: 12px;
-  color: var(--color-text-faint);
-  letter-spacing: 0.04em;
+.footer__rule {
+  width: 32px;
+  height: 1px;
+  background: var(--color-border);
 }
 
 .footer__slogan {
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 13px;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+}
+
+.footer__copy {
+  font-size: 11.5px;
   color: var(--color-text-faint);
+  letter-spacing: 0.06em;
 }
 
 @media (max-width: 768px) {
   .footer__inner {
-    flex-direction: column;
-    gap: 8px;
-    text-align: center;
-    padding: 28px 20px;
+    padding: 40px 20px;
   }
 }
 </style>
