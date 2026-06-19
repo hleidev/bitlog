@@ -5,7 +5,7 @@ import { useConfirm } from '@/composables/useConfirm'
 import { useUserStore } from '@/stores/useUserStore'
 import { storeToRefs } from 'pinia'
 
-const props = withDefaults(defineProps<{ showAdminLinks?: boolean }>(), {
+withDefaults(defineProps<{ showAdminLinks?: boolean }>(), {
   showAdminLinks: false,
 })
 
@@ -59,15 +59,19 @@ async function handleLogout() {
     <template v-if="showAdminLinks && isAdmin">
       <RouterLink to="/admin/dashboard" class="ud-item" @click="close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
         后台管理
       </RouterLink>
       <RouterLink to="/admin/articles" class="ud-item" @click="close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
         </svg>
         文章管理
       </RouterLink>
@@ -77,7 +81,8 @@ async function handleLogout() {
     <!-- 个人资料 -->
     <RouterLink to="/admin/profile" class="ud-item" @click="close">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
       </svg>
       个人资料
     </RouterLink>
@@ -87,8 +92,9 @@ async function handleLogout() {
     <!-- 注销 -->
     <button class="ud-item ud-item--danger" @click="handleLogout">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-        <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <polyline points="16 17 21 12 16 7" />
+        <line x1="21" y1="12" x2="9" y2="12" />
       </svg>
       注销
     </button>
@@ -176,7 +182,9 @@ async function handleLogout() {
   text-decoration: none;
   background: transparent;
   cursor: pointer;
-  transition: background-color var(--transition-base), color var(--transition-base);
+  transition:
+    background-color var(--transition-base),
+    color var(--transition-base);
   text-align: left;
 }
 
