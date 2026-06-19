@@ -36,6 +36,17 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/', 'node_modules/'],
+    // Build scripts and config files run in Node, not the browser.
+    files: ['scripts/**/*.{js,mjs,cjs}', '*.{js,mjs,cjs}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
+    // apps/** is a self-contained Tauri desktop app (own deps, dist and Rust
+    // build artifacts); it is linted by its own toolchain, not this web root.
+    ignores: ['**/dist/**', '**/node_modules/**', '**/*.min.js', 'apps/**'],
   },
 )
