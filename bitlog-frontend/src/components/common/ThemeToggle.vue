@@ -103,7 +103,7 @@ function pick(mode: ThemeMode) {
   font-size: 13px; font-family: var(--font-sans, 'Inter', sans-serif);
   color: var(--color-text-primary, #1a1610);
   background: transparent; border: none; cursor: pointer; text-align: left;
-  border-radius: var(--admin-radius);
+  border-radius: var(--admin-radius, 4px);
   transition: background 0.12s, color 0.12s;
 }
 .theme-toggle__item svg { width: 15px; height: 15px; flex-shrink: 0; }

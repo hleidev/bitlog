@@ -232,7 +232,7 @@ onUnmounted(() => {
 
 .skeleton-line {
   height: 14px;
-  border-radius: var(--admin-radius);
+  border-radius: var(--radius-tag);
   background: linear-gradient(90deg, var(--color-bg-hover) 25%, var(--color-border) 50%, var(--color-bg-hover) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;

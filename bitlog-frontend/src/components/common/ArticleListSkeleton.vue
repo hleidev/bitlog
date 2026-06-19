@@ -28,7 +28,7 @@ withDefaults(defineProps<{ rows?: number }>(), { rows: 6 })
 }
 
 .sk {
-  border-radius: var(--admin-radius);
+  border-radius: var(--radius-tag);
   background: linear-gradient(
     90deg,
     var(--color-bg-hover) 25%,
