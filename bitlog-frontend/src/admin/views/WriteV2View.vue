@@ -26,8 +26,8 @@ import {
 const route = useRoute()
 const router = useRouter()
 
-const articleId = route.params.id ? Number(route.params.id) : null
-const isNew = articleId === null
+const articleId = ref<number | null>(route.params.id ? Number(route.params.id) : null)
+const isNew = computed(() => articleId.value === null)
 const toast = useToast()
 const confirm = useConfirm()
 
@@ -52,7 +52,7 @@ const hasUnsaved = ref(false)
 let saveTimer: ReturnType<typeof setTimeout> | undefined
 
 // LocalStorage 本地兜底草稿(见 useLocalDraft)
-const localDraft = useLocalDraft(articleId ?? 'new', () => ({
+const localDraft = useLocalDraft(articleId.value ?? 'new', () => ({
   title: title.value,
   content: vditorRef.value?.getMarkdown() ?? content.value,
 }))
@@ -106,7 +106,7 @@ function onBeforeUnload(e: BeforeUnloadEvent) {
 // ── Load data ──────────────────────────────────────────────────────────────────
 async function loadVersions() {
   try {
-    const data = await getArticleVersions(articleId)
+    const data = await getArticleVersions(articleId.value!)
     versions.value = data
     const latest = data.find((v) => v.latest)
     if (latest) latestVersionId.value = latest.id
@@ -116,7 +116,7 @@ async function loadVersions() {
 }
 
 async function loadDraft() {
-  if (isNew) {
+  if (isNew.value) {
     loading.value = false
     saveState.value = 'saved'
     await nextTick()
@@ -133,7 +133,7 @@ async function loadDraft() {
   loading.value = true
   suppressChange = true
   try {
-    const data = await getArticleDraft(articleId!)
+    const data = await getArticleDraft(articleId.value!)
     title.value = data.title
     content.value = data.content
     latestVersionId.value = data.latestVersionId
@@ -200,16 +200,19 @@ async function performSave() {
   saveState.value = 'saving'
   try {
     const md = vditorRef.value?.getMarkdown() ?? ''
-    if (isNew) {
+    if (isNew.value) {
       const newId = await createArticle({ title: title.value, content: md })
+      // 记住新 id,后续保存走更新而非再次新建；同步路由以便刷新/分享
+      articleId.value = newId
       // 切换到带 id 的路由:清掉 "new" 键,新 key 由后续写入建立
       localDraft.clear()
       router.replace(`/admin/write/${newId}`)
+      await loadVersions()
       saveState.value = 'saved'
       hasUnsaved.value = false
       toast.success('已保存')
     } else {
-      await updateArticleDraft(articleId!, { title: title.value, content: md })
+      await updateArticleDraft(articleId.value!, { title: title.value, content: md })
       await loadVersions()
       localDraft.clear()
       saveState.value = 'saved'
@@ -239,7 +242,7 @@ async function handleSave() {
 
 // ── Preview ────────────────────────────────────────────────────────────────────
 function openPreview() {
-  if (isNew) {
+  if (isNew.value) {
     toast.warning('请先保存文章')
     return
   }
@@ -248,9 +251,9 @@ function openPreview() {
     latestVersionId.value !== null && latestVersionId.value !== publishedVersionId.value
 
   if (hasUnpublishedChanges) {
-    window.open(`/admin/preview/${articleId}`, '_blank')
+    window.open(`/admin/preview/${articleId.value}`, '_blank')
   } else {
-    window.open(`/article/${articleId}`, '_blank')
+    window.open(`/article/${articleId.value}`, '_blank')
   }
 }
 
@@ -265,7 +268,7 @@ async function openPublishDialog() {
     toast.warning('请先输入文章内容')
     return
   }
-  if (isNew) {
+  if (isNew.value) {
     toast.warning('请先保存文章')
     return
   }
@@ -290,7 +293,7 @@ async function handlePublishConfirm(data: {
   publishing.value = true
   const wasPublished = isPublished.value
   try {
-    await publishArticle(articleId, {
+    await publishArticle(articleId.value!, {
       summary: data.summary || null,
       categoryId: data.categoryId,
       tagIds: data.tagIds,
@@ -318,7 +321,7 @@ async function runAiRecommend() {
   aiCatResult.value = null
   aiTagsResult.value = null
   try {
-    const data = await generateAiMetadata(articleId)
+    const data = await generateAiMetadata(articleId.value!)
     aiSummaryResult.value = data.summary
     aiCatResult.value = data.category ?? false
     aiTagsResult.value = { existing: data.tags, suggested: data.suggestedTags }
