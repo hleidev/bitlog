@@ -60,3 +60,7 @@ bitlog:
           enable_thinking: false
           response_format:
             type: json_object
+
+cloudflare:
+  deploy-hook:
+    url: ENC(REMOVED)

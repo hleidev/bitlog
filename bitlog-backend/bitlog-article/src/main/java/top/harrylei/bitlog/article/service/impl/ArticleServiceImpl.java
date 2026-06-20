@@ -25,6 +25,7 @@ import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import org.springframework.lang.NonNull;
 import top.harrylei.bitlog.article.component.ArticleReadDedupe;
+import top.harrylei.bitlog.article.component.DeployHookService;
 import top.harrylei.bitlog.article.converter.ArticleConverter;
 import top.harrylei.bitlog.article.repository.dao.ArticleDAO;
 import top.harrylei.bitlog.article.repository.dao.ArticleStatisticsDAO;
@@ -74,6 +75,7 @@ public class ArticleServiceImpl implements ArticleService {
     private final TagDAO tagDAO;
     private final ArticleConverter articleConverter;
     private final ArticleReadDedupe articleReadDedupe;
+    private final DeployHookService deployHookService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -136,6 +138,9 @@ public class ArticleServiceImpl implements ArticleService {
         saveArticleTags(articleId, newTagIds);
 
         log.info("发布文章 articleId={} categoryId={} tagCount={}", articleId, newCategoryId, newTagIds.size());
+
+        // 发布改变线上内容，异步触发前端静态站点重建
+        deployHookService.triggerDeploy();
     }
 
     @Override
@@ -153,6 +158,11 @@ public class ArticleServiceImpl implements ArticleService {
         saveArticleTags(articleId, newTagIds);
 
         log.info("快速更新文章元数据 articleId={} categoryId={} tagCount={}", articleId, req.getCategoryId(), newTagIds.size());
+
+        // 已发布文章的元数据变更会影响线上内容，异步触发前端静态站点重建
+        if (article.getPublishedVersionId() != null) {
+            deployHookService.triggerDeploy();
+        }
     }
 
     @Override
@@ -177,9 +187,11 @@ public class ArticleServiceImpl implements ArticleService {
                 articleDAO.setPublishTime(articleId, LocalDateTime.now());
             }
             log.info("重新发布文章 articleId={}", articleId);
+            deployHookService.triggerDeploy();
         } else if (status == ArticleStatusEnum.DRAFT && isPublished) {
             articleDAO.unpublish(articleId);
             log.info("取消发布文章 articleId={}", articleId);
+            deployHookService.triggerDeploy();
         }
     }
 
@@ -220,8 +232,14 @@ public class ArticleServiceImpl implements ArticleService {
         articles.forEach(a -> checkOwner(a, userId));
 
         List<Long> existingIds = articles.stream().map(ArticleDO::getId).toList();
+        boolean hadPublished = articles.stream().anyMatch(a -> a.getPublishedVersionId() != null);
         articleDAO.batchDelete(existingIds);
         log.info("批量删除文章 articleIds={}", existingIds);
+
+        // 删除已发布文章会改变线上内容，异步触发前端静态站点重建
+        if (hadPublished) {
+            deployHookService.triggerDeploy();
+        }
     }
 
     @Override
