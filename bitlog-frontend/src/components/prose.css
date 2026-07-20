@@ -64,6 +64,51 @@
   margin: 24px 0 10px;
 }
 
+/* ── Heading anchor ───────────────────────────────────────────────────────────
+   Lute 的 SetHeadingAnchor 会在标题末尾注入 <a class="vditor-anchor">＋内联 SVG。
+   默认无样式：紧贴文字、全强度深色、常驻可见，读起来像错字而不是功能。
+   这里让它默认隐藏，仅在标题 hover / 键盘聚焦时以 muted 色淡入。 */
+
+.ProseMirror .vditor-anchor,
+.vditor-ir .vditor-anchor {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35em;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  vertical-align: middle;
+}
+
+.ProseMirror .vditor-anchor svg,
+.vditor-ir .vditor-anchor svg {
+  width: 0.62em;
+  height: 0.62em;
+  fill: currentColor;
+}
+
+.ProseMirror h1:hover .vditor-anchor,
+.ProseMirror h2:hover .vditor-anchor,
+.ProseMirror h3:hover .vditor-anchor,
+.ProseMirror h4:hover .vditor-anchor,
+.ProseMirror h5:hover .vditor-anchor,
+.ProseMirror h6:hover .vditor-anchor,
+.vditor-ir h1:hover .vditor-anchor,
+.vditor-ir h2:hover .vditor-anchor,
+.vditor-ir h3:hover .vditor-anchor,
+.vditor-ir h4:hover .vditor-anchor,
+.vditor-ir h5:hover .vditor-anchor,
+.vditor-ir h6:hover .vditor-anchor,
+.ProseMirror .vditor-anchor:focus-visible,
+.vditor-ir .vditor-anchor:focus-visible {
+  opacity: 1;
+}
+
+.ProseMirror .vditor-anchor:hover,
+.vditor-ir .vditor-anchor:hover {
+  color: var(--color-accent);
+}
+
 /* ── Paragraphs & inline ──────────────────────────────────────────────────── */
 
 .ProseMirror p,
