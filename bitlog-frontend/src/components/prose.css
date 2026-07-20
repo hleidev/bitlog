@@ -338,11 +338,12 @@
   width: 100%;
 }
 
+/* 尺寸由 ArticleContent 的 sizeMermaidSvg() 按 viewBox 显式写在 style 上
+   （width:100% + viewBox 没有固有宽度，纯 CSS 无法还原设计尺寸）。
+   这里只负责居中；超宽图由 .mermaid-svg-wrap 横向滚动承接。 */
 .ProseMirror .mermaid-svg-wrap svg,
 .vditor-ir .mermaid-svg-wrap svg {
-  width: 100%;
-  max-width: 100%;
-  height: auto;
+  margin: 0 auto;
 }
 
 .ProseMirror .mermaid-error,
