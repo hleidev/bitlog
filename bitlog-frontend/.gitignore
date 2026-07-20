@@ -6,6 +6,9 @@ public/sitemap.xml
 .idea/
 .claude/
 
+# macOS
+.DS_Store
+
 # Local docs and design files
 API_CLEANUP.md
 design-preview.html
