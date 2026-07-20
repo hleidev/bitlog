@@ -103,7 +103,7 @@ const stats = [
 .title-rule {
   flex: 1;
   height: 1px;
-  background: var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-sidebar-border);
 }
 
 /* ── Stat grid ── */
@@ -119,8 +119,8 @@ const stats = [
   align-items: center;
   gap: 14px;
   padding: 18px;
-  background: var(--admin-header-bg, #faf9f7);
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-header-bg);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
 }
 
@@ -128,8 +128,8 @@ const stats = [
   width: 40px;
   height: 40px;
   border-radius: 4px;
-  background: rgba(184, 92, 56, 0.08);
-  color: var(--admin-accent, #b85c38);
+  background: rgba(var(--admin-accent-rgb), 0.08);
+  color: var(--admin-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -151,7 +151,7 @@ const stats = [
 .stat-label {
   font-size: 12px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 
 .stat-value {
@@ -165,15 +165,15 @@ const stats = [
 .stat-unit {
   font-size: 12px;
   font-weight: 400;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   margin-left: 3px;
 }
 
 /* ── Section card ── */
 
 .section-card {
-  background: var(--admin-header-bg, #faf9f7);
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-header-bg);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   padding: 18px 20px 24px;
 }
@@ -196,7 +196,7 @@ const stats = [
 .section-rule {
   flex: 1;
   height: 1px;
-  background: var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-sidebar-border);
 }
 
 /* ── Responsive ── */

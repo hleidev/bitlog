@@ -341,7 +341,7 @@ function isGroupActive(item: GroupItem): boolean {
 
 .nav-item:hover {
   background: var(--admin-sidebar-hover);
-  color: var(--color-text-primary, #1a1610);
+  color: var(--color-text-primary);
 }
 
 .nav-item--active {

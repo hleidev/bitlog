@@ -57,7 +57,7 @@ const { remove } = useToast()
   max-width: 360px;
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   pointer-events: auto;
 }
 
@@ -102,14 +102,14 @@ const { remove } = useToast()
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   padding: 0;
   border-radius: var(--admin-radius);
   transition: color 0.15s;
 }
 
 .toast-close:hover {
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
 }
 
 .toast-close svg {

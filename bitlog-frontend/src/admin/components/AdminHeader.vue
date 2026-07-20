@@ -96,7 +96,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
   width: 32px;
   height: 32px;
   border-radius: 4px;
-  color: var(--color-text-muted, #b0a89e);
+  color: var(--color-text-muted);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -127,19 +127,19 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 
 .breadcrumb-item {
   font-size: 13px;
-  color: var(--color-text-primary, #1a1610);
+  color: var(--color-text-primary);
   font-family: var(--font-sans, 'Inter', sans-serif);
   font-weight: 500;
 }
 
 .breadcrumb-item--parent {
-  color: var(--color-text-muted, #b0a89e);
+  color: var(--color-text-muted);
   font-weight: 400;
 }
 
 .breadcrumb-sep {
   font-size: 13px;
-  color: var(--color-text-faint, #ccc5bc);
+  color: var(--color-text-faint);
   user-select: none;
 }
 
@@ -187,14 +187,14 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 
 .trigger-avatar--placeholder {
   background: var(--admin-accent);
-  color: #fff;
+  color: var(--admin-text-on-accent);
   font-size: 12px;
   font-weight: 600;
 }
 
 .trigger-name {
   font-size: 13.5px;
-  color: var(--color-text-secondary, #5a5248);
+  color: var(--color-text-secondary);
   font-weight: 500;
   font-family: var(--font-sans, 'Inter', sans-serif);
 }

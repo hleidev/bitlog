@@ -254,14 +254,14 @@ defineExpose({ getMarkdown, setMarkdown, focus })
 /* Placeholder tone: warmer than the default cool grey in dark mode */
 .vditor-writer .vditor-ir__node:empty::before,
 .vditor-writer pre.vditor-reset[placeholder]:empty::before {
-  color: var(--write-placeholder, var(--color-text-faint, #ccc5bc)) !important;
+  color: var(--write-placeholder, var(--color-text-faint)) !important;
 }
 
 /* Accent color for the live-edit caret markers and link hint. */
 .vditor-writer .vditor-ir__node--expand,
 .vditor-writer .vditor-ir__link,
 .vditor-writer .vditor-ir__marker--link {
-  color: var(--color-accent, #b85c38);
+  color: var(--color-accent);
 }
 
 /* 工具栏已禁用（toolbar: []），保留 IR 渲染与节点样式即可 */

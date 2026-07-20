@@ -138,7 +138,7 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0ece6;
+  background: var(--admin-surface-hover);
 }
 
 .login-card {
@@ -171,15 +171,15 @@ async function handleLogin() {
   margin: 8px 0 0;
   font-size: 12.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   letter-spacing: 0.5px;
 }
 
 /* ── Error ── */
 
 .error-bar {
-  background: rgba(192, 64, 64, 0.06);
-  border: 1px solid rgba(192, 64, 64, 0.25);
+  background: rgba(var(--admin-danger-strong-rgb), 0.06);
+  border: 1px solid rgba(var(--admin-danger-strong-rgb), 0.25);
   border-radius: 4px;
   padding: 10px 14px;
   font-size: 13px;
@@ -212,7 +212,7 @@ async function handleLogin() {
   left: 11px;
   width: 15px;
   height: 15px;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   pointer-events: none;
   flex-shrink: 0;
 }
@@ -233,10 +233,10 @@ async function handleLogin() {
 }
 
 .field-input:focus {
-  border-color: var(--admin-accent, #b85c38);
+  border-color: var(--admin-accent);
 }
 .field-input::placeholder {
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 
 .pwd-toggle {
@@ -248,7 +248,7 @@ async function handleLogin() {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   padding: 0;
   transition: color 0.15s;
 }
@@ -258,7 +258,7 @@ async function handleLogin() {
   height: 16px;
 }
 .pwd-toggle:hover {
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
 }
 
 .submit-btn {
@@ -269,7 +269,7 @@ async function handleLogin() {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--admin-accent, #b85c38);
+  background: var(--admin-accent);
   color: var(--admin-text-on-accent);
   border: none;
   border-radius: 4px;
@@ -281,7 +281,7 @@ async function handleLogin() {
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: var(--admin-accent-dark, #924530);
+  background: var(--admin-accent-dark);
 }
 .submit-btn:disabled {
   opacity: 0.7;
@@ -310,13 +310,13 @@ async function handleLogin() {
 .back-link {
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   text-decoration: none;
   transition: color 0.15s;
 }
 
 .back-link:hover {
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
 }
 
 /* ── Transitions ── */

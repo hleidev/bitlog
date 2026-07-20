@@ -251,7 +251,7 @@ async function handleDelete() {
   align-items: center;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--admin-surface-2);
   gap: 8px;
   border-radius: 4px;
   transition: background 0.15s;
@@ -318,11 +318,11 @@ async function handleDelete() {
 }
 .version-tag--current {
   color: var(--admin-success);
-  background: rgba(92, 138, 92, 0.15);
+  background: rgba(var(--admin-success-rgb), 0.15);
 }
 .version-tag--published {
   color: var(--admin-accent);
-  background: rgba(30, 64, 175, 0.12);
+  background: rgba(var(--admin-accent-rgb), 0.12);
 }
 
 .version-manage-footer {
@@ -330,7 +330,7 @@ async function handleDelete() {
   align-items: center;
   justify-content: space-between;
   padding: 10px 0 2px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--admin-border-soft);
   margin-top: 6px;
 }
 .version-manage-count {

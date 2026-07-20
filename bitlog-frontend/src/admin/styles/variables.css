@@ -16,6 +16,7 @@
   --admin-body-bg: #f4f2ef;
   --admin-accent: #b85c38;
   --admin-accent-dark: #924530;
+  --admin-accent-light: #e07b4f;
 
   /* ── Semantic surfaces (shared admin palette) ── */
   --admin-text-primary: #1a1610;
@@ -29,11 +30,11 @@
   --admin-surface-2: #f4f2ef;
   --admin-surface-hover: #ece9e4;
   --admin-surface-input: #fff;
-  --admin-surface-soft: #f3f4f6;
+  --admin-surface-soft: #f5f4f0;
 
   --admin-border: #e8e4de;
   --admin-border-strong: #d4cfc9;
-  --admin-border-soft: #e5e7eb;
+  --admin-border-soft: #eae5df;
 
   --admin-overlay: rgba(0, 0, 0, 0.3);
   --admin-overlay-soft: rgba(0, 0, 0, 0.04);
@@ -49,6 +50,27 @@
 
   --admin-success: #5c8a5c;
   --admin-warning: #b87028;
+
+  /* ── Status badge (published / enabled) ── */
+  --admin-status-ok: #16a34a;
+  --admin-status-ok-rgb: 22, 163, 74;
+
+  /* ── Inline validation / error ── */
+  --admin-error: #dc2626;
+  --admin-error-bg: #fef2f2;
+  --admin-required: #ef4444;
+
+  /* ── Warning pill ── */
+  --admin-warning-bg: #fff7ed;
+
+  /* ── RGB companions: for rgba() alpha compositing ── */
+  --admin-accent-rgb: 184, 92, 56;
+  --admin-muted-rgb: 176, 168, 158;
+  --admin-surface-rgb: 250, 249, 247;
+  --admin-surface-hover-rgb: 236, 233, 228;
+  --admin-danger-rgb: 192, 57, 43;
+  --admin-danger-strong-rgb: 192, 64, 64;
+  --admin-success-rgb: 92, 138, 92;
 
   --admin-radius-sm: 3px;
   --admin-radius: 4px;
@@ -105,6 +127,28 @@
 
   --admin-accent: #e07b4f;
   --admin-accent-dark: #b85c38;
+  --admin-accent-light: #f0946a;
+
+  /* ── Status badge (published / enabled) ── */
+  --admin-status-ok: #4ade80;
+  --admin-status-ok-rgb: 74, 222, 128;
+
+  /* ── Inline validation / error ── */
+  --admin-error: #f08568;
+  --admin-error-bg: rgba(240, 133, 104, 0.1);
+  --admin-required: #f08568;
+
+  /* ── Warning pill ── */
+  --admin-warning-bg: rgba(212, 145, 90, 0.12);
+
+  /* ── RGB companions: for rgba() alpha compositing ── */
+  --admin-accent-rgb: 224, 123, 79;
+  --admin-muted-rgb: 138, 130, 120;
+  --admin-surface-rgb: 22, 18, 16;
+  --admin-surface-hover-rgb: 38, 31, 26;
+  --admin-danger-rgb: 224, 123, 91;
+  --admin-danger-strong-rgb: 217, 106, 74;
+  --admin-success-rgb: 123, 168, 123;
 
   /* ── Editor palette (mirrors public site's warm hero) ── */
   --write-bg: #16100c;

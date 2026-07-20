@@ -885,8 +885,8 @@ function relativeTime(d: string) {
 }
 
 .main-card {
-  background: var(--admin-header-bg, #faf9f7);
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-header-bg);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -897,7 +897,7 @@ function relativeTime(d: string) {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-bottom: 1px solid var(--admin-sidebar-border);
   padding: 0 16px 0 20px;
   gap: 12px;
 }
@@ -925,7 +925,7 @@ function relativeTime(d: string) {
   height: 48px;
   font-size: 13.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -937,12 +937,12 @@ function relativeTime(d: string) {
 }
 
 .view-tab:hover {
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
 }
 
 .view-tab--active {
-  color: var(--admin-accent, #b85c38);
-  border-bottom-color: var(--admin-accent, #b85c38);
+  color: var(--admin-accent);
+  border-bottom-color: var(--admin-accent);
   font-weight: 600;
 }
 
@@ -955,8 +955,8 @@ function relativeTime(d: string) {
   padding: 0 5px;
   font-size: 10.5px;
   font-weight: 600;
-  background: rgba(184, 92, 56, 0.1);
-  color: var(--admin-accent, #b85c38);
+  background: rgba(var(--admin-accent-rgb), 0.1);
+  color: var(--admin-accent);
   border-radius: 8px;
 }
 
@@ -973,7 +973,7 @@ function relativeTime(d: string) {
   left: 8px;
   width: 14px;
   height: 14px;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   pointer-events: none;
 }
 
@@ -981,7 +981,7 @@ function relativeTime(d: string) {
   height: 32px;
   width: 180px;
   padding: 0 28px 0 28px;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   background: var(--admin-surface-input);
   font-size: 13px;
@@ -993,10 +993,10 @@ function relativeTime(d: string) {
 }
 
 .search-input:focus {
-  border-color: var(--admin-accent, #b85c38);
+  border-color: var(--admin-accent);
 }
 .search-input::placeholder {
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 
 .search-clear {
@@ -1007,7 +1007,7 @@ function relativeTime(d: string) {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   padding: 0;
 }
 .search-clear svg {
@@ -1015,7 +1015,7 @@ function relativeTime(d: string) {
   height: 12px;
 }
 .search-clear:hover {
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
 }
 
 /* ── Buttons ── */
@@ -1026,10 +1026,10 @@ function relativeTime(d: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   background: transparent;
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   cursor: pointer;
   transition: background 0.15s;
   flex-shrink: 0;
@@ -1039,7 +1039,7 @@ function relativeTime(d: string) {
   height: 14px;
 }
 .icon-btn:hover {
-  background: var(--admin-sidebar-hover, #ece9e4);
+  background: var(--admin-sidebar-hover);
 }
 
 .primary-btn {
@@ -1048,7 +1048,7 @@ function relativeTime(d: string) {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: var(--admin-accent, #b85c38);
+  background: var(--admin-accent);
   color: var(--admin-text-on-accent);
   border: none;
   border-radius: 4px;
@@ -1064,7 +1064,7 @@ function relativeTime(d: string) {
   height: 13px;
 }
 .primary-btn:hover {
-  background: var(--admin-accent-dark, #924530);
+  background: var(--admin-accent-dark);
 }
 
 /* ── Selection bar ── */
@@ -1074,14 +1074,14 @@ function relativeTime(d: string) {
   align-items: center;
   gap: 12px;
   padding: 9px 20px;
-  background: rgba(184, 92, 56, 0.05);
-  border-bottom: 1px solid rgba(184, 92, 56, 0.15);
+  background: rgba(var(--admin-accent-rgb), 0.05);
+  border-bottom: 1px solid rgba(var(--admin-accent-rgb), 0.15);
 }
 
 .sel-count {
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-accent, #b85c38);
+  color: var(--admin-accent);
   white-space: nowrap;
 }
 .sel-count b {
@@ -1095,12 +1095,12 @@ function relativeTime(d: string) {
 .ghost-btn {
   height: 28px;
   padding: 0 12px;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   background: var(--admin-surface-input);
   font-size: 12.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   cursor: pointer;
   transition: background 0.15s;
   white-space: nowrap;
@@ -1109,27 +1109,27 @@ function relativeTime(d: string) {
   height: 26px;
 }
 .ghost-btn:hover {
-  background: var(--admin-sidebar-hover, #ece9e4);
+  background: var(--admin-sidebar-hover);
 }
 .ghost-btn--danger {
   color: var(--admin-danger);
   border-color: var(--admin-danger-border);
 }
 .ghost-btn--danger:hover {
-  background: rgba(192, 57, 43, 0.05);
+  background: rgba(var(--admin-danger-rgb), 0.05);
 }
 
 .cancel-btn {
   margin-left: auto;
   font-size: 12.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   background: none;
   border: none;
   cursor: pointer;
 }
 .cancel-btn:hover {
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
 }
 
 .sel-bar-enter-active,
@@ -1169,7 +1169,7 @@ function relativeTime(d: string) {
 .spinner {
   width: 24px;
   height: 24px;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   animation: spin 0.9s linear infinite;
 }
 @keyframes spin {
@@ -1185,14 +1185,14 @@ function relativeTime(d: string) {
 }
 
 .data-table thead tr {
-  background: var(--admin-sidebar-hover, #ece9e4);
-  border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-sidebar-hover);
+  border-bottom: 1px solid var(--admin-sidebar-border);
 }
 .data-table th {
   padding: 9px 12px;
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   text-align: left;
   white-space: nowrap;
   letter-spacing: 0.3px;
@@ -1201,7 +1201,7 @@ function relativeTime(d: string) {
   padding: 11px 12px;
   font-size: 13px;
   color: var(--admin-text-primary);
-  border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-bottom: 1px solid var(--admin-sidebar-border);
   vertical-align: middle;
 }
 .data-table tbody tr:last-child td {
@@ -1211,7 +1211,7 @@ function relativeTime(d: string) {
   background: var(--admin-overlay-soft);
 }
 .row--selected td {
-  background: rgba(184, 92, 56, 0.04);
+  background: rgba(var(--admin-accent-rgb), 0.04);
 }
 
 .col-check {
@@ -1239,7 +1239,7 @@ function relativeTime(d: string) {
 
 .row-checkbox {
   cursor: pointer;
-  accent-color: var(--admin-accent, #b85c38);
+  accent-color: var(--admin-accent);
 }
 
 /* Mobile list hidden by default, shown at breakpoint */
@@ -1264,11 +1264,11 @@ function relativeTime(d: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(184, 92, 56, 0.1);
-  color: var(--admin-accent, #b85c38);
+  background: rgba(var(--admin-accent-rgb), 0.1);
+  color: var(--admin-accent);
   font-size: 12px;
   font-weight: 600;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
 }
 .user-avatar img {
   width: 100%;
@@ -1294,7 +1294,7 @@ function relativeTime(d: string) {
 
 .cell-muted {
   font-size: 12.5px;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 
 /* ── Badges ── */
@@ -1309,12 +1309,12 @@ function relativeTime(d: string) {
   white-space: nowrap;
 }
 .role-badge--admin {
-  background: rgba(184, 92, 56, 0.1);
-  color: var(--admin-accent, #b85c38);
+  background: rgba(var(--admin-accent-rgb), 0.1);
+  color: var(--admin-accent);
 }
 .role-badge--user {
-  background: var(--admin-sidebar-hover, #ece9e4);
-  color: var(--admin-sidebar-text, #5a5248);
+  background: var(--admin-sidebar-hover);
+  color: var(--admin-sidebar-text);
 }
 
 .status-badge {
@@ -1327,9 +1327,9 @@ function relativeTime(d: string) {
   white-space: nowrap;
 }
 .status-badge--enabled {
-  background: rgba(22, 163, 74, 0.08);
-  color: #16a34a;
-  border: 1px solid rgba(22, 163, 74, 0.2);
+  background: rgba(var(--admin-status-ok-rgb), 0.08);
+  color: var(--admin-status-ok);
+  border: 1px solid rgba(var(--admin-status-ok-rgb), 0.2);
 }
 .status-badge--disabled {
   background: var(--admin-danger-bg-soft);
@@ -1355,7 +1355,7 @@ function relativeTime(d: string) {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   cursor: pointer;
   transition:
     background 0.15s,
@@ -1366,8 +1366,8 @@ function relativeTime(d: string) {
   height: 16px;
 }
 .more-btn:hover {
-  background: var(--admin-sidebar-hover, #ece9e4);
-  color: var(--admin-sidebar-text, #5a5248);
+  background: var(--admin-sidebar-hover);
+  color: var(--admin-sidebar-text);
 }
 
 .dropdown-menu {
@@ -1376,7 +1376,7 @@ function relativeTime(d: string) {
   right: 0;
   min-width: 130px;
   background: var(--admin-surface-input);
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   z-index: 100;
@@ -1395,14 +1395,14 @@ function relativeTime(d: string) {
   text-align: left;
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   background: none;
   border: none;
   cursor: pointer;
   transition: background 0.12s;
 }
 .menu-item:hover {
-  background: var(--admin-sidebar-hover, #ece9e4);
+  background: var(--admin-sidebar-hover);
 }
 .menu-item--danger {
   color: var(--admin-danger);
@@ -1420,7 +1420,7 @@ function relativeTime(d: string) {
 
 .menu-divider {
   height: 1px;
-  background: var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-sidebar-border);
   margin: 2px 0;
 }
 
@@ -1436,7 +1436,7 @@ function relativeTime(d: string) {
   align-items: center;
   gap: 10px;
   padding: 60px 0;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 .empty-state--mobile {
   padding: 40px 0;
@@ -1458,13 +1458,13 @@ function relativeTime(d: string) {
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  border-top: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-top: 1px solid var(--admin-sidebar-border);
 }
 
 .pagination-total {
   font-size: 12.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   white-space: nowrap;
   margin-right: 4px;
 }
@@ -1483,12 +1483,12 @@ function relativeTime(d: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: var(--admin-radius);
   background: var(--admin-surface-input);
   font-size: 12.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   cursor: pointer;
   transition:
     background 0.12s,
@@ -1499,20 +1499,20 @@ function relativeTime(d: string) {
   height: 13px;
 }
 .page-btn:hover:not(:disabled) {
-  background: var(--admin-sidebar-hover, #ece9e4);
+  background: var(--admin-sidebar-hover);
 }
 .page-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 .page-btn--active {
-  background: var(--admin-accent, #b85c38);
-  border-color: var(--admin-accent, #b85c38);
+  background: var(--admin-accent);
+  border-color: var(--admin-accent);
   color: var(--admin-text-on-accent);
   font-weight: 600;
 }
 .page-btn--active:hover {
-  background: var(--admin-accent, #b85c38);
+  background: var(--admin-accent);
 }
 
 .page-ellipsis {
@@ -1521,18 +1521,18 @@ function relativeTime(d: string) {
   justify-content: center;
   min-width: 28px;
   font-size: 12.5px;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 
 .page-size-select {
   height: 28px;
   padding: 0 6px;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: var(--admin-radius);
   background: var(--admin-surface-input);
   font-size: 12px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   outline: none;
   cursor: pointer;
   margin-left: 8px;
@@ -1552,8 +1552,8 @@ function relativeTime(d: string) {
 
 .dialog {
   width: min(360px, calc(100vw - 32px));
-  background: var(--admin-header-bg, #faf9f7);
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-header-bg);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -1577,7 +1577,7 @@ function relativeTime(d: string) {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -1586,7 +1586,7 @@ function relativeTime(d: string) {
   height: 14px;
 }
 .dialog-close:hover {
-  background: var(--admin-sidebar-hover, #ece9e4);
+  background: var(--admin-sidebar-hover);
 }
 
 .dialog-inner {
@@ -1602,8 +1602,8 @@ function relativeTime(d: string) {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(184, 92, 56, 0.1);
-  color: var(--admin-accent, #b85c38);
+  background: rgba(var(--admin-accent-rgb), 0.1);
+  color: var(--admin-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1624,7 +1624,7 @@ function relativeTime(d: string) {
 .dialog-sub {
   font-size: 12px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   margin: 2px 0 0;
 }
 
@@ -1633,9 +1633,9 @@ function relativeTime(d: string) {
   font-size: 18px;
   font-weight: 600;
   letter-spacing: 1.5px;
-  color: var(--admin-accent, #b85c38);
-  background: rgba(184, 92, 56, 0.06);
-  border: 1px solid rgba(184, 92, 56, 0.15);
+  color: var(--admin-accent);
+  background: rgba(var(--admin-accent-rgb), 0.06);
+  border: 1px solid rgba(var(--admin-accent-rgb), 0.15);
   border-radius: 4px;
   padding: 10px 20px;
   margin: 4px 0;
@@ -1644,7 +1644,7 @@ function relativeTime(d: string) {
 .dialog-copied {
   font-size: 12px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   margin: 0;
 }
 
@@ -1667,8 +1667,8 @@ function relativeTime(d: string) {
   align-items: center;
   gap: 18px;
   padding: 24px 24px 20px;
-  background: rgba(184, 92, 56, 0.04);
-  border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+  background: rgba(var(--admin-accent-rgb), 0.04);
+  border-bottom: 1px solid var(--admin-sidebar-border);
 }
 
 .dg-avatar {
@@ -1680,12 +1680,12 @@ function relativeTime(d: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(184, 92, 56, 0.1);
-  color: var(--admin-accent, #b85c38);
+  background: rgba(var(--admin-accent-rgb), 0.1);
+  color: var(--admin-accent);
   font-size: 24px;
   font-weight: 700;
   font-family: var(--font-serif, 'Lora', serif);
-  border: 2px solid var(--admin-sidebar-border, #e8e4de);
+  border: 2px solid var(--admin-sidebar-border);
 }
 .dg-avatar img {
   width: 100%;
@@ -1714,7 +1714,7 @@ function relativeTime(d: string) {
 .dg-username {
   font-size: 12.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 
 .dg-badges {
@@ -1728,13 +1728,13 @@ function relativeTime(d: string) {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1px;
-  background: var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-sidebar-border);
   margin: 0;
-  border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-bottom: 1px solid var(--admin-sidebar-border);
 }
 
 .dg-cell {
-  background: var(--admin-header-bg, #faf9f7);
+  background: var(--admin-header-bg);
   padding: 12px 20px;
   display: flex;
   flex-direction: column;
@@ -1744,7 +1744,7 @@ function relativeTime(d: string) {
 .dg-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1765,7 +1765,7 @@ function relativeTime(d: string) {
 .dg-profile-text {
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   line-height: 1.6;
   margin: 0;
 }
@@ -1782,7 +1782,7 @@ function relativeTime(d: string) {
   .view-tabs {
     overflow-x: auto;
     scrollbar-width: none;
-    border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+    border-bottom: 1px solid var(--admin-sidebar-border);
   }
   .view-tabs::-webkit-scrollbar {
     display: none;
@@ -1828,7 +1828,7 @@ function relativeTime(d: string) {
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+    border-bottom: 1px solid var(--admin-sidebar-border);
     gap: 12px;
   }
   .mobile-card:last-child {

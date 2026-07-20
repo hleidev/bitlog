@@ -442,7 +442,7 @@ function roleLabel(role: number) {
 .spinner {
   width: 28px;
   height: 28px;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   animation: spin 0.9s linear infinite;
 }
 
@@ -462,7 +462,7 @@ function roleLabel(role: number) {
   overflow: hidden;
   cursor: pointer;
   flex-shrink: 0;
-  border: 2px solid var(--admin-sidebar-border, #e8e4de);
+  border: 2px solid var(--admin-sidebar-border);
 }
 
 .avatar-img {
@@ -474,8 +474,8 @@ function roleLabel(role: number) {
 .avatar-fallback {
   width: 100%;
   height: 100%;
-  background: rgba(184, 92, 56, 0.1);
-  color: var(--admin-accent, #b85c38);
+  background: rgba(var(--admin-accent-rgb), 0.1);
+  color: var(--admin-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -543,7 +543,7 @@ function roleLabel(role: number) {
 .overview-username {
   font-size: 12.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   margin-top: -4px;
 }
 
@@ -562,12 +562,12 @@ function roleLabel(role: number) {
 }
 
 .role-badge--admin {
-  background: rgba(184, 92, 56, 0.1);
-  color: var(--admin-accent, #b85c38);
+  background: rgba(var(--admin-accent-rgb), 0.1);
+  color: var(--admin-accent);
 }
 .role-badge--user {
-  background: rgba(176, 168, 158, 0.12);
-  color: var(--admin-sidebar-text, #5a5248);
+  background: rgba(var(--admin-muted-rgb), 0.12);
+  color: var(--admin-sidebar-text);
 }
 
 /* ── Forms ── */
@@ -579,8 +579,8 @@ function roleLabel(role: number) {
 }
 
 .form-card {
-  background: var(--admin-header-bg, #faf9f7);
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-header-bg);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -590,7 +590,7 @@ function roleLabel(role: number) {
   align-items: center;
   gap: 12px;
   padding: 14px 20px;
-  border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-bottom: 1px solid var(--admin-sidebar-border);
 }
 
 .section-label {
@@ -604,7 +604,7 @@ function roleLabel(role: number) {
 .section-rule {
   flex: 1;
   height: 1px;
-  background: var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-sidebar-border);
 }
 
 .card-body {
@@ -642,7 +642,7 @@ function roleLabel(role: number) {
 .field-hint {
   font-size: 11px;
   font-weight: 400;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 
 .field-row {
@@ -656,7 +656,7 @@ function roleLabel(role: number) {
 .field-input {
   height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   background: var(--admin-surface-input);
   font-size: 13px;
@@ -669,14 +669,14 @@ function roleLabel(role: number) {
 }
 
 .field-input:focus {
-  border-color: var(--admin-accent, #b85c38);
+  border-color: var(--admin-accent);
 }
 .field-input::placeholder {
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 .field-input--readonly {
-  background: var(--admin-sidebar-hover, #ece9e4);
-  color: var(--admin-sidebar-text, #5a5248);
+  background: var(--admin-sidebar-hover);
+  color: var(--admin-sidebar-text);
   cursor: default;
 }
 .field-input--pwd {
@@ -685,7 +685,7 @@ function roleLabel(role: number) {
 
 .field-textarea {
   padding: 8px 10px;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   background: var(--admin-surface-input);
   font-size: 13px;
@@ -700,10 +700,10 @@ function roleLabel(role: number) {
 }
 
 .field-textarea:focus {
-  border-color: var(--admin-accent, #b85c38);
+  border-color: var(--admin-accent);
 }
 .field-textarea::placeholder {
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 
 /* ── Password toggle ── */
@@ -722,7 +722,7 @@ function roleLabel(role: number) {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   padding: 0;
   transition: color 0.15s;
 }
@@ -732,7 +732,7 @@ function roleLabel(role: number) {
   height: 15px;
 }
 .pwd-toggle:hover {
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
 }
 
 /* ── Buttons ── */
@@ -743,7 +743,7 @@ function roleLabel(role: number) {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--admin-accent, #b85c38);
+  background: var(--admin-accent);
   color: var(--admin-text-on-accent);
   border: none;
   border-radius: 4px;
@@ -755,7 +755,7 @@ function roleLabel(role: number) {
 }
 
 .primary-btn:hover:not(:disabled) {
-  background: var(--admin-accent-dark, #924530);
+  background: var(--admin-accent-dark);
 }
 .primary-btn:disabled {
   opacity: 0.6;
@@ -766,10 +766,10 @@ function roleLabel(role: number) {
   height: 36px;
   padding: 0 14px;
   flex-shrink: 0;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   background: transparent;
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
   cursor: pointer;

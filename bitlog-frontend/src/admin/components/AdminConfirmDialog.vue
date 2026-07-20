@@ -68,7 +68,7 @@ function onCancel() {
 .confirm-msg {
   font-family: var(--font-sans, 'Inter', sans-serif);
   font-size: 13.5px;
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   line-height: 1.6;
   margin: 0 0 22px;
 }
@@ -95,7 +95,7 @@ function onCancel() {
 
 .confirm-btn--cancel {
   background: transparent;
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   border-color: var(--admin-border-strong);
 }
 
@@ -105,15 +105,15 @@ function onCancel() {
 }
 
 .confirm-btn--ok {
-  background: var(--admin-accent, #b85c38);
+  background: var(--admin-accent);
   color: var(--admin-text-on-accent);
-  border-color: var(--admin-accent, #b85c38);
+  border-color: var(--admin-accent);
   font-weight: 500;
 }
 
 .confirm-btn--ok:hover {
-  background: var(--admin-accent-dark, #924530);
-  border-color: var(--admin-accent-dark, #924530);
+  background: var(--admin-accent-dark);
+  border-color: var(--admin-accent-dark);
 }
 
 .confirm-btn--danger {

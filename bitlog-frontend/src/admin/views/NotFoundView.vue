@@ -26,7 +26,7 @@ const router = useRouter()
   font-family: var(--font-serif, 'Lora', serif);
   font-size: 72px;
   font-weight: 700;
-  color: var(--admin-sidebar-border, #e8e4de);
+  color: var(--admin-sidebar-border);
   line-height: 1;
   margin: 0;
 }
@@ -34,15 +34,15 @@ const router = useRouter()
 .not-found-msg {
   font-size: 14px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   margin: 0 0 8px;
 }
 
 .not-found-btn {
   height: 34px;
   padding: 0 18px;
-  background: var(--admin-accent, #b85c38);
-  color: #fff;
+  background: var(--admin-accent);
+  color: var(--admin-text-on-accent);
   border: none;
   border-radius: 4px;
   font-size: 13px;
@@ -53,6 +53,6 @@ const router = useRouter()
 }
 
 .not-found-btn:hover {
-  background: var(--admin-accent-dark, #924530);
+  background: var(--admin-accent-dark);
 }
 </style>

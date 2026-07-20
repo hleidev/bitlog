@@ -362,8 +362,8 @@ async function handleDialogSubmit() {
 }
 
 .main-card {
-  background: var(--admin-header-bg, #faf9f7);
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  background: var(--admin-header-bg);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -374,7 +374,7 @@ async function handleDialogSubmit() {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  border-bottom: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border-bottom: 1px solid var(--admin-sidebar-border);
   padding: 0 20px;
   gap: 12px;
 }
@@ -406,7 +406,7 @@ async function handleDialogSubmit() {
   left: 8px;
   width: 14px;
   height: 14px;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   pointer-events: none;
 }
 
@@ -414,7 +414,7 @@ async function handleDialogSubmit() {
   height: 32px;
   padding: 0 28px 0 28px;
   width: 180px;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   background: var(--admin-surface-input);
   font-size: 13px;
@@ -426,10 +426,10 @@ async function handleDialogSubmit() {
 }
 
 .search-input:focus {
-  border-color: var(--admin-accent, #b85c38);
+  border-color: var(--admin-accent);
 }
 .search-input::placeholder {
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 
 .search-clear {
@@ -440,7 +440,7 @@ async function handleDialogSubmit() {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   padding: 0;
 }
 
@@ -449,7 +449,7 @@ async function handleDialogSubmit() {
   height: 12px;
 }
 .search-clear:hover {
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
 }
 
 /* ── Buttons ── */
@@ -460,10 +460,10 @@ async function handleDialogSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   background: transparent;
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   cursor: pointer;
   transition: background 0.15s;
   flex-shrink: 0;
@@ -474,7 +474,7 @@ async function handleDialogSubmit() {
   height: 14px;
 }
 .icon-btn:hover {
-  background: var(--admin-sidebar-hover, #ece9e4);
+  background: var(--admin-sidebar-hover);
 }
 
 .primary-btn {
@@ -483,7 +483,7 @@ async function handleDialogSubmit() {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: var(--admin-accent, #b85c38);
+  background: var(--admin-accent);
   color: var(--admin-text-on-accent);
   border: none;
   border-radius: 4px;
@@ -500,14 +500,14 @@ async function handleDialogSubmit() {
   height: 13px;
 }
 .primary-btn:hover {
-  background: var(--admin-accent-dark, #924530);
+  background: var(--admin-accent-dark);
 }
 
 /* ── Stats text ── */
 
 .stats-text {
   font-size: 13px;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   white-space: nowrap;
 }
 
@@ -518,14 +518,14 @@ async function handleDialogSubmit() {
   align-items: center;
   gap: 12px;
   padding: 9px 20px;
-  background: rgba(184, 92, 56, 0.05);
-  border-bottom: 1px solid rgba(184, 92, 56, 0.15);
+  background: rgba(var(--admin-accent-rgb), 0.05);
+  border-bottom: 1px solid rgba(var(--admin-accent-rgb), 0.15);
 }
 
 .sel-count {
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-accent, #b85c38);
+  color: var(--admin-accent);
   white-space: nowrap;
 }
 
@@ -541,12 +541,12 @@ async function handleDialogSubmit() {
 .ghost-btn {
   height: 28px;
   padding: 0 12px;
-  border: 1px solid var(--admin-sidebar-border, #e8e4de);
+  border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   background: var(--admin-surface-input);
   font-size: 12.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
   cursor: pointer;
   transition: background 0.15s;
   white-space: nowrap;
@@ -556,21 +556,21 @@ async function handleDialogSubmit() {
   height: 26px;
 }
 .ghost-btn:hover {
-  background: var(--admin-sidebar-hover, #ece9e4);
+  background: var(--admin-sidebar-hover);
 }
 .ghost-btn--danger {
   color: var(--admin-danger);
   border-color: var(--admin-danger-border);
 }
 .ghost-btn--danger:hover {
-  background: rgba(192, 57, 43, 0.05);
+  background: rgba(var(--admin-danger-rgb), 0.05);
 }
 
 .cancel-btn {
   margin-left: auto;
   font-size: 12.5px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
   background: none;
   border: none;
   cursor: pointer;
@@ -578,7 +578,7 @@ async function handleDialogSubmit() {
 }
 
 .cancel-btn:hover {
-  color: var(--admin-sidebar-text, #5a5248);
+  color: var(--admin-sidebar-text);
 }
 
 .sel-bar-enter-active,
@@ -621,27 +621,27 @@ async function handleDialogSubmit() {
 }
 
 .row--selected td {
-  background: rgba(184, 92, 56, 0.04);
+  background: rgba(var(--admin-accent-rgb), 0.04);
 }
 
 .count-badge {
   font-size: 12px;
   font-weight: 500;
-  color: var(--admin-accent, #b85c38);
-  background: rgba(184, 92, 56, 0.07);
+  color: var(--admin-accent);
+  background: rgba(var(--admin-accent-rgb), 0.07);
   padding: 2px 8px;
   border-radius: 10px;
   white-space: nowrap;
 }
 
 .count-badge--zero {
-  color: var(--admin-sidebar-text-muted, #b0a89e);
-  background: rgba(176, 168, 158, 0.1);
+  color: var(--admin-sidebar-text-muted);
+  background: rgba(var(--admin-muted-rgb), 0.1);
 }
 
 .cell-muted {
   font-size: 12.5px;
-  color: var(--admin-sidebar-text-muted, #b0a89e);
+  color: var(--admin-sidebar-text-muted);
 }
 
 /* ── Dialog ── */
