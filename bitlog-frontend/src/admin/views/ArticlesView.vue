@@ -1273,13 +1273,17 @@ function formatViews(n: number) {
   flex-wrap: wrap;
 }
 
+/* 标签不上色。强调色只留给「主操作 / 当前位置」——一屏十几个 accent 色块
+   之后，右上角的「写文章」主按钮就不再是视觉焦点了。
+   与分类的层次靠形状区分：分类是实心 chip，标签是描边 chip。 */
 .tag-chip {
   display: inline-flex;
   font-size: 11px;
   font-weight: 500;
-  color: var(--admin-accent);
-  background: rgba(var(--admin-accent-rgb), 0.08);
-  padding: 2px 6px;
+  color: var(--admin-text-muted);
+  background: transparent;
+  border: 1px solid var(--admin-border);
+  padding: 1px 6px;
   border-radius: var(--admin-radius);
   white-space: nowrap;
 }
