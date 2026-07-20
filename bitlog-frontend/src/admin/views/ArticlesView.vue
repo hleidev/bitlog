@@ -588,7 +588,9 @@ function formatViews(n: number) {
                   <span v-if="!isPureDraft(row)" class="status-badge status-badge--published"
                     >已发布</span
                   >
-                  <span v-if="hasDraftAbovePublish(row)" class="status-badge status-badge--draft"
+                  <span
+                    v-if="isPureDraft(row) || hasDraftAbovePublish(row)"
+                    class="status-badge status-badge--draft"
                     >草稿</span
                   >
                 </div>
@@ -652,7 +654,9 @@ function formatViews(n: number) {
                 <span v-if="!isPureDraft(row)" class="status-badge status-badge--published"
                   >已发布</span
                 >
-                <span v-if="hasDraftAbovePublish(row)" class="status-badge status-badge--draft"
+                <span
+                  v-if="isPureDraft(row) || hasDraftAbovePublish(row)"
+                  class="status-badge status-badge--draft"
                   >草稿</span
                 >
                 <span class="cell-muted">{{ relativeTime(row.updateTime) }}</span>
