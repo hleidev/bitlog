@@ -21,7 +21,9 @@
   /* ── Semantic surfaces (shared admin palette) ── */
   --admin-text-primary: #111111;
   --admin-text-secondary: #555555;
-  --admin-text-muted: #767676;
+  /* 与公共侧 --color-text-muted 保持同值：同语义的 token 不应分叉。
+     #767676 压在 hover 底(#f5f5f5)上只有 4.17，不达 AA。 */
+  --admin-text-muted: #707070;
   --admin-text-faint: #c4c4c4;
   --admin-text-subtle: #6e6e6e;
   --admin-text-on-accent: #ffffff;
@@ -52,7 +54,9 @@
   --admin-warning: #b45309;
 
   /* ── Status badge (published / enabled) ── */
-  --admin-status-ok: #16a34a;
+  /* 只作文字色用（底色/描边走下面的 -rgb 伴生）。取 #15803d 而非 #16a34a：
+     后者压在自己的 8% 淡底上只有 3.02，远不达 AA；#15803d 为 4.59。 */
+  --admin-status-ok: #15803d;
   --admin-status-ok-rgb: 22, 163, 74;
 
   /* ── Inline validation / error ── */

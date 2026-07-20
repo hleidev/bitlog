@@ -122,7 +122,8 @@ import { RouterLink } from 'vue-router'
   font-family: var(--font-serif);
   font-style: italic;
   font-size: 15px;
-  color: rgba(var(--color-on-dark-rgb), 0.32);
+  /* 站点标语是正文内容：0.32 合成后只有 2.73；0.52 为 5.45。 */
+  color: rgba(var(--color-on-dark-rgb), 0.52);
   letter-spacing: 0.1em;
   opacity: 0;
   animation: fadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
@@ -167,7 +168,8 @@ import { RouterLink } from 'vue-router'
 .hero__author-bio {
   font-size: 13px;
   line-height: 1.75;
-  color: rgba(var(--color-on-dark-rgb), 0.3);
+  /* 0.3 合成到 hero 深底上只有 2.53，不达 AA；0.5 为 5.15，仍明显弱于作者名。 */
+  color: rgba(var(--color-on-dark-rgb), 0.5);
   letter-spacing: 0.01em;
   padding-left: 13px;
 }
@@ -183,7 +185,8 @@ import { RouterLink } from 'vue-router'
 .hero__link {
   font-size: 11.5px;
   letter-spacing: 0.08em;
-  color: rgba(var(--color-on-dark-rgb), 0.35);
+  /* 这两个是真链接，0.35 只有 3.05；0.6 为 7.0，且仍低于 hover 的 0.8。 */
+  color: rgba(var(--color-on-dark-rgb), 0.6);
   transition: color var(--transition-base);
 }
 

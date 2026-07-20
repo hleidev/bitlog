@@ -920,7 +920,8 @@ function formatViews(n: number) {
   font-size: 10.5px;
   font-weight: 600;
   background: rgba(var(--admin-accent-rgb), 0.1);
-  color: var(--admin-accent);
+  /* accent 压在自己的 10% 淡底上只有 4.35，不达 AA；换深一档的 accent-dark(6.07)。 */
+  color: var(--admin-accent-dark);
   border-radius: 8px;
 }
 

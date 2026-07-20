@@ -337,7 +337,8 @@ onUnmounted(() => {
 
 .article-meta-date {
   font-size: 13px;
-  color: var(--color-text-faint);
+  /* 发布日期是正文信息：faint 在明/暗下只有 1.74 / 2.53，不达 AA。 */
+  color: var(--color-text-muted);
   letter-spacing: 0.04em;
   margin-top: -20px;
   margin-bottom: 32px;
@@ -399,7 +400,7 @@ onUnmounted(() => {
 
 .comment-placeholder {
   font-size: 13px;
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   letter-spacing: 0.02em;
 }
 

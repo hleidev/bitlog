@@ -45,7 +45,8 @@ const copyrightYear = currentYear > START_YEAR ? `${START_YEAR}–${currentYear}
 
 .footer__copy {
   font-size: 11.5px;
-  color: var(--color-text-faint);
+  /* 版权是正文信息而非装饰：faint(#c4c4c4) 在白底上仅 1.74，远不达 AA。 */
+  color: var(--color-text-muted);
   letter-spacing: 0.06em;
 }
 

@@ -6,7 +6,10 @@
   --color-hero-bg: #0a0a0a;
   --color-text-primary: #111111;
   --color-text-secondary: #555555;
-  --color-text-muted: #767676;
+  /* 取值 #707070 而非 #767676：muted 文字会压在 hover 底(#f5f5f5) 与卡片底(#fafafa) 上，
+     后者在这两种底色上分别只有 4.17 / 4.35，不达 AA；#707070 在两者上为 4.54 / 4.74。 */
+  --color-text-muted: #707070;
+  /* 仅用于非文本装饰（滚动条、序号等纯装饰元素）。正文信息一律不要用这个 token。 */
   --color-text-faint: #c4c4c4;
   /* 全站唯一强调色，仅用于「主操作 / 当前位置 / 正文链接」。
      标签、分类等元数据一律不上色，层次交给字号、字重与留白。
@@ -69,11 +72,14 @@
   --code-header-bg: transparent;
   --code-header-border: rgba(0, 0, 0, 0.08);
   --code-text: #24292f;
-  --code-text-muted: #8a8a8a;
+  /* lang 标签压在 --code-bg(#fafafa) 上，#8a8a8a 只有 3.31，不达 AA；#707070 为 4.74。 */
+  --code-text-muted: #707070;
   --code-copy-done: #1a7f37;
   --code-scrollbar: rgba(0, 0, 0, 0.18);
   /* Syntax tokens (light) — 语法高亮是功能性着色，保留但压低饱和度 */
-  --code-comment: #8a8a8a;
+  /* 注释同样要可读：#8a8a8a 在 #fafafa 上 3.31，提到 #707070(4.74)，
+     仍明显轻于正文码色 #24292f，弱化层次不受影响。 */
+  --code-comment: #707070;
   --code-keyword: #a3324c;
   --code-section: #1f4d7a;
   --code-literal: #1f4d7a;
@@ -117,11 +123,13 @@
   --code-header-bg: transparent;
   --code-header-border: rgba(255, 255, 255, 0.08);
   --code-text: #d4d4d4;
-  --code-text-muted: rgba(212, 212, 212, 0.5);
+  /* 0.5 alpha 合成后压在 --code-bg(#141414) 上只有 3.94；0.62 为 5.40。 */
+  --code-text-muted: rgba(212, 212, 212, 0.62);
   --code-copy-done: #4ade80;
   --code-scrollbar: rgba(255, 255, 255, 0.15);
   /* Syntax tokens (dark) */
-  --code-comment: #6b6b6b;
+  /* #6b6b6b 在 #141414 上只有 3.46；#8a8a8a 为 5.34。 */
+  --code-comment: #8a8a8a;
   --code-keyword: #e08a9e;
   --code-section: #7aaed6;
   --code-literal: #7aaed6;
