@@ -352,6 +352,14 @@ async function applyAiSuggestedTag(name: string) {
   await metaDialogRef.value?.createAndAddTag(name)
 }
 
+// 已应用的 AI 建议：existing 按 id 比对，suggested 建标签前无 id，按 name 比对
+const appliedTagIds = computed(
+  () => new Set(metaDialogRef.value?.selectedTags?.map((t) => t.id) ?? []),
+)
+const appliedTagNames = computed(
+  () => new Set(metaDialogRef.value?.selectedTags?.map((t) => t.name) ?? []),
+)
+
 // ── Watchers ───────────────────────────────────────────────────────────────────
 watch(title, () => {
   if (suppressChange) return
@@ -624,19 +632,24 @@ onBeforeRouteLeave(async () => {
               :key="tag.id"
               type="button"
               class="ai-meta-chip ai-meta-chip--existing ai-meta-chip--action"
+              :class="{ 'ai-meta-chip--applied': appliedTagIds.has(tag.id) }"
+              :disabled="appliedTagIds.has(tag.id)"
               @click="applyAiExistingTag(tag)"
             >
-              {{ tag.name }}<span class="ai-meta-chip__plus">+</span>
+              {{ tag.name
+              }}<span class="ai-meta-chip__plus">{{ appliedTagIds.has(tag.id) ? '✓' : '+' }}</span>
             </button>
             <button
               v-for="name in aiTagsResult.suggested"
               :key="name"
               type="button"
               class="ai-meta-chip ai-meta-chip--new ai-meta-chip--action"
+              :class="{ 'ai-meta-chip--applied': appliedTagNames.has(name) }"
+              :disabled="appliedTagNames.has(name)"
               @click="applyAiSuggestedTag(name)"
             >
               {{ name }}<span class="ai-meta-chip__badge">新</span
-              ><span class="ai-meta-chip__plus">+</span>
+              ><span class="ai-meta-chip__plus">{{ appliedTagNames.has(name) ? '✓' : '+' }}</span>
             </button>
             <button type="button" class="pf-ai-inline-dismiss" @click="aiTagsResult = null">
               <svg
@@ -773,7 +786,7 @@ onBeforeRouteLeave(async () => {
   border: 1px solid var(--admin-border-soft);
 }
 .status-pill--unsaved {
-  background: #fff7ed;
+  background: var(--admin-warning-bg);
   color: var(--admin-warning);
   border: 1px solid var(--admin-border-soft);
 }
@@ -863,17 +876,20 @@ onBeforeRouteLeave(async () => {
   width: 26px;
   height: 26px;
   flex-shrink: 0;
-  background: var(--admin-surface-soft);
-  border: 1px solid rgba(184, 92, 56, 0.22);
+  background: transparent;
+  border: 1px solid var(--admin-border);
   border-radius: 4px;
   cursor: pointer;
   color: var(--admin-accent);
   font-size: 13px;
   font-family: inherit;
-  transition: background 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .ai-trigger-btn:hover:not(:disabled) {
-  background: rgba(184, 92, 56, 0.08);
+  background: rgba(var(--admin-accent-rgb), 0.08);
+  border-color: var(--admin-accent);
 }
 .ai-trigger-btn:disabled {
   opacity: 0.6;
@@ -882,7 +898,7 @@ onBeforeRouteLeave(async () => {
 
 /* ── Inline AI suggestion cards ───────────────────────────────────────────────*/
 .pf-ai-inline {
-  border: 1px solid #ede9fe;
+  border: 1px solid var(--admin-border);
   border-radius: 4px;
   background: var(--admin-surface-soft);
   padding: 10px 12px;
@@ -966,16 +982,16 @@ onBeforeRouteLeave(async () => {
   font-family: inherit;
 }
 .ai-action--dismiss {
-  color: var(--admin-text-muted);
-  background: var(--admin-surface-soft);
-  border-color: var(--admin-border-soft);
+  color: var(--admin-text-secondary);
+  background: var(--admin-surface-2);
+  border-color: var(--admin-border);
 }
 .ai-action--dismiss:hover {
-  background: var(--admin-border-soft);
+  background: var(--admin-border);
 }
 .ai-action--primary {
   color: var(--admin-text-on-accent);
-  background: #7c3aed;
+  background: var(--admin-accent);
   border-color: var(--admin-accent);
 }
 .ai-action--primary:hover {
@@ -995,32 +1011,39 @@ onBeforeRouteLeave(async () => {
   line-height: 20px;
   font-family: inherit;
 }
+/* 已存在于标签库 —— 实线 */
 .ai-meta-chip--existing {
-  color: var(--admin-accent);
-  background: rgba(184, 92, 56, 0.08);
-  border-color: #ddd6fe;
+  color: var(--admin-text-secondary);
+  background: var(--admin-surface-2);
+  border-color: var(--admin-border);
 }
+/* 会新建 —— 虚线，配合「新」badge */
 .ai-meta-chip--new {
-  color: var(--admin-text-muted);
-  background: var(--admin-surface-soft);
-  border-color: var(--admin-text-muted);
+  color: var(--admin-text-secondary);
+  background: var(--admin-surface);
+  border-color: var(--admin-border-strong);
   border-style: dashed;
 }
 .ai-meta-chip--action {
   cursor: pointer;
-  transition: background 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
-.ai-meta-chip--action.ai-meta-chip--existing:hover {
-  background: rgba(184, 92, 56, 0.14);
+.ai-meta-chip--action:not(:disabled):hover {
+  border-color: var(--admin-accent);
 }
-.ai-meta-chip--action.ai-meta-chip--new:hover {
-  background: var(--admin-surface-soft);
+.ai-meta-chip--action:not(:disabled).ai-meta-chip--existing:hover {
+  background: rgba(var(--admin-accent-rgb), 0.08);
+}
+.ai-meta-chip--action:not(:disabled).ai-meta-chip--new:hover {
+  background: rgba(var(--admin-accent-rgb), 0.06);
 }
 .ai-meta-chip__badge {
   font-size: 10px;
   font-weight: 600;
   color: var(--admin-text-muted);
-  background: var(--admin-border-soft);
+  background: var(--admin-border);
   padding: 0 4px;
   border-radius: var(--admin-radius);
 }
@@ -1028,11 +1051,13 @@ onBeforeRouteLeave(async () => {
   font-size: 14px;
   font-weight: 400;
   line-height: 1;
-  color: var(--admin-accent-light);
-  margin-left: 1px;
-}
-.ai-meta-chip--new .ai-meta-chip__plus {
   color: var(--admin-text-muted);
+  margin-left: 1px;
+  transition: color 0.15s;
+}
+/* accent 只在鼠标表达意图的瞬间出现 */
+.ai-meta-chip--action:not(:disabled):hover .ai-meta-chip__plus {
+  color: var(--admin-accent);
 }
 .ai-meta-chip--applied {
   opacity: 0.4;
@@ -1078,19 +1103,19 @@ onBeforeRouteLeave(async () => {
   color: var(--admin-text-secondary);
 }
 .btn--primary {
-  background: var(--admin-accent, #b85c38);
+  background: var(--admin-accent);
   color: var(--admin-text-on-accent);
-  border-color: var(--admin-accent, #b85c38);
+  border-color: var(--admin-accent);
   font-weight: 500;
 }
 .btn--primary:hover:not(:disabled) {
-  background: var(--admin-accent-dark, #924530);
-  border-color: var(--admin-accent-dark, #924530);
+  background: var(--admin-accent-dark);
+  border-color: var(--admin-accent-dark);
 }
 .btn--cancel {
   background: transparent;
   color: var(--admin-text-muted);
-  border-color: #d4cfc9;
+  border-color: var(--admin-border-strong);
 }
 .btn--cancel:hover:not(:disabled) {
   background: var(--admin-surface-hover);

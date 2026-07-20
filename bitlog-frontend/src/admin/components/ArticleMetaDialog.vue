@@ -208,7 +208,8 @@ function setCategory(cat: { id: number; name: string }) {
   selectCat(cat)
 }
 
-defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
+// selectedTags 暴露给父组件，用于把已应用的 AI 建议标记为 --applied
+defineExpose({ setSummary, setCategory, addTag, createAndAddTag, selectedTags })
 </script>
 
 <template>
@@ -406,7 +407,7 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
 .dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--admin-overlay);
   z-index: 9000;
   display: flex;
   align-items: center;
@@ -414,8 +415,8 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
 }
 
 .dialog-panel {
-  background: #faf9f7;
-  border: 1px solid #e8e4de;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
   border-radius: 4px;
   width: 540px;
   max-width: calc(100vw - 40px);
@@ -457,15 +458,15 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   background: none;
   border: none;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--admin-text-muted);
   border-radius: 4px;
   transition:
     background 0.15s,
     color 0.15s;
 }
 .dialog-x:hover {
-  background: #ece9e4;
-  color: #374151;
+  background: var(--admin-surface-hover);
+  color: var(--admin-text-primary);
 }
 
 .dialog-body {
@@ -526,23 +527,23 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   cursor: not-allowed;
 }
 .btn--primary {
-  background: var(--admin-accent, #b85c38);
-  color: #fff;
-  border-color: var(--admin-accent, #b85c38);
+  background: var(--admin-accent);
+  color: var(--admin-text-on-accent);
+  border-color: var(--admin-accent);
   font-weight: 500;
 }
 .btn--primary:hover:not(:disabled) {
-  background: var(--admin-accent-dark, #924530);
-  border-color: var(--admin-accent-dark, #924530);
+  background: var(--admin-accent-dark);
+  border-color: var(--admin-accent-dark);
 }
 .btn--cancel {
   background: transparent;
-  color: #6b7280;
-  border-color: #d4cfc9;
+  color: var(--admin-text-secondary);
+  border-color: var(--admin-border-strong);
 }
 .btn--cancel:hover:not(:disabled) {
-  background: #ece9e4;
-  border-color: #c8c2ba;
+  background: var(--admin-surface-hover);
+  border-color: var(--admin-border-strong);
 }
 
 /* ── Form ────────────────────────────────────────────────────────────────────── */
@@ -562,21 +563,21 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   gap: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--admin-text-primary);
 }
 .pf-optional {
   font-size: 11px;
   font-weight: 400;
-  color: #9ca3af;
-  background: #f3f4f6;
+  color: var(--admin-text-muted);
+  background: var(--admin-surface-2);
   padding: 1px 6px;
   border-radius: var(--admin-radius);
 }
 .pf-required {
   font-size: 11px;
   font-weight: 500;
-  color: #dc2626;
-  background: #fef2f2;
+  color: var(--admin-error);
+  background: var(--admin-error-bg);
   padding: 1px 6px;
   border-radius: var(--admin-radius);
 }
@@ -588,10 +589,10 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   padding: 8px 10px;
   font-size: 13px;
   font-family: inherit;
-  border: 1px solid #d4cfc9;
+  border: 1px solid var(--admin-border-strong);
   border-radius: 4px;
-  background: #fff;
-  color: #374151;
+  background: var(--admin-surface-input);
+  color: var(--admin-text-primary);
   outline: none;
   transition: border-color 0.15s;
   box-sizing: border-box;
@@ -599,11 +600,11 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   line-height: 1.6;
 }
 .pf-textarea:focus {
-  border-color: var(--admin-accent, #b85c38);
+  border-color: var(--admin-accent);
 }
 .pf-char-count {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--admin-text-muted);
   text-align: right;
   margin-top: 2px;
 }
@@ -615,14 +616,14 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
 .pf-combo-field {
   display: flex;
   align-items: center;
-  border: 1px solid #d4cfc9;
+  border: 1px solid var(--admin-border-strong);
   border-radius: 4px;
-  background: #fff;
+  background: var(--admin-surface-input);
   transition: border-color 0.15s;
   padding: 0 6px 0 10px;
 }
 .pf-combo-field--focused {
-  border-color: var(--admin-accent, #b85c38);
+  border-color: var(--admin-accent);
 }
 .pf-combo-input {
   flex: 1;
@@ -632,10 +633,10 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   background: transparent;
   font-size: 13px;
   font-family: inherit;
-  color: #374151;
+  color: var(--admin-text-primary);
 }
 .pf-combo-input::placeholder {
-  color: #9ca3af;
+  color: var(--admin-text-muted);
 }
 .pf-combo-clear {
   display: flex;
@@ -647,23 +648,23 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--admin-text-muted);
   border-radius: var(--admin-radius);
   transition:
     color 0.15s,
     background 0.15s;
 }
 .pf-combo-clear:hover {
-  color: #374151;
-  background: #f3f4f6;
+  color: var(--admin-text-primary);
+  background: var(--admin-surface-2);
 }
 .pf-combo-dropdown {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--admin-surface-input);
+  border: 1px solid var(--admin-border);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   z-index: 200;
@@ -677,7 +678,7 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   text-align: left;
   padding: 7px 12px;
   font-size: 13px;
-  color: #374151;
+  color: var(--admin-text-primary);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -685,16 +686,16 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   transition: background 0.1s;
 }
 .pf-combo-opt:hover {
-  background: #f3f4f6;
+  background: var(--admin-surface-2);
 }
 .pf-combo-opt--active {
-  color: var(--admin-accent, #b85c38);
+  color: var(--admin-accent);
   font-weight: 500;
 }
 .pf-combo-empty {
   padding: 8px 12px;
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--admin-text-muted);
   font-style: italic;
 }
 
@@ -712,9 +713,9 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
   font-size: 12px;
   font-weight: 500;
   border-radius: 4px;
-  background: rgba(184, 92, 56, 0.08);
+  background: rgba(var(--admin-accent-rgb), 0.08);
   color: var(--admin-accent);
-  border: 1px solid rgba(184, 92, 56, 0.22);
+  border: 1px solid rgba(var(--admin-accent-rgb), 0.22);
 }
 .pf-sel-chip-x {
   display: flex;
@@ -735,6 +736,6 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag })
 }
 .pf-sel-chip-x:hover {
   color: var(--admin-accent);
-  background: rgba(184, 92, 56, 0.14);
+  background: rgba(var(--admin-accent-rgb), 0.14);
 }
 </style>
