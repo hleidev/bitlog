@@ -251,8 +251,8 @@ function escapeHtml(s: string): string {
 /* 没有 lang 标签 / 复制按钮 —— 是图表不是代码。 */
 .mermaid-block {
   margin: 28px 0;
-  background: #fff;
-  border: 1px solid var(--color-border, #e8e4de);
+  background: var(--color-mermaid-canvas);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -262,7 +262,7 @@ function escapeHtml(s: string): string {
 .mermaid-svg-wrap {
   display: block;
   padding: 24px 20px;
-  background: #fff;
+  background: var(--color-mermaid-canvas);
   cursor: zoom-in;
 }
 .mermaid-svg-wrap svg {
@@ -276,13 +276,13 @@ function escapeHtml(s: string): string {
    故保留浅底，但用暖纸色替代刺眼纯白，与整页暖色调协调。 */
 [data-theme='dark'] .mermaid-block,
 [data-theme='dark'] .mermaid-svg-wrap {
-  background: #f3efe8;
+  background: var(--color-mermaid-canvas);
 }
 
 /* ── Mermaid 错误的最小兜底样式（如果 Mermaid 渲染失败）────────── */
 .mermaid-error {
   padding: 16px 20px;
-  color: #e06c75;
+  color: var(--color-danger);
   font-family: var(--font-mono, monospace);
   font-size: 12px;
 }

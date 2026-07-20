@@ -203,14 +203,10 @@ const handleMobileLogin = () => {
 }
 
 .header--scrolled {
-  background: rgba(250, 249, 247, 0.92);
+  background: rgba(var(--color-bg-rgb), 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom-color: var(--color-border);
-}
-
-[data-theme='dark'] .header--scrolled {
-  background: rgba(14, 12, 11, 0.92);
 }
 
 .header__inner {
@@ -263,7 +259,7 @@ const handleMobileLogin = () => {
 .header__nav-link {
   font-size: 13px;
   letter-spacing: 0.04em;
-  color: rgba(245, 243, 239, 0.7);
+  color: rgba(var(--color-on-dark-rgb), 0.7);
   padding-bottom: 1px;
   background-image: linear-gradient(var(--color-accent), var(--color-accent));
   background-repeat: no-repeat;
@@ -304,7 +300,7 @@ const handleMobileLogin = () => {
   justify-content: center;
   width: 20px;
   height: 20px;
-  color: rgba(245, 243, 239, 0.7);
+  color: rgba(var(--color-on-dark-rgb), 0.7);
   transition:
     color var(--transition-header),
     opacity var(--transition-base);
@@ -326,14 +322,10 @@ const handleMobileLogin = () => {
 
 /* Search mode */
 .header--search {
-  background: rgba(250, 249, 247, 0.96) !important;
+  background: rgba(var(--color-bg-rgb), 0.96) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom-color: var(--color-border) !important;
-}
-
-[data-theme='dark'] .header--search {
-  background: rgba(14, 12, 11, 0.96) !important;
 }
 
 .header__search-mode {
@@ -391,9 +383,9 @@ const handleMobileLogin = () => {
   letter-spacing: 0.04em;
   padding: 5px 14px;
   border-radius: 4px;
-  border: 1px solid rgba(245, 243, 239, 0.35);
+  border: 1px solid rgba(var(--color-on-dark-rgb), 0.35);
   background: transparent;
-  color: rgba(245, 243, 239, 0.85);
+  color: rgba(var(--color-on-dark-rgb), 0.85);
   transition: all var(--transition-base);
   font-family: var(--font-sans);
   cursor: pointer;
@@ -443,7 +435,7 @@ const handleMobileLogin = () => {
   align-items: center;
   justify-content: center;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-text-on-accent);
   font-size: 12px;
   font-weight: 600;
 }
@@ -484,7 +476,7 @@ const handleMobileLogin = () => {
   display: block;
   width: 22px;
   height: 1.5px;
-  background: rgba(245, 243, 239, 0.85);
+  background: rgba(var(--color-on-dark-rgb), 0.85);
   transition: all 0.3s ease;
   transform-origin: center;
 }

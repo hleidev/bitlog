@@ -424,11 +424,11 @@ watch(
 }
 
 .form-input--error {
-  border-color: #ef4444;
+  border-color: var(--color-danger);
 }
 
 .form-input--error:focus {
-  border-color: #ef4444;
+  border-color: var(--color-danger);
 }
 
 .form-input:disabled {
@@ -438,12 +438,12 @@ watch(
 
 .field-error {
   font-size: 12px;
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .form-error {
   font-size: 13px;
-  color: #ef4444;
+  color: var(--color-danger);
   text-align: center;
   margin-top: -4px;
 }
@@ -451,7 +451,7 @@ watch(
 .form-submit {
   height: 44px;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-text-on-accent);
   font-size: 15px;
   font-weight: 500;
   border-radius: 4px;

@@ -237,7 +237,7 @@
   display: block;
   /* 中和 Vditor 的 margin-bottom:16px——外边距会从白卡下缘漏出节点底色 */
   margin: 0;
-  background: #fff;
+  background: var(--color-mermaid-canvas);
   padding: 24px 20px;
   text-align: center;
 }

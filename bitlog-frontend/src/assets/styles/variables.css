@@ -1,19 +1,42 @@
 :root {
   /* ── Colors ── */
-  --color-bg: #faf9f7;
-  --color-bg-card: #f4f2ef;
-  --color-bg-hover: #f0ede9;
-  --color-hero-bg: #080808;
-  --color-text-primary: #1a1610;
-  --color-text-secondary: #5a5248;
-  --color-text-muted: #b0a89e;
-  --color-text-faint: #ccc5bc;
-  --color-accent: #b85c38;
-  --color-accent-dark: #924530;
+  --color-bg: #ffffff;
+  --color-bg-card: #fafafa;
+  --color-bg-hover: #f5f5f5;
+  --color-hero-bg: #0a0a0a;
+  --color-text-primary: #111111;
+  --color-text-secondary: #555555;
+  --color-text-muted: #767676;
+  --color-text-faint: #c4c4c4;
+  /* 全站唯一强调色，仅用于「主操作 / 当前位置 / 正文链接」。
+     标签、分类等元数据一律不上色，层次交给字号、字重与留白。
+     取值 #b05633 而非 #b85c38：后者作文字压在 hover 底(#f5f5f5)上仅 4.11，不达 AA。 */
+  --color-accent: #b05633;
+  --color-accent-dark: #8f4529;
   --color-accent-light: #e07b4f;
-  --color-text-on-dark: #f5f3ef;
-  --color-border: #e8e4de;
-  --color-border-light: #f0ede9;
+  --color-text-on-dark: #fafafa;
+  --color-text-on-accent: #ffffff;
+  /* hero / lightbox 等常驻深色面：不随主题切换，accent 在此必须恒为浅色，
+     否则浅色模式下 accent(近黑) 压在深底上会不可见 */
+  --color-accent-on-dark: #e07b4f;
+  --color-on-dark-rgb: 250, 250, 250;
+  --color-scrim: rgba(0, 0, 0, 0.9);
+  --color-border: #e5e5e5;
+  --color-border-light: #f0f0f0;
+  --color-border-strong: #cccccc;
+
+  /* ── Semantic (功能色：破坏性操作保留红色，不参与单色化) ── */
+  --color-danger: #dc2626;
+  --color-danger-strong: #b91c1c;
+  --color-danger-bg: #fef2f2;
+
+  /* Mermaid 画布：主题为「深字浅底」，暗色模式下也必须保持浅底（hover 同理） */
+  --color-mermaid-canvas: #ffffff;
+  --color-mermaid-canvas-hover: #f5f5f5;
+
+  /* ── RGB 伴生：供 rgba() 做透明度合成 ── */
+  --color-accent-rgb: 176, 86, 51;
+  --color-bg-rgb: 255, 255, 255;
 
   /* ── Typography ── */
   --font-sans: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -40,54 +63,70 @@
   --transition-header: 0.15s ease;
   --transition-sweep: 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* ── Code block (light: warm paper) ── */
-  --code-bg: #f2ede6;
-  --code-border: #e0d5c8;
+  /* ── Code block (light: neutral) ── */
+  --code-bg: #fafafa;
+  --code-border: #e5e5e5;
   --code-header-bg: transparent;
-  --code-header-border: rgba(60, 30, 10, 0.08);
-  --code-text: #2e2318;
-  --code-text-muted: #9e8878;
-  --code-copy-done: #4f7a30;
-  --code-scrollbar: rgba(60, 30, 10, 0.18);
-  /* Syntax tokens (light) */
-  --code-comment: #9e8878;
-  --code-keyword: #8b3e24;
-  --code-section: #a03030;
-  --code-literal: #2a6878;
-  --code-string: #4f7a30;
-  --code-number: #a05020;
-  --code-meta: #2a5080;
-  --code-builtin: #8a6020;
+  --code-header-border: rgba(0, 0, 0, 0.08);
+  --code-text: #24292f;
+  --code-text-muted: #8a8a8a;
+  --code-copy-done: #1a7f37;
+  --code-scrollbar: rgba(0, 0, 0, 0.18);
+  /* Syntax tokens (light) — 语法高亮是功能性着色，保留但压低饱和度 */
+  --code-comment: #8a8a8a;
+  --code-keyword: #a3324c;
+  --code-section: #1f4d7a;
+  --code-literal: #1f4d7a;
+  --code-string: #2b6a4a;
+  --code-number: #8a5a2b;
+  --code-meta: #5b4a8a;
+  --code-builtin: #7a5230;
 }
 
 [data-theme='dark'] {
-  --color-bg: #0e0c0b;
-  --color-bg-card: #161210;
-  --color-bg-hover: #1e1814;
-  --color-hero-bg: #050403;
-  --color-text-primary: #f0ede8;
-  --color-text-secondary: #c0b8b0;
-  --color-text-muted: #8a8278;
-  --color-text-faint: #6b6258;
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-border-light: rgba(255, 255, 255, 0.06);
+  --color-bg: #0a0a0a;
+  --color-bg-card: #141414;
+  --color-bg-hover: #1f1f1f;
+  --color-hero-bg: #000000;
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted: #8a8a8a;
+  --color-text-faint: #525252;
+  /* 暗色下 accent 提亮；此时白字压在其上仅 2.95，故 on-accent 必须转为深色 */
+  --color-accent: #e07b4f;
+  --color-accent-dark: #f0946a;
+  --color-accent-light: #f0946a;
+  --color-text-on-accent: #0a0a0a;
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-border-light: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.2);
 
-  /* ── Code block (dark: warm espresso) ── */
-  --code-bg: #1a120e;
-  --code-border: rgba(255, 155, 90, 0.1);
+  --color-danger: #f87171;
+  --color-danger-strong: #ef4444;
+  --color-danger-bg: rgba(248, 113, 113, 0.1);
+
+  --color-mermaid-canvas: #f5f5f5;
+  --color-mermaid-canvas-hover: #eaeaea;
+
+  --color-accent-rgb: 224, 123, 79;
+  --color-bg-rgb: 10, 10, 10;
+
+  /* ── Code block (dark: neutral) ── */
+  --code-bg: #141414;
+  --code-border: rgba(255, 255, 255, 0.1);
   --code-header-bg: transparent;
-  --code-header-border: rgba(255, 155, 90, 0.08);
-  --code-text: #c4b5aa;
-  --code-text-muted: rgba(196, 181, 170, 0.5);
-  --code-copy-done: #8aad72;
-  --code-scrollbar: rgba(255, 155, 90, 0.15);
+  --code-header-border: rgba(255, 255, 255, 0.08);
+  --code-text: #d4d4d4;
+  --code-text-muted: rgba(212, 212, 212, 0.5);
+  --code-copy-done: #4ade80;
+  --code-scrollbar: rgba(255, 255, 255, 0.15);
   /* Syntax tokens (dark) */
-  --code-comment: #5e4838;
-  --code-keyword: #d4815c;
-  --code-section: #c96060;
-  --code-literal: #6aadbc;
-  --code-string: #8aad72;
-  --code-number: #d4a86c;
-  --code-meta: #7aaccc;
-  --code-builtin: #d4a870;
+  --code-comment: #6b6b6b;
+  --code-keyword: #e08a9e;
+  --code-section: #7aaed6;
+  --code-literal: #7aaed6;
+  --code-string: #7fbf9a;
+  --code-number: #d6a870;
+  --code-meta: #a99ad6;
+  --code-builtin: #d0a878;
 }

@@ -150,7 +150,7 @@ function pick(mode: ThemeMode) {
   background: transparent;
   border: none;
   cursor: pointer;
-  color: var(--color-text-secondary, #5a5248);
+  color: var(--color-text-secondary);
   border-radius: 4px;
   transition:
     color 0.15s,
@@ -163,8 +163,8 @@ function pick(mode: ThemeMode) {
 }
 .theme-toggle__btn:hover,
 .theme-toggle__btn--active {
-  color: var(--color-accent, #b85c38);
-  background: var(--color-bg-hover, #f0ede9);
+  color: var(--color-accent);
+  background: var(--color-bg-hover);
 }
 
 .theme-toggle__menu {
@@ -172,8 +172,8 @@ function pick(mode: ThemeMode) {
   top: calc(100% + 6px);
   right: 0;
   min-width: 140px;
-  background: var(--color-bg-card, #f4f2ef);
-  border: 1px solid var(--color-border, #e8e4de);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   padding: 4px;
   z-index: 1100;
@@ -189,7 +189,7 @@ function pick(mode: ThemeMode) {
   padding: 7px 10px;
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--color-text-primary, #1a1610);
+  color: var(--color-text-primary);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -205,10 +205,10 @@ function pick(mode: ThemeMode) {
   flex-shrink: 0;
 }
 .theme-toggle__item:hover {
-  background: var(--color-bg-hover, #f0ede9);
+  background: var(--color-bg-hover);
 }
 .theme-toggle__item.is-active {
-  color: var(--color-accent, #b85c38);
+  color: var(--color-accent);
   font-weight: 500;
 }
 

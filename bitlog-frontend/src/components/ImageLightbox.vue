@@ -55,7 +55,7 @@ onUnmounted(() => {
   inset: 0;
   z-index: 10000;
   padding: 48px 64px;
-  background: rgba(15, 12, 10, 0.9);
+  background: var(--color-scrim);
   cursor: zoom-out;
   animation: img-lightbox-fade 0.15s ease-out;
 }
@@ -68,7 +68,7 @@ onUnmounted(() => {
   height: 40px;
   border: none;
   background: rgba(255, 255, 255, 0.08);
-  color: #f0ede8;
+  color: var(--color-text-on-dark);
   border-radius: 50%;
   font-size: 26px;
   line-height: 1;

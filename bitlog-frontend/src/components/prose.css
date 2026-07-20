@@ -95,7 +95,7 @@
 .vditor-ir a {
   color: var(--color-accent);
   text-decoration: underline;
-  text-decoration-color: rgba(184, 92, 56, 0.35);
+  text-decoration-color: rgba(var(--color-accent-rgb), 0.35);
   text-underline-offset: 3px;
   transition:
     color var(--transition-base),
@@ -127,7 +127,7 @@
   font-family: var(--font-mono);
   font-size: 0.875em;
   background: var(--color-bg-hover);
-  color: var(--color-accent-light);
+  color: var(--color-accent);
   padding: 2px 6px;
   border-radius: 4px;
   border: 1px solid var(--color-border);
@@ -266,7 +266,7 @@
 .ProseMirror .mermaid-preview,
 .vditor-ir .mermaid-preview {
   padding: 24px 20px;
-  background: #fff;
+  background: var(--color-mermaid-canvas);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -280,7 +280,7 @@
 
 .ProseMirror .mermaid-preview--clickable:hover,
 .vditor-ir .mermaid-preview--clickable:hover {
-  background: #f9f9f9;
+  background: var(--color-mermaid-canvas-hover);
 }
 
 .ProseMirror .mermaid-preview--zoomable,
@@ -303,7 +303,7 @@
 .ProseMirror .mermaid-error,
 .vditor-ir .mermaid-error {
   padding: 12px 0;
-  color: #e06c75;
+  color: var(--color-danger);
   font-family: var(--font-mono);
   font-size: 12px;
 }
@@ -315,7 +315,7 @@
   border-left: 2px solid var(--color-accent);
   margin: 28px 0;
   padding: 14px 20px;
-  background: rgba(184, 92, 56, 0.04);
+  background: rgba(var(--color-accent-rgb), 0.04);
 }
 
 .ProseMirror blockquote p,
@@ -448,10 +448,10 @@
 }
 
 /* ── Syntax token colors (hljs) ───────────────────────────────────────────
- * 自定义暖色调主题，取代全局 atom-one-dark.css 导入。
+ * 自定义中性主题，取代全局 atom-one-dark.css 导入。
  * 变量在 variables.css 中按 [data-theme] 切换：
- *   浅色 → 暖纸色背景 (#f2ede6) + 深色暖调语法色
- *   深色 → 暖深棕背景 (#1a120e) + 暖调亮色语法色
+ *   浅色 → 中性浅灰背景 (#fafafa) + 低饱和语法色
+ *   深色 → 中性深灰背景 (#141414) + 低饱和亮色语法色
  * ─────────────────────────────────────────────────────────────────────── */
 
 .hljs {

@@ -365,14 +365,10 @@ onMounted(async () => {
   position: sticky;
   top: var(--spacing-header-height);
   z-index: 100;
-  background: rgba(250, 249, 247, 0.92);
+  background: rgba(var(--color-bg-rgb), 0.92);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--color-border-light);
-}
-
-[data-theme='dark'] .filter-bar {
-  background: rgba(14, 12, 11, 0.92);
 }
 
 .filter-bar__row {
@@ -530,7 +526,7 @@ onMounted(async () => {
 .tag-chip--active {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-text-on-accent);
 }
 
 /* Loading bar */
@@ -692,7 +688,7 @@ onMounted(async () => {
 .page-btn--active {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-text-on-accent);
 }
 
 .page-btn--arrow {

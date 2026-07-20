@@ -69,13 +69,13 @@ import { RouterLink } from 'vue-router'
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 55% 70% at 5% 110%, rgba(184, 92, 56, 0.05) 0%, transparent 60%),
-    linear-gradient(to bottom, transparent 55%, rgba(250, 249, 247, 0.08) 100%);
+    radial-gradient(ellipse 55% 70% at 5% 110%, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
+    linear-gradient(to bottom, transparent 55%, rgba(255, 255, 255, 0.08) 100%);
   pointer-events: none;
 }
 
 [data-theme='dark'] .hero__after {
-  background: linear-gradient(to bottom, transparent 55%, rgba(14, 12, 11, 0.3) 100%);
+  background: linear-gradient(to bottom, transparent 55%, rgba(0, 0, 0, 0.3) 100%);
 }
 
 .hero__inner {
@@ -115,14 +115,14 @@ import { RouterLink } from 'vue-router'
 }
 
 .hero__dot {
-  color: var(--color-accent);
+  color: var(--color-accent-on-dark);
 }
 
 .hero__subtitle {
   font-family: var(--font-serif);
   font-style: italic;
   font-size: 15px;
-  color: rgba(245, 243, 239, 0.32);
+  color: rgba(var(--color-on-dark-rgb), 0.32);
   letter-spacing: 0.1em;
   opacity: 0;
   animation: fadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
@@ -150,7 +150,7 @@ import { RouterLink } from 'vue-router'
 .hero__accent-bar {
   width: 2.5px;
   height: 28px;
-  background: var(--color-accent);
+  background: var(--color-accent-on-dark);
   border-radius: var(--radius-tag);
   flex-shrink: 0;
   opacity: 0.8;
@@ -160,14 +160,14 @@ import { RouterLink } from 'vue-router'
   font-family: var(--font-serif);
   font-size: 14px;
   font-weight: 500;
-  color: rgba(245, 243, 239, 0.75);
+  color: rgba(var(--color-on-dark-rgb), 0.75);
   letter-spacing: 0.04em;
 }
 
 .hero__author-bio {
   font-size: 13px;
   line-height: 1.75;
-  color: rgba(245, 243, 239, 0.3);
+  color: rgba(var(--color-on-dark-rgb), 0.3);
   letter-spacing: 0.01em;
   padding-left: 13px;
 }
@@ -183,17 +183,17 @@ import { RouterLink } from 'vue-router'
 .hero__link {
   font-size: 11.5px;
   letter-spacing: 0.08em;
-  color: rgba(245, 243, 239, 0.35);
+  color: rgba(var(--color-on-dark-rgb), 0.35);
   transition: color var(--transition-base);
 }
 
 .hero__link:hover {
-  color: rgba(245, 243, 239, 0.8);
+  color: rgba(var(--color-on-dark-rgb), 0.8);
 }
 
 .hero__sep {
   font-size: 10px;
-  color: rgba(245, 243, 239, 0.18);
+  color: rgba(var(--color-on-dark-rgb), 0.18);
 }
 
 /* ── Animation ── */

@@ -137,7 +137,7 @@ async function handleLogout() {
 
 .ud-avatar--placeholder {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-text-on-accent);
 }
 
 .ud-profile-info {
@@ -206,11 +206,11 @@ async function handleLogout() {
 }
 
 .ud-item--danger:hover {
-  background-color: #fff2f0;
-  color: #cf1322;
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .ud-item--danger:hover svg {
-  color: #cf1322;
+  color: var(--color-danger);
 }
 </style>

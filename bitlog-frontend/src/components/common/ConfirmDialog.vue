@@ -49,8 +49,8 @@ function onCancel() {
 }
 
 .confirm-dialog {
-  background: var(--color-bg-card, #faf9f7);
-  border: 1px solid var(--color-border, #e8e4de);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   padding: 28px 28px 22px;
   width: 380px;
@@ -61,14 +61,14 @@ function onCancel() {
   font-family: var(--font-serif, 'Lora', serif);
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-text-primary, #1a1610);
+  color: var(--color-text-primary);
   margin: 0 0 10px;
 }
 
 .confirm-msg {
   font-family: var(--font-sans, 'Inter', sans-serif);
   font-size: 13.5px;
-  color: var(--color-text-secondary, #5a5248);
+  color: var(--color-text-secondary);
   line-height: 1.6;
   margin: 0 0 22px;
 }
@@ -95,35 +95,35 @@ function onCancel() {
 
 .confirm-btn--cancel {
   background: transparent;
-  color: var(--color-text-secondary, #5a5248);
-  border-color: var(--color-border, #d4cfc9);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
 }
 
 .confirm-btn--cancel:hover {
-  background: var(--color-bg-hover, #ece9e4);
-  border-color: #c8c2ba;
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-strong);
 }
 
 .confirm-btn--ok {
-  background: var(--color-accent, #b85c38);
-  color: #fff;
-  border-color: var(--color-accent, #b85c38);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  border-color: var(--color-accent);
   font-weight: 500;
 }
 
 .confirm-btn--ok:hover {
-  background: var(--color-accent-dark, #924530);
-  border-color: var(--color-accent-dark, #924530);
+  background: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
 }
 
 .confirm-btn--danger {
-  background: #c04040;
-  border-color: #c04040;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .confirm-btn--danger:hover {
-  background: #a03030;
-  border-color: #a03030;
+  background: var(--color-danger-strong);
+  border-color: var(--color-danger-strong);
 }
 
 /* Transitions */

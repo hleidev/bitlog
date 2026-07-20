@@ -1,55 +1,55 @@
 :root {
-  --admin-sidebar-bg: #f4f2ef;
-  --admin-sidebar-border: #e8e4de;
-  --admin-sidebar-hover: #ece9e4;
-  --admin-sidebar-active-bg: rgba(184, 92, 56, 0.07);
-  --admin-sidebar-text: #5a5248;
-  --admin-sidebar-text-muted: #b0a89e;
-  --admin-sidebar-text-active: #b85c38;
+  --admin-sidebar-bg: #fafafa;
+  --admin-sidebar-border: #e5e5e5;
+  --admin-sidebar-hover: #f0f0f0;
+  --admin-sidebar-active-bg: rgba(176, 86, 51, 0.08);
+  --admin-sidebar-text: #555555;
+  --admin-sidebar-text-muted: #6c6c6c;
+  --admin-sidebar-text-active: #b05633;
   --admin-sidebar-width: 220px;
   --admin-sidebar-width-collapsed: 60px;
 
-  --admin-header-bg: #faf9f7;
-  --admin-header-border: #e8e4de;
+  --admin-header-bg: #ffffff;
+  --admin-header-border: #e5e5e5;
   --admin-header-height: 56px;
 
-  --admin-body-bg: #f4f2ef;
-  --admin-accent: #b85c38;
-  --admin-accent-dark: #924530;
+  --admin-body-bg: #fafafa;
+  --admin-accent: #b05633;
+  --admin-accent-dark: #8f4529;
   --admin-accent-light: #e07b4f;
 
   /* ── Semantic surfaces (shared admin palette) ── */
-  --admin-text-primary: #1a1610;
-  --admin-text-secondary: #5a5248;
-  --admin-text-muted: #b0a89e;
-  --admin-text-faint: #ccc5bc;
-  --admin-text-subtle: #8a8278;
-  --admin-text-on-accent: #fff;
+  --admin-text-primary: #111111;
+  --admin-text-secondary: #555555;
+  --admin-text-muted: #767676;
+  --admin-text-faint: #c4c4c4;
+  --admin-text-subtle: #6e6e6e;
+  --admin-text-on-accent: #ffffff;
 
-  --admin-surface: #faf9f7;
-  --admin-surface-2: #f4f2ef;
-  --admin-surface-hover: #ece9e4;
-  --admin-surface-input: #fff;
-  --admin-surface-soft: #f5f4f0;
+  --admin-surface: #ffffff;
+  --admin-surface-2: #fafafa;
+  --admin-surface-hover: #f0f0f0;
+  --admin-surface-input: #ffffff;
+  --admin-surface-soft: #f7f7f7;
 
-  --admin-border: #e8e4de;
-  --admin-border-strong: #d4cfc9;
-  --admin-border-soft: #eae5df;
+  --admin-border: #e5e5e5;
+  --admin-border-strong: #cccccc;
+  --admin-border-soft: #efefef;
 
   --admin-overlay: rgba(0, 0, 0, 0.3);
   --admin-overlay-soft: rgba(0, 0, 0, 0.04);
   --admin-overlay-modal: rgba(0, 0, 0, 0.45);
 
-  --admin-danger: #c0392b;
-  --admin-danger-strong: #a03030;
-  --admin-danger-soft: rgba(192, 57, 43, 0.08);
-  --admin-danger-border: rgba(192, 57, 43, 0.25);
-  --admin-danger-bg-soft: rgba(192, 57, 43, 0.06);
-  --admin-danger-bg-strong: #c04040;
-  --admin-danger-border-strong: #c04040;
+  --admin-danger: #dc2626;
+  --admin-danger-strong: #b91c1c;
+  --admin-danger-soft: rgba(220, 38, 38, 0.08);
+  --admin-danger-border: rgba(220, 38, 38, 0.25);
+  --admin-danger-bg-soft: rgba(220, 38, 38, 0.06);
+  --admin-danger-bg-strong: #dc2626;
+  --admin-danger-border-strong: #dc2626;
 
-  --admin-success: #5c8a5c;
-  --admin-warning: #b87028;
+  --admin-success: #16a34a;
+  --admin-warning: #b45309;
 
   /* ── Status badge (published / enabled) ── */
   --admin-status-ok: #16a34a;
@@ -58,75 +58,76 @@
   /* ── Inline validation / error ── */
   --admin-error: #dc2626;
   --admin-error-bg: #fef2f2;
-  --admin-required: #ef4444;
+  --admin-required: #dc2626;
 
   /* ── Warning pill ── */
-  --admin-warning-bg: #fff7ed;
+  --admin-warning-bg: #fffbeb;
 
   /* ── RGB companions: for rgba() alpha compositing ── */
-  --admin-accent-rgb: 184, 92, 56;
-  --admin-muted-rgb: 176, 168, 158;
-  --admin-surface-rgb: 250, 249, 247;
-  --admin-surface-hover-rgb: 236, 233, 228;
-  --admin-danger-rgb: 192, 57, 43;
-  --admin-danger-strong-rgb: 192, 64, 64;
-  --admin-success-rgb: 92, 138, 92;
+  --admin-accent-rgb: 176, 86, 51;
+  --admin-on-accent-rgb: 255, 255, 255;
+  --admin-muted-rgb: 118, 118, 118;
+  --admin-surface-rgb: 255, 255, 255;
+  --admin-surface-hover-rgb: 240, 240, 240;
+  --admin-danger-rgb: 220, 38, 38;
+  --admin-danger-strong-rgb: 220, 38, 38;
+  --admin-success-rgb: 22, 163, 74;
 
   --admin-radius-sm: 3px;
   --admin-radius: 4px;
   --admin-radius-lg: 6px;
 
-  /* ── Editor palette (light: mirrors public site bg #faf9f7) ── */
-  --write-bg: #faf9f7;
+  /* ── Editor palette (light: mirrors public site bg #ffffff) ── */
+  --write-bg: #ffffff;
 }
 
 [data-theme='dark'] {
-  --admin-sidebar-bg: #161210;
+  --admin-sidebar-bg: #141414;
   --admin-sidebar-border: rgba(255, 255, 255, 0.1);
-  --admin-sidebar-hover: #1e1814;
-  --admin-sidebar-active-bg: rgba(184, 92, 56, 0.14);
-  --admin-sidebar-text: #c0b8b0;
-  --admin-sidebar-text-muted: #6b6258;
+  --admin-sidebar-hover: #1f1f1f;
+  --admin-sidebar-active-bg: rgba(224, 123, 79, 0.14);
+  --admin-sidebar-text: #a3a3a3;
+  --admin-sidebar-text-muted: #8a8a8a;
   --admin-sidebar-text-active: #e07b4f;
 
-  --admin-header-bg: #0e0c0b;
+  --admin-header-bg: #0a0a0a;
   --admin-header-border: rgba(255, 255, 255, 0.08);
-  --admin-body-bg: #0e0c0b;
+  --admin-body-bg: #0a0a0a;
 
-  --admin-text-primary: #f0ede8;
-  --admin-text-secondary: #c0b8b0;
-  --admin-text-muted: #8a8278;
-  --admin-text-faint: #6b6258;
-  --admin-text-subtle: #a89e92;
-  --admin-text-on-accent: #fff;
+  --admin-text-primary: #fafafa;
+  --admin-text-secondary: #a3a3a3;
+  --admin-text-muted: #8a8a8a;
+  --admin-text-faint: #525252;
+  --admin-text-subtle: #8a8a8a;
+  --admin-text-on-accent: #0a0a0a;
 
-  --admin-surface: #161210;
-  --admin-surface-2: #1e1814;
-  --admin-surface-hover: #261f1a;
-  --admin-surface-input: #1e1814;
-  --admin-surface-soft: #1e1814;
+  --admin-surface: #141414;
+  --admin-surface-2: #1f1f1f;
+  --admin-surface-hover: #292929;
+  --admin-surface-input: #1f1f1f;
+  --admin-surface-soft: #1f1f1f;
 
-  --admin-border: rgba(255, 255, 255, 0.1);
-  --admin-border-strong: rgba(255, 255, 255, 0.18);
-  --admin-border-soft: rgba(255, 255, 255, 0.08);
+  --admin-border: rgba(255, 255, 255, 0.12);
+  --admin-border-strong: rgba(255, 255, 255, 0.2);
+  --admin-border-soft: rgba(255, 255, 255, 0.07);
 
   --admin-overlay: rgba(0, 0, 0, 0.55);
   --admin-overlay-soft: rgba(255, 255, 255, 0.04);
   --admin-overlay-modal: rgba(0, 0, 0, 0.6);
 
-  --admin-danger: #e07b5b;
-  --admin-danger-strong: #f08568;
-  --admin-danger-soft: rgba(224, 123, 91, 0.12);
-  --admin-danger-border: rgba(224, 123, 91, 0.3);
-  --admin-danger-bg-soft: rgba(224, 123, 91, 0.1);
-  --admin-danger-bg-strong: #d96a4a;
-  --admin-danger-border-strong: #d96a4a;
+  --admin-danger: #f87171;
+  --admin-danger-strong: #ef4444;
+  --admin-danger-soft: rgba(248, 113, 113, 0.12);
+  --admin-danger-border: rgba(248, 113, 113, 0.3);
+  --admin-danger-bg-soft: rgba(248, 113, 113, 0.1);
+  --admin-danger-bg-strong: #dc2626;
+  --admin-danger-border-strong: #dc2626;
 
-  --admin-success: #7ba87b;
-  --admin-warning: #d4915a;
+  --admin-success: #4ade80;
+  --admin-warning: #fbbf24;
 
   --admin-accent: #e07b4f;
-  --admin-accent-dark: #b85c38;
+  --admin-accent-dark: #f0946a;
   --admin-accent-light: #f0946a;
 
   /* ── Status badge (published / enabled) ── */
@@ -134,29 +135,30 @@
   --admin-status-ok-rgb: 74, 222, 128;
 
   /* ── Inline validation / error ── */
-  --admin-error: #f08568;
-  --admin-error-bg: rgba(240, 133, 104, 0.1);
-  --admin-required: #f08568;
+  --admin-error: #f87171;
+  --admin-error-bg: rgba(248, 113, 113, 0.1);
+  --admin-required: #f87171;
 
   /* ── Warning pill ── */
-  --admin-warning-bg: rgba(212, 145, 90, 0.12);
+  --admin-warning-bg: rgba(251, 191, 36, 0.12);
 
   /* ── RGB companions: for rgba() alpha compositing ── */
   --admin-accent-rgb: 224, 123, 79;
-  --admin-muted-rgb: 138, 130, 120;
-  --admin-surface-rgb: 22, 18, 16;
-  --admin-surface-hover-rgb: 38, 31, 26;
-  --admin-danger-rgb: 224, 123, 91;
-  --admin-danger-strong-rgb: 217, 106, 74;
-  --admin-success-rgb: 123, 168, 123;
+  --admin-on-accent-rgb: 10, 10, 10;
+  --admin-muted-rgb: 138, 138, 138;
+  --admin-surface-rgb: 20, 20, 20;
+  --admin-surface-hover-rgb: 41, 41, 41;
+  --admin-danger-rgb: 248, 113, 113;
+  --admin-danger-strong-rgb: 239, 68, 68;
+  --admin-success-rgb: 74, 222, 128;
 
-  /* ── Editor palette (mirrors public site's warm hero) ── */
-  --write-bg: #16100c;
-  --write-toolbar-bg: #100b08;
-  --write-text: #f5ede0;
-  --write-text-muted: #8a7e6e;
-  --write-border: rgba(255, 240, 220, 0.08);
-  --write-placeholder: rgba(245, 237, 224, 0.32);
+  /* ── Editor palette (mirrors public site bg) ── */
+  --write-bg: #0f0f0f;
+  --write-toolbar-bg: #0a0a0a;
+  --write-text: #e8e8e8;
+  --write-text-muted: #737373;
+  --write-border: rgba(255, 255, 255, 0.08);
+  --write-placeholder: rgba(232, 232, 232, 0.32);
 }
 
 #nprogress .bar {
@@ -406,13 +408,13 @@
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(var(--admin-on-accent-rgb), 0.3);
   border-top-color: var(--admin-text-on-accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
 
 .btn-spinner--dark {
-  border-color: rgba(138, 130, 120, 0.3);
+  border-color: rgba(var(--admin-muted-rgb), 0.3);
   border-top-color: var(--admin-sidebar-text);
 }
