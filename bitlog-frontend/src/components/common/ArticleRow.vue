@@ -84,10 +84,14 @@ function formatDate(iso: string | null): string {
   transition: color var(--transition-base);
 }
 
+/* 分类保持右对齐成列（编辑式列表的常规做法），但正文列上限从 680px 提到
+   840px：680px 在 1280px 容器下会在正文与分类之间留出 ~250px 的空洞，
+   让分类看起来像漂在页面边缘的孤儿。840px 把空隙收到 ~75px，
+   窄屏下正文自然收缩、分类紧贴其后。 */
 .article-body {
   flex: 1;
   min-width: 0;
-  max-width: 680px;
+  max-width: 840px;
   display: flex;
   flex-direction: column;
   gap: 7px;
