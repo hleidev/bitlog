@@ -514,3 +514,196 @@
   border-color: rgba(var(--admin-muted-rgb), 0.3);
   border-top-color: var(--admin-sidebar-text);
 }
+
+/* ── Shared CRUD page shell ────────────────────────────────────────── */
+/* Articles / Categories / Tags / Users 四个列表页共用。仅收完全一致的规则，
+   列宽(.col-*)、.card-header 内边距等页面各异的部分仍留在各自组件内。 */
+
+.main-card {
+  background: var(--admin-header-bg);
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  flex-shrink: 0;
+}
+
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 8px;
+  width: 14px;
+  height: 14px;
+  color: var(--admin-sidebar-text-muted);
+  pointer-events: none;
+}
+
+.search-input:focus {
+  border-color: var(--admin-accent);
+}
+
+.search-input::placeholder {
+  color: var(--admin-sidebar-text-muted);
+}
+
+.search-clear {
+  position: absolute;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--admin-sidebar-text-muted);
+  padding: 0;
+}
+
+.search-clear svg {
+  width: 12px;
+  height: 12px;
+}
+
+.search-clear:hover {
+  color: var(--admin-sidebar-text);
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--admin-sidebar-text);
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.icon-btn:hover {
+  background: var(--admin-sidebar-hover);
+}
+
+.primary-btn {
+  height: 32px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--admin-accent);
+  color: var(--admin-text-on-accent);
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.primary-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.primary-btn:hover {
+  background: var(--admin-accent-dark);
+}
+
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 20px;
+  background: var(--admin-accent-bg-subtle);
+  border-bottom: 1px solid var(--admin-accent-border);
+}
+
+.sel-count {
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-accent);
+  white-space: nowrap;
+}
+
+.sel-count b {
+  font-weight: 700;
+}
+
+.sel-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ghost-btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 4px;
+  background: var(--admin-surface-input);
+  font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text);
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.ghost-btn--sm {
+  height: 26px;
+}
+
+.ghost-btn:hover {
+  background: var(--admin-sidebar-hover);
+}
+
+.ghost-btn--danger:hover {
+  background: rgba(var(--admin-danger-rgb), 0.05);
+}
+
+.cancel-btn:hover {
+  color: var(--admin-sidebar-text);
+}
+
+.sel-bar-leave-active {
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+
+.sel-bar-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.row--selected td {
+  background: var(--admin-accent-bg-subtle);
+}
+
+.col-check {
+  width: 40px;
+}
+
+.cell-muted {
+  font-size: 12.5px;
+  color: var(--admin-sidebar-text-muted);
+}

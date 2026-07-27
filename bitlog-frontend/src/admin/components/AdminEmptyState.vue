@@ -24,14 +24,4 @@ defineProps<{
   padding: 60px 0;
   color: var(--admin-text-muted);
 }
-
-.empty-icon {
-  width: 32px;
-  height: 32px;
-  opacity: 0.3;
-}
-.empty-state span {
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-}
 </style>

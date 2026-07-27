@@ -361,13 +361,6 @@ async function handleDialogSubmit() {
   flex-direction: column;
 }
 
-.main-card {
-  background: var(--admin-header-bg);
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
 /* ── Header ── */
 
 .card-header {
@@ -385,30 +378,7 @@ async function handleDialogSubmit() {
   gap: 12px;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0;
-  flex-shrink: 0;
-}
-
 /* ── Search ── */
-
-.search-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon {
-  position: absolute;
-  left: 8px;
-  width: 14px;
-  height: 14px;
-  color: var(--admin-sidebar-text-muted);
-  pointer-events: none;
-}
 
 .search-input {
   height: 32px;
@@ -425,83 +395,7 @@ async function handleDialogSubmit() {
   box-sizing: border-box;
 }
 
-.search-input:focus {
-  border-color: var(--admin-accent);
-}
-.search-input::placeholder {
-  color: var(--admin-sidebar-text-muted);
-}
-
-.search-clear {
-  position: absolute;
-  right: 6px;
-  display: flex;
-  align-items: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--admin-sidebar-text-muted);
-  padding: 0;
-}
-
-.search-clear svg {
-  width: 12px;
-  height: 12px;
-}
-.search-clear:hover {
-  color: var(--admin-sidebar-text);
-}
-
 /* ── Buttons ── */
-
-.icon-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--admin-sidebar-text);
-  cursor: pointer;
-  transition: background 0.15s;
-  flex-shrink: 0;
-}
-
-.icon-btn svg {
-  width: 14px;
-  height: 14px;
-}
-.icon-btn:hover {
-  background: var(--admin-sidebar-hover);
-}
-
-.primary-btn {
-  height: 32px;
-  padding: 0 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: var(--admin-accent);
-  color: var(--admin-text-on-accent);
-  border: none;
-  border-radius: 4px;
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-  white-space: nowrap;
-}
-
-.primary-btn svg {
-  width: 13px;
-  height: 13px;
-}
-.primary-btn:hover {
-  background: var(--admin-accent-dark);
-}
 
 /* ── Stats text ── */
 
@@ -513,57 +407,9 @@ async function handleDialogSubmit() {
 
 /* ── Selection bar ── */
 
-.selection-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 20px;
-  background: var(--admin-accent-bg-subtle);
-  border-bottom: 1px solid var(--admin-accent-border);
-}
-
-.sel-count {
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-accent);
-  white-space: nowrap;
-}
-
-.sel-count b {
-  font-weight: 700;
-}
-
-.sel-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.ghost-btn {
-  height: 28px;
-  padding: 0 12px;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: 4px;
-  background: var(--admin-surface-input);
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text);
-  cursor: pointer;
-  transition: background 0.15s;
-  white-space: nowrap;
-}
-
-.ghost-btn--sm {
-  height: 26px;
-}
-.ghost-btn:hover {
-  background: var(--admin-sidebar-hover);
-}
 .ghost-btn--danger {
   color: var(--admin-danger);
   border-color: var(--admin-danger-border);
-}
-.ghost-btn--danger:hover {
-  background: rgba(var(--admin-danger-rgb), 0.05);
 }
 
 .cancel-btn {
@@ -577,27 +423,13 @@ async function handleDialogSubmit() {
   transition: color 0.15s;
 }
 
-.cancel-btn:hover {
-  color: var(--admin-sidebar-text);
-}
-
 .sel-bar-enter-active,
-.sel-bar-leave-active {
-  transition:
-    opacity 0.15s,
-    transform 0.15s;
-}
+
 .sel-bar-enter-from,
-.sel-bar-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
 
 /* ── Table ── */
 
-.col-check {
-  width: 40px;
-}
+
 .col-name {
   max-width: 200px;
 }
@@ -620,10 +452,6 @@ async function handleDialogSubmit() {
   white-space: nowrap;
 }
 
-.row--selected td {
-  background: var(--admin-accent-bg-subtle);
-}
-
 .count-badge {
   font-size: 12px;
   font-weight: 500;
@@ -637,11 +465,6 @@ async function handleDialogSubmit() {
 .count-badge--zero {
   color: var(--admin-sidebar-text-muted);
   background: rgba(var(--admin-muted-rgb), 0.1);
-}
-
-.cell-muted {
-  font-size: 12.5px;
-  color: var(--admin-sidebar-text-muted);
 }
 
 /* ── Dialog ── */

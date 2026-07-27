@@ -884,13 +884,6 @@ function relativeTime(d: string) {
   flex-direction: column;
 }
 
-.main-card {
-  background: var(--admin-header-bg);
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
 /* ── Header ── */
 
 .card-header {
@@ -902,34 +895,11 @@ function relativeTime(d: string) {
   gap: 12px;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0;
-  flex-shrink: 0;
-}
-
 /* ── Tabs ── */
 
 /* .view-tabs / .view-tab / .tab-count 见 admin/styles/variables.css */
 
 /* ── Search ── */
-
-.search-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon {
-  position: absolute;
-  left: 8px;
-  width: 14px;
-  height: 14px;
-  color: var(--admin-sidebar-text-muted);
-  pointer-events: none;
-}
 
 .search-input {
   height: 32px;
@@ -946,131 +916,13 @@ function relativeTime(d: string) {
   box-sizing: border-box;
 }
 
-.search-input:focus {
-  border-color: var(--admin-accent);
-}
-.search-input::placeholder {
-  color: var(--admin-sidebar-text-muted);
-}
-
-.search-clear {
-  position: absolute;
-  right: 6px;
-  display: flex;
-  align-items: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--admin-sidebar-text-muted);
-  padding: 0;
-}
-.search-clear svg {
-  width: 12px;
-  height: 12px;
-}
-.search-clear:hover {
-  color: var(--admin-sidebar-text);
-}
-
 /* ── Buttons ── */
-
-.icon-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--admin-sidebar-text);
-  cursor: pointer;
-  transition: background 0.15s;
-  flex-shrink: 0;
-}
-.icon-btn svg {
-  width: 14px;
-  height: 14px;
-}
-.icon-btn:hover {
-  background: var(--admin-sidebar-hover);
-}
-
-.primary-btn {
-  height: 32px;
-  padding: 0 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: var(--admin-accent);
-  color: var(--admin-text-on-accent);
-  border: none;
-  border-radius: 4px;
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-  white-space: nowrap;
-}
-.primary-btn svg {
-  width: 13px;
-  height: 13px;
-}
-.primary-btn:hover {
-  background: var(--admin-accent-dark);
-}
 
 /* ── Selection bar ── */
 
-.selection-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 20px;
-  background: var(--admin-accent-bg-subtle);
-  border-bottom: 1px solid var(--admin-accent-border);
-}
-
-.sel-count {
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-accent);
-  white-space: nowrap;
-}
-.sel-count b {
-  font-weight: 700;
-}
-.sel-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.ghost-btn {
-  height: 28px;
-  padding: 0 12px;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: 4px;
-  background: var(--admin-surface-input);
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text);
-  cursor: pointer;
-  transition: background 0.15s;
-  white-space: nowrap;
-}
-.ghost-btn--sm {
-  height: 26px;
-}
-.ghost-btn:hover {
-  background: var(--admin-sidebar-hover);
-}
 .ghost-btn--danger {
   color: var(--admin-danger);
   border-color: var(--admin-danger-border);
-}
-.ghost-btn--danger:hover {
-  background: rgba(var(--admin-danger-rgb), 0.05);
 }
 
 .cancel-btn {
@@ -1082,21 +934,10 @@ function relativeTime(d: string) {
   border: none;
   cursor: pointer;
 }
-.cancel-btn:hover {
-  color: var(--admin-sidebar-text);
-}
 
 .sel-bar-enter-active,
-.sel-bar-leave-active {
-  transition:
-    opacity 0.15s,
-    transform 0.15s;
-}
+
 .sel-bar-enter-from,
-.sel-bar-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
 
 /* ── Table ── */
 
@@ -1110,67 +951,12 @@ function relativeTime(d: string) {
   pointer-events: none;
 }
 
-.table-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--admin-overlay-soft);
-  z-index: 1;
-}
-
-.spinner {
-  width: 24px;
-  height: 24px;
-  color: var(--admin-sidebar-text-muted);
-  animation: spin 0.9s linear infinite;
-}
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-}
-
-.data-table thead tr {
-  background: var(--admin-sidebar-hover);
-  border-bottom: 1px solid var(--admin-sidebar-border);
-}
-.data-table th {
-  padding: 9px 12px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--admin-sidebar-text-muted);
-  text-align: left;
-  white-space: nowrap;
-  letter-spacing: 0.3px;
-}
-.data-table td {
-  padding: 11px 12px;
-  font-size: 13px;
-  color: var(--admin-text-primary);
-  border-bottom: 1px solid var(--admin-sidebar-border);
-  vertical-align: middle;
-}
-.data-table tbody tr:last-child td {
-  border-bottom: none;
-}
-.data-table tbody tr:hover td {
-  background: var(--admin-overlay-soft);
-}
-.row--selected td {
-  background: var(--admin-accent-bg-subtle);
-}
-
-.col-check {
-  width: 40px;
-}
 .col-user {
   min-width: 160px;
 }
@@ -1189,11 +975,6 @@ function relativeTime(d: string) {
 .col-actions {
   width: 52px;
   text-align: center;
-}
-
-.row-checkbox {
-  cursor: pointer;
-  accent-color: var(--admin-accent);
 }
 
 /* Mobile list hidden by default, shown at breakpoint */
@@ -1244,11 +1025,6 @@ function relativeTime(d: string) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.cell-muted {
-  font-size: 12.5px;
-  color: var(--admin-sidebar-text-muted);
 }
 
 /* ── Badges ── */
@@ -1384,25 +1160,9 @@ function relativeTime(d: string) {
   padding: 0 !important;
   border: none !important;
 }
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 60px 0;
-  color: var(--admin-sidebar-text-muted);
-}
+
 .empty-state--mobile {
   padding: 40px 0;
-}
-.empty-icon {
-  width: 32px;
-  height: 32px;
-  opacity: 0.3;
-}
-.empty-state span {
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
 }
 
 /* ── Pagination ── */
