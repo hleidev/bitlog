@@ -529,6 +529,14 @@ onMounted(async () => {
   color: var(--color-text-on-accent);
 }
 
+/* 选中态必须自带 hover：否则 .tag-chip:hover(0,2,0) 特异性高于
+   .tag-chip--active(0,1,0)，会把文字改回 accent 压在 accent 底上，字直接消失。 */
+.tag-chip--active:hover {
+  background: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
+  color: var(--color-text-on-accent);
+}
+
 /* Loading bar */
 .filter-loading {
   position: absolute;
@@ -688,6 +696,13 @@ onMounted(async () => {
 .page-btn--active {
   background: var(--color-accent);
   border-color: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+/* 同 .tag-chip--active：hover 规则特异性更高，不单独覆盖会让页码字消失 */
+.page-btn--active:hover:not(:disabled) {
+  background: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
   color: var(--color-text-on-accent);
 }
 
