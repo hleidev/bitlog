@@ -156,7 +156,9 @@ function applyMermaidTheme(dark: boolean) {
 }
 
 const { isDark } = useTheme()
-applyMermaidTheme(isDark.value)
+// mermaidPalette 读 getComputedStyle 取 CSS 变量，预渲染阶段没有 document。
+// mermaid 本来也只在客户端渲染，这里跳过初始化即可。
+if (!import.meta.env.SSR) applyMermaidTheme(isDark.value)
 
 async function render() {
   try {

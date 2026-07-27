@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onServerPrefetch, onUnmounted } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useSeoMeta, useHead } from '@unhead/vue'
 import { type ArticleDetailVO } from '@/api/article'
 import { getCachedArticleDetail, fetchArticleDetail } from '@/api/articleCache'
+import { readSSGState, writeSSGState } from '@/utils/ssgState'
 import { formatDate } from '@/utils/format'
 import ArticleContent from '@/components/ArticleContent.vue'
 
@@ -75,6 +76,34 @@ const onScroll = () => {
   scrollProgress.value = total > 0 ? (el.scrollTop / total) * 100 : 0
 }
 
+// ── 预渲染取数 ────────────────────────────────────────────────────────────────
+// 预渲染阶段 onMounted 不执行，数据必须在 onServerPrefetch 里取，
+// 上面的 useHead / useSeoMeta 取值函数才能拿到 article，把标题、og、
+// JSON-LD 写进静态 HTML。
+//
+// 正文 content 不写进 initialState：它由客户端 Lute WASM 渲染，不参与服务端
+// DOM，省掉每篇文章 HTML 里再带一份 Markdown 全文的体积。
+const SSG_KEY = 'article'
+
+onServerPrefetch(async () => {
+  try {
+    const data = await fetchArticleDetail(Number(route.params.id))
+    article.value = data
+    loading.value = false
+    writeSSGState(route, SSG_KEY, { ...data, content: '' })
+  } catch (err) {
+    // 静态产物会退化成骨架屏空壳，构建后的 verify-ssg 会据此让构建失败
+    console.error(`[ssg] 文章 ${route.params.id} 预渲染取数失败: ${(err as Error).message}`)
+  }
+})
+
+// hydration：用预渲染的数据初始化首帧，与静态 HTML 保持一致，避免不匹配
+const prerendered = readSSGState<ArticleDetailVO>(route, SSG_KEY)
+if (prerendered) {
+  article.value = prerendered
+  loading.value = false
+}
+
 onMounted(async () => {
   const id = Number(route.params.id)
 
@@ -93,7 +122,8 @@ onMounted(async () => {
   try {
     article.value = await fetchArticleDetail(id)
   } catch {
-    if (!cached) error.value = true
+    // 缓存或预渲染已有内容时保留展示，只有什么都没有才报错
+    if (!article.value) error.value = true
   } finally {
     loading.value = false
     if (slowTimer) {

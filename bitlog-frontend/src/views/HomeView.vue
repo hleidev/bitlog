@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, nextTick, onMounted, onServerPrefetch } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import HeroSection from '@/components/home/HeroSection.vue'
 import { getArticlePage, type ArticleItemVO } from '@/api/article'
+import { readSSGState, writeSSGState } from '@/utils/ssgState'
 import ArticleListSkeleton from '@/components/common/ArticleListSkeleton.vue'
 import ArticleRow from '@/components/common/ArticleRow.vue'
+
+const route = useRoute()
 
 const articles = ref<ArticleItemVO[]>([])
 const loading = ref(false)
@@ -19,7 +22,7 @@ function initRowAnimation() {
   })
 }
 
-onMounted(async () => {
+async function loadArticles() {
   loading.value = true
   try {
     const res = await getArticlePage({ pageNum: 1, pageSize: 7 })
@@ -27,8 +30,34 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+}
+
+// ── 预渲染取数 ────────────────────────────────────────────────────────────────
+// 预渲染阶段 onMounted 不执行，文章列表必须在 onServerPrefetch 里取，
+// 才能进入首页的静态 HTML。
+const SSG_KEY = 'homeArticles'
+
+onServerPrefetch(async () => {
+  try {
+    await loadArticles()
+    writeSSGState(route, SSG_KEY, articles.value)
+  } catch (err) {
+    // 静态产物会退化成空壳，构建后的 verify-ssg 会据此让构建失败
+    console.error(`[ssg] 首页预渲染取数失败: ${(err as Error).message}`)
+  }
+})
+
+// hydration：命中预渲染数据则跳过首次请求。发布文章会触发前端重建，
+// 静态内容本身就是最新的，再请求一次只会让列表闪一下半透明。
+const prerendered = readSSGState<ArticleItemVO[]>(route, SSG_KEY)
+if (prerendered) articles.value = prerendered
+
+onMounted(async () => {
+  if (articles.value.length === 0) await loadArticles()
   await nextTick()
-  initRowAnimation()
+  // 预渲染的行已经画在静态 HTML 上了。入场动画是 fill-mode: both + from{opacity:0}，
+  // 补加只会把已经可见的内容先抹成透明再淡入，反而闪一下。
+  if (!prerendered) initRowAnimation()
 })
 </script>
 

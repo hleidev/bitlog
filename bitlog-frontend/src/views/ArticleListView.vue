@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onServerPrefetch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSeoMeta, useHead } from '@unhead/vue'
 import { getArticlePage, type ArticleItemVO } from '@/api/article'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { getTags, type TagVO } from '@/api/tag'
+import { readSSGState, writeSSGState } from '@/utils/ssgState'
 import ArticleListSkeleton from '@/components/common/ArticleListSkeleton.vue'
 import ArticleRow from '@/components/common/ArticleRow.vue'
 
@@ -177,12 +178,67 @@ function changePage(p: number) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+// ── 预渲染取数 ────────────────────────────────────────────────────────────────
+// 预渲染阶段 onMounted 不执行，分类、标签、首页文章都必须在 onServerPrefetch
+// 里取，才能进入 /articles 的静态 HTML。预渲染的是无筛选条件的第一页。
+const SSG_KEY = 'articleList'
+
+interface ArticleListState {
+  categories: CategoryVO[]
+  tags: TagVO[]
+  articles: ArticleItemVO[]
+  totalElements: number
+  totalPages: number
+  hasPrevious: boolean
+  hasNext: boolean
+}
+
+onServerPrefetch(async () => {
+  try {
+    const [cats, tgs] = await Promise.all([getCategories(), getTags()])
+    categories.value = cats
+    tags.value = tgs
+    await fetchArticles()
+    writeSSGState<ArticleListState>(route, SSG_KEY, {
+      categories: cats,
+      tags: tgs,
+      articles: articles.value,
+      totalElements: totalElements.value,
+      totalPages: totalPages.value,
+      hasPrevious: hasPrevious.value,
+      hasNext: hasNext.value,
+    })
+  } catch (err) {
+    // 静态产物会退化成空壳，构建后的 verify-ssg 会据此让构建失败
+    console.error(`[ssg] 文章列表页预渲染取数失败: ${(err as Error).message}`)
+  }
+})
+
+// hydration：用预渲染的数据初始化首帧，与静态 HTML 保持一致
+const prerendered = readSSGState<ArticleListState>(route, SSG_KEY)
+if (prerendered) {
+  categories.value = prerendered.categories
+  tags.value = prerendered.tags
+  articles.value = prerendered.articles
+  totalElements.value = prerendered.totalElements
+  totalPages.value = prerendered.totalPages
+  hasPrevious.value = prerendered.hasPrevious
+  hasNext.value = prerendered.hasNext
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
-  const [cats, tgs] = await Promise.all([getCategories(), getTags()])
-  categories.value = cats
-  tags.value = tgs
+  // 静态 HTML 按 /articles 无筛选预渲染；带 query 落地时内容对不上，仍需重新请求
+  const hasQueryFilters = Boolean(
+    route.query.categoryId || route.query.tagId || route.query.keyword,
+  )
+
+  if (!prerendered) {
+    const [cats, tgs] = await Promise.all([getCategories(), getTags()])
+    categories.value = cats
+    tags.value = tgs
+  }
 
   const { categoryId, tagId, keyword } = route.query
   if (keyword) filterSearch.value = keyword as string
@@ -197,7 +253,11 @@ onMounted(async () => {
   skipWatch = false
   await nextTick()
   updateIndicator()
-  fetchArticles()
+
+  // 注：静态 HTML 是无筛选的第一页，带 query 落地时会先闪一眼未筛选的列表。
+  // 曾试过先清空列表让骨架屏顶上，但 list → skeleton → empty 的快速切换会让
+  // 外层 <Transition mode="out-in"> 卡住，DOM 停在旧列表上，反而更糟。
+  if (!prerendered || hasQueryFilters) fetchArticles()
 })
 </script>
 
