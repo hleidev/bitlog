@@ -713,9 +713,9 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag, selectedTags })
   font-size: 12px;
   font-weight: 500;
   border-radius: 4px;
-  background: rgba(var(--admin-accent-rgb), 0.08);
+  background: var(--admin-accent-bg-soft);
   color: var(--admin-accent-dark);
-  border: 1px solid rgba(var(--admin-accent-rgb), 0.22);
+  border: 1px solid var(--admin-accent-border);
 }
 .pf-sel-chip-x {
   display: flex;
@@ -736,6 +736,6 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag, selectedTags })
 }
 .pf-sel-chip-x:hover {
   color: var(--admin-accent-dark);
-  background: rgba(var(--admin-accent-rgb), 0.14);
+  background: var(--admin-accent-bg-strong);
 }
 </style>

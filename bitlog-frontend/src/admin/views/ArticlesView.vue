@@ -999,8 +999,8 @@ function formatViews(n: number) {
   align-items: center;
   gap: 12px;
   padding: 9px 20px;
-  background: rgba(var(--admin-accent-rgb), 0.05);
-  border-bottom: 1px solid rgba(var(--admin-accent-rgb), 0.15);
+  background: var(--admin-accent-bg-subtle);
+  border-bottom: 1px solid var(--admin-accent-border);
 }
 
 .sel-count {
@@ -1147,7 +1147,7 @@ function formatViews(n: number) {
   background: rgba(var(--admin-surface-hover-rgb), 0.4);
 }
 .row--selected td {
-  background: rgba(var(--admin-accent-rgb), 0.04);
+  background: var(--admin-accent-bg-subtle);
 }
 
 .row--draft td:first-child {
@@ -1447,7 +1447,7 @@ function formatViews(n: number) {
     border-color 0.15s;
 }
 .ai-trigger-btn:hover:not(:disabled) {
-  background: rgba(var(--admin-accent-rgb), 0.08);
+  background: var(--admin-accent-bg-soft);
   border-color: var(--admin-accent);
 }
 .ai-trigger-btn:disabled {
@@ -1584,10 +1584,10 @@ function formatViews(n: number) {
   border-color: var(--admin-accent);
 }
 .ai-meta-chip--action:not(:disabled).ai-meta-chip--existing:hover {
-  background: rgba(var(--admin-accent-rgb), 0.08);
+  background: var(--admin-accent-bg-soft);
 }
 .ai-meta-chip--action:not(:disabled).ai-meta-chip--new:hover {
-  background: rgba(var(--admin-accent-rgb), 0.06);
+  background: var(--admin-accent-bg-soft);
 }
 .ai-meta-chip__badge {
   font-size: 10px;
@@ -1692,7 +1692,7 @@ function formatViews(n: number) {
     border-left: 3px solid var(--admin-sidebar-border);
   }
   .data-card--selected {
-    background: rgba(var(--admin-accent-rgb), 0.04);
+    background: var(--admin-accent-bg-subtle);
   }
   .data-card__head {
     display: flex;

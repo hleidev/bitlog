@@ -518,8 +518,8 @@ async function handleDialogSubmit() {
   align-items: center;
   gap: 12px;
   padding: 9px 20px;
-  background: rgba(var(--admin-accent-rgb), 0.05);
-  border-bottom: 1px solid rgba(var(--admin-accent-rgb), 0.15);
+  background: var(--admin-accent-bg-subtle);
+  border-bottom: 1px solid var(--admin-accent-border);
 }
 
 .sel-count {
@@ -621,14 +621,14 @@ async function handleDialogSubmit() {
 }
 
 .row--selected td {
-  background: rgba(var(--admin-accent-rgb), 0.04);
+  background: var(--admin-accent-bg-subtle);
 }
 
 .count-badge {
   font-size: 12px;
   font-weight: 500;
   color: var(--admin-accent-dark);
-  background: rgba(var(--admin-accent-rgb), 0.07);
+  background: var(--admin-accent-bg-soft);
   padding: 2px 8px;
   border-radius: 10px;
   white-space: nowrap;

@@ -1028,8 +1028,8 @@ function relativeTime(d: string) {
   align-items: center;
   gap: 12px;
   padding: 9px 20px;
-  background: rgba(var(--admin-accent-rgb), 0.05);
-  border-bottom: 1px solid rgba(var(--admin-accent-rgb), 0.15);
+  background: var(--admin-accent-bg-subtle);
+  border-bottom: 1px solid var(--admin-accent-border);
 }
 
 .sel-count {
@@ -1165,7 +1165,7 @@ function relativeTime(d: string) {
   background: var(--admin-overlay-soft);
 }
 .row--selected td {
-  background: rgba(var(--admin-accent-rgb), 0.04);
+  background: var(--admin-accent-bg-subtle);
 }
 
 .col-check {
@@ -1218,7 +1218,7 @@ function relativeTime(d: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(var(--admin-accent-rgb), 0.1);
+  background: var(--admin-accent-bg-strong);
   color: var(--admin-accent-dark);
   font-size: 12px;
   font-weight: 600;
@@ -1263,7 +1263,7 @@ function relativeTime(d: string) {
   white-space: nowrap;
 }
 .role-badge--admin {
-  background: rgba(var(--admin-accent-rgb), 0.1);
+  background: var(--admin-accent-bg-strong);
   color: var(--admin-accent-dark);
 }
 .role-badge--user {
@@ -1556,7 +1556,7 @@ function relativeTime(d: string) {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(var(--admin-accent-rgb), 0.1);
+  background: var(--admin-accent-bg-strong);
   color: var(--admin-accent-dark);
   display: flex;
   align-items: center;
@@ -1588,8 +1588,8 @@ function relativeTime(d: string) {
   font-weight: 600;
   letter-spacing: 1.5px;
   color: var(--admin-accent-dark);
-  background: rgba(var(--admin-accent-rgb), 0.06);
-  border: 1px solid rgba(var(--admin-accent-rgb), 0.15);
+  background: var(--admin-accent-bg-soft);
+  border: 1px solid var(--admin-accent-border);
   border-radius: 4px;
   padding: 10px 20px;
   margin: 4px 0;
@@ -1621,7 +1621,7 @@ function relativeTime(d: string) {
   align-items: center;
   gap: 18px;
   padding: 24px 24px 20px;
-  background: rgba(var(--admin-accent-rgb), 0.04);
+  background: var(--admin-accent-bg-subtle);
   border-bottom: 1px solid var(--admin-sidebar-border);
 }
 
@@ -1634,7 +1634,7 @@ function relativeTime(d: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(var(--admin-accent-rgb), 0.1);
+  background: var(--admin-accent-bg-strong);
   color: var(--admin-accent-dark);
   font-size: 24px;
   font-weight: 700;

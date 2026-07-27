@@ -322,7 +322,7 @@ async function handleDelete() {
 }
 .version-tag--published {
   color: var(--admin-accent-dark);
-  background: rgba(var(--admin-accent-rgb), 0.12);
+  background: var(--admin-accent-bg-strong);
 }
 
 .version-manage-footer {

@@ -888,7 +888,7 @@ onBeforeRouteLeave(async () => {
     border-color 0.15s;
 }
 .ai-trigger-btn:hover:not(:disabled) {
-  background: rgba(var(--admin-accent-rgb), 0.08);
+  background: var(--admin-accent-bg-soft);
   border-color: var(--admin-accent);
 }
 .ai-trigger-btn:disabled {
@@ -1034,10 +1034,10 @@ onBeforeRouteLeave(async () => {
   border-color: var(--admin-accent);
 }
 .ai-meta-chip--action:not(:disabled).ai-meta-chip--existing:hover {
-  background: rgba(var(--admin-accent-rgb), 0.08);
+  background: var(--admin-accent-bg-soft);
 }
 .ai-meta-chip--action:not(:disabled).ai-meta-chip--new:hover {
-  background: rgba(var(--admin-accent-rgb), 0.06);
+  background: var(--admin-accent-bg-soft);
 }
 .ai-meta-chip__badge {
   font-size: 10px;

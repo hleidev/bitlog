@@ -6,7 +6,7 @@
   --admin-sidebar-bg: #fafafa;
   --admin-sidebar-border: #e5e5e5;
   --admin-sidebar-hover: #f0f0f0;
-  --admin-sidebar-active-bg: rgba(var(--color-accent-rgb), 0.08);
+  --admin-sidebar-active-bg: var(--admin-accent-bg-soft);
   --admin-sidebar-text: #555555;
   --admin-sidebar-text-muted: #6c6c6c;
   --admin-sidebar-text-active: var(--color-accent);
@@ -21,6 +21,20 @@
   --admin-accent: var(--color-accent);
   --admin-accent-dark: var(--color-accent-dark);
   --admin-accent-light: var(--color-accent-light);
+
+  /* ── Accent alpha 层级 ──
+     accent 做淡底只用这四档，不要再就地写 rgba(..., 0.0x)：原先散落 10 档，
+     其中 0.04/0.05/0.06/0.07/0.08 五档肉眼无从分辨，纯属随手取值。
+     ⚠️ 文字压在这些底上一律用 --admin-accent-dark：浅色模式下 accent 压
+     自己的淡底，α≥0.08 即跌破 AA(0.08→4.46 / 0.12→4.25)，
+     换 accent-dark 后四档分别为 6.18 / 5.88 / 5.64，全部达标。 */
+  --admin-accent-bg-subtle: rgba(
+    var(--admin-accent-rgb),
+    0.05
+  ); /* 大面积弱底：选中行、操作栏、横幅 */
+  --admin-accent-bg-soft: rgba(var(--admin-accent-rgb), 0.08); /* 控件底 / hover 态 */
+  --admin-accent-bg-strong: rgba(var(--admin-accent-rgb), 0.12); /* 徽章、头像、计数角标 */
+  --admin-accent-border: rgba(var(--admin-accent-rgb), 0.15); /* 描边 */
 
   /* ── Semantic surfaces (shared admin palette) ── */
   --admin-text-primary: #111111;
@@ -94,7 +108,7 @@
   --admin-sidebar-border: rgba(255, 255, 255, 0.1);
   --admin-sidebar-hover: #1f1f1f;
   /* accent 本身跟随公共侧自动切换，这里只是暗色下需要更重的底色 alpha */
-  --admin-sidebar-active-bg: rgba(var(--color-accent-rgb), 0.14);
+  --admin-sidebar-active-bg: var(--admin-accent-bg-strong);
   --admin-sidebar-text: #a3a3a3;
   --admin-sidebar-text-muted: #8a8a8a;
 
@@ -228,7 +242,7 @@
   padding: 0 5px;
   font-size: 10.5px;
   font-weight: 600;
-  background: rgba(var(--admin-accent-rgb), 0.1);
+  background: var(--admin-accent-bg-strong);
   /* accent 压在自己的 10% 淡底上只有 4.35，不达 AA；换深一档的 accent-dark(6.07)。 */
   color: var(--admin-accent-dark);
   border-radius: 8px;

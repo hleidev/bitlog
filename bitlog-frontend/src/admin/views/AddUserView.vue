@@ -474,7 +474,7 @@ function handleSuccessClose() {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(var(--admin-accent-rgb), 0.1);
+  background: var(--admin-accent-bg-strong);
   color: var(--admin-accent-dark);
   display: flex;
   align-items: center;
@@ -508,8 +508,8 @@ function handleSuccessClose() {
   font-weight: 600;
   letter-spacing: 1.5px;
   color: var(--admin-accent-dark);
-  background: rgba(var(--admin-accent-rgb), 0.06);
-  border: 1px solid rgba(var(--admin-accent-rgb), 0.15);
+  background: var(--admin-accent-bg-soft);
+  border: 1px solid var(--admin-accent-border);
   border-radius: 4px;
   padding: 10px 20px;
   margin: 4px 0;
