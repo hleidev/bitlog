@@ -912,60 +912,7 @@ function relativeTime(d: string) {
 
 /* ── Tabs ── */
 
-.view-tabs {
-  display: flex;
-}
-
-.view-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 4px;
-  margin-right: 20px;
-  height: 48px;
-  font-size: 13.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition:
-    color 0.15s,
-    border-color 0.15s;
-  white-space: nowrap;
-}
-
-.view-tab:hover {
-  color: var(--admin-sidebar-text);
-}
-
-.view-tab--active {
-  color: var(--admin-accent);
-  border-bottom-color: var(--admin-accent);
-  font-weight: 600;
-}
-
-/* 选中态必须自带 hover：否则 .view-tab:hover(0,2,0) 特异性高于
-   .view-tab--active(0,1,0)，会把文字改回灰色，只剩 accent 下划线。 */
-.view-tab--active:hover {
-  color: var(--admin-accent-dark);
-  border-bottom-color: var(--admin-accent-dark);
-}
-
-.tab-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 16px;
-  padding: 0 5px;
-  font-size: 10.5px;
-  font-weight: 600;
-  background: rgba(var(--admin-accent-rgb), 0.1);
-  color: var(--admin-accent);
-  border-radius: 8px;
-}
+/* .view-tabs / .view-tab / .tab-count 见 admin/styles/variables.css */
 
 /* ── Search ── */
 
@@ -1785,19 +1732,6 @@ function relativeTime(d: string) {
     align-items: stretch;
     padding: 0 12px;
     gap: 0;
-  }
-  .view-tabs {
-    overflow-x: auto;
-    scrollbar-width: none;
-    border-bottom: 1px solid var(--admin-sidebar-border);
-  }
-  .view-tabs::-webkit-scrollbar {
-    display: none;
-  }
-  .view-tab {
-    flex-shrink: 0;
-    margin-right: 12px;
-    height: 42px;
   }
   .header-actions {
     padding: 8px 0;
