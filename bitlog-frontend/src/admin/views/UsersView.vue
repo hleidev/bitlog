@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/useUserStore'
@@ -133,15 +133,43 @@ onMounted(() => {
 })
 
 // ── Row dropdown menu ─────────────────────────────────────────────────────────
+// 菜单 Teleport 到 body 并用 fixed 定位：.table-wrap 的 overflow-x: auto 会让
+// overflow-y 被算成 auto，绝对定位的菜单一旦超出容器底边就会被裁掉（末行菜单
+// 因此被分页栏"吃掉"），这种裁剪不是层叠问题，调 z-index 无效。
 const openMenuId = ref<number | null>(null)
+const menuStyle = ref<Record<string, string>>({})
 
-function toggleMenu(id: number) {
-  openMenuId.value = openMenuId.value === id ? null : id
+// 菜单最多 6 项 + 2 条分隔线，取略保守的高度用于判断翻转
+const MENU_MAX_HEIGHT = 220
+
+function toggleMenu(id: number, ev?: MouseEvent, align: 'right' | 'left' = 'right') {
+  if (openMenuId.value === id) {
+    openMenuId.value = null
+    return
+  }
+  const btn = ev?.currentTarget as HTMLElement | undefined
+  if (btn) {
+    const r = btn.getBoundingClientRect()
+    const flipUp = window.innerHeight - r.bottom < MENU_MAX_HEIGHT
+    menuStyle.value = {
+      ...(align === 'right'
+        ? { right: `${window.innerWidth - r.right}px` }
+        : { left: `${r.left}px` }),
+      ...(flipUp
+        ? { bottom: `${window.innerHeight - r.top + 4}px` }
+        : { top: `${r.bottom + 4}px` }),
+    }
+  }
+  openMenuId.value = id
 }
 
 function closeMenu() {
   openMenuId.value = null
 }
+
+// fixed 定位不跟随滚动，滚动时直接关闭而非重算位置
+onMounted(() => window.addEventListener('scroll', closeMenu, true))
+onUnmounted(() => window.removeEventListener('scroll', closeMenu, true))
 
 // ── Single row operations ─────────────────────────────────────────────────────
 async function handleToggleStatus(row: UserListItem) {
@@ -607,41 +635,43 @@ function relativeTime(d: string) {
               </td>
               <td class="col-actions">
                 <div v-click-outside="closeMenu" class="menu-wrap">
-                  <button class="more-btn" @click.stop="toggleMenu(row.userId)">
+                  <button class="more-btn" @click.stop="toggleMenu(row.userId, $event)">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                       <circle cx="12" cy="5" r="1.5" />
                       <circle cx="12" cy="12" r="1.5" />
                       <circle cx="12" cy="19" r="1.5" />
                     </svg>
                   </button>
-                  <div v-if="openMenuId === row.userId" class="dropdown-menu">
-                    <button class="menu-item" @click="openDetail(row)">用户信息</button>
-                    <div class="menu-divider" />
-                    <button
-                      class="menu-item"
-                      :class="{ 'menu-item--disabled': row.userId === userInfo?.userId }"
-                      :disabled="row.userId === userInfo?.userId"
-                      @click="handleToggleStatus(row)"
-                    >
-                      {{ row.status === 1 ? '禁用' : '启用' }}
-                    </button>
-                    <button class="menu-item" @click="handleResetPassword(row)">重置密码</button>
-                    <div class="menu-divider" />
-                    <template v-if="activeTab !== 'deleted'">
-                      <button class="menu-item menu-item--danger" @click="handleDelete(row)">
-                        删除
-                      </button>
-                    </template>
-                    <template v-else>
-                      <button class="menu-item" @click="handleRestore(row)">恢复</button>
+                  <Teleport to="body">
+                    <div v-if="openMenuId === row.userId" class="dropdown-menu" :style="menuStyle">
+                      <button class="menu-item" @click="openDetail(row)">用户信息</button>
+                      <div class="menu-divider" />
                       <button
-                        class="menu-item menu-item--danger"
-                        @click="handlePermanentDelete(row)"
+                        class="menu-item"
+                        :class="{ 'menu-item--disabled': row.userId === userInfo?.userId }"
+                        :disabled="row.userId === userInfo?.userId"
+                        @click="handleToggleStatus(row)"
                       >
-                        彻底删除
+                        {{ row.status === 1 ? '禁用' : '启用' }}
                       </button>
-                    </template>
-                  </div>
+                      <button class="menu-item" @click="handleResetPassword(row)">重置密码</button>
+                      <div class="menu-divider" />
+                      <template v-if="activeTab !== 'deleted'">
+                        <button class="menu-item menu-item--danger" @click="handleDelete(row)">
+                          删除
+                        </button>
+                      </template>
+                      <template v-else>
+                        <button class="menu-item" @click="handleRestore(row)">恢复</button>
+                        <button
+                          class="menu-item menu-item--danger"
+                          @click="handlePermanentDelete(row)"
+                        >
+                          彻底删除
+                        </button>
+                      </template>
+                    </div>
+                  </Teleport>
                 </div>
               </td>
             </tr>
@@ -688,37 +718,39 @@ function relativeTime(d: string) {
               </div>
             </div>
             <div v-click-outside="closeMenu" class="menu-wrap">
-              <button class="more-btn" @click.stop="toggleMenu(row.userId)">
+              <button class="more-btn" @click.stop="toggleMenu(row.userId, $event, 'left')">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <circle cx="12" cy="5" r="1.5" />
                   <circle cx="12" cy="12" r="1.5" />
                   <circle cx="12" cy="19" r="1.5" />
                 </svg>
               </button>
-              <div v-if="openMenuId === row.userId" class="dropdown-menu dropdown-menu--left">
-                <button class="menu-item" @click="openDetail(row)">用户信息</button>
-                <div class="menu-divider" />
-                <button
-                  class="menu-item"
-                  :disabled="row.userId === userInfo?.userId"
-                  @click="handleToggleStatus(row)"
-                >
-                  {{ row.status === 1 ? '禁用' : '启用' }}
-                </button>
-                <button class="menu-item" @click="handleResetPassword(row)">重置密码</button>
-                <div class="menu-divider" />
-                <template v-if="activeTab !== 'deleted'">
-                  <button class="menu-item menu-item--danger" @click="handleDelete(row)">
-                    删除
+              <Teleport to="body">
+                <div v-if="openMenuId === row.userId" class="dropdown-menu" :style="menuStyle">
+                  <button class="menu-item" @click="openDetail(row)">用户信息</button>
+                  <div class="menu-divider" />
+                  <button
+                    class="menu-item"
+                    :disabled="row.userId === userInfo?.userId"
+                    @click="handleToggleStatus(row)"
+                  >
+                    {{ row.status === 1 ? '禁用' : '启用' }}
                   </button>
-                </template>
-                <template v-else>
-                  <button class="menu-item" @click="handleRestore(row)">恢复</button>
-                  <button class="menu-item menu-item--danger" @click="handlePermanentDelete(row)">
-                    彻底删除
-                  </button>
-                </template>
-              </div>
+                  <button class="menu-item" @click="handleResetPassword(row)">重置密码</button>
+                  <div class="menu-divider" />
+                  <template v-if="activeTab !== 'deleted'">
+                    <button class="menu-item menu-item--danger" @click="handleDelete(row)">
+                      删除
+                    </button>
+                  </template>
+                  <template v-else>
+                    <button class="menu-item" @click="handleRestore(row)">恢复</button>
+                    <button class="menu-item menu-item--danger" @click="handlePermanentDelete(row)">
+                      彻底删除
+                    </button>
+                  </template>
+                </div>
+              </Teleport>
             </div>
           </div>
         </div>
@@ -1100,22 +1132,17 @@ function relativeTime(d: string) {
   color: var(--admin-sidebar-text);
 }
 
+/* Teleport 到 body，位置由 toggleMenu 按触发按钮实测坐标写入 inline style */
 .dropdown-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
+  position: fixed;
+  /* 低于 .dialog-overlay(1000)：菜单不该盖住对话框 */
+  z-index: 900;
   min-width: 130px;
   background: var(--admin-surface-input);
   border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  z-index: 100;
   overflow: hidden;
-}
-
-.dropdown-menu--left {
-  right: auto;
-  left: 0;
 }
 
 .menu-item {
