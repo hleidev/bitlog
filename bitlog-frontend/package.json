@@ -11,6 +11,7 @@
     "dev": "vite",
     "prebuild": "node scripts/generate-sitemap.mjs",
     "build": "vue-tsc --noEmit && vite-ssg build",
+    "postbuild": "node scripts/verify-ssg.mjs",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint .",
