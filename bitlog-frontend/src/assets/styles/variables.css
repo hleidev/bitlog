@@ -1,4 +1,16 @@
 :root {
+  /* ── Accent primitives ──────────────────────────────────────────────
+     全站强调色唯一真源，换色只改这四行；用 rgb 分量而非 hex，是为了 -rgb
+     伴生 token 不必再抄一遍。色板恒定，明暗映射见下方语义层。逐档约束： */
+  --accent-300-rgb: 240, 148, 106; /* #f0946a  暗色 hover：须亮于 400 */
+  --accent-400-rgb: 224, 123, 79; /* #e07b4f  暗色正文 / 深底 accent：须达 AA */
+  --accent-500-rgb: 176, 86, 51; /* #b05633  浅色正文：压 #f5f5f5 须达 AA */
+  --accent-600-rgb: 143, 69, 41; /* #8f4529  浅色 hover：须深于 500 */
+  --accent-300: rgb(var(--accent-300-rgb));
+  --accent-400: rgb(var(--accent-400-rgb));
+  --accent-500: rgb(var(--accent-500-rgb));
+  --accent-600: rgb(var(--accent-600-rgb));
+
   /* ── Colors ── */
   --color-bg: #ffffff;
   --color-bg-card: #fafafa;
@@ -12,16 +24,15 @@
   /* 仅用于非文本装饰（滚动条、序号等纯装饰元素）。正文信息一律不要用这个 token。 */
   --color-text-faint: #c4c4c4;
   /* 全站唯一强调色，仅用于「主操作 / 当前位置 / 正文链接」。
-     标签、分类等元数据一律不上色，层次交给字号、字重与留白。
-     取值 #b05633 而非 #b85c38：后者作文字压在 hover 底(#f5f5f5)上仅 4.11，不达 AA。 */
-  --color-accent: #b05633;
-  --color-accent-dark: #8f4529;
-  --color-accent-light: #e07b4f;
+     标签、分类等元数据一律不上色，层次交给字号、字重与留白。 */
+  --color-accent: var(--accent-500);
+  --color-accent-dark: var(--accent-600);
+  --color-accent-light: var(--accent-400);
   --color-text-on-dark: #fafafa;
   --color-text-on-accent: #ffffff;
-  /* hero / lightbox 等常驻深色面：不随主题切换，accent 在此必须恒为浅色，
-     否则浅色模式下 accent(近黑) 压在深底上会不可见 */
-  --color-accent-on-dark: #e07b4f;
+  /* hero / lightbox 等常驻深色面：恒为浅色，否则浅色模式下 accent(近黑)
+     压在深底上不可见。引用恒定色板，故 dark 块不覆盖它。 */
+  --color-accent-on-dark: var(--accent-400);
   --color-on-dark-rgb: 250, 250, 250;
   --color-scrim: rgba(0, 0, 0, 0.9);
   --color-border: #e5e5e5;
@@ -38,7 +49,7 @@
   --color-mermaid-canvas-hover: #f5f5f5;
 
   /* ── RGB 伴生：供 rgba() 做透明度合成 ── */
-  --color-accent-rgb: 176, 86, 51;
+  --color-accent-rgb: var(--accent-500-rgb);
   --color-bg-rgb: 255, 255, 255;
 
   /* ── Typography ── */
@@ -99,9 +110,9 @@
   --color-text-muted: #8a8a8a;
   --color-text-faint: #525252;
   /* 暗色下 accent 提亮；此时白字压在其上仅 2.95，故 on-accent 必须转为深色 */
-  --color-accent: #e07b4f;
-  --color-accent-dark: #f0946a;
-  --color-accent-light: #f0946a;
+  --color-accent: var(--accent-400);
+  --color-accent-dark: var(--accent-300);
+  --color-accent-light: var(--accent-300);
   --color-text-on-accent: #0a0a0a;
   --color-border: rgba(255, 255, 255, 0.12);
   --color-border-light: rgba(255, 255, 255, 0.07);
@@ -114,7 +125,7 @@
   --color-mermaid-canvas: #f5f5f5;
   --color-mermaid-canvas-hover: #eaeaea;
 
-  --color-accent-rgb: 224, 123, 79;
+  --color-accent-rgb: var(--accent-400-rgb);
   --color-bg-rgb: 10, 10, 10;
 
   /* ── Code block (dark: neutral) ── */

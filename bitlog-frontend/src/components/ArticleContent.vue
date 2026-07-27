@@ -69,11 +69,17 @@ function mermaidPalette(dark: boolean) {
   const border = dark ? '#4a4a4a' : '#cccccc'
   const text = dark ? '#fafafa' : '#111111'
   const line = dark ? '#8a8a8a' : '#767676'
-  const accent = dark ? '#e07b4f' : '#b05633'
-  // 分类色：中性设计下不引入彩虹色，改用「terracotta + 明度阶梯」保证可分辨。
+  // accent 从 CSS 变量取，不在这里抄色值：Mermaid 要的是 JS 值（themeVariables
+  // 吃不了 var()），但唯一真源仍应是 styles/variables.css 的 accent primitives。
+  // 自定义属性不参与 transition，且主题切换是 setAttribute 同步完成、watcher
+  // 异步才触发，所以此处读到的必定是切换后的终值，不会是过渡中的混合色。
+  const css = getComputedStyle(document.documentElement)
+  const accent = css.getPropertyValue('--color-accent').trim()
+  const accentAlt = css.getPropertyValue('--color-accent-light').trim()
+  // 分类色：中性设计下不引入彩虹色，改用「accent + 明度阶梯」保证可分辨。
   const ramp = dark
-    ? ['#e07b4f', '#d4d4d4', '#8a8a8a', '#4d4d4d', '#f0946a', '#eaeaea']
-    : ['#b05633', '#3d3d3d', '#8a8a8a', '#d0d0d0', '#e07b4f', '#111111']
+    ? [accent, '#d4d4d4', '#8a8a8a', '#4d4d4d', accentAlt, '#eaeaea']
+    : [accent, '#3d3d3d', '#8a8a8a', '#d0d0d0', accentAlt, '#111111']
   const pie = Object.fromEntries(
     Array.from({ length: 12 }, (_, i) => [`pie${i + 1}`, ramp[i % ramp.length]]),
   )
