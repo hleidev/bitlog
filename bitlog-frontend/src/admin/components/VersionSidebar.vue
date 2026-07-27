@@ -321,7 +321,7 @@ async function handleDelete() {
   background: rgba(var(--admin-success-rgb), 0.15);
 }
 .version-tag--published {
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   background: rgba(var(--admin-accent-rgb), 0.12);
 }
 

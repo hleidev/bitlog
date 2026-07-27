@@ -475,7 +475,7 @@ function handleSuccessClose() {
   height: 44px;
   border-radius: 50%;
   background: rgba(var(--admin-accent-rgb), 0.1);
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -507,7 +507,7 @@ function handleSuccessClose() {
   font-size: 18px;
   font-weight: 600;
   letter-spacing: 1.5px;
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   background: rgba(var(--admin-accent-rgb), 0.06);
   border: 1px solid rgba(var(--admin-accent-rgb), 0.15);
   border-radius: 4px;

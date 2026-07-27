@@ -129,7 +129,7 @@ const stats = [
   height: 40px;
   border-radius: 4px;
   background: rgba(var(--admin-accent-rgb), 0.08);
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   display: flex;
   align-items: center;
   justify-content: center;

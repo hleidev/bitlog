@@ -628,7 +628,7 @@ async function handleDialogSubmit() {
 .count-badge {
   font-size: 12px;
   font-weight: 500;
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   background: rgba(var(--admin-accent-rgb), 0.07);
   padding: 2px 8px;
   border-radius: 10px;

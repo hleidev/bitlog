@@ -475,7 +475,7 @@ function roleLabel(role: number) {
   width: 100%;
   height: 100%;
   background: rgba(var(--admin-accent-rgb), 0.1);
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -563,7 +563,7 @@ function roleLabel(role: number) {
 
 .role-badge--admin {
   background: rgba(var(--admin-accent-rgb), 0.1);
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
 }
 .role-badge--user {
   background: rgba(var(--admin-muted-rgb), 0.12);

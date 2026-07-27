@@ -714,7 +714,7 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag, selectedTags })
   font-weight: 500;
   border-radius: 4px;
   background: rgba(var(--admin-accent-rgb), 0.08);
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   border: 1px solid rgba(var(--admin-accent-rgb), 0.22);
 }
 .pf-sel-chip-x {
@@ -735,7 +735,7 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag, selectedTags })
     background 0.15s;
 }
 .pf-sel-chip-x:hover {
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   background: rgba(var(--admin-accent-rgb), 0.14);
 }
 </style>

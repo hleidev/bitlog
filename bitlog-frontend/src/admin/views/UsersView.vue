@@ -1219,7 +1219,7 @@ function relativeTime(d: string) {
   align-items: center;
   justify-content: center;
   background: rgba(var(--admin-accent-rgb), 0.1);
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   font-size: 12px;
   font-weight: 600;
   border: 1px solid var(--admin-sidebar-border);
@@ -1264,7 +1264,7 @@ function relativeTime(d: string) {
 }
 .role-badge--admin {
   background: rgba(var(--admin-accent-rgb), 0.1);
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
 }
 .role-badge--user {
   background: var(--admin-sidebar-hover);
@@ -1557,7 +1557,7 @@ function relativeTime(d: string) {
   height: 44px;
   border-radius: 50%;
   background: rgba(var(--admin-accent-rgb), 0.1);
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1587,7 +1587,7 @@ function relativeTime(d: string) {
   font-size: 18px;
   font-weight: 600;
   letter-spacing: 1.5px;
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   background: rgba(var(--admin-accent-rgb), 0.06);
   border: 1px solid rgba(var(--admin-accent-rgb), 0.15);
   border-radius: 4px;
@@ -1635,7 +1635,7 @@ function relativeTime(d: string) {
   align-items: center;
   justify-content: center;
   background: rgba(var(--admin-accent-rgb), 0.1);
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   font-size: 24px;
   font-weight: 700;
   font-family: var(--font-serif, 'Lora', serif);
