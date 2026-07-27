@@ -946,6 +946,13 @@ function relativeTime(d: string) {
   font-weight: 600;
 }
 
+/* 选中态必须自带 hover：否则 .view-tab:hover(0,2,0) 特异性高于
+   .view-tab--active(0,1,0)，会把文字改回灰色，只剩 accent 下划线。 */
+.view-tab--active:hover {
+  color: var(--admin-accent-dark);
+  border-bottom-color: var(--admin-accent-dark);
+}
+
 .tab-count {
   display: inline-flex;
   align-items: center;

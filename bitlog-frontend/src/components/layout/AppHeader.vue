@@ -586,6 +586,11 @@ const handleMobileLogin = () => {
   color: var(--color-accent);
 }
 
+/* 同上：.mobile-theme-btn:hover(0,2,0) 特异性更高，不覆盖会让选中项失去高亮 */
+.mobile-theme-btn--active:hover {
+  color: var(--color-accent-dark);
+}
+
 .mobile-overlay {
   position: fixed;
   inset: 0;
