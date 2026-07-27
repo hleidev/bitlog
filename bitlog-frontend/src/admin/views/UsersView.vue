@@ -1287,7 +1287,7 @@ function relativeTime(d: string) {
 }
 .status-badge--disabled {
   background: var(--admin-danger-bg-soft);
-  color: var(--admin-danger);
+  color: var(--admin-danger-on-soft);
   border: 1px solid var(--admin-danger-border);
 }
 

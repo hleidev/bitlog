@@ -1592,7 +1592,7 @@ function formatViews(n: number) {
 .ai-meta-chip__badge {
   font-size: 10px;
   font-weight: 600;
-  color: var(--admin-text-muted);
+  color: var(--admin-text-secondary);
   background: var(--admin-border);
   padding: 0 4px;
   border-radius: var(--admin-radius);

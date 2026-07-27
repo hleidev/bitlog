@@ -113,7 +113,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 }
 
 .toggle-btn:hover {
-  color: var(--admin-accent);
+  color: var(--admin-accent-dark);
   background: var(--admin-sidebar-hover);
 }
 

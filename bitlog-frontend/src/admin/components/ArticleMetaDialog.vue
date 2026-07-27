@@ -576,7 +576,7 @@ defineExpose({ setSummary, setCategory, addTag, createAndAddTag, selectedTags })
 .pf-required {
   font-size: 11px;
   font-weight: 500;
-  color: var(--admin-error);
+  color: var(--admin-danger-on-soft);
   background: var(--admin-error-bg);
   padding: 1px 6px;
   border-radius: var(--admin-radius);

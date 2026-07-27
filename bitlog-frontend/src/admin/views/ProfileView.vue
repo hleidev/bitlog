@@ -487,13 +487,16 @@ function roleLabel(role: number) {
 .avatar-overlay {
   position: absolute;
   inset: 0;
-  background: var(--admin-overlay);
+  /* 遮罩盖在头像图片/占位底上，底下内容不可控，故固定 0.55 且不随主题：
+     --admin-overlay 浅色下只有 0.3，白字压上去仅 2.44，远不达 AA。 */
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  color: var(--admin-text-on-accent);
+  /* 底恒为深色，文字不能跟主题翻转（on-accent 暗色下是近黑） */
+  color: var(--color-text-on-dark);
   font-size: 10px;
   font-family: var(--font-sans, 'Inter', sans-serif);
   opacity: 0;

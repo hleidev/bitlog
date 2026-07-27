@@ -43,6 +43,10 @@
   --color-danger: #dc2626;
   --color-danger-strong: #b91c1c;
   --color-danger-bg: #fef2f2;
+  /* 压在 danger 淡底上的文字色。不能直接用 -strong：那个是实心按钮的底色，
+     暗色下取更深的 #ef4444，作文字压在暗淡底上只有 4.3。此 token 明暗方向
+     相反——浅色转深(5.91)、暗色保持亮(5.85)，两侧都达 AA。 */
+  --color-danger-on-soft: #b91c1c;
 
   /* Mermaid 画布：主题为「深字浅底」，暗色模式下也必须保持浅底（hover 同理） */
   --color-mermaid-canvas: #ffffff;
@@ -121,6 +125,7 @@
   --color-danger: #f87171;
   --color-danger-strong: #ef4444;
   --color-danger-bg: rgba(248, 113, 113, 0.1);
+  --color-danger-on-soft: #f87171;
 
   --color-mermaid-canvas: #f5f5f5;
   --color-mermaid-canvas-hover: #eaeaea;

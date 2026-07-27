@@ -341,7 +341,9 @@ async function handleDelete() {
 .version-delete-btn {
   font-size: 12px;
   font-weight: 500;
-  color: var(--admin-text-on-accent);
+  /* 底色 --admin-danger-bg-strong 明暗恒为 #dc2626，文字不能跟主题翻转：
+     --admin-text-on-accent 暗色下是 #0a0a0a，压在红底上只有 4.1。 */
+  color: var(--color-text-on-dark);
   background: var(--admin-danger-bg-strong);
   border: none;
   border-radius: 4px;

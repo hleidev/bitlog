@@ -207,7 +207,7 @@ async function handleLogout() {
 
 .ud-item--danger:hover {
   background-color: var(--color-danger-bg);
-  color: var(--color-danger);
+  color: var(--color-danger-on-soft);
 }
 
 .ud-item--danger:hover svg {

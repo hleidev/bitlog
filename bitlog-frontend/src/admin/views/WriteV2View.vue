@@ -778,7 +778,7 @@ onBeforeRouteLeave(async () => {
 }
 .status-pill--published {
   background: var(--admin-surface-soft);
-  color: var(--admin-success);
+  color: var(--admin-status-ok);
 }
 .status-pill--draft {
   background: var(--admin-surface-soft);
@@ -1042,7 +1042,7 @@ onBeforeRouteLeave(async () => {
 .ai-meta-chip__badge {
   font-size: 10px;
   font-weight: 600;
-  color: var(--admin-text-muted);
+  color: var(--admin-text-secondary);
   background: var(--admin-border);
   padding: 0 4px;
   border-radius: var(--admin-radius);

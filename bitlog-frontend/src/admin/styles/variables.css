@@ -67,6 +67,9 @@
   --admin-danger-bg-soft: rgba(220, 38, 38, 0.06);
   --admin-danger-bg-strong: #dc2626;
   --admin-danger-border-strong: #dc2626;
+  /* 文字压在 danger 淡底上时用它，别用 -strong（那是按钮底色，见公共侧注释）。
+     明暗映射已在公共侧做好，故 dark 块无需覆盖。 */
+  --admin-danger-on-soft: var(--color-danger-on-soft);
 
   --admin-success: #16a34a;
   --admin-warning: #b45309;
