@@ -28,9 +28,10 @@ const counts = ref<ArticleCounts>({ total: 0, published: 0, draft: 0 })
 const recent = ref<ArticleVO[]>([])
 
 // 统计卡和「最近文章」共用同一个请求：/article/my 一次同时返回 counts 与首页分页数据。
+// 排序下推到后端：只拿回 RECENT_LIMIT 条，前端重排无效。
 onMounted(async () => {
   try {
-    const res = await getMyArticles({ pageNum: 1, pageSize: RECENT_LIMIT })
+    const res = await getMyArticles({ pageNum: 1, pageSize: RECENT_LIMIT, sortBy: 'PUBLISH_TIME' })
     counts.value = res.counts
     recent.value = res.page.content
   } catch {

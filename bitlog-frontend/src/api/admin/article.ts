@@ -2,6 +2,9 @@ import request from '@/utils/request'
 
 export type ArticleStatus = 'DRAFT' | 'PUBLISHED'
 
+// 后端按枚举名绑定，不是 status 那样的数字码
+export type ArticleSort = 'CREATE_TIME' | 'PUBLISH_TIME'
+
 const STATUS_FROM_API: Record<number, ArticleStatus> = { 0: 'DRAFT', 1: 'PUBLISHED' }
 const STATUS_TO_API: Record<ArticleStatus, number> = { DRAFT: 0, PUBLISHED: 1 }
 
@@ -95,6 +98,7 @@ export interface GetMyArticlesParams {
   status?: ArticleStatus
   keyword?: string
   categoryId?: number
+  sortBy?: ArticleSort
 }
 
 export interface PublishArticleParams {
@@ -161,6 +165,7 @@ export async function getMyArticles(params: GetMyArticlesParams): Promise<Articl
   if (params.status !== undefined) apiParams.status = STATUS_TO_API[params.status]
   if (params.keyword) apiParams.keyword = params.keyword
   if (params.categoryId !== undefined) apiParams.categoryId = params.categoryId
+  if (params.sortBy !== undefined) apiParams.sortBy = params.sortBy
 
   const res = await request.get<never, ArticleListResult>('/v1/article/my', { params: apiParams })
   res.page.content = res.page.content.map((a) => ({
