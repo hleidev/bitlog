@@ -44,6 +44,34 @@ public class ArticleStatisticsDAO extends ServiceImpl<ArticleStatisticsMapper, A
     }
 
     /**
+     * 增加评论计数
+     *
+     * @param articleId
+     *            文章 ID
+     */
+    public void incrementCommentCount(Long articleId) {
+        if (articleId == null) {
+            return;
+        }
+        lambdaUpdate().eq(ArticleStatisticsDO::getArticleId, articleId).setSql("comment_count = comment_count + 1")
+            .update();
+    }
+
+    /**
+     * 减少评论计数，comment_count 为无符号列，需拦住减到负数
+     *
+     * @param articleId
+     *            文章 ID
+     */
+    public void decrementCommentCount(Long articleId) {
+        if (articleId == null) {
+            return;
+        }
+        lambdaUpdate().eq(ArticleStatisticsDO::getArticleId, articleId).gt(ArticleStatisticsDO::getCommentCount, 0)
+            .setSql("comment_count = comment_count - 1").update();
+    }
+
+    /**
      * 批量查询文章统计信息
      *
      * @param articleIds

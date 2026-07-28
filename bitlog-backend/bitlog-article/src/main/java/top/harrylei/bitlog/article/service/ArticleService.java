@@ -177,4 +177,12 @@ public interface ArticleService {
      * @return 文章 DTO 列表（过滤未发布及已删除的文章）
      */
     List<ArticleDTO> getArticleDTOBatch(List<Long> articleIds);
+
+    /**
+     * 判断文章当前是否可被读者访问，不加载正文
+     *
+     * @param articleId 文章 ID
+     * @return true 文章存在、未删除且处于已发布状态
+     */
+    boolean isPublished(Long articleId);
 }

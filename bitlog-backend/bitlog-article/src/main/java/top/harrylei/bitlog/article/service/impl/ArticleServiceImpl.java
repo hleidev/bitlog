@@ -381,6 +381,15 @@ public class ArticleServiceImpl implements ArticleService {
         }).toList();
     }
 
+    @Override
+    public boolean isPublished(Long articleId) {
+        if (articleId == null) {
+            return false;
+        }
+        ArticleDO article = articleDAO.getByIdAndNotDeleted(articleId);
+        return article != null && article.getPublishedVersionId() != null;
+    }
+
     // ==================== 私有方法 ====================
 
     private int getNextVersion(Long articleId) {
