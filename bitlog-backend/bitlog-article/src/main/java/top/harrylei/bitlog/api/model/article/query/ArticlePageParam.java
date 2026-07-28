@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
+import top.harrylei.bitlog.api.enums.article.ArticleSortEnum;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.common.model.BasePage;
 
@@ -37,4 +38,7 @@ public class ArticlePageParam extends BasePage {
 
     @Schema(description = "标签 ID 列表（AND 逻辑，文章需同时包含所有选中标签）")
     private List<Long> tagIds;
+
+    @Schema(description = "排序方式，仅 /article/my 生效：CREATE_TIME-创建时间（默认），PUBLISH_TIME-发布时间（纯草稿按创建时间）")
+    private ArticleSortEnum sortBy;
 }
