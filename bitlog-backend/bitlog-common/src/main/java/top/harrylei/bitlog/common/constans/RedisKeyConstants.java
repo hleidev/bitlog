@@ -28,6 +28,7 @@ public class RedisKeyConstants {
     public static final String LOGIN_FAIL_IP = GLOBAL_PREFIX + "login:fail:ip:";
     public static final String LOGIN_FAIL_USER = GLOBAL_PREFIX + "login:fail:user:";
     public static final String ARTICLE_READ = GLOBAL_PREFIX + "article:read:";
+    public static final String COMMENT_RATE = GLOBAL_PREFIX + "comment:rate:";
 
     // ===== Key 构建方法 =====
 
@@ -57,5 +58,13 @@ public class RedisKeyConstants {
 
     public static String getArticleReadKey(Long articleId, String ip) {
         return ARTICLE_READ + articleId + ":" + ip;
+    }
+
+    public static String getCommentIntervalKey(Long userId) {
+        return COMMENT_RATE + "interval:" + userId;
+    }
+
+    public static String getCommentHourlyKey(Long userId) {
+        return COMMENT_RATE + "hourly:" + userId;
     }
 }
