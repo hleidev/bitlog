@@ -7,6 +7,7 @@ import { getCachedArticleDetail, fetchArticleDetail } from '@/api/articleCache'
 import { readSSGState, writeSSGState } from '@/utils/ssgState'
 import { formatDate } from '@/utils/format'
 import ArticleContent from '@/components/ArticleContent.vue'
+import CommentSection from '@/components/CommentSection.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -214,7 +215,7 @@ onUnmounted(() => {
             <span class="section-label">评论</span>
             <div class="section-rule"></div>
           </div>
-          <p class="comment-placeholder">评论功能开发中。</p>
+          <CommentSection :article-id="article.id" />
         </div>
       </article>
     </div>
@@ -426,12 +427,6 @@ onUnmounted(() => {
   flex: 1;
   height: 1px;
   background: var(--color-border);
-}
-
-.comment-placeholder {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  letter-spacing: 0.02em;
 }
 
 @media (max-width: 900px) {
