@@ -36,6 +36,10 @@ public enum ResultCode implements IResultCode {
     // ========== AI 45xxx ==========
     AI_NOT_CONFIGURED(45001, "AI 功能未配置"), AI_SERVICE_ERROR(45002, "AI 服务调用失败"),
 
+    // ========== 评论 46xxx ==========
+    COMMENT_NOT_EXISTS(46001, "评论不存在"), COMMENT_NO_PERMISSION(46002, "无权操作该评论"),
+    COMMENT_TOO_FREQUENT(46003, "评论过于频繁，请稍后再试"), COMMENT_NOT_ALLOWED(46004, "该文章当前不可评论"),
+
     // ========== 系统 50xxx ==========
     INTERNAL_ERROR(50000, "系统内部错误"), SERVICE_UNAVAILABLE(50003, "服务暂不可用"), DATABASE_ERROR(50010, "数据库操作异常");
 
