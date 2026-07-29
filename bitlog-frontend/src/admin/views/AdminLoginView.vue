@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
+import PasswordInput from '@/components/common/PasswordInput.vue'
 import '@/admin/styles/variables.css'
 
 const router = useRouter()
@@ -10,7 +11,6 @@ const userStore = useUserStore()
 const form = reactive({ username: '', password: '' })
 const loading = ref(false)
 const errorMsg = ref('')
-const showPwd = ref(false)
 const usernameRef = ref<HTMLInputElement | null>(null)
 
 onMounted(() => setTimeout(() => usernameRef.value?.focus(), 50))
@@ -79,34 +79,22 @@ async function handleLogin() {
         </div>
 
         <div class="field">
-          <div class="input-wrap">
-            <svg class="field-icon" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"
-              />
-            </svg>
-            <input
-              v-model="form.password"
-              class="field-input"
-              :type="showPwd ? 'text' : 'password'"
-              placeholder="密码"
-              maxlength="20"
-              autocomplete="current-password"
-              @keyup.enter="handleLogin"
-            />
-            <button type="button" class="pwd-toggle" @click="showPwd = !showPwd">
-              <svg v-if="showPwd" viewBox="0 0 24 24" fill="currentColor">
+          <PasswordInput
+            v-model="form.password"
+            input-class="field-input"
+            placeholder="密码"
+            maxlength="20"
+            autocomplete="current-password"
+            @keyup.enter="handleLogin"
+          >
+            <template #prefix>
+              <svg class="field-icon" viewBox="0 0 24 24" fill="currentColor">
                 <path
-                  d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+                  d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"
                 />
               </svg>
-              <svg v-else viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"
-                />
-              </svg>
-            </button>
-          </div>
+            </template>
+          </PasswordInput>
         </div>
 
         <button type="submit" class="submit-btn" :disabled="loading">
@@ -148,6 +136,8 @@ async function handleLogin() {
   border: 1px solid var(--admin-border);
   border-radius: 4px;
   padding: 40px 36px 32px;
+  --pwd-toggle-color: var(--admin-sidebar-text-muted);
+  --pwd-toggle-color-hover: var(--admin-sidebar-text);
 }
 
 /* ── Brand ── */
@@ -217,7 +207,9 @@ async function handleLogin() {
   flex-shrink: 0;
 }
 
-.field-input {
+/* :deep 并列是因为密码框的 input 位于 PasswordInput 内部，scoped 选择器匹配不到 */
+.field-input,
+:deep(.field-input) {
   width: 100%;
   height: 40px;
   padding: 0 38px 0 36px;
@@ -232,33 +224,13 @@ async function handleLogin() {
   box-sizing: border-box;
 }
 
-.field-input:focus {
+.field-input:focus,
+:deep(.field-input:focus) {
   border-color: var(--admin-accent);
 }
-.field-input::placeholder {
+.field-input::placeholder,
+:deep(.field-input::placeholder) {
   color: var(--admin-sidebar-text-muted);
-}
-
-.pwd-toggle {
-  position: absolute;
-  right: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--admin-sidebar-text-muted);
-  padding: 0;
-  transition: color 0.15s;
-}
-
-.pwd-toggle svg {
-  width: 16px;
-  height: 16px;
-}
-.pwd-toggle:hover {
-  color: var(--admin-sidebar-text);
 }
 
 .submit-btn {
