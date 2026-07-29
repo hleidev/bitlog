@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import BaseModal from './BaseModal.vue'
+import PasswordInput from './PasswordInput.vue'
 import { useModalStore } from '@/stores/useModalStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { ApiError } from '@/utils/request'
@@ -201,12 +202,14 @@ watch(
             <!-- TODO: 跳转忘记密码页面 / 触发重置密码流程接口 -->
             <button type="button" class="form-forgot">忘记密码？</button>
           </div>
-          <input
+          <PasswordInput
             id="login-password"
             v-model="loginForm.password"
-            class="form-input"
-            :class="{ 'form-input--error': loginErrors.password }"
-            type="password"
+            :input-class="[
+              'form-input',
+              'form-input--pwd',
+              { 'form-input--error': loginErrors.password },
+            ]"
             placeholder="请输入密码"
             autocomplete="current-password"
             :disabled="loading"
@@ -254,12 +257,14 @@ watch(
 
         <div class="form-field">
           <label class="form-label" for="reg-password">密码</label>
-          <input
+          <PasswordInput
             id="reg-password"
             v-model="registerForm.password"
-            class="form-input"
-            :class="{ 'form-input--error': registerErrors.password }"
-            type="password"
+            :input-class="[
+              'form-input',
+              'form-input--pwd',
+              { 'form-input--error': registerErrors.password },
+            ]"
             placeholder="请输入密码"
             autocomplete="new-password"
             :disabled="loading"
@@ -270,12 +275,14 @@ watch(
 
         <div class="form-field">
           <label class="form-label" for="reg-confirm">确认密码</label>
-          <input
+          <PasswordInput
             id="reg-confirm"
             v-model="registerForm.confirmPassword"
-            class="form-input"
-            :class="{ 'form-input--error': registerErrors.confirmPassword }"
-            type="password"
+            :input-class="[
+              'form-input',
+              'form-input--pwd',
+              { 'form-input--error': registerErrors.confirmPassword },
+            ]"
             placeholder="再次输入密码"
             autocomplete="new-password"
             :disabled="loading"
@@ -403,7 +410,9 @@ watch(
   color: var(--color-accent);
 }
 
-.form-input {
+/* :deep 并列是因为密码框的 input 位于 PasswordInput 内部，scoped 选择器匹配不到 */
+.form-input,
+:deep(.form-input) {
   height: 44px;
   padding: 0 14px;
   border: 1.5px solid var(--color-border);
@@ -414,26 +423,35 @@ watch(
   transition: border-color var(--transition-base);
 }
 
-.form-input::placeholder {
+.form-input::placeholder,
+:deep(.form-input::placeholder) {
   color: var(--color-text-faint);
 }
 
-.form-input:focus {
+.form-input:focus,
+:deep(.form-input:focus) {
   border-color: var(--color-accent);
   outline: none;
 }
 
-.form-input--error {
+.form-input--error,
+:deep(.form-input--error) {
   border-color: var(--color-danger);
 }
 
-.form-input--error:focus {
+.form-input--error:focus,
+:deep(.form-input--error:focus) {
   border-color: var(--color-danger);
 }
 
-.form-input:disabled {
+.form-input:disabled,
+:deep(.form-input:disabled) {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+:deep(.form-input--pwd) {
+  padding-right: 42px;
 }
 
 .field-error {
