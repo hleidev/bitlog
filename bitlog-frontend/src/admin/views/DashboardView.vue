@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/useUserStore'
 import { useToast } from '@/admin/composables/useToast'
 import { getMyArticles, type ArticleCounts, type ArticleVO } from '@/api/admin/article'
+import { getAdminCommentPage } from '@/api/admin/comment'
 import { formatDate } from '@/utils/format'
 import AdminEmptyState from '@/admin/components/AdminEmptyState.vue'
 
@@ -16,6 +17,8 @@ const ICON_PUBLISHED =
   'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'
 const ICON_DRAFT =
   'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'
+const ICON_COMMENT =
+  'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z'
 
 const toast = useToast()
 const { isAdmin } = storeToRefs(useUserStore())
@@ -26,6 +29,11 @@ const loading = ref(true)
 const loadFailed = ref(false)
 const counts = ref<ArticleCounts>({ total: 0, published: 0, draft: 0 })
 const recent = ref<ArticleVO[]>([])
+
+// 评论总数走独立请求（接口仅管理员可用），失败与文章统计分开标记，避免互相污染
+const commentTotal = ref(0)
+const commentLoading = ref(true)
+const commentFailed = ref(false)
 
 // 统计卡和「最近文章」共用同一个请求：/article/my 一次同时返回 counts 与首页分页数据。
 // 排序下推到后端：只拿回 RECENT_LIMIT 条，前端重排无效。
@@ -40,14 +48,64 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
+  if (!isAdmin.value) {
+    commentLoading.value = false
+    return
+  }
+  try {
+    const res = await getAdminCommentPage({ pageNum: 1, pageSize: 1 })
+    commentTotal.value = res.totalElements
+  } catch {
+    commentFailed.value = true
+  } finally {
+    commentLoading.value = false
+  }
 })
 
-// 计数即入口：每张卡跳到文章管理页对应的筛选标签
-const stats = computed(() => [
-  { label: '全部文章', value: counts.value.total, tab: 'all', icon: ICON_ALL },
-  { label: '已发布', value: counts.value.published, tab: 'published', icon: ICON_PUBLISHED },
-  { label: '草稿', value: counts.value.draft, tab: 'draft', icon: ICON_DRAFT },
-])
+// 计数即入口：每张卡跳到对应的管理页
+const articlePending = computed(() => loading.value || loadFailed.value)
+
+const stats = computed(() => {
+  const articleTo = (tab: string) => ({ path: '/admin/articles', query: { tab } })
+  const items = [
+    {
+      label: '全部文章',
+      value: counts.value.total,
+      unit: '篇',
+      to: articleTo('all'),
+      pending: articlePending.value,
+      icon: ICON_ALL,
+    },
+    {
+      label: '已发布',
+      value: counts.value.published,
+      unit: '篇',
+      to: articleTo('published'),
+      pending: articlePending.value,
+      icon: ICON_PUBLISHED,
+    },
+    {
+      label: '草稿',
+      value: counts.value.draft,
+      unit: '篇',
+      to: articleTo('draft'),
+      pending: articlePending.value,
+      icon: ICON_DRAFT,
+    },
+  ]
+  if (isAdmin.value) {
+    items.push({
+      label: '评论',
+      value: commentTotal.value,
+      unit: '条',
+      to: { path: '/admin/comments', query: {} },
+      pending: commentLoading.value || commentFailed.value,
+      icon: ICON_COMMENT,
+    })
+  }
+  return items
+})
 
 // 文章管理相关路由都带 requiresAdmin，普通用户点了会被守卫拦下,所以非管理员不给链接
 const linkTag = computed(() => (isAdmin.value ? RouterLink : 'div'))
@@ -84,7 +142,7 @@ function displayDate(row: ArticleVO): string {
         :is="linkTag"
         v-for="item in stats"
         :key="item.label"
-        :to="isAdmin ? { path: '/admin/articles', query: { tab: item.tab } } : undefined"
+        :to="isAdmin ? item.to : undefined"
         class="stat-card"
         :class="{ 'stat-card--link': isAdmin }"
       >
@@ -96,8 +154,10 @@ function displayDate(row: ArticleVO): string {
         <div class="stat-info">
           <span class="stat-label">{{ item.label }}</span>
           <div class="stat-value">
-            <span v-if="loading || loadFailed" class="stat-pending">—</span>
-            <template v-else> {{ item.value }}<span class="stat-unit">篇</span> </template>
+            <span v-if="item.pending" class="stat-pending">—</span>
+            <template v-else>
+              {{ item.value }}<span class="stat-unit">{{ item.unit }}</span>
+            </template>
           </div>
         </div>
       </component>
@@ -191,7 +251,7 @@ function displayDate(row: ArticleVO): string {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
