@@ -32,6 +32,13 @@ jwt:
   access-token-expire: 15m
   refresh-token-expire: 30d
 
+bitlog:
+  comment:
+    rate-limit:
+      min-interval: 15s
+      window: 1h
+      max-per-window: 10
+
 security:
   # 单星只匹配一层路径段，是刻意的：它让写接口（如 /article/{id}/publish、
   # /article/{id}/comments）落在白名单之外，由过滤器强制校验 JWT，

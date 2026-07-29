@@ -48,27 +48,32 @@ public class ArticleStatisticsDAO extends ServiceImpl<ArticleStatisticsMapper, A
      *
      * @param articleId
      *            文章 ID
+     * @param delta
+     *            增量，须为正数
      */
-    public void incrementCommentCount(Long articleId) {
-        if (articleId == null) {
+    public void increaseCommentCount(Long articleId, int delta) {
+        if (articleId == null || delta <= 0) {
             return;
         }
-        lambdaUpdate().eq(ArticleStatisticsDO::getArticleId, articleId).setSql("comment_count = comment_count + 1")
-            .update();
+        lambdaUpdate().eq(ArticleStatisticsDO::getArticleId, articleId)
+            .setSql("comment_count = comment_count + {0}", delta).update();
     }
 
     /**
-     * 减少评论计数，comment_count 为无符号列，需拦住减到负数
+     * 减少评论计数。comment_count 为无符号列，先转 SIGNED 再取 GREATEST，
+     * 既避免相减下溢报错，也保证计数一旦漂移仍能收敛回 0 而非卡住
      *
      * @param articleId
      *            文章 ID
+     * @param delta
+     *            减量，须为正数
      */
-    public void decrementCommentCount(Long articleId) {
-        if (articleId == null) {
+    public void decreaseCommentCount(Long articleId, int delta) {
+        if (articleId == null || delta <= 0) {
             return;
         }
-        lambdaUpdate().eq(ArticleStatisticsDO::getArticleId, articleId).gt(ArticleStatisticsDO::getCommentCount, 0)
-            .setSql("comment_count = comment_count - 1").update();
+        lambdaUpdate().eq(ArticleStatisticsDO::getArticleId, articleId)
+            .setSql("comment_count = GREATEST(CAST(comment_count AS SIGNED) - {0}, 0)", delta).update();
     }
 
     /**

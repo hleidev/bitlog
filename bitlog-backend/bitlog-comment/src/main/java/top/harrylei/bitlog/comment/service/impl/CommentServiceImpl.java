@@ -3,6 +3,7 @@ package top.harrylei.bitlog.comment.service.impl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.harrylei.bitlog.api.enums.comment.CommentStatusEnum;
@@ -15,6 +16,7 @@ import top.harrylei.bitlog.api.model.comment.vo.CommentVO;
 import top.harrylei.bitlog.api.model.user.vo.UserVO;
 import top.harrylei.bitlog.article.service.ArticleService;
 import top.harrylei.bitlog.article.service.ArticleStatisticsService;
+import top.harrylei.bitlog.comment.config.CommentProperties;
 import top.harrylei.bitlog.comment.converter.CommentConverter;
 import top.harrylei.bitlog.comment.repository.dao.CommentDAO;
 import top.harrylei.bitlog.comment.repository.entity.CommentDO;
@@ -27,7 +29,6 @@ import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.util.RateLimiter;
 import top.harrylei.bitlog.user.service.UserService;
 
-import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
  * @author Harry
  * @since 2026-07-28
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
@@ -49,9 +51,10 @@ public class CommentServiceImpl implements CommentService {
      */
     private static final long NONE = 0L;
 
-    private static final Duration MIN_INTERVAL = Duration.ofSeconds(15);
-    private static final Duration HOURLY_WINDOW = Duration.ofHours(1);
-    private static final int HOURLY_LIMIT = 10;
+    /**
+     * 最小间隔窗口内只允许一条，故配额固定为 1
+     */
+    private static final int INTERVAL_QUOTA = 1;
 
     private final CommentDAO commentDAO;
     private final CommentConverter commentConverter;
@@ -59,6 +62,7 @@ public class CommentServiceImpl implements CommentService {
     private final ArticleStatisticsService articleStatisticsService;
     private final UserService userService;
     private final RateLimiter rateLimiter;
+    private final CommentProperties commentProperties;
 
     @Override
     public PageVO<CommentVO> pageComments(Long articleId, BasePage page) {
@@ -105,13 +109,13 @@ public class CommentServiceImpl implements CommentService {
             if (parent == null || !parent.getArticleId().equals(articleId) || !isVisible(parent)) {
                 throw ResultCode.COMMENT_NOT_EXISTS.toException();
             }
-            boolean parentIsRoot = parent.getRootId() == NONE;
+            boolean parentIsRoot = parent.getRootId() == null || parent.getRootId() == NONE;
             comment.setRootId(parentIsRoot ? parent.getId() : parent.getRootId()).setParentId(parent.getId())
                 .setReplyToUserId(parentIsRoot ? NONE : parent.getUserId());
         }
 
         commentDAO.save(comment);
-        articleStatisticsService.incrementCommentCount(articleId);
+        articleStatisticsService.increaseCommentCount(articleId, 1);
         return comment.getId();
     }
 
@@ -126,9 +130,9 @@ public class CommentServiceImpl implements CommentService {
             throw ResultCode.COMMENT_NO_PERMISSION.toException();
         }
 
-        commentDAO.delete(List.of(commentId));
-        if (CommentStatusEnum.NORMAL.equals(comment.getStatus())) {
-            articleStatisticsService.decrementCommentCount(articleId);
+        int deleted = commentDAO.delete(List.of(commentId), comment.getStatus());
+        if (deleted > 0 && CommentStatusEnum.NORMAL.equals(comment.getStatus())) {
+            articleStatisticsService.decreaseCommentCount(articleId, deleted);
         }
     }
 
@@ -161,16 +165,21 @@ public class CommentServiceImpl implements CommentService {
         if (comment == null) {
             throw ResultCode.COMMENT_NOT_EXISTS.toException();
         }
-        if (status.equals(comment.getStatus())) {
+        CommentStatusEnum current = comment.getStatus();
+        if (status.equals(current)) {
+            return;
+        }
+        // 条件更新未命中说明已被并发改过，此时不能再调整计数，否则会重复增减
+        if (!commentDAO.updateStatus(commentId, current, status)) {
             return;
         }
 
-        commentDAO.updateStatus(commentId, status);
         if (CommentStatusEnum.HIDDEN.equals(status)) {
-            articleStatisticsService.decrementCommentCount(comment.getArticleId());
+            articleStatisticsService.decreaseCommentCount(comment.getArticleId(), 1);
         } else {
-            articleStatisticsService.incrementCommentCount(comment.getArticleId());
+            articleStatisticsService.increaseCommentCount(comment.getArticleId(), 1);
         }
+        log.info("评论审核 commentId={} {} -> {}", commentId, current, status);
     }
 
     @Override
@@ -181,9 +190,26 @@ public class CommentServiceImpl implements CommentService {
             return;
         }
 
-        commentDAO.delete(comments.stream().map(CommentDO::getId).toList());
-        comments.stream().filter(comment -> CommentStatusEnum.NORMAL.equals(comment.getStatus()))
-            .forEach(comment -> articleStatisticsService.decrementCommentCount(comment.getArticleId()));
+        // 隐藏态评论不计入 comment_count，删除它们无需调整计数，故与正常态分开处理
+        groupIdsByArticle(comments, CommentStatusEnum.HIDDEN).values()
+            .forEach(ids -> commentDAO.delete(ids, CommentStatusEnum.HIDDEN));
+
+        groupIdsByArticle(comments, CommentStatusEnum.NORMAL).forEach((articleId, ids) -> {
+            int deleted = commentDAO.delete(ids, CommentStatusEnum.NORMAL);
+            if (deleted > 0) {
+                articleStatisticsService.decreaseCommentCount(articleId, deleted);
+            }
+        });
+        log.info("批量删除评论 count={} ids={}", comments.size(), commentIds);
+    }
+
+    /**
+     * 按文章分组指定状态的评论 ID，使计数更新按文章聚合成一次，避免逐条更新
+     */
+    private Map<Long, List<Long>> groupIdsByArticle(List<CommentDO> comments, CommentStatusEnum status) {
+        return comments.stream().filter(comment -> status.equals(comment.getStatus()))
+            .collect(Collectors.groupingBy(CommentDO::getArticleId,
+                Collectors.mapping(CommentDO::getId, Collectors.toList())));
     }
 
     private boolean isVisible(CommentDO comment) {
@@ -192,10 +218,14 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private void checkRateLimit(Long userId) {
-        if (!rateLimiter.tryAcquire(RedisKeyConstants.getCommentIntervalKey(userId), 1, MIN_INTERVAL)) {
+        CommentProperties.RateLimit rateLimit = commentProperties.getRateLimit();
+        // 先查间隔再查窗口：间隔不过就短路返回，避免为一个必然被拒的请求白白消耗窗口配额
+        if (!rateLimiter.tryAcquire(RedisKeyConstants.getCommentIntervalKey(userId), INTERVAL_QUOTA,
+            rateLimit.getMinInterval())) {
             throw ResultCode.COMMENT_TOO_FREQUENT.toException();
         }
-        if (!rateLimiter.tryAcquire(RedisKeyConstants.getCommentHourlyKey(userId), HOURLY_LIMIT, HOURLY_WINDOW)) {
+        if (!rateLimiter.tryAcquire(RedisKeyConstants.getCommentHourlyKey(userId), rateLimit.getMaxPerWindow(),
+            rateLimit.getWindow())) {
             throw ResultCode.COMMENT_TOO_FREQUENT.toException();
         }
     }

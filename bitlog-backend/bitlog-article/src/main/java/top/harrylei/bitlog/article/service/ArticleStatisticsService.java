@@ -9,16 +9,18 @@ package top.harrylei.bitlog.article.service;
 public interface ArticleStatisticsService {
 
     /**
-     * 评论数加一
+     * 增加评论数
      *
      * @param articleId 文章 ID
+     * @param delta 增量，须为正数
      */
-    void incrementCommentCount(Long articleId);
+    void increaseCommentCount(Long articleId, int delta);
 
     /**
-     * 评论数减一，已为 0 时不再递减
+     * 减少评论数，结果不会低于 0
      *
      * @param articleId 文章 ID
+     * @param delta 减量，须为正数
      */
-    void decrementCommentCount(Long articleId);
+    void decreaseCommentCount(Long articleId, int delta);
 }

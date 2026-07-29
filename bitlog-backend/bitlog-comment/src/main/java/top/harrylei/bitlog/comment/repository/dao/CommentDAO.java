@@ -1,6 +1,8 @@
 package top.harrylei.bitlog.comment.repository.dao;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
@@ -98,24 +100,34 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
     }
 
     /**
-     * 更新评论状态
+     * 条件更新评论状态，仅当评论未删除且当前状态为 from 时才生效。
+     * 返回是否真正发生了状态转移，调用方据此调整计数，避免并发下重复增减
      *
      * @param commentId 评论 ID
-     * @param status 目标状态
+     * @param from 期望的当前状态
+     * @param to 目标状态
+     * @return true 状态已转移，false 未命中（已删除或已被他人改过）
      */
-    public void updateStatus(Long commentId, CommentStatusEnum status) {
-        lambdaUpdate().eq(CommentDO::getId, commentId).set(CommentDO::getStatus, status).update();
+    public boolean updateStatus(Long commentId, CommentStatusEnum from, CommentStatusEnum to) {
+        return lambdaUpdate().eq(CommentDO::getId, commentId).eq(CommentDO::getStatus, from)
+            .eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED).set(CommentDO::getStatus, to).update();
     }
 
     /**
-     * 逻辑删除评论
+     * 逻辑删除处于指定状态且尚未删除的评论，返回实际影响行数。
+     * 按状态分批是为了让调用方能据实际删除条数调整计数，而不是依赖读取时的快照
      *
      * @param commentIds 评论 ID 集合
+     * @param status 仅删除处于该状态的评论
+     * @return 实际被删除的条数
      */
-    public void delete(Collection<Long> commentIds) {
+    public int delete(Collection<Long> commentIds, CommentStatusEnum status) {
         if (commentIds == null || commentIds.isEmpty()) {
-            return;
+            return 0;
         }
-        lambdaUpdate().in(CommentDO::getId, commentIds).set(CommentDO::getDeleted, DeleteStatusEnum.DELETED).update();
+        LambdaUpdateWrapper<CommentDO> wrapper = Wrappers.<CommentDO>lambdaUpdate().in(CommentDO::getId, commentIds)
+            .eq(CommentDO::getStatus, status).eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+            .set(CommentDO::getDeleted, DeleteStatusEnum.DELETED);
+        return getBaseMapper().update(null, wrapper);
     }
 }

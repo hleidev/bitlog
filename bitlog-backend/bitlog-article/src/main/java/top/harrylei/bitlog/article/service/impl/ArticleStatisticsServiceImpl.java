@@ -1,7 +1,6 @@
 package top.harrylei.bitlog.article.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import top.harrylei.bitlog.article.repository.dao.ArticleStatisticsDAO;
 import top.harrylei.bitlog.article.service.ArticleStatisticsService;
@@ -12,7 +11,6 @@ import top.harrylei.bitlog.article.service.ArticleStatisticsService;
  * @author Harry
  * @since 2026-07-28
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ArticleStatisticsServiceImpl implements ArticleStatisticsService {
@@ -20,12 +18,12 @@ public class ArticleStatisticsServiceImpl implements ArticleStatisticsService {
     private final ArticleStatisticsDAO articleStatisticsDAO;
 
     @Override
-    public void incrementCommentCount(Long articleId) {
-        articleStatisticsDAO.incrementCommentCount(articleId);
+    public void increaseCommentCount(Long articleId, int delta) {
+        articleStatisticsDAO.increaseCommentCount(articleId, delta);
     }
 
     @Override
-    public void decrementCommentCount(Long articleId) {
-        articleStatisticsDAO.decrementCommentCount(articleId);
+    public void decreaseCommentCount(Long articleId, int delta) {
+        articleStatisticsDAO.decreaseCommentCount(articleId, delta);
     }
 }
