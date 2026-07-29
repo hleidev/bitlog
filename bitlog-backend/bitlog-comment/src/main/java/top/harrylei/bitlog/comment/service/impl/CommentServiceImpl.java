@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.harrylei.bitlog.api.enums.comment.CommentStatusEnum;
-import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.comment.query.CommentAdminPageParam;
 import top.harrylei.bitlog.api.model.comment.req.CommentSaveParam;
 import top.harrylei.bitlog.api.model.comment.vo.CommentAdminVO;
@@ -67,22 +66,24 @@ public class CommentServiceImpl implements CommentService {
             throw ResultCode.ARTICLE_NOT_PUBLISHED.toException();
         }
 
-        IPage<CommentDO> rootPage = commentDAO.pageRootComments(articleId, new Page<>(page.getPageNum(), page.getPageSize()));
+        IPage<CommentDO> rootPage =
+            commentDAO.pageRootComments(articleId, new Page<>(page.getPageNum(), page.getPageSize()));
         List<CommentDO> roots = rootPage.getRecords();
         if (roots.isEmpty()) {
             return PageVO.of(rootPage, List.of());
         }
 
-        Map<Long, List<CommentDO>> repliesByRoot = commentDAO.listRepliesByRootIds(roots.stream().map(CommentDO::getId)
-                .toList()).stream().filter(this::isVisible).collect(Collectors.groupingBy(CommentDO::getRootId));
+        Map<Long, List<CommentDO>> repliesByRoot =
+            commentDAO.listRepliesByRootIds(roots.stream().map(CommentDO::getId).toList()).stream()
+                .filter(this::isVisible).collect(Collectors.groupingBy(CommentDO::getRootId));
 
         // 不可见且无可见回复的根评论整条丢弃，其余保留：不可见的渲染为墓碑，托住整楼回复
         List<CommentDO> rendered = roots.stream()
-                .filter(root -> isVisible(root) || !repliesByRoot.getOrDefault(root.getId(), List.of()).isEmpty()).toList();
+            .filter(root -> isVisible(root) || !repliesByRoot.getOrDefault(root.getId(), List.of()).isEmpty()).toList();
 
         Map<Long, CommentUserVO> userMap = loadUsers(rendered, repliesByRoot);
         List<CommentVO> content = rendered.stream()
-                .map(root -> buildRootVO(root, repliesByRoot.getOrDefault(root.getId(), List.of()), userMap)).toList();
+            .map(root -> buildRootVO(root, repliesByRoot.getOrDefault(root.getId(), List.of()), userMap)).toList();
         return PageVO.of(rootPage, content);
     }
 
@@ -95,8 +96,8 @@ public class CommentServiceImpl implements CommentService {
         checkRateLimit(userId);
 
         CommentDO comment = new CommentDO().setArticleId(articleId).setUserId(userId)
-                .setContent(req.getContent().trim()).setStatus(CommentStatusEnum.NORMAL)
-                .setDeleted(DeleteStatusEnum.NOT_DELETED).setRootId(NONE).setParentId(NONE).setReplyToUserId(NONE);
+            .setContent(req.getContent().trim()).setStatus(CommentStatusEnum.NORMAL)
+            .setDeleted(DeleteStatusEnum.NOT_DELETED).setRootId(NONE).setParentId(NONE).setReplyToUserId(NONE);
 
         Long parentId = req.getParentId();
         if (parentId != null && parentId > NONE) {
@@ -106,7 +107,7 @@ public class CommentServiceImpl implements CommentService {
             }
             boolean parentIsRoot = parent.getRootId() == NONE;
             comment.setRootId(parentIsRoot ? parent.getId() : parent.getRootId()).setParentId(parent.getId())
-                    .setReplyToUserId(parentIsRoot ? NONE : parent.getUserId());
+                .setReplyToUserId(parentIsRoot ? NONE : parent.getUserId());
         }
 
         commentDAO.save(comment);
@@ -139,10 +140,10 @@ public class CommentServiceImpl implements CommentService {
             return PageVO.of(result, List.of());
         }
 
-        Map<Long, CommentUserVO> userMap = loadUserMap(comments.stream().map(CommentDO::getUserId)
-                .collect(Collectors.toSet()));
-        Map<Long, String> titleMap = articleService.getArticleDTOBatch(comments.stream().map(CommentDO::getArticleId)
-                        .distinct().toList()).stream().collect(Collectors.toMap(ArticleDTO::getId, ArticleDTO::getTitle));
+        Map<Long, CommentUserVO> userMap =
+            loadUserMap(comments.stream().map(CommentDO::getUserId).collect(Collectors.toSet()));
+        Map<Long, String> titleMap =
+            articleService.getArticleTitles(comments.stream().map(CommentDO::getArticleId).collect(Collectors.toSet()));
 
         List<CommentAdminVO> content = comments.stream().map(comment -> {
             CommentAdminVO vo = commentConverter.toAdminVO(comment);
@@ -182,11 +183,12 @@ public class CommentServiceImpl implements CommentService {
 
         commentDAO.delete(comments.stream().map(CommentDO::getId).toList());
         comments.stream().filter(comment -> CommentStatusEnum.NORMAL.equals(comment.getStatus()))
-                .forEach(comment -> articleStatisticsService.decrementCommentCount(comment.getArticleId()));
+            .forEach(comment -> articleStatisticsService.decrementCommentCount(comment.getArticleId()));
     }
 
     private boolean isVisible(CommentDO comment) {
-        return DeleteStatusEnum.NOT_DELETED.equals(comment.getDeleted()) && CommentStatusEnum.NORMAL.equals(comment.getStatus());
+        return DeleteStatusEnum.NOT_DELETED.equals(comment.getDeleted())
+            && CommentStatusEnum.NORMAL.equals(comment.getStatus());
     }
 
     private void checkRateLimit(Long userId) {
@@ -215,7 +217,7 @@ public class CommentServiceImpl implements CommentService {
             return Map.of();
         }
         return userService.getUserBatchByIds(List.copyOf(userIds)).stream()
-                .collect(Collectors.toMap(UserVO::getUserId, commentConverter::toCommentUser, (a, b) -> a));
+            .collect(Collectors.toMap(UserVO::getUserId, commentConverter::toCommentUser, (a, b) -> a));
     }
 
     private CommentVO buildRootVO(CommentDO root, List<CommentDO> replies, Map<Long, CommentUserVO> userMap) {

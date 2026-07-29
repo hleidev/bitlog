@@ -47,6 +47,7 @@ import top.harrylei.bitlog.common.model.PageVO;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -388,6 +389,36 @@ public class ArticleServiceImpl implements ArticleService {
         }
         ArticleDO article = articleDAO.getByIdAndNotDeleted(articleId);
         return article != null && article.getPublishedVersionId() != null;
+    }
+
+    @Override
+    public Map<Long, String> getArticleTitles(Collection<Long> articleIds) {
+        if (articleIds == null || articleIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Long> versionIdByArticle = new HashMap<>();
+        for (ArticleDO article : articleDAO.listByIdsAndNotDeleted(articleIds)) {
+            Long versionId = article.getPublishedVersionId() != null ? article.getPublishedVersionId()
+                : article.getLatestVersionId();
+            if (versionId != null) {
+                versionIdByArticle.put(article.getId(), versionId);
+            }
+        }
+        if (versionIdByArticle.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, String> titleByVersion = articleVersionDAO.listTitlesByVersionIds(versionIdByArticle.values())
+            .stream().collect(Collectors.toMap(ArticleVersionDO::getId, ArticleVersionDO::getTitle));
+
+        Map<Long, String> result = new HashMap<>();
+        versionIdByArticle.forEach((articleId, versionId) -> {
+            String title = titleByVersion.get(versionId);
+            if (title != null) {
+                result.put(articleId, title);
+            }
+        });
+        return result;
     }
 
     // ==================== 私有方法 ====================

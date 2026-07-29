@@ -15,7 +15,9 @@ import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.common.model.PageVO;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 文章业务服务接口
@@ -185,4 +187,12 @@ public interface ArticleService {
      * @return true 文章存在、未删除且处于已发布状态
      */
     boolean isPublished(Long articleId);
+
+    /**
+     * 批量查询文章标题，不加载正文，未发布文章回退到最新草稿版本的标题
+     *
+     * @param articleIds 文章 ID 集合
+     * @return 文章 ID 到标题的映射，已删除文章不在结果中
+     */
+    Map<Long, String> getArticleTitles(Collection<Long> articleIds);
 }

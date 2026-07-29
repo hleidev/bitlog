@@ -48,6 +48,15 @@ public class ArticleVersionDAO extends ServiceImpl<ArticleVersionMapper, Article
         return listByIds(versionIds);
     }
 
+    /** 批量查询版本标题 */
+    public List<ArticleVersionDO> listTitlesByVersionIds(Collection<Long> versionIds) {
+        if (versionIds == null || versionIds.isEmpty()) {
+            return List.of();
+        }
+        return lambdaQuery().select(ArticleVersionDO::getId, ArticleVersionDO::getTitle)
+            .in(ArticleVersionDO::getId, versionIds).list();
+    }
+
     /** 查询所有未删除文章的版本内容，用于 GC 扫描 */
     public List<String> listAllContentFromActiveArticles() {
         return getBaseMapper().listAllContentFromActiveArticles();
