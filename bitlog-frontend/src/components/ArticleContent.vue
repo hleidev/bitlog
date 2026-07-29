@@ -31,6 +31,10 @@ const props = withDefaults(
   { content: '' },
 )
 
+// 正文由 Lute WASM 异步渲染，挂载时 DOM 还是空的。目录等下游消费者要靠
+// 这个事件才知道标题什么时候真正进了 DOM。
+const emit = defineEmits<{ rendered: [root: HTMLElement | null] }>()
+
 const rootRef = useTemplateRef<HTMLElement>('rootRef')
 const html = ref('')
 const mermaidError = ref<string | null>(null)
@@ -380,6 +384,7 @@ async function nextTickHydrate() {
   await new Promise((r) => setTimeout(r, 0))
   hydrateMermaid()
   hydrateHighlight()
+  emit('rendered', rootRef.value)
 }
 
 function escapeHtml(s: string): string {

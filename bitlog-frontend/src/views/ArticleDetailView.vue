@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onServerPrefetch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onServerPrefetch, onUnmounted, useTemplateRef } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useSeoMeta, useHead } from '@unhead/vue'
 import { type ArticleDetailVO } from '@/api/article'
@@ -7,6 +7,7 @@ import { getCachedArticleDetail, fetchArticleDetail } from '@/api/articleCache'
 import { readSSGState, writeSSGState } from '@/utils/ssgState'
 import { formatDate } from '@/utils/format'
 import ArticleContent from '@/components/ArticleContent.vue'
+import ArticleToc from '@/components/ArticleToc.vue'
 import CommentSection from '@/components/CommentSection.vue'
 
 const router = useRouter()
@@ -70,6 +71,13 @@ useSeoMeta({
   twitterDescription: articleDescription,
   twitterImage: `${SITE_URL}/og-image.png`,
 })
+
+// 正文每次渲染完（首次 / SWR 刷新 / 切文章）都重建一次目录
+const tocRef = useTemplateRef<InstanceType<typeof ArticleToc>>('tocRef')
+
+const onContentRendered = (root: HTMLElement | null) => {
+  tocRef.value?.build(root)
+}
 
 const onScroll = () => {
   const el = document.documentElement
@@ -176,6 +184,8 @@ onUnmounted(() => {
     </div>
 
     <div v-else-if="article" class="article-layout container view-enter">
+      <ArticleToc ref="tocRef" />
+
       <article class="article-body">
         <!-- Category -->
         <RouterLink
@@ -194,7 +204,7 @@ onUnmounted(() => {
 
         <div class="article-divider" />
 
-        <ArticleContent :content="article.content" />
+        <ArticleContent :content="article.content" @rendered="onContentRendered" />
 
         <!-- Footer tags -->
         <div class="article-footer">
