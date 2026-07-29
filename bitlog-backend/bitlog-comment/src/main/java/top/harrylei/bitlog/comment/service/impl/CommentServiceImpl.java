@@ -22,8 +22,10 @@ import top.harrylei.bitlog.comment.repository.dao.CommentDAO;
 import top.harrylei.bitlog.comment.repository.entity.CommentDO;
 import top.harrylei.bitlog.comment.service.CommentService;
 import top.harrylei.bitlog.common.constans.RedisKeyConstants;
+import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
+import top.harrylei.bitlog.common.exception.BusinessException;
 import top.harrylei.bitlog.common.model.BasePage;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.util.RateLimiter;
@@ -217,17 +219,30 @@ public class CommentServiceImpl implements CommentService {
             && CommentStatusEnum.NORMAL.equals(comment.getStatus());
     }
 
+    /**
+     * 限流仅针对普通读者。管理员是站点作者，连续回复多条评论是其正常工作方式，
+     * 受自己设的反垃圾规则约束没有意义（WordPress 对可审核评论的角色同样豁免）
+     */
     private void checkRateLimit(Long userId) {
+        ReqInfoContext.ReqInfo reqInfo = ReqInfoContext.getContext();
+        if (reqInfo != null && reqInfo.isAdmin()) {
+            return;
+        }
+
         CommentProperties.RateLimit rateLimit = commentProperties.getRateLimit();
         // 先查间隔再查窗口：间隔不过就短路返回，避免为一个必然被拒的请求白白消耗窗口配额
-        if (!rateLimiter.tryAcquire(RedisKeyConstants.getCommentIntervalKey(userId), INTERVAL_QUOTA,
-            rateLimit.getMinInterval())) {
-            throw ResultCode.COMMENT_TOO_FREQUENT.toException();
+        ensureAcquired(rateLimiter.tryAcquire(RedisKeyConstants.getCommentIntervalKey(userId), INTERVAL_QUOTA,
+            rateLimit.getMinInterval()));
+        ensureAcquired(rateLimiter.tryAcquire(RedisKeyConstants.getCommentHourlyKey(userId),
+            rateLimit.getMaxPerWindow(), rateLimit.getWindow()));
+    }
+
+    private void ensureAcquired(RateLimiter.Result result) {
+        if (result.allowed()) {
+            return;
         }
-        if (!rateLimiter.tryAcquire(RedisKeyConstants.getCommentHourlyKey(userId), rateLimit.getMaxPerWindow(),
-            rateLimit.getWindow())) {
-            throw ResultCode.COMMENT_TOO_FREQUENT.toException();
-        }
+        throw new BusinessException(ResultCode.COMMENT_TOO_FREQUENT.getCode(),
+            "评论过于频繁，请 " + result.retryAfterSeconds() + " 秒后再试");
     }
 
     private Map<Long, CommentUserVO> loadUsers(List<CommentDO> roots, Map<Long, List<CommentDO>> repliesByRoot) {
