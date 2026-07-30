@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
+import top.harrylei.bitlog.common.util.MaskUtil;
 
 import java.util.Map;
 
@@ -37,7 +38,9 @@ public class MailServiceImpl implements MailService {
     @Override
     public void send(String to, String subject, String html) {
         if (!StringUtils.hasText(mailProperties.getApiKey())) {
-            log.warn("未配置 mail.api-key，邮件未发送 to={} subject={}\n{}", to, subject, html);
+            log.warn("未配置 mail.api-key，邮件未发送 to={} subject={}", MaskUtil.email(to), subject);
+            // 正文含验证码，仅 DEBUG 输出，避免生产漏配时把凭证写进日志
+            log.debug("未发送的邮件正文 to={} subject={}\n{}", MaskUtil.email(to), subject, html);
             return;
         }
 
@@ -49,9 +52,9 @@ public class MailServiceImpl implements MailService {
             restClient.post().uri(mailProperties.getApiUrl())
                 .header("Authorization", "Bearer " + mailProperties.getApiKey()).contentType(MediaType.APPLICATION_JSON)
                 .body(body).retrieve().toBodilessEntity();
-            log.info("邮件发送成功 to={} subject={}", to, subject);
+            log.info("邮件发送成功 to={} subject={}", MaskUtil.email(to), subject);
         } catch (Exception e) {
-            log.error("邮件发送失败 to={} subject={}", to, subject, e);
+            log.error("邮件发送失败 to={} subject={}", MaskUtil.email(to), subject, e);
         }
     }
 
