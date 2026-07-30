@@ -7,7 +7,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.model.auth.LoginParam;
 import top.harrylei.bitlog.api.model.auth.EmailParam;
 import top.harrylei.bitlog.api.model.auth.LoginVO;
@@ -48,13 +47,13 @@ public class AuthController {
 
     @PostMapping("/register")
     public Result<Void> register(@Valid @RequestBody RegisterParam request) {
-        authService.register(request.getEmail(), request.getUsername(), request.getPassword(), request.getCode());
+        authService.register(request);
         return Result.success();
     }
 
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginParam request, HttpServletResponse response) {
-        LoginResult result = authService.login(request.getEmail(), request.getPassword());
+        LoginResult result = authService.login(request);
         setRefreshTokenCookie(response, result.refreshToken());
         return Result.success(new LoginVO(result.accessToken()));
     }
@@ -86,14 +85,14 @@ public class AuthController {
 
     @PostMapping("/password/reset")
     public Result<Void> resetPassword(@Valid @RequestBody PasswordResetParam request) {
-        authService.resetPassword(request.getEmail(), request.getCode(), request.getPassword());
+        authService.resetPassword(request);
         return Result.success();
     }
 
     @RequiresAdmin
     @PostMapping("/admin/create")
     public Result<Void> createUser(@Valid @RequestBody UserCreateParam request) {
-        authService.createUser(request.getEmail(), request.getUsername(), request.getPassword(), request.getRole());
+        authService.createUser(request);
         return Result.success();
     }
 

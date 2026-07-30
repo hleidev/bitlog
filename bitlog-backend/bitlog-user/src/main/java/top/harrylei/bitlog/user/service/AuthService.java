@@ -1,6 +1,9 @@
 package top.harrylei.bitlog.user.service;
 
-import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
+import top.harrylei.bitlog.api.model.auth.LoginParam;
+import top.harrylei.bitlog.api.model.auth.PasswordResetParam;
+import top.harrylei.bitlog.api.model.auth.RegisterParam;
+import top.harrylei.bitlog.api.model.auth.UserCreateParam;
 import top.harrylei.bitlog.api.model.user.req.AdminCreateUserParam;
 import top.harrylei.bitlog.api.model.user.vo.UserCreatedVO;
 
@@ -14,8 +17,6 @@ public interface AuthService {
 
     /**
      * 发送注册验证码
-     * <p>
-     * 邮箱已注册时改发提醒邮件而非验证码，响应保持一致以避免账号枚举
      *
      * @param email 目标邮箱
      */
@@ -24,31 +25,24 @@ public interface AuthService {
     /**
      * 用户注册，验证码校验通过后才建号，因此账号建立即为已验证邮箱
      *
-     * @param email 登录邮箱
-     * @param username 用户名，唯一展示标识
-     * @param password 密码
-     * @param code 邮箱验证码
+     * @param param 注册参数
      */
-    void register(String email, String username, String password, String code);
+    void register(RegisterParam param);
 
     /**
      * 管理员建号，不需要邮箱验证码
      *
-     * @param email 登录邮箱
-     * @param username 用户名，唯一展示标识
-     * @param password 密码
-     * @param userRole 用户角色
+     * @param param 建号参数
      */
-    void createUser(String email, String username, String password, UserRoleEnum userRole);
+    void createUser(UserCreateParam param);
 
     /**
      * 用户登录
      *
-     * @param email 登录邮箱
-     * @param password 密码
+     * @param param 登录参数
      * @return 包含 Access Token 和 Refresh Token 的登录结果
      */
-    LoginResult login(String email, String password);
+    LoginResult login(LoginParam param);
 
     /**
      * 刷新 Token
@@ -81,11 +75,9 @@ public interface AuthService {
     /**
      * 用验证码重置密码
      *
-     * @param email 登录邮箱
-     * @param code 邮箱验证码
-     * @param newPassword 新密码
+     * @param param 重置参数
      */
-    void resetPassword(String email, String code, String newPassword);
+    void resetPassword(PasswordResetParam param);
 
     /**
      * 管理员创建用户

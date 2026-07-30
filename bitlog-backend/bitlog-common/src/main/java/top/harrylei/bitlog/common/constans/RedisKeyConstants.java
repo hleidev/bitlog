@@ -29,8 +29,7 @@ public class RedisKeyConstants {
     public static final String LOGIN_FAIL_USER = GLOBAL_PREFIX + "login:fail:user:";
     public static final String ARTICLE_READ = GLOBAL_PREFIX + "article:read:";
     public static final String COMMENT_RATE = GLOBAL_PREFIX + "comment:rate:";
-    public static final String REGISTER_CODE = USER + "code:register:";
-    public static final String RESET_CODE = USER + "code:reset:";
+    public static final String VERIFY_CODE = USER + "code:";
     public static final String MAIL_RATE = GLOBAL_PREFIX + "mail:rate:";
     public static final String REGISTER_RATE = GLOBAL_PREFIX + "register:rate:";
 
@@ -61,20 +60,12 @@ public class RedisKeyConstants {
         return LOGIN_FAIL_USER + email + ":" + ip;
     }
 
-    public static String getRegisterCodeKey(String email) {
-        return REGISTER_CODE + email;
+    public static String getVerifyCodeKey(String purpose, String email) {
+        return VERIFY_CODE + purpose + ":" + email;
     }
 
-    public static String getRegisterCodeAttemptsKey(String email) {
-        return REGISTER_CODE + "attempts:" + email;
-    }
-
-    public static String getResetCodeKey(String email) {
-        return RESET_CODE + email;
-    }
-
-    public static String getResetCodeAttemptsKey(String email) {
-        return RESET_CODE + "attempts:" + email;
+    public static String getVerifyCodeAttemptsKey(String purpose, String email) {
+        return VERIFY_CODE + purpose + ":attempts:" + email;
     }
 
     /** 按用途隔离：否则刷注册发码可耗尽对方当天配额，令其无法申请找回密码 */

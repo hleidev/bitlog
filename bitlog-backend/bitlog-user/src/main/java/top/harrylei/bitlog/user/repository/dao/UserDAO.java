@@ -29,7 +29,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
     }
 
     /** 不过滤 deleted：uk_username 不含 deleted，软删用户的用户名仍占位 */
-    public boolean existsUser(String username) {
+    public boolean isUsernameTaken(String username) {
         return lambdaQuery().eq(UserDO::getUsername, username).exists();
     }
 
@@ -38,7 +38,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
     }
 
     /** 不过滤 deleted：uk_email 不含 deleted，软删用户的邮箱仍占位 */
-    public boolean existsEmail(String email) {
+    public boolean isEmailTaken(String email) {
         return lambdaQuery().eq(UserDO::getEmail, email).exists();
     }
 

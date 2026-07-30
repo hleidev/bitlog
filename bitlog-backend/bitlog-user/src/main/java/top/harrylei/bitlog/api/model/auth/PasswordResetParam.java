@@ -26,5 +26,5 @@ public class PasswordResetParam {
 
     @NotBlank(message = "密码不能为空")
     @Pattern(regexp = "^[a-zA-Z0-9_@#%&!$*-]{8,20}$", message = "密码必须包含字母、数字，可包含特殊字符，长度为8~20位")
-    private String password;
+    private String newPassword;
 }
