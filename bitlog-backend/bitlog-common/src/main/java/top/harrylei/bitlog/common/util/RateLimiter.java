@@ -5,6 +5,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
+import top.harrylei.bitlog.common.enums.ResultCode;
+import top.harrylei.bitlog.common.exception.BusinessException;
 
 import java.time.Duration;
 import java.util.List;
@@ -79,5 +81,20 @@ public class RateLimiter {
             return Result.reject(0L);
         }
         return remaining < 0 ? Result.allow() : Result.reject(remaining);
+    }
+
+    /**
+     * 尝试获取一次执行许可，超限直接抛业务异常
+     *
+     * @param key 限流键，需通过 RedisKeyConstants 构建
+     * @param limit 窗口内允许的最大次数
+     * @param window 窗口长度
+     */
+    public void acquireOrThrow(String key, int limit, Duration window) {
+        Result result = tryAcquire(key, limit, window);
+        if (!result.allowed()) {
+            throw new BusinessException(ResultCode.TOO_MANY_REQUESTS.getCode(),
+                "操作过于频繁，请 " + result.retryAfterSeconds() + " 秒后再试");
+        }
     }
 }
