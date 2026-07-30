@@ -9,7 +9,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.model.auth.LoginParam;
+import top.harrylei.bitlog.api.model.auth.EmailParam;
 import top.harrylei.bitlog.api.model.auth.LoginVO;
+import top.harrylei.bitlog.api.model.auth.PasswordResetParam;
 import top.harrylei.bitlog.api.model.auth.RegisterParam;
 import top.harrylei.bitlog.api.model.auth.UserCreateParam;
 import top.harrylei.bitlog.common.enums.ResultCode;
@@ -38,9 +40,15 @@ public class AuthController {
     private final JwtProperties jwtProperties;
     private final CookieProperties cookieProperties;
 
+    @PostMapping("/register/code")
+    public Result<Void> sendRegisterCode(@Valid @RequestBody EmailParam request) {
+        authService.sendRegisterCode(request.getEmail());
+        return Result.success();
+    }
+
     @PostMapping("/register")
     public Result<Void> register(@Valid @RequestBody RegisterParam request) {
-        authService.register(request.getEmail(), request.getUsername(), request.getPassword(), UserRoleEnum.NORMAL);
+        authService.register(request.getEmail(), request.getUsername(), request.getPassword(), request.getCode());
         return Result.success();
     }
 
@@ -70,10 +78,22 @@ public class AuthController {
         return Result.success();
     }
 
+    @PostMapping("/password/reset/code")
+    public Result<Void> sendResetPasswordCode(@Valid @RequestBody EmailParam request) {
+        authService.sendResetPasswordCode(request.getEmail());
+        return Result.success();
+    }
+
+    @PostMapping("/password/reset")
+    public Result<Void> resetPassword(@Valid @RequestBody PasswordResetParam request) {
+        authService.resetPassword(request.getEmail(), request.getCode(), request.getPassword());
+        return Result.success();
+    }
+
     @RequiresAdmin
     @PostMapping("/admin/create")
     public Result<Void> createUser(@Valid @RequestBody UserCreateParam request) {
-        authService.register(request.getEmail(), request.getUsername(), request.getPassword(), request.getRole());
+        authService.createUser(request.getEmail(), request.getUsername(), request.getPassword(), request.getRole());
         return Result.success();
     }
 

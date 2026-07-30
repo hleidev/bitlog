@@ -46,21 +46,24 @@ public class LoginRateLimiter {
         if (ip != null) {
             checkKey(RedisKeyConstants.getLoginFailIpKey(ip), IP_FAIL_MAX);
         }
-        checkKey(RedisKeyConstants.getLoginFailUserKey(email), USER_FAIL_MAX);
+        checkKey(accountKey(email, ip), USER_FAIL_MAX);
     }
 
     public void increment(String ip, String email) {
         if (ip != null) {
             incrementKey(RedisKeyConstants.getLoginFailIpKey(ip));
         }
-        incrementKey(RedisKeyConstants.getLoginFailUserKey(email));
+        incrementKey(accountKey(email, ip));
     }
 
     public void reset(String ip, String email) {
-        List<String> keys =
-            ip != null ? List.of(RedisKeyConstants.getLoginFailIpKey(ip), RedisKeyConstants.getLoginFailUserKey(email))
-                : List.of(RedisKeyConstants.getLoginFailUserKey(email));
+        List<String> keys = ip != null ? List.of(RedisKeyConstants.getLoginFailIpKey(ip), accountKey(email, ip))
+            : List.of(accountKey(email, ip));
         redisTemplate.delete(keys);
+    }
+
+    private String accountKey(String email, String ip) {
+        return RedisKeyConstants.getLoginFailUserKey(email, ip != null ? ip : "unknown");
     }
 
     private void checkKey(String key, int max) {

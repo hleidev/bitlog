@@ -29,6 +29,10 @@ public class RedisKeyConstants {
     public static final String LOGIN_FAIL_USER = GLOBAL_PREFIX + "login:fail:user:";
     public static final String ARTICLE_READ = GLOBAL_PREFIX + "article:read:";
     public static final String COMMENT_RATE = GLOBAL_PREFIX + "comment:rate:";
+    public static final String REGISTER_CODE = USER + "code:register:";
+    public static final String RESET_CODE = USER + "code:reset:";
+    public static final String MAIL_RATE = GLOBAL_PREFIX + "mail:rate:";
+    public static final String REGISTER_RATE = GLOBAL_PREFIX + "register:rate:";
 
     // ===== Key 构建方法 =====
 
@@ -52,8 +56,42 @@ public class RedisKeyConstants {
         return LOGIN_FAIL_IP + ip;
     }
 
-    public static String getLoginFailUserKey(String username) {
-        return LOGIN_FAIL_USER + username;
+    /** 邮箱与 IP 组合：邮箱可枚举，单独按邮箱锁会让攻击者能锁死任意账号 */
+    public static String getLoginFailUserKey(String email, String ip) {
+        return LOGIN_FAIL_USER + email + ":" + ip;
+    }
+
+    public static String getRegisterCodeKey(String email) {
+        return REGISTER_CODE + email;
+    }
+
+    public static String getRegisterCodeAttemptsKey(String email) {
+        return REGISTER_CODE + "attempts:" + email;
+    }
+
+    public static String getResetCodeKey(String email) {
+        return RESET_CODE + email;
+    }
+
+    public static String getResetCodeAttemptsKey(String email) {
+        return RESET_CODE + "attempts:" + email;
+    }
+
+    /** 按用途隔离：否则刷注册发码可耗尽对方当天配额，令其无法申请找回密码 */
+    public static String getMailCooldownKey(String purpose, String email) {
+        return MAIL_RATE + "cooldown:" + purpose + ":" + email;
+    }
+
+    public static String getMailDailyKey(String purpose, String email) {
+        return MAIL_RATE + "daily:" + purpose + ":" + email;
+    }
+
+    public static String getMailIpKey(String ip) {
+        return MAIL_RATE + "ip:" + ip;
+    }
+
+    public static String getRegisterIpKey(String ip) {
+        return REGISTER_RATE + "ip:" + ip;
     }
 
     public static String getArticleReadKey(Long articleId, String ip) {
