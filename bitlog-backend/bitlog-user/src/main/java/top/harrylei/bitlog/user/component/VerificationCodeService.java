@@ -7,7 +7,6 @@ import top.harrylei.bitlog.common.constans.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.mail.MailService;
-import top.harrylei.bitlog.common.mail.MailTemplates;
 import top.harrylei.bitlog.common.util.RateLimiter;
 
 import java.security.SecureRandom;
@@ -65,8 +64,7 @@ public class VerificationCodeService {
         redisTemplate.opsForValue().set(RedisKeyConstants.getVerifyCodeKey(purpose.getKey(), email), code,
             CODE_TTL.toSeconds(), TimeUnit.SECONDS);
 
-        mailService.send(email, purpose.getSubject(),
-            MailTemplates.verificationCode(purpose.getAction(), code, CODE_TTL));
+        mailService.sendVerificationCode(email, purpose.getAction(), code, CODE_TTL);
     }
 
     /**

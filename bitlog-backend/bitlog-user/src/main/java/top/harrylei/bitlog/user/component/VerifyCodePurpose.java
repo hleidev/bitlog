@@ -13,14 +13,12 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum VerifyCodePurpose {
 
-    REGISTER("register", "注册验证码", "完成注册", 5), RESET_PASSWORD("reset", "重置密码验证码", "重置密码", 10);
+    REGISTER("register", "完成注册", 5), RESET_PASSWORD("reset", "重置密码", 10);
 
     /** Redis 键中的用途段 */
     private final String key;
 
-    private final String subject;
-
-    /** 邮件正文中描述该验证码用于完成什么 */
+    /** 邮件中描述该验证码用于完成什么 */
     private final String action;
 
     /** 单邮箱每日发信上限，找回密码放宽以免被恶意耗尽后当天无法自救 */

@@ -1,5 +1,7 @@
 package top.harrylei.bitlog.common.mail;
 
+import java.time.Duration;
+
 /**
  * 邮件发送服务
  *
@@ -9,12 +11,12 @@ package top.harrylei.bitlog.common.mail;
 public interface MailService {
 
     /**
-     * 异步发送 HTML 邮件，失败只记录日志不向上抛
+     * 异步发送验证码邮件，失败只记录日志不向上抛。 主题、HTML 与纯文本三者在此统一组装，调用方只需给出用途与验证码。
      *
      * @param to 收件地址
-     * @param subject 主题
-     * @param html 正文
+     * @param action 该验证码用于完成的动作，如「完成注册」
+     * @param code 验证码
+     * @param ttl 有效期
      */
-    void send(String to, String subject, String html);
-
+    void sendVerificationCode(String to, String action, String code, Duration ttl);
 }
