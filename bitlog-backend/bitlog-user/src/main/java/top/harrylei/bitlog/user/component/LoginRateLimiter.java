@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 登录限流组件：IP 和用户名双维度，固定窗口计数
+ * 登录限流组件：IP 和邮箱双维度，固定窗口计数
  *
  * @author Harry
  * @since 2026-05-18
@@ -42,24 +42,24 @@ public class LoginRateLimiter {
 
     private final StringRedisTemplate redisTemplate;
 
-    public void check(String ip, String username) {
+    public void check(String ip, String email) {
         if (ip != null) {
             checkKey(RedisKeyConstants.getLoginFailIpKey(ip), IP_FAIL_MAX);
         }
-        checkKey(RedisKeyConstants.getLoginFailUserKey(username), USER_FAIL_MAX);
+        checkKey(RedisKeyConstants.getLoginFailUserKey(email), USER_FAIL_MAX);
     }
 
-    public void increment(String ip, String username) {
+    public void increment(String ip, String email) {
         if (ip != null) {
             incrementKey(RedisKeyConstants.getLoginFailIpKey(ip));
         }
-        incrementKey(RedisKeyConstants.getLoginFailUserKey(username));
+        incrementKey(RedisKeyConstants.getLoginFailUserKey(email));
     }
 
-    public void reset(String ip, String username) {
-        List<String> keys = ip != null
-            ? List.of(RedisKeyConstants.getLoginFailIpKey(ip), RedisKeyConstants.getLoginFailUserKey(username))
-            : List.of(RedisKeyConstants.getLoginFailUserKey(username));
+    public void reset(String ip, String email) {
+        List<String> keys =
+            ip != null ? List.of(RedisKeyConstants.getLoginFailIpKey(ip), RedisKeyConstants.getLoginFailUserKey(email))
+                : List.of(RedisKeyConstants.getLoginFailUserKey(email));
         redisTemplate.delete(keys);
     }
 

@@ -28,9 +28,18 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
             .one();
     }
 
+    /** 不过滤 deleted：uk_username 不含 deleted，软删用户的用户名仍占位 */
     public boolean existsUser(String username) {
-        return lambdaQuery().eq(UserDO::getUsername, username).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .exists();
+        return lambdaQuery().eq(UserDO::getUsername, username).exists();
+    }
+
+    public UserDO getByEmail(String email) {
+        return lambdaQuery().eq(UserDO::getEmail, email).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED).one();
+    }
+
+    /** 不过滤 deleted：uk_email 不含 deleted，软删用户的邮箱仍占位 */
+    public boolean existsEmail(String email) {
+        return lambdaQuery().eq(UserDO::getEmail, email).exists();
     }
 
     public UserDO getById(Long userId) {

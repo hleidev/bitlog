@@ -131,7 +131,7 @@ public class UserServiceImpl implements UserService {
         }
 
         if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
-            ResultCode.USERNAME_OR_PASSWORD_ERROR.throwException();
+            ResultCode.ACCOUNT_OR_PASSWORD_ERROR.throwException();
         }
 
         userDAO.updatePassword(user.getId(), passwordEncoder.encode(req.getNewPassword()));

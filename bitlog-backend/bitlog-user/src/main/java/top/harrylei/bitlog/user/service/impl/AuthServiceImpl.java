@@ -26,6 +26,7 @@ import top.harrylei.bitlog.user.service.LoginResult;
 import top.harrylei.bitlog.user.util.JwtUtil;
 import top.harrylei.bitlog.user.util.PasswordUtil;
 
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -50,7 +51,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void register(String username, String password, UserRoleEnum userRole) {
+    public void register(String email, String username, String password, UserRoleEnum userRole) {
+        String normalizedEmail = normalizeEmail(email);
+        if (userDAO.existsEmail(normalizedEmail)) {
+            ResultCode.USER_ALREADY_EXISTS.throwException(normalizedEmail);
+        }
         if (userDAO.existsUser(username)) {
             ResultCode.USER_ALREADY_EXISTS.throwException(username);
         }
@@ -59,8 +64,8 @@ public class AuthServiceImpl implements AuthService {
             ResultCode.FORBIDDEN.throwException("创建管理员账号需要管理员权限");
         }
 
-        doCreateUser(username, null, password, userRole, null, null, null);
-        log.info("用户注册成功 username={}", username);
+        doCreateUser(normalizedEmail, username, password, userRole, null, null, null);
+        log.info("用户注册成功 email={} username={}", normalizedEmail, username);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -70,18 +75,23 @@ public class AuthServiceImpl implements AuthService {
             ResultCode.USER_ALREADY_EXISTS.throwException(req.getUsername());
         }
 
+        String normalizedEmail = normalizeEmail(req.getEmail());
+        if (normalizedEmail != null && userDAO.existsEmail(normalizedEmail)) {
+            ResultCode.USER_ALREADY_EXISTS.throwException(normalizedEmail);
+        }
+
         String password = PasswordUtil.generateRandomPassword();
-        doCreateUser(req.getUsername(), req.getEmail(), password, req.getUserRole(), req.getPosition(),
+        doCreateUser(normalizedEmail, req.getUsername(), password, req.getUserRole(), req.getPosition(),
             req.getCompany(), req.getProfile());
         log.info("管理员创建用户成功 username={}", req.getUsername());
         return new UserCreatedVO().setUsername(req.getUsername()).setInitialPassword(password);
     }
 
-    private void doCreateUser(String username, String email, String rawPassword, UserRoleEnum role, String position,
+    private void doCreateUser(String email, String username, String rawPassword, UserRoleEnum role, String position,
         String company, String profile) {
-        UserDO newUser =
-            new UserDO().setUsername(username).setEmail(email).setPassword(passwordEncoder.encode(rawPassword))
-                .setThirdAccountId("").setLoginType(LoginTypeEnum.USERNAME_PASSWORD);
+        UserDO newUser = new UserDO().setUsername(username).setEmail(email).setEmailVerified(false)
+            .setPassword(passwordEncoder.encode(rawPassword)).setThirdAccountId("")
+            .setLoginType(LoginTypeEnum.EMAIL_PASSWORD);
         userDAO.save(newUser);
 
         UserInfoDO userInfo = new UserInfoDO().setUserId(newUser.getId()).setNickname(username).setAvatar("")
@@ -89,22 +99,27 @@ public class AuthServiceImpl implements AuthService {
         userInfoDAO.save(userInfo);
     }
 
-    @Override
-    public LoginResult login(String username, String password) {
-        String clientIp = ReqInfoContext.getContext().getClientIp();
-        loginRateLimiter.check(clientIp, username);
+    private String normalizeEmail(String email) {
+        return StringUtils.hasText(email) ? email.trim().toLowerCase(Locale.ROOT) : null;
+    }
 
-        UserDO user = userDAO.getByUsername(username);
+    @Override
+    public LoginResult login(String email, String password) {
+        String normalizedEmail = normalizeEmail(email);
+        String clientIp = ReqInfoContext.getContext().getClientIp();
+        loginRateLimiter.check(clientIp, normalizedEmail);
+
+        UserDO user = userDAO.getByEmail(normalizedEmail);
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
-            loginRateLimiter.increment(clientIp, username);
-            ResultCode.USERNAME_OR_PASSWORD_ERROR.throwException();
+            loginRateLimiter.increment(clientIp, normalizedEmail);
+            ResultCode.ACCOUNT_OR_PASSWORD_ERROR.throwException();
         }
 
         if (!UserStatusEnum.ENABLED.equals(user.getStatus())) {
-            ResultCode.USER_DISABLED.throwException(username);
+            ResultCode.USER_DISABLED.throwException(normalizedEmail);
         }
 
-        loginRateLimiter.reset(clientIp, username);
+        loginRateLimiter.reset(clientIp, normalizedEmail);
 
         Long userId = user.getId();
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);

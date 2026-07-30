@@ -18,7 +18,7 @@ public enum ResultCode implements IResultCode {
     OPERATION_NOT_ALLOWED(40010, "操作不被允许"),
 
     // ========== 认证 41xxx ==========
-    PASSWORD_FORMAT_ERROR(41001, "密码格式不符合要求"), USERNAME_OR_PASSWORD_ERROR(41002, "用户名或密码错误"),
+    PASSWORD_FORMAT_ERROR(41001, "密码格式不符合要求"), ACCOUNT_OR_PASSWORD_ERROR(41002, "账号或密码错误"),
     REFRESH_TOKEN_INVALID(41003, "Refresh Token 无效或已过期"), LOGIN_TOO_MANY_ATTEMPTS(41004, "登录失败次数过多，请稍后再试"),
 
     // ========== 用户 42xxx ==========

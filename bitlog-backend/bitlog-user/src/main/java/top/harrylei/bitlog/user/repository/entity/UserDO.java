@@ -38,5 +38,7 @@ public class UserDO extends BaseDO {
 
     private String email;
 
+    private Boolean emailVerified;
+
     private UserStatusEnum status;
 }

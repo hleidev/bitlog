@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.model.auth.LoginParam;
 import top.harrylei.bitlog.api.model.auth.LoginVO;
+import top.harrylei.bitlog.api.model.auth.RegisterParam;
 import top.harrylei.bitlog.api.model.auth.UserCreateParam;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.Result;
@@ -38,14 +39,14 @@ public class AuthController {
     private final CookieProperties cookieProperties;
 
     @PostMapping("/register")
-    public Result<Void> register(@Valid @RequestBody LoginParam request) {
-        authService.register(request.getUsername(), request.getPassword(), UserRoleEnum.NORMAL);
+    public Result<Void> register(@Valid @RequestBody RegisterParam request) {
+        authService.register(request.getEmail(), request.getUsername(), request.getPassword(), UserRoleEnum.NORMAL);
         return Result.success();
     }
 
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginParam request, HttpServletResponse response) {
-        LoginResult result = authService.login(request.getUsername(), request.getPassword());
+        LoginResult result = authService.login(request.getEmail(), request.getPassword());
         setRefreshTokenCookie(response, result.refreshToken());
         return Result.success(new LoginVO(result.accessToken()));
     }
@@ -72,7 +73,7 @@ public class AuthController {
     @RequiresAdmin
     @PostMapping("/admin/create")
     public Result<Void> createUser(@Valid @RequestBody UserCreateParam request) {
-        authService.register(request.getUsername(), request.getPassword(), request.getRole());
+        authService.register(request.getEmail(), request.getUsername(), request.getPassword(), request.getRole());
         return Result.success();
     }
 

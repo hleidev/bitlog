@@ -1,7 +1,9 @@
 package top.harrylei.bitlog.api.model.auth;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -13,9 +15,10 @@ import lombok.Data;
 @Data
 public class LoginParam {
 
-    @NotBlank(message = "用户名不能为空")
-    @Pattern(regexp = "^[a-zA-Z0-9_-]{4,16}$", message = "用户名只能包含字母、数字、下划线和连字符，长度为4-16位")
-    private String username;
+    @NotBlank(message = "邮箱不能为空")
+    @Email(message = "邮箱格式不正确")
+    @Size(max = 128, message = "邮箱长度不能超过 128 位")
+    private String email;
 
     @NotBlank(message = "密码不能为空")
     @Pattern(regexp = "^[a-zA-Z0-9_@#%&!$*-]{8,20}$", message = "密码必须包含字母、数字，可包含特殊字符，长度为8~20位")

@@ -15,20 +15,21 @@ public interface AuthService {
     /**
      * 用户注册
      *
-     * @param username 用户名
+     * @param email 登录邮箱
+     * @param username 用户名，唯一展示标识
      * @param password 密码
      * @param userRole 用户角色
      */
-    void register(String username, String password, UserRoleEnum userRole);
+    void register(String email, String username, String password, UserRoleEnum userRole);
 
     /**
      * 用户登录
      *
-     * @param username 用户名
+     * @param email 登录邮箱
      * @param password 密码
      * @return 包含 Access Token 和 Refresh Token 的登录结果
      */
-    LoginResult login(String username, String password);
+    LoginResult login(String email, String password);
 
     /**
      * 刷新 Token
