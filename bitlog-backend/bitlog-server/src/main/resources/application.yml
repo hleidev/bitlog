@@ -34,8 +34,10 @@ jwt:
 
 mail:
   api-url: https://api.resend.com/emails
+  api-key: ENC(REMOVED)
   from: noreply@mail.harrylei.top
   from-name: BitLog
+  site-url: bitlog.harrylei.top
 
 bitlog:
   comment:
