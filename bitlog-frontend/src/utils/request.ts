@@ -28,8 +28,11 @@ const request = axios.create({
 const NO_AUTH_URLS = new Set([
   '/v1/auth/login',
   '/v1/auth/register',
+  '/v1/auth/register/code',
   '/v1/auth/refresh',
   '/v1/auth/logout',
+  '/v1/auth/password/reset',
+  '/v1/auth/password/reset/code',
 ])
 
 // --- Token 刷新队列机制 ---
