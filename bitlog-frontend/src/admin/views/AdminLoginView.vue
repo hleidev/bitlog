@@ -3,39 +3,31 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import PasswordInput from '@/components/common/PasswordInput.vue'
+import { ApiError } from '@/utils/request'
+import { EMAIL_MAX_LENGTH, validateEmail, validatePassword } from '@/utils/authValidation'
 import '@/admin/styles/variables.css'
 
 const router = useRouter()
 const userStore = useUserStore()
 
-const form = reactive({ username: '', password: '' })
+const form = reactive({ email: '', password: '' })
 const loading = ref(false)
 const errorMsg = ref('')
-const usernameRef = ref<HTMLInputElement | null>(null)
+const emailRef = ref<HTMLInputElement | null>(null)
 
-onMounted(() => setTimeout(() => usernameRef.value?.focus(), 50))
+onMounted(() => setTimeout(() => emailRef.value?.focus(), 50))
 
 async function handleLogin() {
-  if (!form.username || !form.password) {
-    errorMsg.value = '请输入用户名和密码'
-    return
-  }
-  if (!/^[a-zA-Z0-9_-]{4,16}$/.test(form.username)) {
-    errorMsg.value = '用户名为 4-16 位字母、数字、下划线或连字符'
-    return
-  }
-  if (!/^[a-zA-Z0-9_@#%&!$*-]{8,20}$/.test(form.password)) {
-    errorMsg.value = '密码为 8-20 位，可包含字母、数字及 _@#%&!$*- 符号'
-    return
-  }
+  errorMsg.value = validateEmail(form.email) || validatePassword(form.password)
+  if (errorMsg.value) return
+
   loading.value = true
-  errorMsg.value = ''
   try {
-    await userStore.login({ username: form.username, password: form.password })
+    await userStore.login({ email: form.email.trim(), password: form.password })
     await userStore.fetchProfile()
     router.push('/admin/dashboard')
-  } catch {
-    errorMsg.value = '用户名或密码错误'
+  } catch (err) {
+    errorMsg.value = err instanceof ApiError ? err.message : '登录失败，请稍后重试'
   } finally {
     loading.value = false
   }
@@ -62,17 +54,17 @@ async function handleLogin() {
           <div class="input-wrap">
             <svg class="field-icon" viewBox="0 0 24 24" fill="currentColor">
               <path
-                d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"
+                d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"
               />
             </svg>
             <input
-              ref="usernameRef"
-              v-model="form.username"
+              ref="emailRef"
+              v-model="form.email"
               class="field-input"
-              type="text"
-              placeholder="用户名"
-              maxlength="16"
-              autocomplete="username"
+              type="email"
+              placeholder="邮箱"
+              :maxlength="EMAIL_MAX_LENGTH"
+              autocomplete="email"
               @keyup.enter="handleLogin"
             />
           </div>
