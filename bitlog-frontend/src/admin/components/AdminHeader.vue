@@ -17,7 +17,7 @@ const menuOpen = ref(false)
 
 const pageTitle = computed(() => route.meta.title ?? '')
 const parentTitle = computed(() => route.meta.parent ?? '')
-const displayName = computed(() => userInfo.value?.nickname ?? 'Admin')
+const displayName = computed(() => userInfo.value?.username ?? 'Admin')
 const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 </script>
 

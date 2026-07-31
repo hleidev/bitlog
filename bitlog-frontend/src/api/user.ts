@@ -3,7 +3,6 @@ import request from '@/utils/request'
 export interface UserProfile {
   userId: number
   username: string
-  nickname: string
   avatar: string
   email: string
   userRole: number // 0: 普通用户, 1: 管理员
@@ -19,7 +18,7 @@ export function getUserProfile(): Promise<UserProfile> {
 }
 
 export interface UpdateUserInfoReq {
-  nickname: string
+  username: string
   position?: string
   company?: string
   profile?: string

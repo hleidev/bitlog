@@ -1,6 +1,8 @@
 // 规则与后端 bitlog-user 的 LoginParam / RegisterParam / PasswordResetParam 一一对应，改动需同步
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const USERNAME_RE = /^[a-zA-Z0-9_-]{4,16}$/
+// 字符白名单与后端 UserRules.USERNAME_PATTERN 保持一致：只放行汉字与 ASCII，
+// 借此挡掉西里尔字母等同形字和零宽字符——两者都能构造出视觉相同却不重复的用户名
+const USERNAME_RE = /^[一-鿿a-zA-Z0-9_-]{2,16}$/
 const PASSWORD_RE = /^[a-zA-Z0-9_@#%&!$*-]{8,20}$/
 const CODE_RE = /^\d{6}$/
 
@@ -24,7 +26,7 @@ export function validateEmail(value: string): string {
 export function validateUsername(value: string): string {
   const val = value.trim()
   if (!val) return '请输入用户名'
-  if (!USERNAME_RE.test(val)) return '用户名为 4~16 位，只能含字母、数字、_ 或 -'
+  if (!USERNAME_RE.test(val)) return '用户名为 2~16 位，可含汉字、字母、数字、下划线和连字符'
   return ''
 }
 

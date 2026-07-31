@@ -3,7 +3,7 @@ import type { PageResult } from '@/api/article'
 
 export interface CommentUserVO {
   userId: number
-  nickname: string
+  username: string
   avatar: string
 }
 

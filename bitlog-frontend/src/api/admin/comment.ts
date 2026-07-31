@@ -6,7 +6,7 @@ export type CommentStatus = 1 | 2
 
 export interface CommentAdminUser {
   userId: number
-  nickname: string
+  username: string
   avatar: string
 }
 

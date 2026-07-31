@@ -35,7 +35,6 @@ export interface PageVO<T> {
 export interface UserDetail {
   userId: number
   username: string
-  nickname: string
   email: string
   status: number
   userRole: number

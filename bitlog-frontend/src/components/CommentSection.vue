@@ -41,7 +41,7 @@ const currentUserId = computed(() => userInfo.value?.userId ?? null)
 const remaining = computed(() => MAX_LENGTH - draft.value.length)
 
 function initial(user: CommentUserVO | null) {
-  return (user?.nickname ?? '').charAt(0).toUpperCase() || '?'
+  return (user?.username ?? '').charAt(0).toUpperCase() || '?'
 }
 
 function formatTime(iso: string) {
@@ -183,12 +183,12 @@ async function remove(commentId: number) {
               v-if="root.user?.avatar"
               :src="root.user.avatar"
               class="avatar avatar--img"
-              :alt="root.user.nickname"
+              :alt="root.user.username"
             />
             <span v-else class="avatar avatar--placeholder">{{ initial(root.user) }}</span>
             <div class="comment-main">
               <div class="comment-head">
-                <span class="comment-name">{{ root.user?.nickname }}</span>
+                <span class="comment-name">{{ root.user?.username }}</span>
                 <span class="comment-time">{{ formatTime(root.createTime) }}</span>
               </div>
               <p class="comment-body">{{ root.content }}</p>
@@ -215,16 +215,16 @@ async function remove(commentId: number) {
               v-if="reply.user?.avatar"
               :src="reply.user.avatar"
               class="avatar avatar--sm avatar--img"
-              :alt="reply.user.nickname"
+              :alt="reply.user.username"
             />
             <span v-else class="avatar avatar--sm avatar--placeholder">{{
               initial(reply.user)
             }}</span>
             <div class="comment-main">
               <div class="comment-head">
-                <span class="comment-name">{{ reply.user?.nickname }}</span>
+                <span class="comment-name">{{ reply.user?.username }}</span>
                 <span v-if="reply.replyToUser" class="reply-to"
-                  >回复 @{{ reply.replyToUser.nickname }}</span
+                  >回复 @{{ reply.replyToUser.username }}</span
                 >
                 <span class="comment-time">{{ formatTime(reply.createTime) }}</span>
               </div>

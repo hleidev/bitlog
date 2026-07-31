@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/admin/composables/useToast'
 import { createUser, type CreateUserResult } from '@/api/admin/user'
+import { validateEmail, validateUsername } from '@/utils/authValidation'
 
 const router = useRouter()
 const toast = useToast()
@@ -22,16 +23,14 @@ const successVisible = ref(false)
 const createResult = ref<CreateUserResult | null>(null)
 
 async function handleSubmit() {
-  if (!form.username.trim()) {
-    toast.warning('请输入用户名')
+  const usernameError = validateUsername(form.username)
+  if (usernameError) {
+    toast.warning(usernameError)
     return
   }
-  if (!/^[a-zA-Z0-9_-]{4,16}$/.test(form.username)) {
-    toast.warning('用户名为 4-16 位字母、数字、下划线或连字符')
-    return
-  }
-  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    toast.warning('邮箱格式不正确')
+  const emailError = form.email && validateEmail(form.email)
+  if (emailError) {
+    toast.warning(emailError)
     return
   }
   if (form.email && form.email.length > 128) {

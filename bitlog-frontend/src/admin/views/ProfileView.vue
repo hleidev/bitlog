@@ -11,6 +11,7 @@ import {
   type UserProfile,
 } from '@/api/user'
 import { uploadFile } from '@/api/file'
+import { validateUsername } from '@/utils/authValidation'
 import PasswordInput from '@/components/common/PasswordInput.vue'
 
 const userStore = useUserStore()
@@ -26,7 +27,7 @@ const avatarUploading = ref(false)
 const avatarError = ref(false)
 
 // 基本信息
-const basicForm = reactive({ nickname: '', position: '', company: '', profile: '' })
+const basicForm = reactive({ username: '', position: '', company: '', profile: '' })
 const basicSaving = ref(false)
 
 // 密码
@@ -49,7 +50,7 @@ async function loadProfile() {
 
 function syncBasicForm() {
   if (!profile.value) return
-  basicForm.nickname = profile.value.nickname
+  basicForm.username = profile.value.username
   basicForm.position = profile.value.position || ''
   basicForm.company = profile.value.company || ''
   basicForm.profile = profile.value.profile || ''
@@ -85,12 +86,9 @@ async function handleFileChange(e: Event) {
 // ── 基本信息 ──────────────────────────────────────────────────────────────────
 
 async function saveBasicInfo() {
-  if (!basicForm.nickname.trim()) {
-    toast.warning('别名不能为空')
-    return
-  }
-  if (basicForm.nickname.length > 64) {
-    toast.warning('别名最长 64 个字符')
+  const usernameError = validateUsername(basicForm.username)
+  if (usernameError) {
+    toast.warning(usernameError)
     return
   }
   if (basicForm.position.length > 64) {
@@ -108,7 +106,7 @@ async function saveBasicInfo() {
   basicSaving.value = true
   try {
     await updateUserInfo({
-      nickname: basicForm.nickname.trim(),
+      username: basicForm.username.trim(),
       position: basicForm.position.trim() || undefined,
       company: basicForm.company.trim() || undefined,
       profile: basicForm.profile.trim() || undefined,
@@ -194,7 +192,7 @@ function roleLabel(role: number) {
               @error="avatarError = true"
             />
             <div v-else class="avatar-fallback">
-              {{ profile?.nickname?.[0]?.toUpperCase() ?? '?' }}
+              {{ profile?.username?.[0]?.toUpperCase() ?? '?' }}
             </div>
             <div class="avatar-overlay">
               <svg v-if="avatarUploading" class="overlay-spinner" viewBox="0 0 24 24" fill="none">
@@ -224,8 +222,8 @@ function roleLabel(role: number) {
             @change="handleFileChange"
           />
           <div class="overview-info">
-            <div class="overview-name">{{ profile?.nickname ?? '—' }}</div>
-            <div class="overview-username">@{{ profile?.username ?? '—' }}</div>
+            <div class="overview-name">{{ profile?.username ?? '—' }}</div>
+            <div class="overview-username">{{ profile?.email ?? '—' }}</div>
             <div class="overview-meta">
               <span
                 class="role-badge"
@@ -248,21 +246,24 @@ function roleLabel(role: number) {
           <div class="field">
             <label class="field-label">
               用户名
-              <span class="field-hint">登录账号，不可修改</span>
+              <span class="field-hint">公开展示，全站唯一</span>
             </label>
             <input
-              class="field-input field-input--readonly"
-              :value="profile?.username ?? ''"
-              readonly
+              v-model="basicForm.username"
+              class="field-input"
+              placeholder="请输入用户名"
+              maxlength="16"
             />
           </div>
           <div class="field">
-            <label class="field-label">昵称</label>
+            <label class="field-label">
+              邮箱
+              <span class="field-hint">登录账号</span>
+            </label>
             <input
-              v-model="basicForm.nickname"
-              class="field-input"
-              placeholder="请输入昵称"
-              maxlength="64"
+              class="field-input field-input--readonly"
+              :value="profile?.email ?? ''"
+              readonly
             />
           </div>
           <div class="field-row">

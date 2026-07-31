@@ -269,7 +269,7 @@ function formatTime(iso: string) {
               <span v-if="row.rootId !== 0" class="reply-flag">回复</span>
             </td>
             <td class="col-user">
-              <span class="cell-muted">{{ row.user?.nickname ?? '—' }}</span>
+              <span class="cell-muted">{{ row.user?.username ?? '—' }}</span>
             </td>
             <td class="col-article">
               <RouterLink
@@ -319,7 +319,7 @@ function formatTime(iso: string) {
               :checked="selected.has(row.id)"
               @change="toggleRow(row.id)"
             />
-            <span class="data-card__author">{{ row.user?.nickname ?? '—' }}</span>
+            <span class="data-card__author">{{ row.user?.username ?? '—' }}</span>
             <span class="status-badge" :class="row.status === 1 ? 'is-normal' : 'is-hidden'">
               {{ row.status === 1 ? '正常' : '已隐藏' }}
             </span>

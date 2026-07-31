@@ -226,7 +226,7 @@ onUnmounted(stopCountdown)
           class="form-input"
           :class="{ 'form-input--error': errors.username }"
           type="text"
-          placeholder="4~16 位，公开展示"
+          placeholder="2~16 位，公开展示"
           autocomplete="nickname"
           maxlength="16"
           :disabled="loading"

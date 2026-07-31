@@ -124,7 +124,7 @@ const handleMobileLogin = () => {
                   :alt="userInfo?.userName"
                 />
                 <span v-else class="header__avatar header__avatar--placeholder">
-                  {{ (userInfo?.nickname || userInfo?.username)?.[0]?.toUpperCase() ?? '?' }}
+                  {{ userInfo?.username?.[0]?.toUpperCase() ?? '?' }}
                 </span>
               </button>
               <Transition name="dropdown">

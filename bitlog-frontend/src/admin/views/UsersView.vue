@@ -852,7 +852,7 @@ function relativeTime(d: string) {
               <span v-else>{{ detailUser.username?.[0]?.toUpperCase() ?? '?' }}</span>
             </div>
             <div class="dg-banner-info">
-              <span class="dg-name">{{ detailUser.nickname || detailUser.username }}</span>
+              <span class="dg-name">{{ detailUser.username }}</span>
               <span class="dg-username">@{{ detailUser.username }}</span>
               <div class="dg-badges">
                 <span
@@ -879,8 +879,8 @@ function relativeTime(d: string) {
               <span class="dg-value"># {{ detailUser.userId }}</span>
             </div>
             <div class="dg-cell">
-              <span class="dg-label">昵称</span>
-              <span class="dg-value">{{ detailUser.nickname || '—' }}</span>
+              <span class="dg-label">用户名</span>
+              <span class="dg-value">{{ detailUser.username || '—' }}</span>
             </div>
             <div class="dg-cell">
               <span class="dg-label">邮箱</span>

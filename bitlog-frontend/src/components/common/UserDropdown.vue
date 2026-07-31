@@ -17,7 +17,7 @@ const userStore = useUserStore()
 const { userInfo, isAdmin } = storeToRefs(userStore)
 const confirm = useConfirm()
 
-const displayName = computed(() => userInfo.value?.nickname ?? '')
+const displayName = computed(() => userInfo.value?.username ?? '')
 const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase() || '?')
 
 function close() {
