@@ -4,7 +4,9 @@ import {
   login as loginApi,
   logout as logoutApi,
   refresh as refreshApi,
+  register as registerApi,
   type LoginReq,
+  type RegisterReq,
 } from '@/api/auth'
 import { getUserProfile, type UserProfile } from '@/api/user'
 
@@ -43,6 +45,12 @@ export const useUserStore = defineStore('user', () => {
     token.value = res.accessToken
   }
 
+  // 注册接口不返回 token，成功后直接用同一份凭证登录，省去用户再填一遍
+  async function register(payload: RegisterReq): Promise<void> {
+    await registerApi(payload)
+    await login({ email: payload.email, password: payload.password })
+  }
+
   async function fetchProfile(): Promise<void> {
     const info = await getUserProfile()
     userInfo.value = info
@@ -73,6 +81,7 @@ export const useUserStore = defineStore('user', () => {
     waitForSession,
     initSession,
     login,
+    register,
     fetchProfile,
     refreshToken,
     logout,
