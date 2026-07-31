@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,6 +15,7 @@ import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.exception.BusinessException;
 import top.harrylei.bitlog.common.model.Result;
 
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -39,8 +41,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleValidationException(MethodArgumentNotValidException e) {
-        log.warn("参数校验失败: {}", e.getMessage());
-        return Result.fail(ResultCode.INVALID_PARAMETER);
+        String message = e.getBindingResult().getFieldErrors().stream().map(FieldError::getDefaultMessage)
+            .filter(Objects::nonNull).collect(Collectors.joining("; "));
+        log.warn("参数校验失败: {}", message);
+        return message.isBlank() ? Result.fail(ResultCode.INVALID_PARAMETER)
+            : Result.fail(ResultCode.INVALID_PARAMETER.getCode(), message);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
