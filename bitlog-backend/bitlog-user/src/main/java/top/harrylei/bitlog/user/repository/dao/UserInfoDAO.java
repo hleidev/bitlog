@@ -18,39 +18,30 @@ import java.util.List;
 public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {
 
     public UserInfoDO getByUserId(Long userId) {
-        return lambdaQuery()
-                .eq(UserInfoDO::getUserId, userId)
-                .eq(UserInfoDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-                .one();
+        return lambdaQuery().eq(UserInfoDO::getUserId, userId).eq(UserInfoDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+            .one();
     }
 
     public List<UserInfoDO> listByUserIds(List<Long> userIds) {
-        return lambdaQuery()
-                .in(UserInfoDO::getUserId, userIds)
-                .eq(UserInfoDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-                .list();
+        return lambdaQuery().in(UserInfoDO::getUserId, userIds).eq(UserInfoDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+            .list();
     }
 
-    public void updateInfo(Long userId, String nickname, String profile, String position, String company) {
-        lambdaUpdate()
-                .eq(UserInfoDO::getUserId, userId)
-                .set(UserInfoDO::getNickname, nickname)
-                .set(profile != null, UserInfoDO::getProfile, profile)
-                .set(position != null, UserInfoDO::getPosition, position)
-                .set(company != null, UserInfoDO::getCompany, company)
-                .update();
+    public void updateInfo(Long userId, String profile, String position, String company) {
+        // 三个字段都是选填，全空时 lambdaUpdate 会生成没有 SET 子句的非法 SQL
+        if (profile == null && position == null && company == null) {
+            return;
+        }
+        lambdaUpdate().eq(UserInfoDO::getUserId, userId).set(profile != null, UserInfoDO::getProfile, profile)
+            .set(position != null, UserInfoDO::getPosition, position)
+            .set(company != null, UserInfoDO::getCompany, company).update();
     }
 
     public void updateAvatar(Long userId, String avatar) {
-        lambdaUpdate()
-                .eq(UserInfoDO::getUserId, userId)
-                .set(UserInfoDO::getAvatar, avatar)
-                .update();
+        lambdaUpdate().eq(UserInfoDO::getUserId, userId).set(UserInfoDO::getAvatar, avatar).update();
     }
 
     public void removeByUserIds(List<Long> userIds) {
-        lambdaUpdate()
-                .in(UserInfoDO::getUserId, userIds)
-                .remove();
+        lambdaUpdate().in(UserInfoDO::getUserId, userIds).remove();
     }
 }

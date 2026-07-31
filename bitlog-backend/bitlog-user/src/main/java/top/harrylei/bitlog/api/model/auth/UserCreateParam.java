@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import top.harrylei.bitlog.api.model.user.UserRules;
 import lombok.Data;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 
@@ -26,7 +27,7 @@ public class UserCreateParam {
     private String email;
 
     @NotBlank(message = "用户名不能为空")
-    @Pattern(regexp = "^[a-zA-Z0-9_-]{4,16}$", message = "用户名只能包含字母、数字、下划线和连字符，长度为4-16位")
+    @Pattern(regexp = UserRules.USERNAME_PATTERN, message = UserRules.USERNAME_MESSAGE)
     @Schema(description = "用户名", example = "admin", requiredMode = Schema.RequiredMode.REQUIRED)
     private String username;
 

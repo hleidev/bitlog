@@ -208,7 +208,7 @@ public class AuthServiceImpl implements AuthService {
 
         String password = PasswordUtil.generateRandomPassword();
         Long userId = doCreateUser(normalizedEmail, req.getUsername(), password, req.getUserRole());
-        userInfoDAO.updateInfo(userId, req.getUsername(), req.getProfile(), req.getPosition(), req.getCompany());
+        userInfoDAO.updateInfo(userId, req.getProfile(), req.getPosition(), req.getCompany());
 
         log.info("管理员创建用户成功 username={}", req.getUsername());
         return new UserCreatedVO().setUsername(req.getUsername()).setInitialPassword(password);
@@ -224,12 +224,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private Long doCreateUser(String email, String username, String rawPassword, UserRoleEnum role) {
-        UserDO newUser = new UserDO().setUsername(username).setEmail(email)
-            .setPassword(passwordEncoder.encode(rawPassword));
+        UserDO newUser =
+            new UserDO().setUsername(username).setEmail(email).setPassword(passwordEncoder.encode(rawPassword));
         userDAO.save(newUser);
 
-        UserInfoDO userInfo =
-            new UserInfoDO().setUserId(newUser.getId()).setNickname(username).setAvatar("").setUserRole(role);
+        UserInfoDO userInfo = new UserInfoDO().setUserId(newUser.getId()).setAvatar("").setUserRole(role);
         userInfoDAO.save(userInfo);
         return newUser.getId();
     }

@@ -27,8 +27,6 @@ public class UserInfoDO extends BaseDO {
 
     private Long userId;
 
-    private String nickname;
-
     private String avatar;
 
     private String position;

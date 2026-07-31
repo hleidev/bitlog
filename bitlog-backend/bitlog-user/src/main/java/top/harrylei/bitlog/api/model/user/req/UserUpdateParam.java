@@ -2,9 +2,11 @@ package top.harrylei.bitlog.api.model.user.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import top.harrylei.bitlog.api.model.user.UserRules;
 
 /**
  * 用户信息更新请求参数
@@ -17,10 +19,10 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class UserUpdateParam {
 
-    @NotBlank(message = "昵称不能为空")
-    @Size(max = 64, message = "昵称最长64字符")
-    @Schema(description = "昵称", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String nickname;
+    @NotBlank(message = "用户名不能为空")
+    @Pattern(regexp = UserRules.USERNAME_PATTERN, message = UserRules.USERNAME_MESSAGE)
+    @Schema(description = "用户名", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String username;
 
     @Size(max = 500, message = "个人简介最长500字符")
     @Schema(description = "用户简介")

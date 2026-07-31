@@ -114,7 +114,13 @@ public class UserServiceImpl implements UserService {
         if (userInfo == null) {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
-        userInfoDAO.updateInfo(userId, req.getNickname(), req.getProfile(), req.getPosition(), req.getCompany());
+        String username = req.getUsername().trim();
+        if (userDAO.isUsernameTakenByOthers(username, userId)) {
+            ResultCode.USER_ALREADY_EXISTS.throwException(username);
+        }
+
+        userDAO.updateUsername(userId, username);
+        userInfoDAO.updateInfo(userId, req.getProfile(), req.getPosition(), req.getCompany());
         log.info("更新用户基本信息 userId={}", userId);
     }
 

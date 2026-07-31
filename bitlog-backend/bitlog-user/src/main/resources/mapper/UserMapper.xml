@@ -16,13 +16,12 @@
         <result column="profile" property="profile"/>
         <result column="extend" property="extend"/>
         <result column="user_role" property="userRole"/>
-        <result column="nickname" property="nickname"/>
     </resultMap>
 
     <select id="pageUsers" resultMap="UserDetailDTOMap">
         select
             a.id, a.username, a.email, a.status, a.deleted, a.create_time, a.update_time,
-            b.avatar, b.user_role, b.nickname
+            b.avatar, b.user_role
         from user_account a
         left join user_info b on a.id = b.user_id
         <where>

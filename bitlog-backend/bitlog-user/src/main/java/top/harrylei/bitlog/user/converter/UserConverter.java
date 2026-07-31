@@ -21,7 +21,7 @@ import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 public interface UserConverter {
 
     @Mapping(source = "userInfo.userId", target = "userId")
-    @Mapping(source = "userInfo.nickname", target = "nickname")
+    @Mapping(source = "user.username", target = "username")
     @Mapping(source = "userInfo.avatar", target = "avatar")
     @Mapping(source = "userInfo.profile", target = "profile")
     @Mapping(source = "userInfo.position", target = "position")
@@ -30,19 +30,8 @@ public interface UserConverter {
     @Mapping(source = "user.email", target = "email")
     UserVO toVO(UserInfoDO userInfo, UserDO user);
 
-    @Mapping(source = "userId", target = "userId")
-    @Mapping(source = "nickname", target = "nickname")
-    @Mapping(source = "avatar", target = "avatar")
-    @Mapping(source = "profile", target = "profile")
-    @Mapping(source = "position", target = "position")
-    @Mapping(source = "company", target = "company")
-    @Mapping(source = "userRole", target = "userRole")
-    @Mapping(target = "email", ignore = true)
-    UserVO toVO(UserInfoDO userInfo);
-
     @Mapping(source = "userInfo.userId", target = "userId")
     @Mapping(source = "user.username", target = "username")
-    @Mapping(source = "userInfo.nickname", target = "nickname")
     @Mapping(source = "userInfo.avatar", target = "avatar")
     @Mapping(source = "userInfo.profile", target = "profile")
     @Mapping(source = "userInfo.position", target = "position")
@@ -57,7 +46,6 @@ public interface UserConverter {
 
     @Mapping(source = "userInfo.userId", target = "userId")
     @Mapping(source = "user.username", target = "username")
-    @Mapping(source = "userInfo.nickname", target = "nickname")
     @Mapping(source = "userInfo.avatar", target = "avatar")
     @Mapping(source = "userInfo.userRole", target = "userRole")
     @Mapping(source = "user.email", target = "email")

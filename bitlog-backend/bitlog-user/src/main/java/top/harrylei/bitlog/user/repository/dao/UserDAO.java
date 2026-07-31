@@ -33,6 +33,11 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
         return lambdaQuery().eq(UserDO::getUsername, username).exists();
     }
 
+    /** 改名场景：排除自己，否则原样提交会被判成重名 */
+    public boolean isUsernameTakenByOthers(String username, Long userId) {
+        return lambdaQuery().eq(UserDO::getUsername, username).ne(UserDO::getId, userId).exists();
+    }
+
     public UserDO getByEmail(String email) {
         return lambdaQuery().eq(UserDO::getEmail, email).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED).one();
     }
@@ -52,6 +57,10 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
 
     public void updatePassword(Long userId, String encodedPassword) {
         lambdaUpdate().eq(UserDO::getId, userId).set(UserDO::getPassword, encodedPassword).update();
+    }
+
+    public void updateUsername(Long userId, String username) {
+        lambdaUpdate().eq(UserDO::getId, userId).set(UserDO::getUsername, username).update();
     }
 
     public void updateStatusBatch(List<Long> userIds, UserStatusEnum status) {
