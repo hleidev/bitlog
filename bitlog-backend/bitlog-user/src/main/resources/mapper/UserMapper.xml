@@ -10,8 +10,6 @@
         <result column="deleted" property="deleted"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
-        <result column="third_account_id" property="thirdAccountId"/>
-        <result column="login_type" property="loginType"/>
         <result column="avatar" property="avatar"/>
         <result column="position" property="position"/>
         <result column="company" property="company"/>
@@ -51,7 +49,6 @@
     <select id="selectUserDetail" resultMap="UserDetailDTOMap">
         select
             a.id, a.username, a.email, a.status, a.deleted, a.create_time, a.update_time,
-            a.third_account_id, a.login_type,
             b.avatar, b.position, b.company, b.profile, b.extend, b.user_role
         from user_account a
         left join user_info b on a.id = b.user_id

@@ -7,7 +7,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import top.harrylei.bitlog.api.enums.user.LoginTypeEnum;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.auth.LoginParam;
@@ -88,7 +87,7 @@ public class AuthServiceImpl implements AuthService {
 
         verificationCodeService.verify(VerifyCodePurpose.REGISTER, normalizedEmail, param.getCode());
 
-        doCreateUser(normalizedEmail, param.getUsername(), param.getPassword(), UserRoleEnum.NORMAL, true);
+        doCreateUser(normalizedEmail, param.getUsername(), param.getPassword(), UserRoleEnum.NORMAL);
         log.info("用户注册成功 email={} username={}", MaskUtil.email(normalizedEmail), param.getUsername());
     }
 
@@ -102,7 +101,7 @@ public class AuthServiceImpl implements AuthService {
             ResultCode.FORBIDDEN.throwException("创建管理员账号需要管理员权限");
         }
 
-        doCreateUser(normalizedEmail, param.getUsername(), param.getPassword(), param.getRole(), false);
+        doCreateUser(normalizedEmail, param.getUsername(), param.getPassword(), param.getRole());
         log.info("管理员创建用户成功 email={} username={}", MaskUtil.email(normalizedEmail), param.getUsername());
     }
 
@@ -208,7 +207,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String password = PasswordUtil.generateRandomPassword();
-        Long userId = doCreateUser(normalizedEmail, req.getUsername(), password, req.getUserRole(), false);
+        Long userId = doCreateUser(normalizedEmail, req.getUsername(), password, req.getUserRole());
         userInfoDAO.updateInfo(userId, req.getUsername(), req.getProfile(), req.getPosition(), req.getCompany());
 
         log.info("管理员创建用户成功 username={}", req.getUsername());
@@ -224,11 +223,9 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private Long doCreateUser(String email, String username, String rawPassword, UserRoleEnum role,
-        boolean emailVerified) {
-        UserDO newUser = new UserDO().setUsername(username).setEmail(email).setEmailVerified(emailVerified)
-            .setPassword(passwordEncoder.encode(rawPassword)).setThirdAccountId("")
-            .setLoginType(LoginTypeEnum.EMAIL_PASSWORD);
+    private Long doCreateUser(String email, String username, String rawPassword, UserRoleEnum role) {
+        UserDO newUser = new UserDO().setUsername(username).setEmail(email)
+            .setPassword(passwordEncoder.encode(rawPassword));
         userDAO.save(newUser);
 
         UserInfoDO userInfo =

@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
-import top.harrylei.bitlog.api.enums.user.LoginTypeEnum;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.common.model.BaseDO;
 
@@ -26,10 +25,6 @@ public class UserDO extends BaseDO {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private String thirdAccountId;
-
-    private LoginTypeEnum loginType;
-
     private DeleteStatusEnum deleted;
 
     private String username;
@@ -37,8 +32,6 @@ public class UserDO extends BaseDO {
     private String password;
 
     private String email;
-
-    private Boolean emailVerified;
 
     private UserStatusEnum status;
 }

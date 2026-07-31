@@ -37,12 +37,6 @@ public class UserDetailDTO extends BaseDTO {
     @Schema(description = "删除标记，0-未删除，1-已删除")
     private DeleteStatusEnum deleted;
 
-    @Schema(description = "第三方账号ID")
-    private String thirdAccountId;
-
-    @Schema(description = "登录类型，0-密码登录，1-邮箱验证码登录")
-    private Integer loginType;
-
     // ---------------- user_info 表字段 ----------------
 
     @Schema(description = "昵称")
