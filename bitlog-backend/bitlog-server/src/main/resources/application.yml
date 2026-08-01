@@ -20,6 +20,19 @@ spring:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            # client-id 会出现在浏览器的授权 URL 里，本就是公开信息，无需加密
+            client-id: 204351845477-7id29gi9iev8o32d95ufhdhbksuot5fm.apps.googleusercontent.com
+            client-secret: ENC(REMOVED)
+            redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - email
+              - profile
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml

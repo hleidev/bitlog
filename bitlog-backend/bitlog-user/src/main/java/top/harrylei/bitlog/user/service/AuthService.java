@@ -1,9 +1,9 @@
 package top.harrylei.bitlog.user.service;
 
 import top.harrylei.bitlog.api.model.auth.LoginParam;
+import top.harrylei.bitlog.api.model.auth.OAuthLoginParam;
 import top.harrylei.bitlog.api.model.auth.PasswordResetParam;
 import top.harrylei.bitlog.api.model.auth.RegisterParam;
-import top.harrylei.bitlog.api.model.auth.UserCreateParam;
 import top.harrylei.bitlog.api.model.user.req.AdminCreateUserParam;
 import top.harrylei.bitlog.api.model.user.vo.UserCreatedVO;
 
@@ -30,19 +30,23 @@ public interface AuthService {
     void register(RegisterParam param);
 
     /**
-     * 管理员建号，不需要邮箱验证码
-     *
-     * @param param 建号参数
-     */
-    void createUser(UserCreateParam param);
-
-    /**
      * 用户登录
      *
      * @param param 登录参数
      * @return 包含 Access Token 和 Refresh Token 的登录结果
      */
     LoginResult login(LoginParam param);
+
+    /**
+     * 第三方登录
+     * <p>
+     * 已绑定则直接登录；邮箱已注册则把该身份并入既有账号；否则建号并生成用户名。
+     * </p>
+     *
+     * @param param 第三方回传的用户信息
+     * @return 包含 Access Token 和 Refresh Token 的登录结果
+     */
+    LoginResult loginWithOAuth(OAuthLoginParam param);
 
     /**
      * 刷新 Token

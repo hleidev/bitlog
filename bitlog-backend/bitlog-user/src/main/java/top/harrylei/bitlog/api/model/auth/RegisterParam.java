@@ -26,7 +26,7 @@ public class RegisterParam {
     private String username;
 
     @NotBlank(message = "密码不能为空")
-    @Pattern(regexp = "^[a-zA-Z0-9_@#%&!$*-]{8,20}$", message = "密码必须包含字母、数字，可包含特殊字符，长度为8~20位")
+    @Pattern(regexp = UserRules.PASSWORD_PATTERN, message = UserRules.PASSWORD_MESSAGE)
     private String password;
 
     @NotBlank(message = "验证码不能为空")

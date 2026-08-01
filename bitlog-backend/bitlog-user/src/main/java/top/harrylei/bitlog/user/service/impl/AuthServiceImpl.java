@@ -2,6 +2,7 @@ package top.harrylei.bitlog.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -10,9 +11,9 @@ import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.auth.LoginParam;
+import top.harrylei.bitlog.api.model.auth.OAuthLoginParam;
 import top.harrylei.bitlog.api.model.auth.PasswordResetParam;
 import top.harrylei.bitlog.api.model.auth.RegisterParam;
-import top.harrylei.bitlog.api.model.auth.UserCreateParam;
 import top.harrylei.bitlog.api.model.user.req.AdminCreateUserParam;
 import top.harrylei.bitlog.api.model.user.vo.UserCreatedVO;
 import top.harrylei.bitlog.common.config.JwtProperties;
@@ -22,12 +23,16 @@ import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.util.MaskUtil;
 import top.harrylei.bitlog.common.util.RateLimiter;
 import top.harrylei.bitlog.user.component.LoginRateLimiter;
+import top.harrylei.bitlog.user.component.OAuthAvatarEvent;
+import top.harrylei.bitlog.user.component.UsernameGenerator;
 import top.harrylei.bitlog.user.component.VerificationCodeService;
 import top.harrylei.bitlog.user.component.VerifyCodePurpose;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
+import top.harrylei.bitlog.user.repository.dao.UserIdentityDAO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
 import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
+import top.harrylei.bitlog.user.repository.entity.UserIdentityDO;
 import top.harrylei.bitlog.user.service.AuthService;
 import top.harrylei.bitlog.user.service.LoginResult;
 import top.harrylei.bitlog.user.util.JwtUtil;
@@ -54,6 +59,9 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserDAO userDAO;
     private final UserInfoDAO userInfoDAO;
+    private final UserIdentityDAO userIdentityDAO;
+    private final UsernameGenerator usernameGenerator;
+    private final ApplicationEventPublisher eventPublisher;
     private final JwtUtil jwtUtil;
     private final JwtProperties jwtProperties;
     private final PasswordEncoder passwordEncoder;
@@ -91,20 +99,6 @@ public class AuthServiceImpl implements AuthService {
         log.info("用户注册成功 email={} username={}", MaskUtil.email(normalizedEmail), param.getUsername());
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    @Override
-    public void createUser(UserCreateParam param) {
-        String normalizedEmail = normalizeEmail(param.getEmail());
-        checkAccountAvailable(normalizedEmail, param.getUsername());
-
-        if (UserRoleEnum.ADMIN.equals(param.getRole()) && !ReqInfoContext.getContext().isAdmin()) {
-            ResultCode.FORBIDDEN.throwException("创建管理员账号需要管理员权限");
-        }
-
-        doCreateUser(normalizedEmail, param.getUsername(), param.getPassword(), param.getRole());
-        log.info("管理员创建用户成功 email={} username={}", MaskUtil.email(normalizedEmail), param.getUsername());
-    }
-
     @Override
     public LoginResult login(LoginParam param) {
         String normalizedEmail = normalizeEmail(param.getEmail());
@@ -128,6 +122,40 @@ public class AuthServiceImpl implements AuthService {
         UserRoleEnum role = userInfo != null ? userInfo.getUserRole() : UserRoleEnum.NORMAL;
 
         return issueTokenPair(userId, role);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public LoginResult loginWithOAuth(OAuthLoginParam param) {
+        UserIdentityDO identity = userIdentityDAO.getByProvider(param.getProvider(), param.getProviderUserId());
+        if (identity != null) {
+            return issueTokenForUser(identity.getUserId());
+        }
+
+        // 邮箱是下面合并账号与建号的唯一依据，未经平台验证就用它等于让任何人
+        // 注册一个填着他人邮箱的第三方账号，即可登进对方账号
+        if (!param.isEmailVerified()) {
+            ResultCode.OAUTH_EMAIL_UNVERIFIED.throwException();
+        }
+
+        // 同一个人先用邮箱注册、后用第三方登录，按邮箱并入既有账号，避免产生两个孤立账号
+        String email = normalizeEmail(param.getEmail());
+        UserDO existing = email != null ? userDAO.getByEmail(email) : null;
+        if (existing != null) {
+            userIdentityDAO.bind(existing.getId(), param.getProvider(), param.getProviderUserId());
+            log.info("第三方身份并入既有账号 userId={} provider={}", existing.getId(), param.getProvider());
+            return issueTokenForUser(existing.getId());
+        }
+
+        String username = usernameGenerator.generate(param.getName(), email);
+        Long userId = doCreateUser(email, username, null, UserRoleEnum.NORMAL);
+        userIdentityDAO.bind(userId, param.getProvider(), param.getProviderUserId());
+
+        // 头像转存要读到刚建的这行记录，交由事务提交后的监听器异步处理
+        eventPublisher.publishEvent(new OAuthAvatarEvent(userId, param.getAvatarUrl()));
+
+        log.info("第三方登录首次建号 userId={} provider={} username={}", userId, param.getProvider(), username);
+        return issueTokenForUser(userId);
     }
 
     @Override
@@ -199,19 +227,15 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public UserCreatedVO adminCreateUser(AdminCreateUserParam req) {
         String normalizedEmail = normalizeEmail(req.getEmail());
-        if (userDAO.isUsernameTaken(req.getUsername())) {
-            ResultCode.USER_ALREADY_EXISTS.throwException(req.getUsername());
-        }
-        if (normalizedEmail != null && userDAO.isEmailTaken(normalizedEmail)) {
-            ResultCode.USER_ALREADY_EXISTS.throwException(normalizedEmail);
-        }
+        checkAccountAvailable(normalizedEmail, req.getUsername());
 
         String password = PasswordUtil.generateRandomPassword();
         Long userId = doCreateUser(normalizedEmail, req.getUsername(), password, req.getUserRole());
         userInfoDAO.updateInfo(userId, req.getProfile(), req.getPosition(), req.getCompany());
 
-        log.info("管理员创建用户成功 username={}", req.getUsername());
-        return new UserCreatedVO().setUsername(req.getUsername()).setInitialPassword(password);
+        log.info("管理员创建用户成功 email={} username={}", MaskUtil.email(normalizedEmail), req.getUsername());
+        return new UserCreatedVO().setEmail(normalizedEmail).setUsername(req.getUsername())
+            .setInitialPassword(password);
     }
 
     private void checkAccountAvailable(String email, String username) {
@@ -224,8 +248,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private Long doCreateUser(String email, String username, String rawPassword, UserRoleEnum role) {
-        UserDO newUser =
-            new UserDO().setUsername(username).setEmail(email).setPassword(passwordEncoder.encode(rawPassword));
+        // 第三方登录建号时没有密码，留空即可：Bcrypt 对空密文一律返回不匹配，密码登录自然走不通
+        String encodedPassword = rawPassword != null ? passwordEncoder.encode(rawPassword) : null;
+        UserDO newUser = new UserDO().setUsername(username).setEmail(email).setPassword(encodedPassword);
         userDAO.save(newUser);
 
         UserInfoDO userInfo = new UserInfoDO().setUserId(newUser.getId()).setAvatar("").setUserRole(role);
@@ -235,6 +260,16 @@ public class AuthServiceImpl implements AuthService {
 
     private String normalizeEmail(String email) {
         return StringUtils.hasText(email) ? email.trim().toLowerCase(Locale.ROOT) : null;
+    }
+
+    private LoginResult issueTokenForUser(Long userId) {
+        UserDO user = userDAO.getById(userId);
+        if (user == null || !UserStatusEnum.ENABLED.equals(user.getStatus())) {
+            ResultCode.USER_DISABLED.throwException();
+        }
+        UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
+        UserRoleEnum role = userInfo != null ? userInfo.getUserRole() : UserRoleEnum.NORMAL;
+        return issueTokenPair(userId, role);
     }
 
     private LoginResult issueTokenPair(Long userId, UserRoleEnum role) {

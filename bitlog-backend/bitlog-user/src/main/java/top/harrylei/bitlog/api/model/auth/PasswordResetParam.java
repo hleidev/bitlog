@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import top.harrylei.bitlog.api.model.user.UserRules;
 import lombok.Data;
 
 /**
@@ -25,6 +26,6 @@ public class PasswordResetParam {
     private String code;
 
     @NotBlank(message = "密码不能为空")
-    @Pattern(regexp = "^[a-zA-Z0-9_@#%&!$*-]{8,20}$", message = "密码必须包含字母、数字，可包含特殊字符，长度为8~20位")
+    @Pattern(regexp = UserRules.PASSWORD_PATTERN, message = UserRules.PASSWORD_MESSAGE)
     private String newPassword;
 }

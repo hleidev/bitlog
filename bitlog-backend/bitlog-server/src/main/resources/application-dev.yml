@@ -21,6 +21,9 @@ jwt:
 cookie:
   secure: false
 
+oauth2:
+  redirect-uri: http://localhost:5173/auth/callback
+
 app:
   exception:
     print-stack-trace: true

@@ -3,8 +3,6 @@ package top.harrylei.bitlog.user.controller;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import top.harrylei.bitlog.api.model.auth.LoginParam;
@@ -12,12 +10,9 @@ import top.harrylei.bitlog.api.model.auth.EmailParam;
 import top.harrylei.bitlog.api.model.auth.LoginVO;
 import top.harrylei.bitlog.api.model.auth.PasswordResetParam;
 import top.harrylei.bitlog.api.model.auth.RegisterParam;
-import top.harrylei.bitlog.api.model.auth.UserCreateParam;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.Result;
-import top.harrylei.bitlog.common.security.RequiresAdmin;
-import top.harrylei.bitlog.user.config.CookieProperties;
-import top.harrylei.bitlog.common.config.JwtProperties;
+import top.harrylei.bitlog.user.component.RefreshTokenCookie;
 import top.harrylei.bitlog.user.service.AuthService;
 import top.harrylei.bitlog.user.service.LoginResult;
 
@@ -32,12 +27,10 @@ import top.harrylei.bitlog.user.service.LoginResult;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
-    private static final String COOKIE_PATH = "/";
+    private static final String REFRESH_TOKEN_COOKIE = RefreshTokenCookie.COOKIE_NAME;
 
     private final AuthService authService;
-    private final JwtProperties jwtProperties;
-    private final CookieProperties cookieProperties;
+    private final RefreshTokenCookie refreshTokenCookie;
 
     @PostMapping("/register/code")
     public Result<Void> sendRegisterCode(@Valid @RequestBody EmailParam request) {
@@ -54,7 +47,7 @@ public class AuthController {
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginParam request, HttpServletResponse response) {
         LoginResult result = authService.login(request);
-        setRefreshTokenCookie(response, result.refreshToken());
+        refreshTokenCookie.write(response, result.refreshToken());
         return Result.success(new LoginVO(result.accessToken()));
     }
 
@@ -65,7 +58,7 @@ public class AuthController {
             return Result.fail(ResultCode.REFRESH_TOKEN_INVALID);
         }
         LoginResult result = authService.refresh(refreshToken);
-        setRefreshTokenCookie(response, result.refreshToken());
+        refreshTokenCookie.write(response, result.refreshToken());
         return Result.success(new LoginVO(result.accessToken()));
     }
 
@@ -73,7 +66,7 @@ public class AuthController {
     public Result<Void> logout(@CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) String refreshToken,
         HttpServletResponse response) {
         authService.logout(refreshToken);
-        clearRefreshTokenCookie(response);
+        refreshTokenCookie.clear(response);
         return Result.success();
     }
 
@@ -89,23 +82,4 @@ public class AuthController {
         return Result.success();
     }
 
-    @RequiresAdmin
-    @PostMapping("/admin/create")
-    public Result<Void> createUser(@Valid @RequestBody UserCreateParam request) {
-        authService.createUser(request);
-        return Result.success();
-    }
-
-    private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
-        ResponseCookie cookie =
-            ResponseCookie.from(REFRESH_TOKEN_COOKIE, refreshToken).httpOnly(true).secure(cookieProperties.isSecure())
-                .sameSite("Lax").path(COOKIE_PATH).maxAge(jwtProperties.getRefreshTokenExpire()).build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-    }
-
-    private void clearRefreshTokenCookie(HttpServletResponse response) {
-        ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, "").httpOnly(true)
-            .secure(cookieProperties.isSecure()).sameSite("Lax").path(COOKIE_PATH).maxAge(0).build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-    }
 }

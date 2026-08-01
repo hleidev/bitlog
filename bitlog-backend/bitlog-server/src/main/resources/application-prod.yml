@@ -29,6 +29,9 @@ storage:
 cookie:
   secure: true
 
+oauth2:
+  redirect-uri: https://bitlog.harrylei.top/auth/callback
+
 security:
   allowed-origins:
     - https://bitlog.harrylei.top

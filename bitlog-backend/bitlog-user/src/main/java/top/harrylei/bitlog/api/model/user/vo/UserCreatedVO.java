@@ -15,7 +15,11 @@ import lombok.experimental.Accessors;
 @Schema(description = "管理员创建用户结果展示对象")
 public class UserCreatedVO {
 
-    @Schema(description = "登录用户名")
+    /** 必须回传：登录标识是邮箱，只给用户名会让管理员把一组登不进去的凭据转告新用户 */
+    @Schema(description = "登录邮箱")
+    private String email;
+
+    @Schema(description = "用户名，公开展示")
     private String username;
 
     @Schema(description = "系统生成的初始密码（明文）")

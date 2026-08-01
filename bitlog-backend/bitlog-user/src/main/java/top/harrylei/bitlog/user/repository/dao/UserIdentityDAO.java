@@ -1,0 +1,25 @@
+package top.harrylei.bitlog.user.repository.dao;
+
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.stereotype.Repository;
+import top.harrylei.bitlog.user.repository.entity.UserIdentityDO;
+import top.harrylei.bitlog.user.repository.mapper.UserIdentityMapper;
+
+/**
+ * 第三方身份关联数据访问对象
+ *
+ * @author Harry
+ * @since 2026-07-31
+ */
+@Repository
+public class UserIdentityDAO extends ServiceImpl<UserIdentityMapper, UserIdentityDO> {
+
+    public UserIdentityDO getByProvider(String provider, String providerUserId) {
+        return lambdaQuery().eq(UserIdentityDO::getProvider, provider)
+            .eq(UserIdentityDO::getProviderUserId, providerUserId).one();
+    }
+
+    public void bind(Long userId, String provider, String providerUserId) {
+        save(new UserIdentityDO().setUserId(userId).setProvider(provider).setProviderUserId(providerUserId));
+    }
+}

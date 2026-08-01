@@ -3,6 +3,7 @@ package top.harrylei.bitlog.common.advice;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -62,6 +63,16 @@ public class GlobalExceptionHandler {
             e.getConstraintViolations().stream().map(v -> v.getMessage()).collect(Collectors.joining("; "));
         log.warn("参数校验失败: {}", message);
         return Result.fail(ResultCode.INVALID_PARAMETER.getCode(), message);
+    }
+
+    /**
+     * 唯一索引冲突。 用户名、邮箱这类字段都是「先查重后写入」，查与写之间存在窗口， 并发提交时落败的一方会撞上唯一索引。不接住就会退化成 500「系统内部错误」。
+     */
+    @ExceptionHandler(DuplicateKeyException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public Result<Void> handleDuplicateKey(DuplicateKeyException e) {
+        log.warn("唯一索引冲突: {}", e.getMessage());
+        return Result.fail(ResultCode.RESOURCE_ALREADY_EXISTS);
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
