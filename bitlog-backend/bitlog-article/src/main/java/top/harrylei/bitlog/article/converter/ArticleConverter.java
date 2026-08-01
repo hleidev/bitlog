@@ -97,10 +97,14 @@ public interface ArticleConverter {
     @Mapping(target = "publishTime", ignore = true)
     ArticlePublicDetailVO toPublicDetailVO(ArticleDO article, ArticleVersionDO version);
 
+    /** articleCount 由服务层按已发布文章实时统计后填入，DO 上没有对应列 */
+    @Mapping(target = "articleCount", ignore = true)
     TagVO toTagVO(TagDO tag);
 
     List<TagVO> toTagVOList(List<TagDO> tags);
 
+    /** articleCount 同 {@link #toTagVO} */
+    @Mapping(target = "articleCount", ignore = true)
     CategoryVO toCategoryVO(CategoryDO category);
 
     List<CategoryVO> toCategoryVOList(List<CategoryDO> categories);
