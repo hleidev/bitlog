@@ -96,6 +96,7 @@ export interface CreateUserBody {
 }
 
 export interface CreateUserResult {
+  email: string
   username: string
   initialPassword: string
 }

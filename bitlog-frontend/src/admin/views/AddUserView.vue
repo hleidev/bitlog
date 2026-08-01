@@ -28,13 +28,9 @@ async function handleSubmit() {
     toast.warning(usernameError)
     return
   }
-  const emailError = form.email && validateEmail(form.email)
+  const emailError = validateEmail(form.email)
   if (emailError) {
     toast.warning(emailError)
-    return
-  }
-  if (form.email && form.email.length > 128) {
-    toast.warning('邮箱最长 128 个字符')
     return
   }
   if (form.position.length > 64) {
@@ -54,7 +50,7 @@ async function handleSubmit() {
   try {
     const result = await createUser({
       username: form.username,
-      email: form.email || undefined,
+      email: form.email.trim(),
       userRole: form.userRole,
       position: form.position || undefined,
       company: form.company || undefined,
@@ -63,10 +59,11 @@ async function handleSubmit() {
     createResult.value = result
     successVisible.value = true
     copyCredentials(result)
-  } catch (err: any) {
-    if (err?.code === 42001) toast.error('用户名已存在')
-    else if (err?.code === 40001) toast.error('参数校验失败，请检查用户名或邮箱格式')
-    else toast.error('创建失败，请稍后重试')
+  } catch (err) {
+    // 42002 用户已存在、40011 并发撞唯一索引、40000 参数校验，后端都带了可直接展示的消息
+    const { code, message } = (err ?? {}) as { code?: number; message?: string }
+    const known = code === 42002 || code === 40011 || code === 40000
+    toast.error(known && message ? message : '创建失败，请稍后重试')
   } finally {
     submitting.value = false
   }
@@ -75,7 +72,9 @@ async function handleSubmit() {
 async function copyCredentials(result = createResult.value) {
   if (!result) return
   try {
-    await navigator.clipboard.writeText(`账号：${result.username}\n密码：${result.initialPassword}`)
+    await navigator.clipboard.writeText(
+      `登录邮箱：${result.email}\n密码：${result.initialPassword}`,
+    )
     toast.success('账号和密码已复制到剪贴板')
   } catch {
     toast.error('复制失败，请手动复制')
@@ -123,7 +122,7 @@ function handleSuccessClose() {
               />
             </div>
             <div class="field">
-              <label class="field-label">邮箱</label>
+              <label class="field-label">邮箱 <span class="required">*</span></label>
               <input
                 v-model="form.email"
                 class="field-input"
@@ -200,7 +199,7 @@ function handleSuccessClose() {
           </div>
           <p class="dialog-title">用户已创建</p>
           <p class="dialog-sub">
-            账号 <b>{{ createResult.username }}</b> · 初始密码
+            登录邮箱 <b>{{ createResult.email }}</b> · 初始密码
           </p>
           <div class="dialog-password">{{ createResult.initialPassword }}</div>
           <p class="dialog-copied">账号和密码已自动复制到剪贴板</p>
