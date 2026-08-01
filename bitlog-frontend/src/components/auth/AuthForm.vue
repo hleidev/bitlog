@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import PasswordInput from '@/components/common/PasswordInput.vue'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton.vue'
+import { startOAuthLogin } from '@/utils/oauth'
 import { useUserStore } from '@/stores/useUserStore'
 import { ApiError } from '@/utils/request'
 import { resetPassword, sendRegisterCode, sendResetPasswordCode } from '@/api/auth'
@@ -19,6 +22,7 @@ type AuthMode = 'login' | 'register' | 'forgot'
 
 const emit = defineEmits<{ success: [] }>()
 
+const route = useRoute()
 const userStore = useUserStore()
 
 const CODE_COOLDOWN = 60
@@ -209,6 +213,12 @@ async function handleSubmit() {
   }
 }
 
+function handleGoogleLogin() {
+  if (loading.value) return
+  // 授权要整页跳走，先记下当前位置，回调页据此把用户送回原处
+  startOAuthLogin('google', route.fullPath)
+}
+
 onMounted(() => nextTick(() => emailInputRef.value?.focus()))
 onUnmounted(stopCountdown)
 </script>
@@ -330,6 +340,13 @@ onUnmounted(stopCountdown)
       <p v-if="apiError" class="form-error">{{ apiError }}</p>
 
       <button class="form-submit" type="submit" :disabled="loading">{{ submitText }}</button>
+
+      <template v-if="mode !== 'forgot'">
+        <div class="auth-divider"><span>或</span></div>
+        <div class="auth-oauth">
+          <GoogleSignInButton :disabled="loading" @click="handleGoogleLogin" />
+        </div>
+      </template>
 
       <p class="auth-switch">
         <template v-if="mode === 'login'">
@@ -514,6 +531,27 @@ onUnmounted(stopCountdown)
 .form-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.auth-oauth {
+  display: flex;
+  justify-content: center;
 }
 
 .auth-switch {

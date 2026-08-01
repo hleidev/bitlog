@@ -12,8 +12,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
+        // 必须保留原始 Host：Spring 用它推导 OAuth 的 redirect_uri，
+        // 改写成后端地址会让 Google 回调绕开本服务器，Cookie 种到另一个 host 上
         target: 'http://127.0.0.1:12301',
-        changeOrigin: true,
+        changeOrigin: false,
       },
     },
   },
