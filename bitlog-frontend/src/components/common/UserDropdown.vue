@@ -49,7 +49,6 @@ async function handleLogout() {
       <span v-else class="ud-avatar ud-avatar--placeholder">{{ avatarLetter }}</span>
       <div class="ud-profile-info">
         <span class="ud-name">{{ displayName }}</span>
-        <span v-if="userInfo?.username" class="ud-position">@{{ userInfo.username }}</span>
       </div>
     </div>
 
@@ -151,14 +150,6 @@ async function handleLogout() {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ud-position {
-  font-size: 11px;
-  color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

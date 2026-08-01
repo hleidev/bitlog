@@ -853,7 +853,6 @@ function relativeTime(d: string) {
             </div>
             <div class="dg-banner-info">
               <span class="dg-name">{{ detailUser.username }}</span>
-              <span class="dg-username">@{{ detailUser.username }}</span>
               <div class="dg-badges">
                 <span
                   class="role-badge"
@@ -1450,12 +1449,6 @@ function relativeTime(d: string) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.dg-username {
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted);
 }
 
 .dg-badges {
