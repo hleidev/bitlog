@@ -22,6 +22,7 @@ import top.harrylei.bitlog.file.util.ImageProcessor;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -48,13 +49,9 @@ public class FileServiceImpl implements FileService {
             ResultCode.INVALID_PARAMETER.throwException("文件不能为空");
         }
 
-        String contentType = file.getContentType() != null ? file.getContentType().toLowerCase() : null;
-        if (!scene.isAllowedType(contentType)) {
-            ResultCode.FILE_TYPE_NOT_ALLOWED.throwException(contentType);
-        }
-
+        // 先按声明大小拦一道，避免超限文件被整个读进内存
         if (scene.isSizeExceeded(file.getSize())) {
-            ResultCode.FILE_SIZE_EXCEEDED.throwException("最大允许 " + scene.readableMaxSize());
+            throwSizeExceeded(scene);
         }
 
         String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
@@ -62,22 +59,47 @@ public class FileServiceImpl implements FileService {
             ResultCode.INVALID_PARAMETER.throwException("文件名缺少扩展名");
         }
 
+        try {
+            return upload(userId, scene, file.getBytes(), file.getContentType(), ext);
+        } catch (IOException e) {
+            log.error("读取上传文件失败 scene={} userId={}", scene, userId, e);
+            ResultCode.INTERNAL_ERROR.throwException("文件读取失败");
+            throw new IllegalStateException("unreachable");
+        }
+    }
+
+    @Override
+    public UploadVO upload(Long userId, UploadScene scene, byte[] content, String rawContentType, String extension) {
+        if (content == null || content.length == 0) {
+            ResultCode.INVALID_PARAMETER.throwException("文件不能为空");
+        }
+
+        String contentType = rawContentType != null ? rawContentType.toLowerCase() : null;
+        if (!scene.isAllowedType(contentType)) {
+            ResultCode.FILE_TYPE_NOT_ALLOWED.throwException(contentType);
+        }
+
+        if (scene.isSizeExceeded(content.length)) {
+            throwSizeExceeded(scene);
+        }
+
         byte[] fileBytes;
         try {
-            fileBytes = ImageProcessor.stripExif(file.getBytes(), contentType);
+            fileBytes = ImageProcessor.stripExif(content, contentType);
         } catch (IOException e) {
             log.error("图片处理失败 scene={} userId={}", scene, userId, e);
             ResultCode.INTERNAL_ERROR.throwException("图片处理失败");
             throw new IllegalStateException("unreachable");
         }
 
+        // 去 EXIF 后仍需复检：处理过程可能改变体积
         if (scene.isSizeExceeded(fileBytes.length)) {
-            ResultCode.FILE_SIZE_EXCEEDED.throwException("最大允许 " + scene.readableMaxSize());
+            throwSizeExceeded(scene);
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        String key = String.format("%s/%d/%d/%02d/%s.%s", scene, userId, now.getYear(), now.getMonthValue(),
-            UUID.randomUUID(), ext);
+        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
+        String key = String.format("%s/%d/%d/%02d/%s.%s", scene.getCode(), userId, now.getYear(), now.getMonthValue(),
+            UUID.randomUUID(), extension);
 
         try {
             s3Client.putObject(PutObjectRequest.builder().bucket(props.getBucket()).key(key).contentType(contentType)
@@ -89,7 +111,7 @@ public class FileServiceImpl implements FileService {
 
         log.info("文件上传成功 scene={} userId={} key={}", scene, userId, key);
 
-        if (scene == UploadScene.article) {
+        if (scene == UploadScene.ARTICLE) {
             try {
                 recordUpload(userId, key);
             } catch (Exception e) {
@@ -98,6 +120,10 @@ public class FileServiceImpl implements FileService {
         }
 
         return new UploadVO().setFileKey(key).setFileUrl(fileUrlHelper.buildUrl(key));
+    }
+
+    private void throwSizeExceeded(UploadScene scene) {
+        ResultCode.FILE_SIZE_EXCEEDED.throwException("最大允许 " + scene.readableMaxSize());
     }
 
     @Override

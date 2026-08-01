@@ -151,7 +151,7 @@ public class UserServiceImpl implements UserService {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
         String key = fileUrlHelper.extractKey(avatar);
-        String ownerPrefix = UploadScene.avatar + "/" + userId + "/";
+        String ownerPrefix = UploadScene.AVATAR.getCode() + "/" + userId + "/";
         if (!key.startsWith(ownerPrefix)) {
             ResultCode.INVALID_PARAMETER.throwException("无效的头像地址");
         }

@@ -27,6 +27,18 @@ public interface FileService {
     UploadVO upload(Long userId, UploadScene scene, MultipartFile file);
 
     /**
+     * 上传服务端自行取得的字节内容，用于没有 MultipartFile 的来源（如第三方登录头像）。
+     *
+     * @param userId 归属用户 ID
+     * @param scene 上传场景
+     * @param content 文件字节
+     * @param contentType MIME 类型
+     * @param extension 文件扩展名，不含点
+     * @return 文件 Key 与访问地址
+     */
+    UploadVO upload(Long userId, UploadScene scene, byte[] content, String contentType, String extension);
+
+    /**
      * 删除对象存储中的文件，失败时仅记录日志，不抛出异常
      *
      * @param key 文件存储路径（如 bitlog/avatar/1/2026/04/xxx.jpeg）
