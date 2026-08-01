@@ -12,12 +12,13 @@ export const routes: RouteRecordRaw[] = [
       { path: '', component: () => import('@/views/HomeView.vue'), meta: { darkTop: true } },
       { path: 'articles', component: () => import('@/views/ArticleListView.vue') },
       { path: 'article/:id(\\d+)', component: () => import('@/views/ArticleDetailView.vue') },
+      {
+        // 放在公共布局内：授权失败时用户会停在这一页，裸页面既没有站点标识也无处可去。
+        // 同时必须被预渲染成静态页，Google 回调是整页跳转，静态托管下缺这份 HTML 会 404
+        path: 'auth/callback',
+        component: () => import('@/views/AuthCallbackView.vue'),
+      },
     ],
-  },
-  {
-    // 需要被预渲染成静态页：Google 回调是整页跳转，静态托管下没有这份 HTML 会直接 404
-    path: '/auth/callback',
-    component: () => import('@/views/AuthCallbackView.vue'),
   },
   {
     path: '/admin/login',
