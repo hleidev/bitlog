@@ -5,6 +5,8 @@ import org.springframework.stereotype.Repository;
 import top.harrylei.bitlog.user.repository.entity.UserIdentityDO;
 import top.harrylei.bitlog.user.repository.mapper.UserIdentityMapper;
 
+import java.util.List;
+
 /**
  * 第三方身份关联数据访问对象
  *
@@ -19,7 +21,20 @@ public class UserIdentityDAO extends ServiceImpl<UserIdentityMapper, UserIdentit
             .eq(UserIdentityDO::getProviderUserId, providerUserId).one();
     }
 
-    public void bind(Long userId, String provider, String providerUserId) {
-        save(new UserIdentityDO().setUserId(userId).setProvider(provider).setProviderUserId(providerUserId));
+    public List<UserIdentityDO> listByUserId(Long userId) {
+        return lambdaQuery().eq(UserIdentityDO::getUserId, userId).list();
+    }
+
+    public boolean existsByUserAndProvider(Long userId, String provider) {
+        return lambdaQuery().eq(UserIdentityDO::getUserId, userId).eq(UserIdentityDO::getProvider, provider).exists();
+    }
+
+    public void bind(Long userId, String provider, String providerUserId, String providerEmail) {
+        save(new UserIdentityDO().setUserId(userId).setProvider(provider).setProviderUserId(providerUserId)
+            .setProviderEmail(providerEmail));
+    }
+
+    public boolean unbind(Long userId, String provider) {
+        return lambdaUpdate().eq(UserIdentityDO::getUserId, userId).eq(UserIdentityDO::getProvider, provider).remove();
     }
 }

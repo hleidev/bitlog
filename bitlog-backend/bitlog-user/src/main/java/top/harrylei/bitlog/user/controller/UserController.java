@@ -7,7 +7,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,13 +18,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.harrylei.bitlog.api.model.user.req.EmailCodeParam;
 import top.harrylei.bitlog.api.model.user.req.EmailUpdateParam;
+import top.harrylei.bitlog.api.model.user.req.PasswordInitParam;
 import top.harrylei.bitlog.api.model.user.req.PasswordUpdateParam;
 import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
+import top.harrylei.bitlog.api.model.user.vo.UserIdentityVO;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.model.Result;
 import top.harrylei.bitlog.common.security.RequiresLogin;
 import top.harrylei.bitlog.user.service.UserService;
+
+import java.util.List;
 
 /**
  * 用户接口
@@ -57,6 +63,32 @@ public class UserController {
     @PutMapping("/password")
     public Result<Void> updatePassword(@Valid @RequestBody PasswordUpdateParam req) {
         userService.updatePassword(ReqInfoContext.getContext().getUserId(), req);
+        return Result.success();
+    }
+
+    @Operation(summary = "首次设置密码")
+    @PostMapping("/password")
+    public Result<Void> initPassword(@Valid @RequestBody PasswordInitParam req) {
+        userService.initPassword(ReqInfoContext.getContext().getUserId(), req);
+        return Result.success();
+    }
+
+    @Operation(summary = "查询已绑定的第三方身份")
+    @GetMapping("/identities")
+    public Result<List<UserIdentityVO>> listIdentities() {
+        return Result.success(userService.listIdentities(ReqInfoContext.getContext().getUserId()));
+    }
+
+    @Operation(summary = "发起第三方账号绑定，返回授权入口所需的意图令牌")
+    @PostMapping("/identities/bind-intent")
+    public Result<String> createBindIntent() {
+        return Result.success(userService.createBindIntent(ReqInfoContext.getContext().getUserId()));
+    }
+
+    @Operation(summary = "解绑第三方身份")
+    @DeleteMapping("/identities/{provider}")
+    public Result<Void> unbindIdentity(@PathVariable @NotBlank(message = "平台标识不能为空") String provider) {
+        userService.unbindIdentity(ReqInfoContext.getContext().getUserId(), provider);
         return Result.success();
     }
 

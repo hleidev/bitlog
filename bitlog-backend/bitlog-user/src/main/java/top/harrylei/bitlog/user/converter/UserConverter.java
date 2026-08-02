@@ -42,6 +42,8 @@ public interface UserConverter {
     @Mapping(source = "user.deleted", target = "deleted")
     @Mapping(source = "user.createTime", target = "createTime")
     @Mapping(source = "user.updateTime", target = "updateTime")
+    // 密码本身不出站，由 Service 换算成布尔量后回填
+    @Mapping(target = "hasPassword", ignore = true)
     UserDetailVO toDetailVO(UserInfoDO userInfo, UserDO user);
 
     @Mapping(source = "userInfo.userId", target = "userId")

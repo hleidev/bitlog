@@ -23,6 +23,7 @@ cookie:
 
 oauth2:
   redirect-uri: http://localhost:5173/auth/callback
+  bind-redirect-uri: http://localhost:5173/admin/profile
 
 app:
   exception:

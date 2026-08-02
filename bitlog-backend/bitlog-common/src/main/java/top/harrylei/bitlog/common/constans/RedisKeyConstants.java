@@ -22,6 +22,7 @@ public class RedisKeyConstants {
     // ===== 功能 Key 前缀 =====
     public static final String USER_REFRESH_TOKEN = USER + "refresh:";
     public static final String USER_INFO = USER + "info:";
+    public static final String OAUTH_BIND_INTENT = USER + "oauth:bind:";
     public static final String DISTRIBUTED_LOCK = LOCK + "distributed:";
     public static final String DUPLICATE_LOCK = LOCK + "duplicate:";
     public static final String HEALTH_CHECK = GLOBAL_PREFIX + "health:check";
@@ -41,6 +42,11 @@ public class RedisKeyConstants {
 
     public static String getUserInfoKey(Long userId) {
         return USER_INFO + userId;
+    }
+
+    /** 第三方绑定意图：授权回调不携带业务登录态，靠这个一次性令牌把回调关联回发起绑定的账号 */
+    public static String getOAuthBindIntentKey(String token) {
+        return OAUTH_BIND_INTENT + token;
     }
 
     public static String getDistributedLockKey(String lockKey) {

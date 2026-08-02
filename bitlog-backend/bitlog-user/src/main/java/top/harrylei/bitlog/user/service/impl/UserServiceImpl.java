@@ -3,6 +3,7 @@ package top.harrylei.bitlog.user.service.impl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,13 +15,16 @@ import top.harrylei.bitlog.api.model.user.dto.UserStatsDTO;
 import top.harrylei.bitlog.api.model.user.query.UserPageParam;
 import top.harrylei.bitlog.api.model.user.req.EmailCodeParam;
 import top.harrylei.bitlog.api.model.user.req.EmailUpdateParam;
+import top.harrylei.bitlog.api.model.user.req.PasswordInitParam;
 import top.harrylei.bitlog.api.model.user.req.PasswordUpdateParam;
 import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.PasswordResetVO;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
+import top.harrylei.bitlog.api.model.user.vo.UserIdentityVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
 import top.harrylei.bitlog.api.model.user.vo.UserStatsVO;
 import top.harrylei.bitlog.api.model.user.vo.UserVO;
+import top.harrylei.bitlog.common.constans.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.PageVO;
@@ -33,14 +37,18 @@ import top.harrylei.bitlog.user.component.VerificationCodeService;
 import top.harrylei.bitlog.user.component.VerifyCodePurpose;
 import top.harrylei.bitlog.user.converter.UserConverter;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
+import top.harrylei.bitlog.user.repository.dao.UserIdentityDAO;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
+import top.harrylei.bitlog.user.repository.entity.UserIdentityDO;
 import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 import top.harrylei.bitlog.user.service.UserService;
 import top.harrylei.bitlog.user.util.PasswordUtil;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -55,13 +63,18 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    /** 够走完一次 Google 授权即可，留长了等于放大重放窗口 */
+    private static final Duration BIND_INTENT_TTL = Duration.ofMinutes(5);
+
     private final UserDAO userDAO;
+    private final UserIdentityDAO userIdentityDAO;
     private final UserInfoDAO userInfoDAO;
     private final UserConverter userConverter;
     private final PasswordEncoder passwordEncoder;
     private final FileUrlHelper fileUrlHelper;
     private final FileService fileService;
     private final VerificationCodeService verificationCodeService;
+    private final StringRedisTemplate redisTemplate;
 
     @Override
     public UserVO getUserById(Long userId) {
@@ -111,6 +124,7 @@ public class UserServiceImpl implements UserService {
         }
         UserDetailVO vo = userConverter.toDetailVO(userInfo, user);
         vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+        vo.setHasPassword(StringUtils.hasText(user.getPassword()));
         return vo;
     }
 
@@ -149,6 +163,58 @@ public class UserServiceImpl implements UserService {
 
         userDAO.updatePassword(user.getId(), passwordEncoder.encode(req.getNewPassword()));
         log.info("用户修改密码 userId={}", userId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void initPassword(Long userId, PasswordInitParam req) {
+        UserDO user = userDAO.getById(userId);
+        if (user == null) {
+            throw ResultCode.USER_NOT_EXISTS.toException();
+        }
+        // 已有密码只能走带旧密码校验的修改流程，否则会话一旦被劫持即可静默改掉密码
+        if (StringUtils.hasText(user.getPassword())) {
+            throw ResultCode.OPERATION_NOT_ALLOWED.toException("已设置密码，请使用修改密码");
+        }
+
+        userDAO.updatePassword(userId, passwordEncoder.encode(req.getPassword()));
+        log.info("用户首次设置密码 userId={}", userId);
+    }
+
+    @Override
+    public List<UserIdentityVO> listIdentities(Long userId) {
+        return userIdentityDAO.listByUserId(userId).stream().map(identity -> new UserIdentityVO()
+            .setProvider(identity.getProvider()).setProviderEmail(identity.getProviderEmail())).toList();
+    }
+
+    @Override
+    public String createBindIntent(Long userId) {
+        String token = UUID.randomUUID().toString().replace("-", "");
+        redisTemplate.opsForValue().set(RedisKeyConstants.getOAuthBindIntentKey(token), String.valueOf(userId),
+            BIND_INTENT_TTL);
+        return token;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void unbindIdentity(Long userId, String provider) {
+        UserDO user = userDAO.getById(userId);
+        if (user == null) {
+            throw ResultCode.USER_NOT_EXISTS.toException();
+        }
+
+        List<UserIdentityDO> identities = userIdentityDAO.listByUserId(userId);
+        if (identities.stream().noneMatch(identity -> identity.getProvider().equals(provider))) {
+            throw ResultCode.INVALID_PARAMETER.toException("未绑定该平台账号");
+        }
+        // 解绑后须至少保留一种登录方式：既无密码又无其他绑定时放行，账号将永久无法登录
+        boolean hasOtherIdentity = identities.stream().anyMatch(identity -> !identity.getProvider().equals(provider));
+        if (!StringUtils.hasText(user.getPassword()) && !hasOtherIdentity) {
+            throw ResultCode.OPERATION_NOT_ALLOWED.toException("解绑后将无法登录，请先设置密码");
+        }
+
+        userIdentityDAO.unbind(userId, provider);
+        log.info("解绑第三方身份 userId={} provider={}", userId, provider);
     }
 
     @Override

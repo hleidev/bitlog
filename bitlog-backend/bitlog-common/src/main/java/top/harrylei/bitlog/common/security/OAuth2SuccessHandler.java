@@ -12,4 +12,10 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
  * @author Harry
  * @since 2026-07-31
  */
-public interface OAuth2SuccessHandler extends AuthenticationSuccessHandler {}
+public interface OAuth2SuccessHandler extends AuthenticationSuccessHandler {
+
+    /**
+     * state 中随机段与绑定意图令牌的分隔符。 state 的随机段走 Base64 URL 编码，字符集为 A-Za-z0-9-_= ，不含 '.'，故不会与令牌混淆。
+     */
+    String STATE_INTENT_SEPARATOR = ".";
+}

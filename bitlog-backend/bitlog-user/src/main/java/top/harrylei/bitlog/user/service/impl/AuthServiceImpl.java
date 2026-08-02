@@ -142,20 +142,54 @@ public class AuthServiceImpl implements AuthService {
         String email = EmailUtil.normalize(param.getEmail());
         UserDO existing = email != null ? userDAO.getByEmail(email) : null;
         if (existing != null) {
-            userIdentityDAO.bind(existing.getId(), param.getProvider(), param.getProviderUserId());
+            // 该账号可能已绑同平台的另一个号（绑定不要求两侧邮箱一致），再并入会撞 uk_user_provider。
+            // 拦在这里是为了给出可读原因，否则用户只会看到回跳后的 server_error
+            if (userIdentityDAO.existsByUserAndProvider(existing.getId(), param.getProvider())) {
+                ResultCode.OPERATION_NOT_ALLOWED.throwException("该邮箱对应的账号已绑定其他账号，请用原账号登录后处理");
+            }
+            userIdentityDAO.bind(existing.getId(), param.getProvider(), param.getProviderUserId(), email);
             log.info("第三方身份并入既有账号 userId={} provider={}", existing.getId(), param.getProvider());
             return issueTokenForUser(existing.getId());
         }
 
         String username = usernameGenerator.generate(param.getName(), email);
         Long userId = doCreateUser(email, username, null, UserRoleEnum.NORMAL);
-        userIdentityDAO.bind(userId, param.getProvider(), param.getProviderUserId());
+        userIdentityDAO.bind(userId, param.getProvider(), param.getProviderUserId(), email);
 
         // 头像转存要读到刚建的这行记录，交由事务提交后的监听器异步处理
         eventPublisher.publishEvent(new OAuthAvatarEvent(userId, param.getAvatarUrl()));
 
         log.info("第三方登录首次建号 userId={} provider={} username={}", userId, param.getProvider(), username);
         return issueTokenForUser(userId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void bindWithOAuth(String intentToken, OAuthLoginParam param) {
+        // 令牌一次性消费：授权链路可能被重放，取完即删使重放无从关联到账号
+        String userIdValue =
+            redisTemplate.opsForValue().getAndDelete(RedisKeyConstants.getOAuthBindIntentKey(intentToken));
+        if (userIdValue == null) {
+            throw ResultCode.INVALID_PARAMETER.toException("绑定请求已失效，请重新发起");
+        }
+        Long userId = Long.valueOf(userIdValue);
+
+        // 绑定不校验 emailVerified：认的是平台侧唯一标识，邮箱在此只作展示
+        UserIdentityDO existing = userIdentityDAO.getByProvider(param.getProvider(), param.getProviderUserId());
+        if (existing != null) {
+            if (existing.getUserId().equals(userId)) {
+                return;
+            }
+            // 放行会让一个第三方账号能登进两个本站账号，登录时无从判断该进哪个
+            throw ResultCode.OPERATION_NOT_ALLOWED.toException("该账号已绑定到其他用户");
+        }
+        if (userIdentityDAO.existsByUserAndProvider(userId, param.getProvider())) {
+            throw ResultCode.OPERATION_NOT_ALLOWED.toException("已绑定该平台账号，请先解绑");
+        }
+
+        userIdentityDAO.bind(userId, param.getProvider(), param.getProviderUserId(),
+            EmailUtil.normalize(param.getEmail()));
+        log.info("绑定第三方身份 userId={} provider={}", userId, param.getProvider());
     }
 
     @Override

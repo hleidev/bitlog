@@ -13,11 +13,17 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.keygen.Base64StringKeyGenerator;
+import org.springframework.security.crypto.keygen.StringKeyGenerator;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.util.StringUtils;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -26,6 +32,7 @@ import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.Result;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -46,6 +53,10 @@ public class SecurityConfig {
     /**
      * OAuth2 端点统一挂在 /api 下：前端开发服务器只把 /api 代理给后端， 用 Spring 默认的 /oauth2、/login/oauth2 会让授权回调在 dev 环境 404。
      */
+    /** 授权入口上标记绑定意图的查询参数，值为 UserService 签发的一次性令牌 */
+    private static final String BIND_INTENT_PARAM = "intent";
+    private static final StringKeyGenerator STATE_KEY_GENERATOR = new Base64StringKeyGenerator(Base64.getUrlEncoder());
+
     private static final String OAUTH2_AUTHORIZATION_BASE_URI = "/api/oauth2/authorization";
     private static final String OAUTH2_REDIRECTION_BASE_URI = "/api/login/oauth2/code/*";
     private static final List<String> OAUTH2_WHITELIST = List.of("/api/oauth2/**", "/api/login/oauth2/**");
@@ -94,15 +105,34 @@ public class SecurityConfig {
     }
 
     /**
-     * 强制 Google 每次都展示账号选择器。
+     * 强制 Google 每次都展示账号选择器，并把「绑定」意图透传到回调。
      */
     private OAuth2AuthorizationRequestResolver
         accountSelectingRequestResolver(ClientRegistrationRepository registrations) {
         DefaultOAuth2AuthorizationRequestResolver resolver =
             new DefaultOAuth2AuthorizationRequestResolver(registrations, OAUTH2_AUTHORIZATION_BASE_URI);
-        resolver.setAuthorizationRequestCustomizer(
-            builder -> builder.additionalParameters(params -> params.put("prompt", "select_account")));
+        resolver.setAuthorizationRequestCustomizer(builder -> {
+            builder.additionalParameters(params -> params.put("prompt", "select_account"));
+            String intent = currentBindIntent();
+            if (StringUtils.hasText(intent)) {
+                // 覆盖而非追加：customizer 只拿得到 builder，读不出已生成的 state。
+                builder.state(STATE_KEY_GENERATOR.generateKey() + OAuth2SuccessHandler.STATE_INTENT_SEPARATOR + intent);
+            }
+        });
         return resolver;
+    }
+
+    /**
+     * 授权入口的 intent 参数标记本次是「绑定」而非「登录」。
+     * <p>
+     * customizer 签名里拿不到 HttpServletRequest，只能从 RequestContextHolder 取；RequestContextFilter 的 order 早于 Security
+     * 过滤器链，此处必然已就绪。
+     * </p>
+     */
+    private static String currentBindIntent() {
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        return attributes instanceof ServletRequestAttributes servletAttributes
+            ? servletAttributes.getRequest().getParameter(BIND_INTENT_PARAM) : null;
     }
 
     @Bean

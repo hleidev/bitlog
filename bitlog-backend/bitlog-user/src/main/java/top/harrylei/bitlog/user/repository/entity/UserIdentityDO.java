@@ -29,4 +29,7 @@ public class UserIdentityDO extends BaseDO {
 
     /** 第三方平台的用户唯一标识，Google 为 ID Token 里的 sub */
     private String providerUserId;
+
+    /** 第三方平台侧邮箱，仅供展示；与本站登录邮箱无从属关系，可以不同 */
+    private String providerEmail;
 }

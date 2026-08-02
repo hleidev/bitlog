@@ -4,10 +4,12 @@ import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.user.query.UserPageParam;
 import top.harrylei.bitlog.api.model.user.req.EmailCodeParam;
 import top.harrylei.bitlog.api.model.user.req.EmailUpdateParam;
+import top.harrylei.bitlog.api.model.user.req.PasswordInitParam;
 import top.harrylei.bitlog.api.model.user.req.PasswordUpdateParam;
 import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.PasswordResetVO;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
+import top.harrylei.bitlog.api.model.user.vo.UserIdentityVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
 import top.harrylei.bitlog.api.model.user.vo.UserStatsVO;
 import top.harrylei.bitlog.api.model.user.vo.UserVO;
@@ -62,6 +64,42 @@ public interface UserService {
      * @param req 密码更新请求
      */
     void updatePassword(Long userId, PasswordUpdateParam req);
+
+    /**
+     * 首次设置密码，仅限尚无密码的账号（第三方登录建号）
+     *
+     * @param userId 用户 ID
+     * @param req 新密码
+     */
+    void initPassword(Long userId, PasswordInitParam req);
+
+    /**
+     * 查询已绑定的第三方身份
+     *
+     * @param userId 用户 ID
+     * @return 绑定列表
+     */
+    List<UserIdentityVO> listIdentities(Long userId);
+
+    /**
+     * 创建第三方绑定意图，返回一次性令牌
+     * <p>
+     * 授权回调不携带业务登录态，令牌用于把回调关联回当前账号
+     *
+     * @param userId 用户 ID
+     * @return 意图令牌
+     */
+    String createBindIntent(Long userId);
+
+    /**
+     * 解绑第三方身份
+     * <p>
+     * 解绑后须至少保留一种登录方式，否则账号将永久无法登录
+     *
+     * @param userId 用户 ID
+     * @param provider 平台标识
+     */
+    void unbindIdentity(Long userId, String provider);
 
     /**
      * 向待绑定的新邮箱发送验证码

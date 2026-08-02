@@ -49,6 +49,17 @@ public interface AuthService {
     LoginResult loginWithOAuth(OAuthLoginParam param);
 
     /**
+     * 把第三方身份绑定到发起绑定的账号
+     * <p>
+     * 授权回调不携带业务登录态，故账号由一次性意图令牌反查，令牌在此消费。
+     * </p>
+     *
+     * @param intentToken 绑定意图令牌
+     * @param param 第三方回传的用户信息
+     */
+    void bindWithOAuth(String intentToken, OAuthLoginParam param);
+
+    /**
      * 刷新 Token
      * <p>
      * 验证 Refresh Token，轮换生成新的双 Token。
