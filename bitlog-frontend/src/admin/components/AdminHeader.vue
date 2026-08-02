@@ -59,7 +59,6 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
             :alt="displayName"
           />
           <span v-else class="trigger-avatar trigger-avatar--placeholder">{{ avatarLetter }}</span>
-          <span class="trigger-name">{{ displayName }}</span>
         </button>
 
         <Transition name="dropdown">
@@ -158,8 +157,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 .user-trigger {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 8px 4px 4px;
+  padding: 4px;
   border-radius: 4px;
   cursor: pointer;
   background: transparent;
@@ -192,13 +190,6 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
   font-weight: 600;
 }
 
-.trigger-name {
-  font-size: 13.5px;
-  color: var(--color-text-secondary);
-  font-weight: 500;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-}
-
 .admin-user-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -217,11 +208,5 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-6px);
-}
-
-@media (max-width: 768px) {
-  .trigger-name {
-    display: none;
-  }
 }
 </style>

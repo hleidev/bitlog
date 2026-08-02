@@ -146,8 +146,9 @@ async function handleLogout() {
   min-width: 0;
 }
 
+/* 需明显大于 .ud-item 的 13px，否则用户名和菜单项同级，顶部这块读不出是标题 */
 .ud-name {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
   white-space: nowrap;
