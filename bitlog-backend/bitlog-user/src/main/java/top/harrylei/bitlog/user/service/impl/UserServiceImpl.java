@@ -12,6 +12,8 @@ import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
 import top.harrylei.bitlog.api.model.user.dto.UserStatsDTO;
 import top.harrylei.bitlog.api.model.user.query.UserPageParam;
+import top.harrylei.bitlog.api.model.user.req.EmailCodeParam;
+import top.harrylei.bitlog.api.model.user.req.EmailUpdateParam;
 import top.harrylei.bitlog.api.model.user.req.PasswordUpdateParam;
 import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.PasswordResetVO;
@@ -22,9 +24,13 @@ import top.harrylei.bitlog.api.model.user.vo.UserVO;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.PageVO;
+import top.harrylei.bitlog.common.util.EmailUtil;
 import top.harrylei.bitlog.common.util.FileUrlHelper;
+import top.harrylei.bitlog.common.util.MaskUtil;
 import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.service.FileService;
+import top.harrylei.bitlog.user.component.VerificationCodeService;
+import top.harrylei.bitlog.user.component.VerifyCodePurpose;
 import top.harrylei.bitlog.user.converter.UserConverter;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
@@ -55,6 +61,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final FileUrlHelper fileUrlHelper;
     private final FileService fileService;
+    private final VerificationCodeService verificationCodeService;
 
     @Override
     public UserVO getUserById(Long userId) {
@@ -96,11 +103,11 @@ public class UserServiceImpl implements UserService {
     public UserDetailVO getUserDetail(Long userId) {
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
         if (userInfo == null) {
-            ResultCode.USER_NOT_EXISTS.throwException();
+            throw ResultCode.USER_NOT_EXISTS.toException();
         }
         UserDO user = userDAO.getById(userInfo.getUserId());
         if (user == null) {
-            ResultCode.USER_NOT_EXISTS.throwException();
+            throw ResultCode.USER_NOT_EXISTS.toException();
         }
         UserDetailVO vo = userConverter.toDetailVO(userInfo, user);
         vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
@@ -129,15 +136,15 @@ public class UserServiceImpl implements UserService {
     public void updatePassword(Long userId, PasswordUpdateParam req) {
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
         if (userInfo == null) {
-            ResultCode.USER_NOT_EXISTS.throwException();
+            throw ResultCode.USER_NOT_EXISTS.toException();
         }
         UserDO user = userDAO.getById(userInfo.getUserId());
         if (user == null) {
-            ResultCode.USER_NOT_EXISTS.throwException();
+            throw ResultCode.USER_NOT_EXISTS.toException();
         }
 
         if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
-            ResultCode.ACCOUNT_OR_PASSWORD_ERROR.throwException();
+            throw ResultCode.ACCOUNT_OR_PASSWORD_ERROR.toException();
         }
 
         userDAO.updatePassword(user.getId(), passwordEncoder.encode(req.getNewPassword()));
@@ -145,10 +152,49 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public void sendEmailChangeCode(Long userId, EmailCodeParam req) {
+        // IP 限流须先于任何邮箱存在性判断：否则「已被占用」这类提前返回的分支不受限流保护，可用于枚举探测哪些邮箱已注册
+        verificationCodeService.guardSendIp();
+
+        String newEmail = checkEmailAvailable(userId, req.getEmail());
+        verificationCodeService.issueAndSend(VerifyCodePurpose.CHANGE_EMAIL, newEmail);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateEmail(Long userId, EmailUpdateParam req) {
+        // 发码到提交之间有验证码有效期那么长的窗口，其间该邮箱可能被他人注册走，故此处重查一次，唯一索引为最后兜底
+        String newEmail = checkEmailAvailable(userId, req.getEmail());
+
+        verificationCodeService.verify(VerifyCodePurpose.CHANGE_EMAIL, newEmail, req.getCode());
+
+        userDAO.updateEmail(userId, newEmail);
+        log.info("用户修改邮箱 userId={} email={}", userId, MaskUtil.email(newEmail));
+    }
+
+    /**
+     * 校验新邮箱可用，返回归一化后的邮箱
+     */
+    private String checkEmailAvailable(Long userId, String email) {
+        UserDO user = userDAO.getById(userId);
+        if (user == null) {
+            throw ResultCode.USER_NOT_EXISTS.toException();
+        }
+        String newEmail = EmailUtil.normalize(email);
+        if (newEmail.equals(user.getEmail())) {
+            ResultCode.INVALID_PARAMETER.throwException("新邮箱与当前邮箱相同");
+        }
+        if (userDAO.isEmailTaken(newEmail)) {
+            ResultCode.USER_ALREADY_EXISTS.throwException(newEmail);
+        }
+        return newEmail;
+    }
+
+    @Override
     public void updateAvatar(Long userId, String avatar) {
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
         if (userInfo == null) {
-            ResultCode.USER_NOT_EXISTS.throwException();
+            throw ResultCode.USER_NOT_EXISTS.toException();
         }
         String key = fileUrlHelper.extractKey(avatar);
         String ownerPrefix = UploadScene.AVATAR.getCode() + "/" + userId + "/";

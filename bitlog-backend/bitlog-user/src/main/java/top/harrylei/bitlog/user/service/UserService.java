@@ -2,6 +2,8 @@ package top.harrylei.bitlog.user.service;
 
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.user.query.UserPageParam;
+import top.harrylei.bitlog.api.model.user.req.EmailCodeParam;
+import top.harrylei.bitlog.api.model.user.req.EmailUpdateParam;
 import top.harrylei.bitlog.api.model.user.req.PasswordUpdateParam;
 import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.PasswordResetVO;
@@ -60,6 +62,22 @@ public interface UserService {
      * @param req 密码更新请求
      */
     void updatePassword(Long userId, PasswordUpdateParam req);
+
+    /**
+     * 向待绑定的新邮箱发送验证码
+     *
+     * @param userId 用户 ID
+     * @param req 新邮箱
+     */
+    void sendEmailChangeCode(Long userId, EmailCodeParam req);
+
+    /**
+     * 校验验证码并换绑邮箱
+     *
+     * @param userId 用户 ID
+     * @param req 新邮箱与验证码
+     */
+    void updateEmail(Long userId, EmailUpdateParam req);
 
     /**
      * 更新头像

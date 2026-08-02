@@ -63,6 +63,10 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
         lambdaUpdate().eq(UserDO::getId, userId).set(UserDO::getUsername, username).update();
     }
 
+    public void updateEmail(Long userId, String email) {
+        lambdaUpdate().eq(UserDO::getId, userId).set(UserDO::getEmail, email).update();
+    }
+
     public void updateStatusBatch(List<Long> userIds, UserStatusEnum status) {
         lambdaUpdate().in(UserDO::getId, userIds).set(UserDO::getStatus, status).update();
     }

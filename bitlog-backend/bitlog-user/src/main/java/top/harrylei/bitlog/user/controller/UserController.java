@@ -8,11 +8,14 @@ import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.harrylei.bitlog.api.model.user.req.EmailCodeParam;
+import top.harrylei.bitlog.api.model.user.req.EmailUpdateParam;
 import top.harrylei.bitlog.api.model.user.req.PasswordUpdateParam;
 import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
@@ -54,6 +57,20 @@ public class UserController {
     @PutMapping("/password")
     public Result<Void> updatePassword(@Valid @RequestBody PasswordUpdateParam req) {
         userService.updatePassword(ReqInfoContext.getContext().getUserId(), req);
+        return Result.success();
+    }
+
+    @Operation(summary = "发送修改邮箱验证码")
+    @PostMapping("/email/code")
+    public Result<Void> sendEmailChangeCode(@Valid @RequestBody EmailCodeParam req) {
+        userService.sendEmailChangeCode(ReqInfoContext.getContext().getUserId(), req);
+        return Result.success();
+    }
+
+    @Operation(summary = "修改邮箱")
+    @PutMapping("/email")
+    public Result<Void> updateEmail(@Valid @RequestBody EmailUpdateParam req) {
+        userService.updateEmail(ReqInfoContext.getContext().getUserId(), req);
         return Result.success();
     }
 
