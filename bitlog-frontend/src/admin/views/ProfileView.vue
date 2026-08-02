@@ -1,17 +1,25 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/useUserStore'
 import { useToast } from '@/admin/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 import {
   getUserProfile,
   updateUserInfo,
   updateAvatar,
   updatePassword,
+  sendEmailChangeCode,
+  updateEmail,
   type UserProfile,
 } from '@/api/user'
 import { uploadFile } from '@/api/file'
-import { validateUsername, validatePassword } from '@/utils/authValidation'
+import {
+  validateUsername,
+  validatePassword,
+  validateEmail,
+  validateCode,
+} from '@/utils/authValidation'
 import PasswordInput from '@/components/common/PasswordInput.vue'
 
 type TabKey = 'profile' | 'security'
@@ -38,7 +46,28 @@ const passwordEditing = ref(false)
 const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
 const passwordSaving = ref(false)
 
+// ⚠️ MOCK：第三方绑定与「是否已设密码」的接口尚未实现，以下为设计预览用的假数据。
+// 接口就绪后整块删除，改为 GET /user/identities 与 profile 返回的 hasPassword。
+const IS_DEV = import.meta.env.DEV
+const mock = reactive({
+  hasPassword: true,
+  googleBound: true,
+  googleEmail: 'harry.another@gmail.com',
+})
+
+// 邮箱
+const emailEditing = ref(false)
+const emailForm = reactive({ newEmail: '', code: '' })
+const emailSending = ref(false)
+const emailSaving = ref(false)
+const codeCountdown = ref(0)
+let countdownTimer: ReturnType<typeof setInterval> | undefined
+
+// 无密码账号解绑后将无任何登录方式，必须先设密码
+const canUnbindGoogle = computed(() => mock.hasPassword)
+
 onMounted(loadProfile)
+onUnmounted(() => clearInterval(countdownTimer))
 
 async function loadProfile() {
   pageLoading.value = true
@@ -142,7 +171,8 @@ function resetPasswordForm() {
 }
 
 async function savePassword() {
-  if (!passwordForm.oldPassword) {
+  // 无密码账号（Google 建号）走「设置密码」：会话本身已证明身份，不需要旧密码
+  if (mock.hasPassword && !passwordForm.oldPassword) {
     toast.warning('请输入当前密码')
     return
   }
@@ -171,6 +201,101 @@ async function savePassword() {
   } finally {
     passwordSaving.value = false
   }
+}
+
+// ── 邮箱（MOCK） ──────────────────────────────────────────────────────────────
+
+function toggleEmailEdit() {
+  emailEditing.value = !emailEditing.value
+  if (!emailEditing.value) {
+    emailForm.newEmail = ''
+    emailForm.code = ''
+  }
+}
+
+function startCountdown() {
+  codeCountdown.value = 60
+  clearInterval(countdownTimer)
+  countdownTimer = setInterval(() => {
+    if (--codeCountdown.value <= 0) clearInterval(countdownTimer)
+  }, 1000)
+}
+
+// 后端消息可直接展示，唯 42002 的「用户已存在」在改邮箱语境下读着别扭，单独换掉
+function emailErrorMessage(err: unknown, fallback: string) {
+  const { code, message } = (err ?? {}) as { code?: number; message?: string }
+  if (code === 42002) return '该邮箱已被使用'
+  const known = code === 41006 || code === 41005 || code === 40000
+  return known && message ? message : fallback
+}
+
+async function sendEmailCode() {
+  const error = validateEmail(emailForm.newEmail)
+  if (error) {
+    toast.warning(error)
+    return
+  }
+  emailSending.value = true
+  try {
+    // 占用校验由后端在发码前完成，用户不会收到码之后才被告知邮箱不可用
+    await sendEmailChangeCode(emailForm.newEmail.trim())
+    startCountdown()
+    toast.success('验证码已发送到新邮箱')
+  } catch (err) {
+    toast.error(emailErrorMessage(err, '发送失败，请重试'))
+  } finally {
+    emailSending.value = false
+  }
+}
+
+async function saveEmail() {
+  const emailError = validateEmail(emailForm.newEmail)
+  if (emailError) {
+    toast.warning(emailError)
+    return
+  }
+  const codeError = validateCode(emailForm.code)
+  if (codeError) {
+    toast.warning(codeError)
+    return
+  }
+  emailSaving.value = true
+  try {
+    await updateEmail({ email: emailForm.newEmail.trim(), code: emailForm.code })
+    await userStore.fetchProfile()
+    profile.value = userInfo.value
+    toast.success('邮箱已更新')
+    toggleEmailEdit()
+  } catch (err) {
+    toast.error(emailErrorMessage(err, '修改失败，请重试'))
+  } finally {
+    emailSaving.value = false
+  }
+}
+
+// ── 第三方登录（MOCK） ────────────────────────────────────────────────────────
+
+function bindGoogle() {
+  toast.success('将跳转 Google 授权（MOCK）')
+}
+
+const confirm = useConfirm()
+
+async function unbindGoogle() {
+  if (!canUnbindGoogle.value) {
+    toast.warning('解绑后将无法登录，请先设置密码')
+    return
+  }
+  try {
+    await confirm('解绑后将无法使用该 Google 账号登录。', '解绑 Google', {
+      confirmText: '解绑',
+      danger: true,
+    })
+  } catch {
+    return
+  }
+  mock.googleBound = false
+  toast.success('已解绑（MOCK）')
 }
 
 function roleLabel(role: number) {
@@ -330,27 +455,70 @@ function roleLabel(role: number) {
       <!-- ── 账号安全 ── -->
       <div v-else class="tab-panel">
         <div class="form-col">
+          <!-- 邮箱 -->
           <div class="setting-item">
             <div class="setting-row">
               <div class="setting-main">
                 <div class="setting-title">邮箱</div>
                 <div class="setting-value">{{ profile?.email ?? '—' }}</div>
               </div>
+              <button class="ghost-btn" @click="toggleEmailEdit">
+                {{ emailEditing ? '取消' : '修改' }}
+              </button>
+            </div>
+
+            <div v-if="emailEditing" class="setting-expand">
+              <div class="field">
+                <label class="field-label">新邮箱</label>
+                <div class="field-inline">
+                  <input
+                    v-model="emailForm.newEmail"
+                    class="field-input"
+                    placeholder="new@example.com"
+                    maxlength="128"
+                  />
+                  <button
+                    class="ghost-btn"
+                    :disabled="codeCountdown > 0 || emailSending"
+                    @click="sendEmailCode"
+                  >
+                    {{ codeCountdown > 0 ? `${codeCountdown} 秒后重发` : '发送验证码' }}
+                  </button>
+                </div>
+              </div>
+              <div class="field field--narrow">
+                <label class="field-label">验证码</label>
+                <input
+                  v-model="emailForm.code"
+                  class="field-input"
+                  placeholder="6 位数字"
+                  maxlength="6"
+                  inputmode="numeric"
+                />
+              </div>
+              <div class="form-actions">
+                <button class="primary-btn" :disabled="emailSaving" @click="saveEmail">
+                  <span v-if="emailSaving" class="btn-spinner" />
+                  确认修改
+                </button>
+              </div>
             </div>
           </div>
 
+          <!-- 密码 -->
           <div class="setting-item">
             <div class="setting-row">
               <div class="setting-main">
                 <div class="setting-title">密码</div>
+                <div class="setting-value">{{ mock.hasPassword ? '已设置' : '未设置' }}</div>
               </div>
               <button class="ghost-btn" @click="togglePasswordEdit">
-                {{ passwordEditing ? '取消' : '修改' }}
+                {{ passwordEditing ? '取消' : mock.hasPassword ? '修改' : '设置密码' }}
               </button>
             </div>
 
             <div v-if="passwordEditing" class="setting-expand">
-              <div class="field">
+              <div v-if="mock.hasPassword" class="field">
                 <label class="field-label">当前密码</label>
                 <PasswordInput
                   v-model="passwordForm.oldPassword"
@@ -383,11 +551,59 @@ function roleLabel(role: number) {
               <div class="form-actions">
                 <button class="primary-btn" :disabled="passwordSaving" @click="savePassword">
                   <span v-if="passwordSaving" class="btn-spinner" />
-                  确认修改
+                  {{ mock.hasPassword ? '确认修改' : '设置密码' }}
                 </button>
               </div>
             </div>
           </div>
+
+          <!-- 第三方登录 -->
+          <div class="setting-item">
+            <div class="setting-row">
+              <div class="setting-main setting-main--provider">
+                <!-- Google 品牌规范要求 G 标使用未经修改的官方四色版本，不得改色 -->
+                <svg class="provider-logo" viewBox="0 0 48 48" aria-hidden="true">
+                  <path
+                    fill="#EA4335"
+                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                  />
+                </svg>
+                <div class="provider-text">
+                  <div class="setting-title">Google</div>
+                  <div class="setting-value">
+                    {{ mock.googleBound ? mock.googleEmail : '未绑定' }}
+                  </div>
+                </div>
+              </div>
+              <button v-if="mock.googleBound" class="ghost-btn" @click="unbindGoogle">解绑</button>
+              <button v-else class="ghost-btn" @click="bindGoogle">绑定</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⚠️ MOCK 状态切换器：仅 dev 可见，接口就绪后随假数据一并删除 -->
+        <div v-if="IS_DEV" class="mock-bar">
+          <span class="mock-tag">MOCK</span>
+          <label class="mock-label">
+            <input v-model="mock.hasPassword" type="checkbox" />
+            已设密码
+          </label>
+          <label class="mock-label">
+            <input v-model="mock.googleBound" type="checkbox" />
+            已绑 Google
+          </label>
         </div>
       </div>
     </div>
@@ -592,6 +808,22 @@ function roleLabel(role: number) {
   gap: 12px;
 }
 
+.field-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* .field-input 是 width:100%，进 flex 容器后需显式收缩才能给按钮让位 */
+.field-inline .field-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.field--narrow {
+  max-width: 220px;
+}
+
 /* :deep 并列是因为密码框的 input 位于 PasswordInput 内部，scoped 选择器匹配不到 */
 .field-input,
 :deep(.field-input) {
@@ -698,6 +930,53 @@ function roleLabel(role: number) {
   border: 1px solid var(--admin-sidebar-border);
   border-radius: 4px;
   background: var(--admin-sidebar-hover);
+}
+
+.setting-main--provider {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.provider-logo {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.provider-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* ── MOCK bar（接口就绪后删除） ── */
+
+.mock-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
+  padding: 10px 14px;
+  border: 1px dashed var(--admin-sidebar-border);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text-muted);
+}
+
+.mock-tag {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--admin-accent);
+}
+
+.mock-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
 }
 
 /* ── Buttons ── */

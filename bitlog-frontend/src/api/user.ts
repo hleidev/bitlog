@@ -36,4 +36,11 @@ export function updatePassword(data: { oldPassword: string; newPassword: string 
   return request.put('/v1/user/password', data)
 }
 
-// TODO: updateEmail - 邮箱修改接口，待实现
+/** 验证码发往待绑定的新邮箱，而非当前邮箱 */
+export function sendEmailChangeCode(email: string): Promise<void> {
+  return request.post('/v1/user/email/code', { email })
+}
+
+export function updateEmail(data: { email: string; code: string }): Promise<void> {
+  return request.put('/v1/user/email', data)
+}
