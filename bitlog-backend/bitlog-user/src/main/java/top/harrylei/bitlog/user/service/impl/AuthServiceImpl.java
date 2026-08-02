@@ -20,6 +20,7 @@ import top.harrylei.bitlog.common.config.JwtProperties;
 import top.harrylei.bitlog.common.constans.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
+import top.harrylei.bitlog.common.util.EmailUtil;
 import top.harrylei.bitlog.common.util.MaskUtil;
 import top.harrylei.bitlog.common.util.RateLimiter;
 import top.harrylei.bitlog.user.component.LoginRateLimiter;
@@ -39,7 +40,6 @@ import top.harrylei.bitlog.user.util.JwtUtil;
 import top.harrylei.bitlog.user.util.PasswordUtil;
 
 import java.time.Duration;
-import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -72,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void sendRegisterCode(String email) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtil.normalize(email);
         verificationCodeService.guardSendIp();
 
         if (userDAO.isEmailTaken(normalizedEmail)) {
@@ -90,7 +90,7 @@ public class AuthServiceImpl implements AuthService {
             rateLimiter.acquireOrThrow(RedisKeyConstants.getRegisterIpKey(clientIp), REGISTER_MAX, REGISTER_WINDOW);
         }
 
-        String normalizedEmail = normalizeEmail(param.getEmail());
+        String normalizedEmail = EmailUtil.normalize(param.getEmail());
         checkAccountAvailable(normalizedEmail, param.getUsername());
 
         verificationCodeService.verify(VerifyCodePurpose.REGISTER, normalizedEmail, param.getCode());
@@ -101,7 +101,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResult login(LoginParam param) {
-        String normalizedEmail = normalizeEmail(param.getEmail());
+        String normalizedEmail = EmailUtil.normalize(param.getEmail());
         String clientIp = ReqInfoContext.getContext().getClientIp();
         loginRateLimiter.check(clientIp, normalizedEmail);
 
@@ -139,7 +139,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 同一个人先用邮箱注册、后用第三方登录，按邮箱并入既有账号，避免产生两个孤立账号
-        String email = normalizeEmail(param.getEmail());
+        String email = EmailUtil.normalize(param.getEmail());
         UserDO existing = email != null ? userDAO.getByEmail(email) : null;
         if (existing != null) {
             userIdentityDAO.bind(existing.getId(), param.getProvider(), param.getProviderUserId());
@@ -198,7 +198,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void sendResetPasswordCode(String email) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtil.normalize(email);
         verificationCodeService.guardSendIp();
 
         if (userDAO.getByEmail(normalizedEmail) == null) {
@@ -211,7 +211,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void resetPassword(PasswordResetParam param) {
-        String normalizedEmail = normalizeEmail(param.getEmail());
+        String normalizedEmail = EmailUtil.normalize(param.getEmail());
         verificationCodeService.verify(VerifyCodePurpose.RESET_PASSWORD, normalizedEmail, param.getCode());
 
         UserDO user = userDAO.getByEmail(normalizedEmail);
@@ -226,7 +226,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(rollbackFor = Exception.class)
     @Override
     public UserCreatedVO adminCreateUser(AdminCreateUserParam req) {
-        String normalizedEmail = normalizeEmail(req.getEmail());
+        String normalizedEmail = EmailUtil.normalize(req.getEmail());
         checkAccountAvailable(normalizedEmail, req.getUsername());
 
         String password = PasswordUtil.generateRandomPassword();
@@ -256,10 +256,6 @@ public class AuthServiceImpl implements AuthService {
         UserInfoDO userInfo = new UserInfoDO().setUserId(newUser.getId()).setAvatar("").setUserRole(role);
         userInfoDAO.save(userInfo);
         return newUser.getId();
-    }
-
-    private String normalizeEmail(String email) {
-        return StringUtils.hasText(email) ? email.trim().toLowerCase(Locale.ROOT) : null;
     }
 
     private LoginResult issueTokenForUser(Long userId) {
