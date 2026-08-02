@@ -11,8 +11,10 @@ import {
   type UserProfile,
 } from '@/api/user'
 import { uploadFile } from '@/api/file'
-import { validateUsername } from '@/utils/authValidation'
+import { validateUsername, validatePassword } from '@/utils/authValidation'
 import PasswordInput from '@/components/common/PasswordInput.vue'
+
+type TabKey = 'profile' | 'security'
 
 const userStore = useUserStore()
 const { userInfo } = storeToRefs(userStore)
@@ -20,6 +22,7 @@ const toast = useToast()
 
 const profile = ref<UserProfile | null>(null)
 const pageLoading = ref(false)
+const activeTab = ref<TabKey>('profile')
 
 // 头像
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -31,6 +34,7 @@ const basicForm = reactive({ username: '', position: '', company: '', profile: '
 const basicSaving = ref(false)
 
 // 密码
+const passwordEditing = ref(false)
 const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
 const passwordSaving = ref(false)
 
@@ -114,8 +118,11 @@ async function saveBasicInfo() {
     await userStore.fetchProfile()
     profile.value = userInfo.value
     toast.success('保存成功')
-  } catch {
-    toast.error('保存失败，请重试')
+  } catch (err: unknown) {
+    // 本接口的 42002 只可能来自用户名撞人；40011 是检查与写入之间并发撞唯一索引，同因
+    const code = (err as { code?: number })?.code
+    const taken = code === 42002 || code === 40011
+    toast.error(taken ? '该用户名已被占用，换一个试试' : '保存失败，请重试')
   } finally {
     basicSaving.value = false
   }
@@ -123,13 +130,25 @@ async function saveBasicInfo() {
 
 // ── 密码 ──────────────────────────────────────────────────────────────────────
 
+function togglePasswordEdit() {
+  passwordEditing.value = !passwordEditing.value
+  if (!passwordEditing.value) resetPasswordForm()
+}
+
+function resetPasswordForm() {
+  passwordForm.oldPassword = ''
+  passwordForm.newPassword = ''
+  passwordForm.confirmPassword = ''
+}
+
 async function savePassword() {
-  if (!passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-    toast.warning('请填写所有密码字段')
+  if (!passwordForm.oldPassword) {
+    toast.warning('请输入当前密码')
     return
   }
-  if (!/^[a-zA-Z0-9_@#%&!$*-]{8,20}$/.test(passwordForm.newPassword)) {
-    toast.warning('新密码为 8-20 位，可包含字母、数字及 _@#%&!$*- 符号')
+  const newPasswordError = validatePassword(passwordForm.newPassword, '新密码')
+  if (newPasswordError) {
+    toast.warning(newPasswordError)
     return
   }
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
@@ -143,12 +162,12 @@ async function savePassword() {
       newPassword: passwordForm.newPassword,
     })
     toast.success('密码已修改')
-    passwordForm.oldPassword = ''
-    passwordForm.newPassword = ''
-    passwordForm.confirmPassword = ''
+    resetPasswordForm()
+    passwordEditing.value = false
   } catch (err: unknown) {
+    // 后端校验旧密码失败抛 ACCOUNT_OR_PASSWORD_ERROR(41002)，不是 USER_NOT_EXISTS(42001)
     const code = (err as { code?: number })?.code
-    toast.error(code === 42001 ? '当前密码错误' : '修改失败，请重试')
+    toast.error(code === 41002 ? '当前密码错误' : '修改失败，请重试')
   } finally {
     passwordSaving.value = false
   }
@@ -175,56 +194,75 @@ function roleLabel(role: number) {
       </svg>
     </div>
 
-    <div v-else class="profile-forms">
-      <!-- 用户概览 -->
-      <section class="form-card">
-        <div class="card-body overview">
-          <div
-            class="avatar-zone"
-            :class="{ uploading: avatarUploading }"
-            @click="triggerAvatarInput"
+    <div v-else class="main-card">
+      <div class="card-header">
+        <div class="view-tabs">
+          <button
+            class="view-tab"
+            :class="{ 'view-tab--active': activeTab === 'profile' }"
+            @click="activeTab = 'profile'"
           >
-            <img
-              v-if="profile?.avatar && !avatarError"
-              :src="profile.avatar"
-              class="avatar-img"
-              alt="avatar"
-              @error="avatarError = true"
-            />
-            <div v-else class="avatar-fallback">
-              {{ profile?.username?.[0]?.toUpperCase() ?? '?' }}
-            </div>
-            <div class="avatar-overlay">
-              <svg v-if="avatarUploading" class="overlay-spinner" viewBox="0 0 24 24" fill="none">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="9"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-dasharray="40"
-                  stroke-dashoffset="15"
-                />
-              </svg>
-              <template v-else>
-                <svg viewBox="0 0 24 24" fill="currentColor" class="overlay-icon">
-                  <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" />
+            资料
+          </button>
+          <button
+            class="view-tab"
+            :class="{ 'view-tab--active': activeTab === 'security' }"
+            @click="activeTab = 'security'"
+          >
+            账号安全
+          </button>
+        </div>
+      </div>
+
+      <!-- ── 资料 ── -->
+      <div v-if="activeTab === 'profile'" class="tab-panel">
+        <div class="form-col">
+          <!-- 头像 -->
+          <div class="avatar-row">
+            <div
+              class="avatar-zone"
+              :class="{ uploading: avatarUploading }"
+              @click="triggerAvatarInput"
+            >
+              <img
+                v-if="profile?.avatar && !avatarError"
+                :src="profile.avatar"
+                class="avatar-img"
+                alt="当前头像"
+                @error="avatarError = true"
+              />
+              <div v-else class="avatar-fallback">
+                {{ profile?.username?.[0]?.toUpperCase() ?? '?' }}
+              </div>
+              <div class="avatar-overlay">
+                <svg v-if="avatarUploading" class="overlay-spinner" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-dasharray="40"
+                    stroke-dashoffset="15"
+                  />
                 </svg>
-                <span>更换头像</span>
-              </template>
+                <template v-else>
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="overlay-icon">
+                    <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" />
+                  </svg>
+                  <span>更换</span>
+                </template>
+              </div>
             </div>
-          </div>
-          <input
-            ref="fileInputRef"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            style="display: none"
-            @change="handleFileChange"
-          />
-          <div class="overview-info">
-            <div class="overview-name">{{ profile?.username ?? '—' }}</div>
-            <div class="overview-username">{{ profile?.email ?? '—' }}</div>
-            <div class="overview-meta">
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              style="display: none"
+              @change="handleFileChange"
+            />
+            <div class="avatar-identity">
+              <span class="identity-name">{{ profile?.username ?? '—' }}</span>
               <span
                 class="role-badge"
                 :class="profile?.userRole === 1 ? 'role-badge--admin' : 'role-badge--user'"
@@ -233,39 +271,18 @@ function roleLabel(role: number) {
               </span>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- 基本信息 -->
-      <section class="form-card">
-        <div class="card-head">
-          <span class="section-label">基本信息</span>
-          <div class="section-rule" />
-        </div>
-        <div class="card-body">
           <div class="field">
-            <label class="field-label">
-              用户名
-              <span class="field-hint">公开展示，全站唯一</span>
-            </label>
+            <label class="field-label">用户名</label>
             <input
               v-model="basicForm.username"
               class="field-input"
               placeholder="请输入用户名"
               maxlength="16"
             />
+            <p class="field-help">2~16 位，可含汉字、字母、数字、下划线和连字符</p>
           </div>
-          <div class="field">
-            <label class="field-label">
-              邮箱
-              <span class="field-hint">登录账号</span>
-            </label>
-            <input
-              class="field-input field-input--readonly"
-              :value="profile?.email ?? ''"
-              readonly
-            />
-          </div>
+
           <div class="field-row">
             <div class="field">
               <label class="field-label">职位</label>
@@ -286,10 +303,11 @@ function roleLabel(role: number) {
               />
             </div>
           </div>
+
           <div class="field">
             <label class="field-label">
               个人简介
-              <span class="field-hint">{{ basicForm.profile.length }} / 500</span>
+              <span class="field-counter">{{ basicForm.profile.length }} / 500</span>
             </label>
             <textarea
               v-model="basicForm.profile"
@@ -299,87 +317,88 @@ function roleLabel(role: number) {
               maxlength="500"
             />
           </div>
-          <div class="card-footer">
+
+          <div class="form-actions">
             <button class="primary-btn" :disabled="basicSaving" @click="saveBasicInfo">
               <span v-if="basicSaving" class="btn-spinner" />
               保存
             </button>
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- 邮箱 -->
-      <section class="form-card">
-        <div class="card-head">
-          <span class="section-label">邮箱</span>
-          <div class="section-rule" />
-        </div>
-        <div class="card-body">
-          <div class="field-row field-row--align-end">
-            <div class="field">
-              <label class="field-label">当前邮箱</label>
-              <input
-                class="field-input field-input--readonly"
-                :value="profile?.email ?? ''"
-                readonly
-              />
+      <!-- ── 账号安全 ── -->
+      <div v-else class="tab-panel">
+        <div class="form-col">
+          <div class="setting-item">
+            <div class="setting-row">
+              <div class="setting-main">
+                <div class="setting-title">邮箱</div>
+                <div class="setting-value">{{ profile?.email ?? '—' }}</div>
+              </div>
             </div>
-            <button class="ghost-btn" disabled title="功能即将开放">修改</button>
           </div>
-        </div>
-      </section>
 
-      <!-- 修改密码 -->
-      <section class="form-card">
-        <div class="card-head">
-          <span class="section-label">修改密码</span>
-          <div class="section-rule" />
-        </div>
-        <div class="card-body">
-          <div class="field">
-            <label class="field-label">当前密码</label>
-            <PasswordInput
-              v-model="passwordForm.oldPassword"
-              input-class="field-input field-input--pwd"
-              placeholder="请输入当前密码"
-              maxlength="20"
-            />
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label class="field-label">新密码</label>
-              <PasswordInput
-                v-model="passwordForm.newPassword"
-                input-class="field-input field-input--pwd"
-                placeholder="请输入新密码"
-                maxlength="20"
-              />
+          <div class="setting-item">
+            <div class="setting-row">
+              <div class="setting-main">
+                <div class="setting-title">密码</div>
+              </div>
+              <button class="ghost-btn" @click="togglePasswordEdit">
+                {{ passwordEditing ? '取消' : '修改' }}
+              </button>
             </div>
-            <div class="field">
-              <label class="field-label">确认新密码</label>
-              <PasswordInput
-                v-model="passwordForm.confirmPassword"
-                input-class="field-input field-input--pwd"
-                placeholder="再次输入新密码"
-                maxlength="20"
-              />
+
+            <div v-if="passwordEditing" class="setting-expand">
+              <div class="field">
+                <label class="field-label">当前密码</label>
+                <PasswordInput
+                  v-model="passwordForm.oldPassword"
+                  input-class="field-input field-input--pwd"
+                  placeholder="请输入当前密码"
+                  maxlength="20"
+                />
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label class="field-label">新密码</label>
+                  <PasswordInput
+                    v-model="passwordForm.newPassword"
+                    input-class="field-input field-input--pwd"
+                    placeholder="请输入新密码"
+                    maxlength="20"
+                  />
+                </div>
+                <div class="field">
+                  <label class="field-label">确认新密码</label>
+                  <PasswordInput
+                    v-model="passwordForm.confirmPassword"
+                    input-class="field-input field-input--pwd"
+                    placeholder="再次输入新密码"
+                    maxlength="20"
+                  />
+                </div>
+              </div>
+              <p class="field-help">8~20 位，可含字母、数字及 _@#%&!$*- 符号</p>
+              <div class="form-actions">
+                <button class="primary-btn" :disabled="passwordSaving" @click="savePassword">
+                  <span v-if="passwordSaving" class="btn-spinner" />
+                  确认修改
+                </button>
+              </div>
             </div>
           </div>
-          <div class="card-footer">
-            <button class="primary-btn" :disabled="passwordSaving" @click="savePassword">
-              <span v-if="passwordSaving" class="btn-spinner" />
-              确认修改
-            </button>
-          </div>
         </div>
-      </section>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* 设置页内容天然少于列表页，限宽后居中让左右留白对称——靠左会把内容甩到宽屏一角。
+   880 是表单可读行长的上限附近，再宽输入框就长得难扫视了 */
 .profile-page {
-  max-width: 600px;
+  max-width: 880px;
   margin: 0 auto;
   --pwd-toggle-color: var(--admin-sidebar-text-muted);
   --pwd-toggle-color-hover: var(--admin-sidebar-text);
@@ -406,7 +425,33 @@ function roleLabel(role: number) {
   }
 }
 
+/* ── Card shell ── */
+/* .main-card / .view-tabs / .view-tab 见 admin/styles/variables.css */
+
+.card-header {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--admin-sidebar-border);
+  padding: 0 16px 0 20px;
+}
+
+.tab-panel {
+  padding: 24px 20px;
+}
+
+.form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 /* ── Avatar ── */
+
+.avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
 
 .avatar-zone {
   position: relative;
@@ -472,22 +517,14 @@ function roleLabel(role: number) {
   animation: spin 0.9s linear infinite;
 }
 
-/* ── Overview card ── */
-
-.overview {
-  flex-direction: row;
-  align-items: center;
-  gap: 18px;
-}
-
-.overview-info {
+.avatar-identity {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
-.overview-name {
+.identity-name {
   font-family: var(--font-serif, 'Lora', serif);
   font-size: 17px;
   font-weight: 600;
@@ -497,25 +534,13 @@ function roleLabel(role: number) {
   text-overflow: ellipsis;
 }
 
-.overview-username {
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted);
-  margin-top: -4px;
-}
-
-.overview-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .role-badge {
   font-size: 11px;
   font-family: var(--font-sans, 'Inter', sans-serif);
   font-weight: 500;
   padding: 2px 8px;
   border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .role-badge--admin {
@@ -527,56 +552,6 @@ function roleLabel(role: number) {
   color: var(--admin-sidebar-text);
 }
 
-/* ── Forms ── */
-
-.profile-forms {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-card {
-  background: var(--admin-header-bg);
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.card-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--admin-sidebar-border);
-}
-
-.section-label {
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--admin-text-primary);
-  white-space: nowrap;
-}
-
-.section-rule {
-  flex: 1;
-  height: 1px;
-  background: var(--admin-sidebar-border);
-}
-
-.card-body {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.card-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 4px;
-}
-
 /* ── Fields ── */
 
 .field {
@@ -584,8 +559,10 @@ function roleLabel(role: number) {
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  min-width: 0;
 }
 
+/* space-between 只在存在计数器时生效；说明文字一律走 .field-help 排在控件下方 */
 .field-label {
   display: flex;
   align-items: center;
@@ -596,18 +573,23 @@ function roleLabel(role: number) {
   color: var(--admin-text-primary);
 }
 
-.field-hint {
+.field-counter {
   font-size: 11px;
   font-weight: 400;
   color: var(--admin-sidebar-text-muted);
 }
 
+.field-help {
+  margin: 0;
+  font-size: 11.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text-muted);
+  line-height: 1.5;
+}
+
 .field-row {
   display: flex;
   gap: 12px;
-}
-.field-row--align-end {
-  align-items: flex-end;
 }
 
 /* :deep 并列是因为密码框的 input 位于 PasswordInput 内部，scoped 选择器匹配不到 */
@@ -635,11 +617,6 @@ function roleLabel(role: number) {
 :deep(.field-input::placeholder) {
   color: var(--admin-sidebar-text-muted);
 }
-.field-input--readonly {
-  background: var(--admin-sidebar-hover);
-  color: var(--admin-sidebar-text);
-  cursor: default;
-}
 :deep(.field-input--pwd) {
   padding-right: 36px;
 }
@@ -665,6 +642,62 @@ function roleLabel(role: number) {
 }
 .field-textarea::placeholder {
   color: var(--admin-sidebar-text-muted);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Security list ── */
+
+.setting-item {
+  border-bottom: 1px solid var(--admin-sidebar-border);
+  padding-bottom: 18px;
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.setting-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.setting-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.setting-title {
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-weight: 500;
+  color: var(--admin-text-primary);
+}
+
+.setting-value {
+  font-size: 13.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text);
+  word-break: break-all;
+}
+
+.setting-expand {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px 16px;
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 4px;
+  background: var(--admin-sidebar-hover);
 }
 
 /* ── Buttons ── */
@@ -695,7 +728,7 @@ function roleLabel(role: number) {
 }
 
 .ghost-btn {
-  height: 36px;
+  height: 32px;
   padding: 0 14px;
   flex-shrink: 0;
   border: 1px solid var(--admin-sidebar-border);
@@ -708,6 +741,9 @@ function roleLabel(role: number) {
   transition: background 0.15s;
 }
 
+.ghost-btn:hover:not(:disabled) {
+  background: var(--admin-sidebar-hover);
+}
 .ghost-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -726,17 +762,17 @@ function roleLabel(role: number) {
 /* ── Responsive ── */
 
 @media (max-width: 768px) {
-  .profile-page {
-    max-width: 100%;
+  .card-header {
+    padding: 0 12px;
   }
-  .card-body {
-    padding: 16px;
+  .tab-panel {
+    padding: 16px 12px;
   }
   .field-row {
     flex-direction: column;
   }
-  .field-row--align-end {
-    align-items: stretch;
+  .setting-expand {
+    padding: 14px 12px;
   }
 }
 </style>
