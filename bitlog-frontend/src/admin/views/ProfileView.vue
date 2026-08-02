@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/useUserStore'
 import { useToast } from '@/admin/composables/useToast'
@@ -11,7 +12,12 @@ import {
   updatePassword,
   sendEmailChangeCode,
   updateEmail,
+  initPassword,
+  listIdentities,
+  createBindIntent,
+  unbindIdentity,
   type UserProfile,
+  type UserIdentity,
 } from '@/api/user'
 import { uploadFile } from '@/api/file'
 import {
@@ -24,6 +30,8 @@ import PasswordInput from '@/components/common/PasswordInput.vue'
 
 type TabKey = 'profile' | 'security'
 
+const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 const { userInfo } = storeToRefs(userStore)
 const toast = useToast()
@@ -46,14 +54,11 @@ const passwordEditing = ref(false)
 const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
 const passwordSaving = ref(false)
 
-// ⚠️ MOCK：第三方绑定与「是否已设密码」的接口尚未实现，以下为设计预览用的假数据。
-// 接口就绪后整块删除，改为 GET /user/identities 与 profile 返回的 hasPassword。
-const IS_DEV = import.meta.env.DEV
-const mock = reactive({
-  hasPassword: true,
-  googleBound: true,
-  googleEmail: 'harry.another@gmail.com',
-})
+// 第三方绑定
+const identities = ref<UserIdentity[]>([])
+const googleIdentity = computed(() => identities.value.find((i) => i.provider === 'google') ?? null)
+// 老账号在 hasPassword 上线前的响应里没有该字段，缺省按「已设密码」处理，避免误显示设置入口
+const hasPassword = computed(() => profile.value?.hasPassword !== false)
 
 // 邮箱
 const emailEditing = ref(false)
@@ -63,22 +68,37 @@ const emailSaving = ref(false)
 const codeCountdown = ref(0)
 let countdownTimer: ReturnType<typeof setInterval> | undefined
 
-// 无密码账号解绑后将无任何登录方式，必须先设密码
-const canUnbindGoogle = computed(() => mock.hasPassword)
-
-onMounted(loadProfile)
+onMounted(() => {
+  loadProfile()
+  consumeBindResult()
+})
 onUnmounted(() => clearInterval(countdownTimer))
 
 async function loadProfile() {
   pageLoading.value = true
   try {
-    profile.value = await getUserProfile()
+    const [detail, bound] = await Promise.all([getUserProfile(), listIdentities()])
+    profile.value = detail
+    identities.value = bound
     syncBasicForm()
   } catch {
     toast.error('获取个人信息失败')
   } finally {
     pageLoading.value = false
   }
+}
+
+/** 绑定走整页跳转，结果只能由回跳参数带回；读取后清掉，刷新不再重复提示 */
+function consumeBindResult() {
+  const bind = route.query.bind
+  if (!bind) return
+  activeTab.value = 'security'
+  if (bind === 'success') {
+    toast.success('Google 账号已绑定')
+  } else {
+    toast.error((route.query.reason as string) || '绑定失败，请重试')
+  }
+  router.replace({ query: {} })
 }
 
 function syncBasicForm() {
@@ -172,7 +192,7 @@ function resetPasswordForm() {
 
 async function savePassword() {
   // 无密码账号（Google 建号）走「设置密码」：会话本身已证明身份，不需要旧密码
-  if (mock.hasPassword && !passwordForm.oldPassword) {
+  if (hasPassword.value && !passwordForm.oldPassword) {
     toast.warning('请输入当前密码')
     return
   }
@@ -185,25 +205,32 @@ async function savePassword() {
     toast.warning('两次输入的新密码不一致')
     return
   }
+  const initial = !hasPassword.value
   passwordSaving.value = true
   try {
-    await updatePassword({
-      oldPassword: passwordForm.oldPassword,
-      newPassword: passwordForm.newPassword,
-    })
-    toast.success('密码已修改')
+    if (initial) {
+      await initPassword(passwordForm.newPassword)
+      // hasPassword 由 profile 提供，设完须重取，否则界面仍停在「设置密码」
+      profile.value = await getUserProfile()
+    } else {
+      await updatePassword({
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword,
+      })
+    }
+    toast.success(initial ? '密码已设置' : '密码已修改')
     resetPasswordForm()
     passwordEditing.value = false
   } catch (err: unknown) {
     // 后端校验旧密码失败抛 ACCOUNT_OR_PASSWORD_ERROR(41002)，不是 USER_NOT_EXISTS(42001)
     const code = (err as { code?: number })?.code
-    toast.error(code === 41002 ? '当前密码错误' : '修改失败，请重试')
+    toast.error(code === 41002 ? '当前密码错误' : '操作失败，请重试')
   } finally {
     passwordSaving.value = false
   }
 }
 
-// ── 邮箱（MOCK） ──────────────────────────────────────────────────────────────
+// ── 邮箱 ──────────────────────────────────────────────────────────────────────
 
 function toggleEmailEdit() {
   emailEditing.value = !emailEditing.value
@@ -273,19 +300,21 @@ async function saveEmail() {
   }
 }
 
-// ── 第三方登录（MOCK） ────────────────────────────────────────────────────────
-
-function bindGoogle() {
-  toast.success('将跳转 Google 授权（MOCK）')
-}
+// ── 第三方登录 ────────────────────────────────────────────────────────────────
 
 const confirm = useConfirm()
 
-async function unbindGoogle() {
-  if (!canUnbindGoogle.value) {
-    toast.warning('解绑后将无法登录，请先设置密码')
-    return
+async function bindGoogle() {
+  try {
+    const intent = await createBindIntent()
+    // 整页跳转而非 XHR：授权链路要求浏览器导航到 Google
+    window.location.href = `/api/oauth2/authorization/google?intent=${encodeURIComponent(intent)}`
+  } catch {
+    toast.error('发起绑定失败，请重试')
   }
+}
+
+async function unbindGoogle() {
   try {
     await confirm('解绑后将无法使用该 Google 账号登录。', '解绑 Google', {
       confirmText: '解绑',
@@ -294,8 +323,15 @@ async function unbindGoogle() {
   } catch {
     return
   }
-  mock.googleBound = false
-  toast.success('已解绑（MOCK）')
+  try {
+    await unbindIdentity('google')
+    identities.value = await listIdentities()
+    toast.success('已解绑')
+  } catch (err) {
+    // 40010 是「解绑后将无法登录，请先设置密码」这类前置条件不满足，后端消息可直接展示
+    const { code, message } = (err ?? {}) as { code?: number; message?: string }
+    toast.error(code === 40010 && message ? message : '解绑失败，请重试')
+  }
 }
 
 function roleLabel(role: number) {
@@ -510,15 +546,15 @@ function roleLabel(role: number) {
             <div class="setting-row">
               <div class="setting-main">
                 <div class="setting-title">密码</div>
-                <div class="setting-value">{{ mock.hasPassword ? '已设置' : '未设置' }}</div>
+                <div class="setting-value">{{ hasPassword ? '已设置' : '未设置' }}</div>
               </div>
               <button class="ghost-btn" @click="togglePasswordEdit">
-                {{ passwordEditing ? '取消' : mock.hasPassword ? '修改' : '设置密码' }}
+                {{ passwordEditing ? '取消' : hasPassword ? '修改' : '设置密码' }}
               </button>
             </div>
 
             <div v-if="passwordEditing" class="setting-expand">
-              <div v-if="mock.hasPassword" class="field">
+              <div v-if="hasPassword" class="field">
                 <label class="field-label">当前密码</label>
                 <PasswordInput
                   v-model="passwordForm.oldPassword"
@@ -551,7 +587,7 @@ function roleLabel(role: number) {
               <div class="form-actions">
                 <button class="primary-btn" :disabled="passwordSaving" @click="savePassword">
                   <span v-if="passwordSaving" class="btn-spinner" />
-                  {{ mock.hasPassword ? '确认修改' : '设置密码' }}
+                  {{ hasPassword ? '确认修改' : '设置密码' }}
                 </button>
               </div>
             </div>
@@ -583,27 +619,14 @@ function roleLabel(role: number) {
                 <div class="provider-text">
                   <div class="setting-title">Google</div>
                   <div class="setting-value">
-                    {{ mock.googleBound ? mock.googleEmail : '未绑定' }}
+                    {{ googleIdentity ? (googleIdentity.providerEmail ?? '已绑定') : '未绑定' }}
                   </div>
                 </div>
               </div>
-              <button v-if="mock.googleBound" class="ghost-btn" @click="unbindGoogle">解绑</button>
+              <button v-if="googleIdentity" class="ghost-btn" @click="unbindGoogle">解绑</button>
               <button v-else class="ghost-btn" @click="bindGoogle">绑定</button>
             </div>
           </div>
-        </div>
-
-        <!-- ⚠️ MOCK 状态切换器：仅 dev 可见，接口就绪后随假数据一并删除 -->
-        <div v-if="IS_DEV" class="mock-bar">
-          <span class="mock-tag">MOCK</span>
-          <label class="mock-label">
-            <input v-model="mock.hasPassword" type="checkbox" />
-            已设密码
-          </label>
-          <label class="mock-label">
-            <input v-model="mock.googleBound" type="checkbox" />
-            已绑 Google
-          </label>
         </div>
       </div>
     </div>
@@ -949,34 +972,6 @@ function roleLabel(role: number) {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-}
-
-/* ── MOCK bar（接口就绪后删除） ── */
-
-.mock-bar {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-top: 22px;
-  padding: 10px 14px;
-  border: 1px dashed var(--admin-sidebar-border);
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted);
-}
-
-.mock-tag {
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  color: var(--admin-accent);
-}
-
-.mock-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
 }
 
 /* ── Buttons ── */
