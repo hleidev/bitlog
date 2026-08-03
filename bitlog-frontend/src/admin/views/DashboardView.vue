@@ -38,6 +38,13 @@ const commentFailed = ref(false)
 // 统计卡和「最近文章」共用同一个请求：/article/my 一次同时返回 counts 与首页分页数据。
 // 排序下推到后端：只拿回 RECENT_LIMIT 条，前端重排无效。
 onMounted(async () => {
+  // 文章与评论接口均仅管理员可用，非管理员直接跳过取数
+  if (!isAdmin.value) {
+    loading.value = false
+    commentLoading.value = false
+    return
+  }
+
   try {
     const res = await getMyArticles({ pageNum: 1, pageSize: RECENT_LIMIT, sortBy: 'PUBLISH_TIME' })
     counts.value = res.counts
@@ -49,10 +56,6 @@ onMounted(async () => {
     loading.value = false
   }
 
-  if (!isAdmin.value) {
-    commentLoading.value = false
-    return
-  }
   try {
     const res = await getAdminCommentPage({ pageNum: 1, pageSize: 1 })
     commentTotal.value = res.totalElements
