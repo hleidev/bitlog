@@ -88,7 +88,7 @@ export function resetUserPassword(userId: number): Promise<{ newPassword: string
 
 export interface CreateUserBody {
   username: string
-  email?: string
+  email: string
   userRole: 0 | 1
   position?: string
   company?: string
