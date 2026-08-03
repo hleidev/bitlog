@@ -18,10 +18,9 @@ public enum ResultCode implements IResultCode {
     OPERATION_NOT_ALLOWED(40010, "操作不被允许"), RESOURCE_ALREADY_EXISTS(40011, "数据已存在，请勿重复提交"),
 
     // ========== 认证 41xxx ==========
-    PASSWORD_FORMAT_ERROR(41001, "密码格式不符合要求"), ACCOUNT_OR_PASSWORD_ERROR(41002, "账号或密码错误"),
-    REFRESH_TOKEN_INVALID(41003, "Refresh Token 无效或已过期"), LOGIN_TOO_MANY_ATTEMPTS(41004, "登录失败次数过多，请稍后再试"),
-    TOO_MANY_REQUESTS(41005, "操作过于频繁，请稍后再试"), VERIFY_CODE_INVALID(41006, "验证码无效或已过期"),
-    OAUTH_EMAIL_UNVERIFIED(41007, "第三方账号的邮箱未验证"),
+    ACCOUNT_OR_PASSWORD_ERROR(41002, "账号或密码错误"), REFRESH_TOKEN_INVALID(41003, "Refresh Token 无效或已过期"),
+    LOGIN_TOO_MANY_ATTEMPTS(41004, "登录失败次数过多，请稍后再试"), TOO_MANY_REQUESTS(41005, "操作过于频繁，请稍后再试"),
+    VERIFY_CODE_INVALID(41006, "验证码无效或已过期"), OAUTH_EMAIL_UNVERIFIED(41007, "第三方账号的邮箱未验证"),
 
     // ========== 用户 42xxx ==========
     USER_NOT_EXISTS(42001, "用户不存在"), USER_ALREADY_EXISTS(42002, "用户已存在"), USER_DISABLED(42003, "用户已被禁用"),

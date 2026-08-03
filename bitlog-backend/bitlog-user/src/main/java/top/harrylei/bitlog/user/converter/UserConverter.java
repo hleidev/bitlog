@@ -4,7 +4,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
-import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
 import top.harrylei.bitlog.api.model.user.vo.UserVO;
@@ -64,13 +63,4 @@ public interface UserConverter {
     default Integer map(UserStatusEnum status) {
         return status == null ? null : status.getCode();
     }
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "userId", ignore = true)
-    @Mapping(target = "userRole", ignore = true)
-    @Mapping(target = "avatar", ignore = true)
-    @Mapping(target = "deleted", ignore = true)
-    @Mapping(target = "createTime", ignore = true)
-    @Mapping(target = "updateTime", ignore = true)
-    UserInfoDO toInfoDO(UserUpdateParam req);
 }
