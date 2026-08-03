@@ -27,6 +27,9 @@ public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {
             .list();
     }
 
+    /**
+     * 更新选填资料。null 表示不更新该字段，空串表示清空——调用方清空输入时须传空串， 传 null 会被当作「不更新」，清空动作将被静默丢弃。
+     */
     public void updateInfo(Long userId, String profile, String position, String company) {
         // 三个字段都是选填，全空时 lambdaUpdate 会生成没有 SET 子句的非法 SQL
         if (profile == null && position == null && company == null) {
