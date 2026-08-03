@@ -11,7 +11,7 @@ import top.harrylei.bitlog.api.model.article.vo.AiArticleMetadataVO;
 import top.harrylei.bitlog.article.service.ArticleAiService;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.model.Result;
-import top.harrylei.bitlog.common.security.RequiresLogin;
+import top.harrylei.bitlog.common.security.RequiresAdmin;
 
 /**
  * 文章 AI 接口
@@ -27,7 +27,7 @@ public class ArticleAiController {
 
     private final ArticleAiService articleAiService;
 
-    @RequiresLogin
+    @RequiresAdmin
     @Operation(summary = "AI 生成文章元数据推荐（摘要 + 分类 + 标签）")
     @PostMapping("/{id}/ai/metadata")
     public Result<AiArticleMetadataVO> generateMetadata(@PathVariable Long id) {

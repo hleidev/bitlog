@@ -12,7 +12,6 @@ import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import top.harrylei.bitlog.article.service.TagService;
 import top.harrylei.bitlog.common.model.Result;
 import top.harrylei.bitlog.common.security.RequiresAdmin;
-import top.harrylei.bitlog.common.security.RequiresLogin;
 
 import java.util.List;
 
@@ -36,7 +35,7 @@ public class TagController {
         return Result.success(tagService.listAll(name));
     }
 
-    @RequiresLogin
+    @RequiresAdmin
     @Operation(summary = "查询或创建标签")
     @PostMapping("/get-or-create")
     public Result<Long> getOrCreate(@RequestParam String name) {
