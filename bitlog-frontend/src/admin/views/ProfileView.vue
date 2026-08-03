@@ -58,7 +58,7 @@ const passwordSaving = ref(false)
 // 第三方绑定
 const identities = ref<UserIdentity[]>([])
 const googleIdentity = computed(() => identities.value.find((i) => i.provider === 'google') ?? null)
-// 老账号在 hasPassword 上线前的响应里没有该字段，缺省按「已设密码」处理，避免误显示设置入口
+// profile 未加载完时按「已设密码」处理，否则首屏会闪一下「设置密码」入口
 const hasPassword = computed(() => profile.value?.hasPassword !== false)
 
 // 邮箱
