@@ -159,11 +159,13 @@ async function saveBasicInfo() {
   }
   basicSaving.value = true
   try {
+    // 空串必须原样提交：转成 undefined 会让字段在 JSON 里消失，后端收到 null
+    // 视为「不更新」，用户清空职位/公司/简介的动作会被静默丢弃
     await updateUserInfo({
       username: basicForm.username.trim(),
-      position: basicForm.position.trim() || undefined,
-      company: basicForm.company.trim() || undefined,
-      profile: basicForm.profile.trim() || undefined,
+      position: basicForm.position.trim(),
+      company: basicForm.company.trim(),
+      profile: basicForm.profile.trim(),
     })
     await userStore.fetchProfile()
     profile.value = userInfo.value
