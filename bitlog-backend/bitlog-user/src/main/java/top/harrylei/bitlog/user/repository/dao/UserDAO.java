@@ -23,11 +23,6 @@ import java.util.List;
 @Repository
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
 
-    public UserDO getByUsername(String username) {
-        return lambdaQuery().eq(UserDO::getUsername, username).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .one();
-    }
-
     /** 不过滤 deleted：uk_username 不含 deleted，软删用户的用户名仍占位 */
     public boolean isUsernameTaken(String username) {
         return lambdaQuery().eq(UserDO::getUsername, username).exists();
