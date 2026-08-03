@@ -2,8 +2,8 @@
 /**
  * ArticleToc — 正文右侧的刻度式目录（minimap TOC）
  *
- * 折叠态只画一组长短不一的刻度线，长度按标题层级递减，这组线本身就是
- * 文章结构的缩略图；hover / 键盘聚焦时容器横向展开，标题文字淡入。
+ * 只收 h2：一级章节就是文章骨架，更深的层级留给正文自己表达。折叠态画一组
+ * 等长刻度线作为结构缩略图；hover / 键盘聚焦时容器横向展开，标题文字淡入。
  *
  * 锚在窗口右缘（Notion / ChatGPT 一类浮动目录的通行做法，fixed + right），
  * 刻度始终贴边不动，展开时面板向左长进正文与窗口之间的留白。
@@ -24,7 +24,6 @@ import { ref, onMounted, onBeforeUnmount, useTemplateRef } from 'vue'
 interface TocItem {
   id: string
   text: string
-  level: number
 }
 
 const navRef = useTemplateRef<HTMLElement>('navRef')
@@ -80,13 +79,13 @@ function build(root: HTMLElement | null) {
 
   const used = new Set<string>()
   const list: TocItem[] = []
-  for (const el of Array.from(root.querySelectorAll<HTMLElement>('h2, h3, h4'))) {
+  for (const el of Array.from(root.querySelectorAll<HTMLElement>('h2'))) {
     const text = headingText(el)
     if (!text) continue
     const id = uniqueId(el.id || slugify(text), used)
     used.add(id)
     if (el.id !== id) el.id = id
-    list.push({ id, text, level: Number(el.tagName[1]) })
+    list.push({ id, text })
     headingEls.push(el)
   }
   items.value = list
@@ -169,7 +168,6 @@ defineExpose({ build })
           class="toc__link"
           :class="{ 'toc__link--active': item.id === activeId }"
           :href="`#${item.id}`"
-          :data-level="item.level"
           @click="onItemClick($event, item)"
         >
           <span class="toc__text">{{ item.text }}</span>
@@ -248,20 +246,10 @@ defineExpose({ build })
 
 .toc__tick {
   flex: none;
+  width: var(--toc-rail);
   height: 2px;
   background: var(--color-text-faint);
   transition: background-color var(--transition-base);
-}
-
-/* 刻度长度 = 标题层级：这组线本身就是文章结构的缩略图 */
-.toc__link[data-level='2'] .toc__tick {
-  width: var(--toc-rail);
-}
-.toc__link[data-level='3'] .toc__tick {
-  width: 11px;
-}
-.toc__link[data-level='4'] .toc__tick {
-  width: 6px;
 }
 
 .toc__link:hover .toc__tick {
@@ -294,9 +282,6 @@ defineExpose({ build })
     transform var(--transition-base),
     color var(--transition-base);
 }
-
-/* 右对齐的列表不再给文字加层级缩进：缩进会把标题推离它自己的刻度。
-   层级完全由刻度长度表达，与 Notion 的做法一致。 */
 
 .toc:hover .toc__text,
 .toc:focus-within .toc__text {
