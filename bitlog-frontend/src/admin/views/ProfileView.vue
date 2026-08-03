@@ -26,6 +26,7 @@ import {
   validateEmail,
   validateCode,
 } from '@/utils/authValidation'
+import { startOAuthBind } from '@/utils/oauth'
 import PasswordInput from '@/components/common/PasswordInput.vue'
 
 type TabKey = 'profile' | 'security'
@@ -308,7 +309,7 @@ async function bindGoogle() {
   try {
     const intent = await createBindIntent()
     // 整页跳转而非 XHR：授权链路要求浏览器导航到 Google
-    window.location.href = `/api/oauth2/authorization/google?intent=${encodeURIComponent(intent)}`
+    startOAuthBind('google', intent)
   } catch {
     toast.error('发起绑定失败，请重试')
   }
