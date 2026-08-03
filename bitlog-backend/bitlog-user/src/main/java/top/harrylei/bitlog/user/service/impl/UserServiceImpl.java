@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
+import top.harrylei.bitlog.api.model.user.UserRules;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
 import top.harrylei.bitlog.api.model.user.dto.UserStatsDTO;
 import top.harrylei.bitlog.api.model.user.query.UserPageParam;
@@ -136,7 +137,7 @@ public class UserServiceImpl implements UserService {
             ResultCode.USER_NOT_EXISTS.throwException();
         }
         String username = req.getUsername().trim();
-        if (userDAO.isUsernameTakenByOthers(username, userId)) {
+        if (UserRules.isReserved(username) || userDAO.isUsernameTakenByOthers(username, userId)) {
             ResultCode.USER_ALREADY_EXISTS.throwException(username);
         }
 

@@ -1,5 +1,8 @@
 package top.harrylei.bitlog.api.model.user;
 
+import java.util.Locale;
+import java.util.Set;
+
 /**
  * 用户字段校验规则，供注册、管理端建号与资料修改共用
  *
@@ -15,6 +18,10 @@ public final class UserRules {
 
     public static final String USERNAME_MESSAGE = "用户名为 2~16 位，可含汉字、字母、数字、下划线和连字符";
 
+    /** 站点自身与管理身份的用词，留作保留字防止注册成官方号冒充 */
+    private static final Set<String> RESERVED_USERNAMES = Set.of("admin", "administrator", "root", "system", "official",
+        "support", "service", "api", "bitlog", "管理员", "官方", "系统", "客服");
+
     public static final String PASSWORD_PATTERN = "^[a-zA-Z0-9_@#%&!$*-]{8,20}$";
 
     /** 只描述字符集与长度，不宣称「必须包含字母数字」——正则并不做组成校验，写了会让排查走弯路 */
@@ -22,6 +29,11 @@ public final class UserRules {
 
     /** 登录只防超长输入，不校验格式：BCrypt 仅取前 72 字节，放任超长串徒增开销 */
     public static final int PASSWORD_MAX_INPUT = 128;
+
+    /** 与 uk_username 的大小写不敏感保持一致，Admin 与 admin 同样拦下 */
+    public static boolean isReserved(String username) {
+        return RESERVED_USERNAMES.contains(username.toLowerCase(Locale.ROOT));
+    }
 
     private UserRules() {}
 }

@@ -14,6 +14,7 @@ import top.harrylei.bitlog.api.model.auth.LoginParam;
 import top.harrylei.bitlog.api.model.auth.OAuthLoginParam;
 import top.harrylei.bitlog.api.model.auth.PasswordResetParam;
 import top.harrylei.bitlog.api.model.auth.RegisterParam;
+import top.harrylei.bitlog.api.model.user.UserRules;
 import top.harrylei.bitlog.api.model.user.req.AdminCreateUserParam;
 import top.harrylei.bitlog.api.model.user.vo.UserCreatedVO;
 import top.harrylei.bitlog.common.config.JwtProperties;
@@ -276,7 +277,7 @@ public class AuthServiceImpl implements AuthService {
         if (userDAO.isEmailTaken(email)) {
             ResultCode.USER_ALREADY_EXISTS.throwException(email);
         }
-        if (userDAO.isUsernameTaken(username)) {
+        if (UserRules.isReserved(username) || userDAO.isUsernameTaken(username)) {
             ResultCode.USER_ALREADY_EXISTS.throwException(username);
         }
     }

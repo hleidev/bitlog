@@ -2,6 +2,7 @@ package top.harrylei.bitlog.user.component;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import top.harrylei.bitlog.api.model.user.UserRules;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
 
@@ -67,7 +68,7 @@ public class UsernameGenerator {
     private void addIfUsable(List<String> candidates, String raw) {
         String safe = raw == null ? "" : raw.trim().replaceAll(ILLEGAL_CHARS, "");
         String cleaned = truncate(safe, MAX_LENGTH);
-        if (cleaned.length() >= MIN_LENGTH && !candidates.contains(cleaned)) {
+        if (cleaned.length() >= MIN_LENGTH && !UserRules.isReserved(cleaned) && !candidates.contains(cleaned)) {
             candidates.add(cleaned);
         }
     }
