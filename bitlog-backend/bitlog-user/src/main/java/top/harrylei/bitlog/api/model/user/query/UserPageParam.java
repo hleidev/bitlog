@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 @Accessors(chain = true)
 public class UserPageParam extends BasePage {
 
-    @Schema(description = "登录用户名")
+    @Schema(description = "用户名，模糊匹配")
     private String username;
 
     @Schema(description = "用户状态")

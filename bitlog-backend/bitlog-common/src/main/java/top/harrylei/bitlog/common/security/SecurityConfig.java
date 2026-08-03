@@ -50,13 +50,13 @@ public class SecurityConfig {
 
     private static final List<String> BASE_WHITELIST = List.of("/swagger-ui/**", "/v3/api-docs/**", "/actuator/health");
 
-    /**
-     * OAuth2 端点统一挂在 /api 下：前端开发服务器只把 /api 代理给后端， 用 Spring 默认的 /oauth2、/login/oauth2 会让授权回调在 dev 环境 404。
-     */
     /** 授权入口上标记绑定意图的查询参数，值为 UserService 签发的一次性令牌 */
     private static final String BIND_INTENT_PARAM = "intent";
     private static final StringKeyGenerator STATE_KEY_GENERATOR = new Base64StringKeyGenerator(Base64.getUrlEncoder());
 
+    /**
+     * OAuth2 端点统一挂在 /api 下：前端开发服务器只把 /api 代理给后端， 用 Spring 默认的 /oauth2、/login/oauth2 会让授权回调在 dev 环境 404。
+     */
     private static final String OAUTH2_AUTHORIZATION_BASE_URI = "/api/oauth2/authorization";
     private static final String OAUTH2_REDIRECTION_BASE_URI = "/api/login/oauth2/code/*";
     private static final List<String> OAUTH2_WHITELIST = List.of("/api/oauth2/**", "/api/login/oauth2/**");
