@@ -22,6 +22,9 @@ public final class UserRules {
     private static final Set<String> RESERVED_USERNAMES = Set.of("admin", "administrator", "root", "system", "official",
         "support", "service", "api", "bitlog", "管理员", "官方", "系统", "客服");
 
+    /** 注销墓碑用户名前缀，须整段保留，否则被抢注后注销时的覆写会撞 uk_username */
+    public static final String DEACTIVATED_PREFIX = "del_";
+
     public static final String PASSWORD_PATTERN = "^[a-zA-Z0-9_@#%&!$*-]{8,20}$";
 
     /** 只描述字符集与长度，不宣称「必须包含字母数字」——正则并不做组成校验，写了会让排查走弯路 */
@@ -32,7 +35,8 @@ public final class UserRules {
 
     /** 与 uk_username 的大小写不敏感保持一致，Admin 与 admin 同样拦下 */
     public static boolean isReserved(String username) {
-        return RESERVED_USERNAMES.contains(username.toLowerCase(Locale.ROOT));
+        String normalized = username.toLowerCase(Locale.ROOT);
+        return RESERVED_USERNAMES.contains(normalized) || normalized.startsWith(DEACTIVATED_PREFIX);
     }
 
     private UserRules() {}

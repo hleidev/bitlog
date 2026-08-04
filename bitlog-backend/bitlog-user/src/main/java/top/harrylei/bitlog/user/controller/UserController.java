@@ -113,4 +113,11 @@ public class UserController {
         userService.updateAvatar(ReqInfoContext.getContext().getUserId(), avatar);
         return Result.success();
     }
+
+    @Operation(summary = "注销账号")
+    @DeleteMapping
+    public Result<Void> deactivateAccount() {
+        userService.deactivateUserBatch(List.of(ReqInfoContext.getContext().getUserId()));
+        return Result.success();
+    }
 }

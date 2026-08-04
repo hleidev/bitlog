@@ -7,6 +7,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
@@ -27,6 +29,7 @@ import top.harrylei.bitlog.api.model.user.vo.UserStatsVO;
 import top.harrylei.bitlog.api.model.user.vo.UserVO;
 import top.harrylei.bitlog.common.constans.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
+import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.util.EmailUtil;
@@ -67,6 +70,17 @@ public class UserServiceImpl implements UserService {
     /** 够走完一次 Google 授权即可，留长了等于放大重放窗口 */
     private static final Duration BIND_INTENT_TTL = Duration.ofMinutes(5);
 
+    /** 注销后对外统一展示的用户名，真实用户名已被墓碑值覆写 */
+    private static final String DEACTIVATED_USERNAME = "已注销用户";
+
+    /** RFC 2606 保留域，永不可能与真实邮箱冲突 */
+    private static final String DEACTIVATED_EMAIL_DOMAIN = "@bitlog.invalid";
+
+    private static final int TOMBSTONE_NAME_RETRY = 3;
+
+    /** 前缀 4 位 + 后缀 8 位 = 12，须留在 user_account.username 的 varchar(16) 之内 */
+    private static final int TOMBSTONE_SUFFIX_LENGTH = 8;
+
     private final UserDAO userDAO;
     private final UserIdentityDAO userIdentityDAO;
     private final UserInfoDAO userInfoDAO;
@@ -82,14 +96,11 @@ public class UserServiceImpl implements UserService {
         if (userId == null) {
             return null;
         }
-        UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
+        UserInfoDO userInfo = userInfoDAO.getByUserIdIncludingDeleted(userId);
         if (userInfo == null) {
             return null;
         }
-        UserDO user = userDAO.getById(userInfo.getUserId());
-        UserVO vo = userConverter.toVO(userInfo, user);
-        vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
-        return vo;
+        return buildUserVO(userInfo, userDAO.getByIdIncludingDeleted(userInfo.getUserId()));
     }
 
     @Override
@@ -97,30 +108,48 @@ public class UserServiceImpl implements UserService {
         if (userIds == null || userIds.isEmpty()) {
             return List.of();
         }
-        List<UserInfoDO> userInfoList = userInfoDAO.listByUserIds(userIds);
+        List<UserInfoDO> userInfoList = userInfoDAO.listByUserIdsIncludingDeleted(userIds);
         if (userInfoList.isEmpty()) {
             return List.of();
         }
 
         List<Long> accountIds = userInfoList.stream().map(UserInfoDO::getUserId).toList();
-        List<UserDO> userList = userDAO.listByUserIds(accountIds);
+        List<UserDO> userList = userDAO.listByUserIdsIncludingDeleted(accountIds);
         Map<Long, UserDO> userMap = userList.stream().collect(Collectors.toMap(UserDO::getId, Function.identity()));
 
-        return userInfoList.stream().map(info -> {
-            UserVO vo = userConverter.toVO(info, userMap.get(info.getUserId()));
-            vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
-            return vo;
-        }).toList();
+        return userInfoList.stream().map(info -> buildUserVO(info, userMap.get(info.getUserId()))).toList();
+    }
+
+    /**
+     * 展示装配。注销账号的 deleted=1，唯有展示路径需要读到该行，因此这里替换成占位身份， 鉴权与写入路径仍走过滤 deleted 的查询，天然拒绝已注销账号。
+     */
+    private UserVO buildUserVO(UserInfoDO userInfo, UserDO user) {
+        UserVO vo = userConverter.toVO(userInfo, user);
+        boolean deactivated = user != null && DeleteStatusEnum.DELETED.equals(user.getDeleted());
+        vo.setDeactivated(deactivated);
+        if (deactivated) {
+            vo.setUsername(DEACTIVATED_USERNAME);
+        }
+        vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+        return vo;
     }
 
     @Override
     public UserDetailVO getUserDetail(Long userId) {
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
-        if (userInfo == null) {
-            throw ResultCode.USER_NOT_EXISTS.toException();
-        }
-        UserDO user = userDAO.getById(userInfo.getUserId());
-        if (user == null) {
+        UserDO user = userInfo == null ? null : userDAO.getById(userInfo.getUserId());
+        return buildUserDetail(userInfo, user);
+    }
+
+    @Override
+    public UserDetailVO getUserDetailIncludingDeactivated(Long userId) {
+        UserInfoDO userInfo = userInfoDAO.getByUserIdIncludingDeleted(userId);
+        UserDO user = userInfo == null ? null : userDAO.getByIdIncludingDeleted(userInfo.getUserId());
+        return buildUserDetail(userInfo, user);
+    }
+
+    private UserDetailVO buildUserDetail(UserInfoDO userInfo, UserDO user) {
+        if (userInfo == null || user == null) {
             throw ResultCode.USER_NOT_EXISTS.toException();
         }
         UserDetailVO vo = userConverter.toDetailVO(userInfo, user);
@@ -288,26 +317,37 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteUserBatch(List<Long> userIds) {
-        checkNotAdmin(userIds);
-        userDAO.deleteBatch(userIds);
-        log.info("批量软删除用户 userIds={}", userIds);
-    }
-
-    @Override
-    public void restoreUserBatch(List<Long> userIds) {
-        checkNotAdmin(userIds);
-        userDAO.restoreBatch(userIds);
-        log.info("批量恢复用户 userIds={}", userIds);
-    }
-
-    @Override
     @Transactional(rollbackFor = Exception.class)
-    public void removeUserBatch(List<Long> userIds) {
+    public void deactivateUserBatch(List<Long> userIds) {
+        // 管理员不可注销：文章只有管理员能写，注销会让 article.user_id 悬空
         checkNotAdmin(userIds);
-        userDAO.removeBatch(userIds);
-        userInfoDAO.removeByUserIds(userIds);
-        log.info("批量物理删除用户 userIds={}", userIds);
+        userIds.forEach(this::tombstone);
+    }
+
+    /**
+     * 墓碑化本体：覆写唯一列腾空 uk_username/uk_email，匿名化资料并解绑第三方， 账号行以 deleted=1 保留供评论继续引用。已注销账号重复调用直接返回。
+     */
+    private void tombstone(Long userId) {
+        UserDO user = userDAO.getByIdIncludingDeleted(userId);
+        if (user == null || DeleteStatusEnum.DELETED.equals(user.getDeleted())) {
+            return;
+        }
+
+        // 头像 Key 须在 anonymize 清空该字段之前取出
+        UserInfoDO userInfo = userInfoDAO.getByUserIdIncludingDeleted(userId);
+
+        String tombstone = generateTombstoneName();
+        userDAO.deactivate(userId, tombstone, tombstone + DEACTIVATED_EMAIL_DOMAIN,
+            passwordEncoder.encode(PasswordUtil.generateRandomPassword()));
+        userInfoDAO.anonymize(userId);
+        userIdentityDAO.removeByUserId(userId);
+
+        // 内容图片不在此处理：ImageCleanupTask 按引用扫描回收孤儿，比按 user_id 删更安全
+        if (userInfo != null && StringUtils.hasText(userInfo.getAvatar())) {
+            deleteObjectAfterCommit(fileUrlHelper.extractKey(userInfo.getAvatar()));
+        }
+
+        log.info("账号注销 userId={}", userId);
     }
 
     @Override
@@ -317,7 +357,7 @@ public class UserServiceImpl implements UserService {
         vo.setTotal(dto.getTotal());
         vo.setEnabled(dto.getEnabled());
         vo.setDisabled(dto.getDisabled());
-        vo.setDeleted(dto.getDeleted());
+        vo.setDeactivated(dto.getDeactivated());
         return vo;
     }
 
@@ -350,6 +390,32 @@ public class UserServiceImpl implements UserService {
         if (hasAdmin) {
             ResultCode.OPERATION_NOT_ALLOWED.throwException("不能操作管理员账号");
         }
+    }
+
+    /** 用随机串而非 userId，避免把内部主键印在评论区供反查 */
+    private String generateTombstoneName() {
+        for (int i = 0; i < TOMBSTONE_NAME_RETRY; i++) {
+            String candidate = UserRules.DEACTIVATED_PREFIX
+                + UUID.randomUUID().toString().replace("-", "").substring(0, TOMBSTONE_SUFFIX_LENGTH);
+            if (!userDAO.isUsernameTaken(candidate)) {
+                return candidate;
+            }
+        }
+        log.error("墓碑用户名生成失败，连续 {} 次随机候选均已被占用", TOMBSTONE_NAME_RETRY);
+        throw ResultCode.INTERNAL_ERROR.toException();
+    }
+
+    /** 对象存储删除是外部 IO，事务回滚时文件不应已被删除 */
+    private void deleteObjectAfterCommit(String key) {
+        if (!StringUtils.hasText(key)) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                fileService.delete(key);
+            }
+        });
     }
 
     @Override

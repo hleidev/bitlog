@@ -37,4 +37,9 @@ public class UserIdentityDAO extends ServiceImpl<UserIdentityMapper, UserIdentit
     public boolean unbind(Long userId, String provider) {
         return lambdaUpdate().eq(UserIdentityDO::getUserId, userId).eq(UserIdentityDO::getProvider, provider).remove();
     }
+
+    /** 注销时物理删除：不删则 uk_provider_uid 仍占位，同一第三方账号将永远无法重新注册 */
+    public void removeByUserId(Long userId) {
+        lambdaUpdate().eq(UserIdentityDO::getUserId, userId).remove();
+    }
 }

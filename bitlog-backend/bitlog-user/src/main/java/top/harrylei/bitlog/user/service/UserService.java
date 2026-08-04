@@ -50,6 +50,16 @@ public interface UserService {
     UserDetailVO getUserDetail(Long userId);
 
     /**
+     * 获取用户详情，含已注销账号
+     * <p>
+     * 供管理端查看墓碑账号；{@link #getUserDetail} 仍走过滤 deleted 的查询，天然拒绝已注销账号
+     *
+     * @param userId 用户 ID
+     * @return 用户详情
+     */
+    UserDetailVO getUserDetailIncludingDeactivated(Long userId);
+
+    /**
      * 更新用户基本信息
      *
      * @param userId 用户 ID
@@ -136,31 +146,14 @@ public interface UserService {
     void updateUserStatusBatch(List<Long> userIds, UserStatusEnum status);
 
     /**
-     * 批量软删除用户
+     * 批量注销用户（墓碑化，不可撤销）
      * <p>
-     * 权限：可操作自己（管理员也是用户，可注销自己账号）；不可操作其他管理员账号
+     * 覆写唯一列并匿名化资料，账号行保留供评论继续引用；原邮箱与用户名随之释放，可重新注册。 评论与文章一律保留，需要删除的评论应由用户在注销前自行处理。用户自助注销传入自己的 ID 即可，二次确认由前端负责。
+     * 权限：不可操作管理员账号
      *
      * @param userIds 用户 ID 列表
      */
-    void deleteUserBatch(List<Long> userIds);
-
-    /**
-     * 批量恢复已删除用户
-     * <p>
-     * 权限：可操作自己；不可操作其他管理员账号
-     *
-     * @param userIds 用户 ID 列表
-     */
-    void restoreUserBatch(List<Long> userIds);
-
-    /**
-     * 批量物理删除用户（不可恢复）
-     * <p>
-     * 权限：可操作自己；不可操作其他管理员账号
-     *
-     * @param userIds 用户 ID 列表
-     */
-    void removeUserBatch(List<Long> userIds);
+    void deactivateUserBatch(List<Long> userIds);
 
     /**
      * 查询用户数量统计

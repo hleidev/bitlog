@@ -27,6 +27,16 @@ public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {
             .list();
     }
 
+    /** 展示专用：注销后 deleted=1，评论区仍需读到该行才能渲染「已注销用户」 */
+    public UserInfoDO getByUserIdIncludingDeleted(Long userId) {
+        return lambdaQuery().eq(UserInfoDO::getUserId, userId).one();
+    }
+
+    /** 展示专用，同 {@link #getByUserIdIncludingDeleted}；鉴权与写入路径必须走过滤 deleted 的版本 */
+    public List<UserInfoDO> listByUserIdsIncludingDeleted(List<Long> userIds) {
+        return lambdaQuery().in(UserInfoDO::getUserId, userIds).list();
+    }
+
     /**
      * 更新选填资料。null 表示不更新该字段，空串表示清空——调用方清空输入时须传空串， 传 null 会被当作「不更新」，清空动作将被静默丢弃。
      */
@@ -44,7 +54,10 @@ public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {
         lambdaUpdate().eq(UserInfoDO::getUserId, userId).set(UserInfoDO::getAvatar, avatar).update();
     }
 
-    public void removeByUserIds(List<Long> userIds) {
-        lambdaUpdate().in(UserInfoDO::getUserId, userIds).remove();
+    /** 注销墓碑：清空全部可识别资料并置 deleted，行本身保留供评论展示 */
+    public void anonymize(Long userId) {
+        lambdaUpdate().eq(UserInfoDO::getUserId, userId).set(UserInfoDO::getAvatar, "").set(UserInfoDO::getPosition, "")
+            .set(UserInfoDO::getCompany, "").set(UserInfoDO::getProfile, "")
+            .set(UserInfoDO::getDeleted, DeleteStatusEnum.DELETED).update();
     }
 }

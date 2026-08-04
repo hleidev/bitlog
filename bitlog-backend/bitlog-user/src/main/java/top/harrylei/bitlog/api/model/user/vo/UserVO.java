@@ -37,4 +37,7 @@ public class UserVO {
 
     @Schema(description = "邮箱", example = "harry@bitlog.top")
     private String email;
+
+    @Schema(description = "是否已注销，为 true 时用户名与头像已替换为占位值", example = "false")
+    private Boolean deactivated;
 }

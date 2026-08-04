@@ -23,4 +23,7 @@ public class CommentUserVO {
 
     @Schema(description = "头像 URL")
     private String avatar;
+
+    @Schema(description = "是否已注销，为 true 时前端不渲染主页跳转")
+    private Boolean deactivated;
 }

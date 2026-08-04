@@ -65,7 +65,7 @@ public class AdminUserController {
     @Operation(summary = "查询用户完整信息")
     @GetMapping("/users/{userId}")
     public Result<UserDetailVO> getUserDetail(@PathVariable Long userId) {
-        return Result.success(userService.getUserDetail(userId));
+        return Result.success(userService.getUserDetailIncludingDeactivated(userId));
     }
 
     @Operation(summary = "批量修改用户状态")
@@ -75,24 +75,10 @@ public class AdminUserController {
         return Result.success();
     }
 
-    @Operation(summary = "批量软删除用户")
+    @Operation(summary = "批量强制注销用户")
     @DeleteMapping("/users")
-    public Result<Void> deleteUsers(@Valid @RequestBody UserIdsParam req) {
-        userService.deleteUserBatch(req.getUserIds());
-        return Result.success();
-    }
-
-    @Operation(summary = "批量恢复已删除用户")
-    @PatchMapping("/users/restore")
-    public Result<Void> restoreUsers(@Valid @RequestBody UserIdsParam req) {
-        userService.restoreUserBatch(req.getUserIds());
-        return Result.success();
-    }
-
-    @Operation(summary = "批量物理删除用户（不可恢复）")
-    @DeleteMapping("/users/permanent")
-    public Result<Void> removeUsers(@Valid @RequestBody UserIdsParam req) {
-        userService.removeUserBatch(req.getUserIds());
+    public Result<Void> deactivateUsers(@Valid @RequestBody UserIdsParam req) {
+        userService.deactivateUserBatch(req.getUserIds());
         return Result.success();
     }
 

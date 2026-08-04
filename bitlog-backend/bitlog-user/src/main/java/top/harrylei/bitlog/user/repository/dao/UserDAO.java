@@ -46,8 +46,14 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
         return lambdaQuery().eq(UserDO::getId, userId).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED).one();
     }
 
-    public List<UserDO> listByUserIds(List<Long> userIds) {
-        return lambdaQuery().in(UserDO::getId, userIds).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED).list();
+    /** 展示专用：注销后 deleted=1，评论区仍需读到该行才能渲染「已注销用户」 */
+    public UserDO getByIdIncludingDeleted(Long userId) {
+        return lambdaQuery().eq(UserDO::getId, userId).one();
+    }
+
+    /** 展示专用，同 {@link #getByIdIncludingDeleted}；鉴权与写入路径必须走过滤 deleted 的版本 */
+    public List<UserDO> listByUserIdsIncludingDeleted(List<Long> userIds) {
+        return lambdaQuery().in(UserDO::getId, userIds).list();
     }
 
     public void updatePassword(Long userId, String encodedPassword) {
@@ -62,20 +68,16 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
         lambdaUpdate().eq(UserDO::getId, userId).set(UserDO::getEmail, email).update();
     }
 
+    /** 带 deleted 条件：注销是终态，启停不应把墓碑账号一起改了 */
     public void updateStatusBatch(List<Long> userIds, UserStatusEnum status) {
-        lambdaUpdate().in(UserDO::getId, userIds).set(UserDO::getStatus, status).update();
+        lambdaUpdate().in(UserDO::getId, userIds).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+            .set(UserDO::getStatus, status).update();
     }
 
-    public void deleteBatch(List<Long> userIds) {
-        updateDeletedStatus(userIds, DeleteStatusEnum.DELETED);
-    }
-
-    public void restoreBatch(List<Long> userIds) {
-        updateDeletedStatus(userIds, DeleteStatusEnum.NOT_DELETED);
-    }
-
-    public void removeBatch(List<Long> userIds) {
-        lambdaUpdate().in(UserDO::getId, userIds).remove();
+    /** 注销墓碑：覆写唯一列并置 deleted，腾空 uk_username/uk_email 让原邮箱可重新注册 */
+    public void deactivate(Long userId, String username, String email, String encodedPassword) {
+        lambdaUpdate().eq(UserDO::getId, userId).set(UserDO::getUsername, username).set(UserDO::getEmail, email)
+            .set(UserDO::getPassword, encodedPassword).set(UserDO::getDeleted, DeleteStatusEnum.DELETED).update();
     }
 
     public UserStatsDTO countStats() {
@@ -88,9 +90,5 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
 
     public UserDetailDTO getUserDetail(Long userId) {
         return getBaseMapper().selectUserDetail(userId);
-    }
-
-    private void updateDeletedStatus(List<Long> userIds, DeleteStatusEnum status) {
-        lambdaUpdate().in(UserDO::getId, userIds).set(UserDO::getDeleted, status).update();
     }
 }

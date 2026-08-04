@@ -17,5 +17,5 @@ public class UserStatsDTO {
 
     private long disabled;
 
-    private long deleted;
+    private long deactivated;
 }

@@ -41,7 +41,7 @@
             COALESCE(SUM(deleted = 0),                0) AS total,
             COALESCE(SUM(deleted = 0 AND status = 1), 0) AS enabled,
             COALESCE(SUM(deleted = 0 AND status = 0), 0) AS disabled,
-            COALESCE(SUM(deleted = 1),                0) AS deleted
+            COALESCE(SUM(deleted = 1),                0) AS deactivated
         from user_account
     </select>
 
