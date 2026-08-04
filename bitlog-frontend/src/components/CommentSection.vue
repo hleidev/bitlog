@@ -40,7 +40,9 @@ const feedback = ref('')
 const currentUserId = computed(() => userInfo.value?.userId ?? null)
 const remaining = computed(() => MAX_LENGTH - draft.value.length)
 
+// 注销用户复用已删除评论的破折号占位，不另造一套视觉
 function initial(user: CommentUserVO | null) {
+  if (user?.deactivated) return '—'
   return (user?.username ?? '').charAt(0).toUpperCase() || '?'
 }
 
@@ -188,7 +190,11 @@ async function remove(commentId: number) {
             <span v-else class="avatar avatar--placeholder">{{ initial(root.user) }}</span>
             <div class="comment-main">
               <div class="comment-head">
-                <span class="comment-name">{{ root.user?.username }}</span>
+                <span
+                  class="comment-name"
+                  :class="{ 'comment-name--muted': root.user?.deactivated }"
+                  >{{ root.user?.username }}</span
+                >
                 <span class="comment-time">{{ formatTime(root.createTime) }}</span>
               </div>
               <p class="comment-body">{{ root.content }}</p>
@@ -222,7 +228,11 @@ async function remove(commentId: number) {
             }}</span>
             <div class="comment-main">
               <div class="comment-head">
-                <span class="comment-name">{{ reply.user?.username }}</span>
+                <span
+                  class="comment-name"
+                  :class="{ 'comment-name--muted': reply.user?.deactivated }"
+                  >{{ reply.user?.username }}</span
+                >
                 <span v-if="reply.replyToUser" class="reply-to"
                   >回复 @{{ reply.replyToUser.username }}</span
                 >
@@ -472,6 +482,10 @@ async function remove(commentId: number) {
   font-size: 13px;
   font-weight: 500;
   color: var(--color-text-primary);
+}
+
+.comment-name--muted {
+  color: var(--color-text-faint);
 }
 
 .reply-to {

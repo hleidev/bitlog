@@ -5,6 +5,8 @@ export interface CommentUserVO {
   userId: number
   username: string
   avatar: string
+  /** 已注销：username 已被后端换成「已注销用户」，avatar 为空 */
+  deactivated: boolean
 }
 
 export interface CommentReplyVO {
