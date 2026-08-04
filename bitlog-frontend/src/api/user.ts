@@ -70,3 +70,8 @@ export function createBindIntent(): Promise<string> {
 export function unbindIdentity(provider: string): Promise<void> {
   return request.delete(`/v1/user/identities/${provider}`)
 }
+
+/** 注销账号，不可逆。用户身份取自登录态，二次确认纯属前端防误触，不必回传服务端 */
+export function deactivateAccount(): Promise<void> {
+  return request.delete('/v1/user')
+}

@@ -10,9 +10,7 @@ import {
   getUserById,
   getUserStats,
   updateUsersStatus,
-  deleteUsers,
-  restoreUsers,
-  permanentDeleteUsers,
+  deactivateUsers,
   resetUserPassword,
   type UserListItem,
   type UserDetail,
@@ -27,14 +25,15 @@ const { userInfo } = storeToRefs(useUserStore())
 const loading = ref(false)
 
 // ── Tab ───────────────────────────────────────────────────────────────────────
-type TabKey = 'all' | 'enabled' | 'disabled' | 'deleted'
+type TabKey = 'all' | 'enabled' | 'disabled' | 'deactivated'
 const activeTab = ref<TabKey>('all')
 
-const TAB_STATUS: Record<TabKey, number | undefined> = {
-  all: undefined,
-  enabled: 1,
-  disabled: 0,
-  deleted: undefined,
+// 注销不改 status，只置 deleted=1；非注销页签必须显式带 deleted=0，否则墓碑账号会混进来
+const TAB_QUERY: Record<TabKey, { status?: number; deleted?: number }> = {
+  all: { deleted: 0 },
+  enabled: { status: 1, deleted: 0 },
+  disabled: { status: 0, deleted: 0 },
+  deactivated: { deleted: 1 },
 }
 
 function switchTab(tab: TabKey) {
@@ -89,8 +88,7 @@ async function fetchUsers() {
       pageNum: pagination.pageNum,
       pageSize: pagination.pageSize,
       username: filters.username || undefined,
-      status: TAB_STATUS[activeTab.value],
-      deleted: activeTab.value === 'deleted' ? 1 : 0,
+      ...TAB_QUERY[activeTab.value],
     })
   } finally {
     loading.value = false
@@ -113,7 +111,7 @@ function handleReset() {
 }
 
 // ── Tab counts ────────────────────────────────────────────────────────────────
-const tabCounts = reactive({ all: 0, enabled: 0, disabled: 0, deleted: 0 })
+const tabCounts = reactive({ all: 0, enabled: 0, disabled: 0, deactivated: 0 })
 
 async function fetchTabCounts() {
   try {
@@ -121,7 +119,7 @@ async function fetchTabCounts() {
     tabCounts.all = stats.total
     tabCounts.enabled = stats.enabled
     tabCounts.disabled = stats.disabled
-    tabCounts.deleted = stats.deleted
+    tabCounts.deactivated = stats.deactivated
   } catch {
     /* 统计失败不影响主流程 */
   }
@@ -171,9 +169,35 @@ function closeMenu() {
 onMounted(() => window.addEventListener('scroll', closeMenu, true))
 onUnmounted(() => window.removeEventListener('scroll', closeMenu, true))
 
+// 注销是终态，标记在 deleted 而非 status 上；后端不再允许改状态或重置密码
+type StatusRow = { username: string; status: number; deleted: number }
+
+function isDeactivated(row: StatusRow) {
+  return row.deleted === 1
+}
+
+function statusLabel(row: StatusRow) {
+  if (isDeactivated(row)) return '已注销'
+  return row.status === 1 ? '启用' : '禁用'
+}
+
+function statusClass(row: StatusRow) {
+  if (isDeactivated(row)) return 'status-badge--deactivated'
+  return row.status === 1 ? 'status-badge--enabled' : 'status-badge--disabled'
+}
+
+// 注销时 username 被覆写成墓碑值（del_xxxxxxxx），直接渲染对管理员无意义
+function displayName(row: StatusRow) {
+  return isDeactivated(row) ? '已注销用户' : row.username
+}
+
+function canChangeStatus(row: UserListItem) {
+  return row.userId !== userInfo.value?.userId && !isDeactivated(row)
+}
+
 // ── Single row operations ─────────────────────────────────────────────────────
 async function handleToggleStatus(row: UserListItem) {
-  if (row.userId === userInfo.value?.userId) return
+  if (row.userId === userInfo.value?.userId || isDeactivated(row)) return
   closeMenu()
   const newStatus = row.status === 1 ? 0 : 1
   try {
@@ -189,7 +213,9 @@ async function handleToggleStatus(row: UserListItem) {
 async function handleResetPassword(row: UserListItem) {
   closeMenu()
   try {
-    await confirm(`确认重置「${row.username}」的密码？`, '重置密码', { confirmText: '重置密码' })
+    await confirm(`确认重置「${displayName(row)}」的密码？`, '重置密码', {
+      confirmText: '重置密码',
+    })
   } catch {
     return
   }
@@ -207,68 +233,30 @@ async function handleResetPassword(row: UserListItem) {
   }
 }
 
-async function handleDelete(row: UserListItem) {
+const DEACTIVATE_WARNING =
+  '注销后邮箱与用户名会被释放、个人资料清空，其发表的评论保留但署名转为「已注销用户」。此操作不可撤销。'
+
+async function handleDeactivate(row: UserListItem) {
   closeMenu()
   try {
-    await confirm(`确认删除用户「${row.username}」？删除后可在「已删除」中恢复。`, '删除用户', {
-      confirmText: '删除',
+    await confirm(`确认注销「${displayName(row)}」？${DEACTIVATE_WARNING}`, '注销账号', {
+      confirmText: '注销',
       danger: true,
     })
   } catch {
     return
   }
   try {
-    await deleteUsers([row.userId])
-    toast.success('用户已删除')
+    await deactivateUsers([row.userId])
+    toast.success('账号已注销')
     fetchUsers()
     fetchTabCounts()
   } catch {
-    toast.error('删除失败')
-  }
-}
-
-async function handleRestore(row: UserListItem) {
-  closeMenu()
-  try {
-    await confirm(`确认恢复用户「${row.username}」？`, '恢复用户', { confirmText: '恢复' })
-  } catch {
-    return
-  }
-  try {
-    await restoreUsers([row.userId])
-    toast.success('用户已恢复')
-    fetchUsers()
-    fetchTabCounts()
-  } catch {
-    toast.error('恢复失败')
-  }
-}
-
-async function handlePermanentDelete(row: UserListItem) {
-  closeMenu()
-  try {
-    await confirm(`彻底删除「${row.username}」后数据将无法恢复，确认继续？`, '彻底删除', {
-      confirmText: '彻底删除',
-      danger: true,
-    })
-  } catch {
-    return
-  }
-  try {
-    await permanentDeleteUsers([row.userId])
-    toast.success('用户已彻底删除')
-    fetchUsers()
-    fetchTabCounts()
-  } catch {
-    toast.error('操作失败')
+    toast.error('注销失败')
   }
 }
 
 // ── Batch operations ──────────────────────────────────────────────────────────
-function getSelectedIds() {
-  return [...selected]
-}
-
 function getTargets() {
   return pageData.value.content.filter(
     (r) => selected.has(r.userId) && r.userId !== userInfo.value?.userId,
@@ -276,9 +264,10 @@ function getTargets() {
 }
 
 async function handleBatchStatus(status: 0 | 1) {
-  const targets = getTargets()
+  // 已注销是终态，混在批次里会被后端整批拒绝，先剔除
+  const targets = getTargets().filter((r) => !isDeactivated(r))
   if (targets.length === 0) {
-    toast.warning('已排除当前登录账号，无可操作的用户')
+    toast.warning('已排除当前登录账号与已注销账号，无可操作的用户')
     return
   }
   const label = status === 1 ? '启用' : '禁用'
@@ -303,68 +292,29 @@ async function handleBatchStatus(status: 0 | 1) {
   }
 }
 
-async function handleBatchDelete() {
-  const targets = getTargets()
+async function handleBatchDeactivate() {
+  // 已注销的再注销一次会被后端整批拒绝，先剔除
+  const targets = getTargets().filter((r) => !isDeactivated(r))
   if (targets.length === 0) {
-    toast.warning('已排除当前登录账号，无可删除的用户')
+    toast.warning('已排除当前登录账号与已注销账号，无可操作的用户')
     return
   }
   try {
-    await confirm(
-      `确认删除选中的 ${targets.length} 个用户？删除后可在「已删除」中恢复。`,
-      '批量删除',
-      { confirmText: '删除', danger: true },
-    )
-  } catch {
-    return
-  }
-  try {
-    await deleteUsers(targets.map((r) => r.userId))
-    toast.success(`已删除 ${targets.length} 个用户`)
-    selected.clear()
-    fetchUsers()
-    fetchTabCounts()
-  } catch {
-    toast.error('删除失败')
-  }
-}
-
-async function handleBatchRestore() {
-  const ids = getSelectedIds()
-  try {
-    await confirm(`确认恢复选中的 ${ids.length} 个用户？`, '批量恢复', { confirmText: '恢复' })
-  } catch {
-    return
-  }
-  try {
-    await restoreUsers(ids)
-    toast.success(`已恢复 ${ids.length} 个用户`)
-    selected.clear()
-    fetchUsers()
-    fetchTabCounts()
-  } catch {
-    toast.error('恢复失败')
-  }
-}
-
-async function handleBatchPermanentDelete() {
-  const ids = getSelectedIds()
-  try {
-    await confirm(`彻底删除后数据将无法恢复，确认继续？`, `彻底删除 ${ids.length} 个用户`, {
-      confirmText: '彻底删除',
+    await confirm(`确认注销选中的 ${targets.length} 个账号？${DEACTIVATE_WARNING}`, '批量注销', {
+      confirmText: '注销',
       danger: true,
     })
   } catch {
     return
   }
   try {
-    await permanentDeleteUsers(ids)
-    toast.success('已彻底删除')
+    await deactivateUsers(targets.map((r) => r.userId))
+    toast.success(`已注销 ${targets.length} 个账号`)
     selected.clear()
     fetchUsers()
     fetchTabCounts()
   } catch {
-    toast.error('操作失败')
+    toast.error('注销失败')
   }
 }
 
@@ -442,7 +392,7 @@ function relativeTime(d: string) {
       <div class="card-header">
         <div class="view-tabs">
           <button
-            v-for="tab in ['all', 'enabled', 'disabled', 'deleted'] as TabKey[]"
+            v-for="tab in ['all', 'enabled', 'disabled', 'deactivated'] as TabKey[]"
             :key="tab"
             class="view-tab"
             :class="{ 'view-tab--active': activeTab === tab }"
@@ -455,7 +405,7 @@ function relativeTime(d: string) {
                   ? '启用'
                   : tab === 'disabled'
                     ? '禁用'
-                    : '已删除'
+                    : '已注销'
             }}
             <span v-if="tabCounts[tab] > 0" class="tab-count">{{ tabCounts[tab] }}</span>
           </button>
@@ -491,11 +441,7 @@ function relativeTime(d: string) {
               <path d="M3 3v5h5" />
             </svg>
           </button>
-          <button
-            v-if="activeTab !== 'deleted'"
-            class="primary-btn"
-            @click="router.push('/admin/users/add')"
-          >
+          <button class="primary-btn" @click="router.push('/admin/users/add')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 5v14M5 12h14" />
             </svg>
@@ -511,26 +457,14 @@ function relativeTime(d: string) {
             >已选 <b>{{ selectedCount }}</b> 项</span
           >
           <div class="sel-actions">
-            <template v-if="activeTab !== 'deleted'">
-              <button class="ghost-btn ghost-btn--sm" @click="handleBatchStatus(1)">
-                批量启用
-              </button>
-              <button class="ghost-btn ghost-btn--sm" @click="handleBatchStatus(0)">
-                批量禁用
-              </button>
-              <button class="ghost-btn ghost-btn--sm ghost-btn--danger" @click="handleBatchDelete">
-                批量删除
-              </button>
-            </template>
-            <template v-else>
-              <button class="ghost-btn ghost-btn--sm" @click="handleBatchRestore">批量恢复</button>
-              <button
-                class="ghost-btn ghost-btn--sm ghost-btn--danger"
-                @click="handleBatchPermanentDelete"
-              >
-                彻底删除
-              </button>
-            </template>
+            <button class="ghost-btn ghost-btn--sm" @click="handleBatchStatus(1)">批量启用</button>
+            <button class="ghost-btn ghost-btn--sm" @click="handleBatchStatus(0)">批量禁用</button>
+            <button
+              class="ghost-btn ghost-btn--sm ghost-btn--danger"
+              @click="handleBatchDeactivate"
+            >
+              批量注销
+            </button>
           </div>
           <button class="cancel-btn" @click="selected.clear()">取消选择</button>
         </div>
@@ -581,7 +515,7 @@ function relativeTime(d: string) {
                       d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
                     />
                   </svg>
-                  <span>{{ activeTab === 'deleted' ? '没有已删除的用户' : '暂无用户' }}</span>
+                  <span>{{ activeTab === 'deactivated' ? '没有已注销的账号' : '暂无用户' }}</span>
                 </div>
               </td>
             </tr>
@@ -601,11 +535,11 @@ function relativeTime(d: string) {
               <td class="col-user">
                 <div class="user-cell">
                   <div class="user-avatar">
-                    <img v-if="row.avatar" :src="row.avatar" :alt="row.username" />
-                    <span v-else>{{ row.username?.[0]?.toUpperCase() ?? '?' }}</span>
+                    <img v-if="row.avatar" :src="row.avatar" :alt="displayName(row)" />
+                    <span v-else>{{ displayName(row)?.[0]?.toUpperCase() ?? '?' }}</span>
                   </div>
                   <div class="user-names">
-                    <span class="user-name">{{ row.username }}</span>
+                    <span class="user-name">{{ displayName(row) }}</span>
                   </div>
                 </div>
               </td>
@@ -621,11 +555,8 @@ function relativeTime(d: string) {
                 </span>
               </td>
               <td class="col-status">
-                <span
-                  class="status-badge"
-                  :class="row.status === 1 ? 'status-badge--enabled' : 'status-badge--disabled'"
-                >
-                  {{ row.status === 1 ? '启用' : '禁用' }}
+                <span class="status-badge" :class="statusClass(row)">
+                  {{ statusLabel(row) }}
                 </span>
               </td>
               <td class="col-time">
@@ -648,28 +579,29 @@ function relativeTime(d: string) {
                       <div class="menu-divider" />
                       <button
                         class="menu-item"
-                        :class="{ 'menu-item--disabled': row.userId === userInfo?.userId }"
-                        :disabled="row.userId === userInfo?.userId"
+                        :class="{ 'menu-item--disabled': !canChangeStatus(row) }"
+                        :disabled="!canChangeStatus(row)"
                         @click="handleToggleStatus(row)"
                       >
                         {{ row.status === 1 ? '禁用' : '启用' }}
                       </button>
-                      <button class="menu-item" @click="handleResetPassword(row)">重置密码</button>
+                      <button
+                        class="menu-item"
+                        :class="{ 'menu-item--disabled': isDeactivated(row) }"
+                        :disabled="isDeactivated(row)"
+                        @click="handleResetPassword(row)"
+                      >
+                        重置密码
+                      </button>
                       <div class="menu-divider" />
-                      <template v-if="activeTab !== 'deleted'">
-                        <button class="menu-item menu-item--danger" @click="handleDelete(row)">
-                          删除
-                        </button>
-                      </template>
-                      <template v-else>
-                        <button class="menu-item" @click="handleRestore(row)">恢复</button>
-                        <button
-                          class="menu-item menu-item--danger"
-                          @click="handlePermanentDelete(row)"
-                        >
-                          彻底删除
-                        </button>
-                      </template>
+                      <button
+                        class="menu-item menu-item--danger"
+                        :class="{ 'menu-item--disabled': isDeactivated(row) }"
+                        :disabled="isDeactivated(row)"
+                        @click="handleDeactivate(row)"
+                      >
+                        注销
+                      </button>
                     </div>
                   </Teleport>
                 </div>
@@ -689,28 +621,25 @@ function relativeTime(d: string) {
                 d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
               />
             </svg>
-            <span>{{ activeTab === 'deleted' ? '没有已删除的用户' : '暂无用户' }}</span>
+            <span>{{ activeTab === 'deactivated' ? '没有已注销的账号' : '暂无用户' }}</span>
           </div>
           <div v-for="row in pageData.content" :key="row.userId" class="mobile-card">
             <div class="mc-main">
               <div class="user-avatar">
-                <img v-if="row.avatar" :src="row.avatar" :alt="row.username" />
-                <span v-else>{{ row.username?.[0]?.toUpperCase() ?? '?' }}</span>
+                <img v-if="row.avatar" :src="row.avatar" :alt="displayName(row)" />
+                <span v-else>{{ displayName(row)?.[0]?.toUpperCase() ?? '?' }}</span>
               </div>
               <div class="mc-info">
                 <div class="mc-name-row">
-                  <span class="user-name">{{ row.username }}</span>
+                  <span class="user-name">{{ displayName(row) }}</span>
                   <span
                     class="role-badge"
                     :class="row.userRole === 1 ? 'role-badge--admin' : 'role-badge--user'"
                   >
                     {{ row.userRole === 1 ? '管理员' : '普通用户' }}
                   </span>
-                  <span
-                    class="status-badge"
-                    :class="row.status === 1 ? 'status-badge--enabled' : 'status-badge--disabled'"
-                  >
-                    {{ row.status === 1 ? '启用' : '禁用' }}
+                  <span class="status-badge" :class="statusClass(row)">
+                    {{ statusLabel(row) }}
                   </span>
                 </div>
                 <span class="cell-muted mc-email">{{ row.email || '暂无邮箱' }}</span>
@@ -731,24 +660,26 @@ function relativeTime(d: string) {
                   <div class="menu-divider" />
                   <button
                     class="menu-item"
-                    :disabled="row.userId === userInfo?.userId"
+                    :disabled="!canChangeStatus(row)"
                     @click="handleToggleStatus(row)"
                   >
                     {{ row.status === 1 ? '禁用' : '启用' }}
                   </button>
-                  <button class="menu-item" @click="handleResetPassword(row)">重置密码</button>
+                  <button
+                    class="menu-item"
+                    :disabled="isDeactivated(row)"
+                    @click="handleResetPassword(row)"
+                  >
+                    重置密码
+                  </button>
                   <div class="menu-divider" />
-                  <template v-if="activeTab !== 'deleted'">
-                    <button class="menu-item menu-item--danger" @click="handleDelete(row)">
-                      删除
-                    </button>
-                  </template>
-                  <template v-else>
-                    <button class="menu-item" @click="handleRestore(row)">恢复</button>
-                    <button class="menu-item menu-item--danger" @click="handlePermanentDelete(row)">
-                      彻底删除
-                    </button>
-                  </template>
+                  <button
+                    class="menu-item menu-item--danger"
+                    :disabled="isDeactivated(row)"
+                    @click="handleDeactivate(row)"
+                  >
+                    注销
+                  </button>
                 </div>
               </Teleport>
             </div>
@@ -848,11 +779,15 @@ function relativeTime(d: string) {
         <template v-else-if="detailUser">
           <div class="dg-banner">
             <div class="dg-avatar">
-              <img v-if="detailUser.avatar" :src="detailUser.avatar" :alt="detailUser.username" />
-              <span v-else>{{ detailUser.username?.[0]?.toUpperCase() ?? '?' }}</span>
+              <img
+                v-if="detailUser.avatar"
+                :src="detailUser.avatar"
+                :alt="displayName(detailUser)"
+              />
+              <span v-else>{{ displayName(detailUser)?.[0]?.toUpperCase() ?? '?' }}</span>
             </div>
             <div class="dg-banner-info">
-              <span class="dg-name">{{ detailUser.username }}</span>
+              <span class="dg-name">{{ displayName(detailUser) }}</span>
               <div class="dg-badges">
                 <span
                   class="role-badge"
@@ -860,13 +795,8 @@ function relativeTime(d: string) {
                 >
                   {{ detailUser.userRole === 1 ? '管理员' : '普通用户' }}
                 </span>
-                <span
-                  class="status-badge"
-                  :class="
-                    detailUser.status === 1 ? 'status-badge--enabled' : 'status-badge--disabled'
-                  "
-                >
-                  {{ detailUser.status === 1 ? '启用' : '禁用' }}
+                <span class="status-badge" :class="statusClass(detailUser)">
+                  {{ statusLabel(detailUser) }}
                 </span>
               </div>
             </div>
@@ -1096,6 +1026,12 @@ function relativeTime(d: string) {
   background: var(--admin-danger-bg-soft);
   color: var(--admin-danger-on-soft);
   border: 1px solid var(--admin-danger-border);
+}
+/* 注销是用户自己的终态，不是告警，用中性灰与「禁用」的红区分开 */
+.status-badge--deactivated {
+  background: transparent;
+  color: var(--admin-sidebar-text-muted);
+  border: 1px solid var(--admin-sidebar-border);
 }
 
 /* ── Dropdown menu ── */

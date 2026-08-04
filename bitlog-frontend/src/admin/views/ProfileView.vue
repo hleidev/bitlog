@@ -16,6 +16,7 @@ import {
   listIdentities,
   createBindIntent,
   unbindIdentity,
+  deactivateAccount,
   type UserProfile,
   type UserIdentity,
 } from '@/api/user'
@@ -340,6 +341,37 @@ async function unbindGoogle() {
 function roleLabel(role: number) {
   return role === 1 ? '管理员' : '普通用户'
 }
+
+// ── 注销账号 ──────────────────────────────────────────────────────────────────
+
+const deactivateEditing = ref(false)
+const deactivateConfirm = ref('')
+const deactivateSaving = ref(false)
+
+// 手打用户名才放行，拦的是手滑和一时冲动，不是攻击者
+const canDeactivate = computed(
+  () => !!profile.value && deactivateConfirm.value.trim() === profile.value.username,
+)
+
+function toggleDeactivate() {
+  deactivateEditing.value = !deactivateEditing.value
+  deactivateConfirm.value = ''
+}
+
+async function submitDeactivate() {
+  if (!canDeactivate.value || deactivateSaving.value) return
+  deactivateSaving.value = true
+  try {
+    await deactivateAccount()
+    await userStore.logout()
+    // 不弹 toast：AdminToast 挂在 AdminLayout 上，跳走即卸载，提示根本来不及显示
+    router.replace('/')
+  } catch (err) {
+    const { message } = (err ?? {}) as { message?: string }
+    toast.error(message ?? '注销失败，请重试')
+    deactivateSaving.value = false
+  }
+}
 </script>
 
 <template>
@@ -630,6 +662,47 @@ function roleLabel(role: number) {
               <button v-else class="ghost-btn" @click="bindGoogle">绑定</button>
             </div>
           </div>
+
+          <!-- 注销账号 -->
+          <div class="setting-item">
+            <div class="setting-row">
+              <div class="setting-main">
+                <div class="setting-title">注销账号</div>
+                <div class="setting-value">注销后账号无法恢复</div>
+              </div>
+              <button class="ghost-btn" @click="toggleDeactivate">
+                {{ deactivateEditing ? '取消' : '注销' }}
+              </button>
+            </div>
+
+            <div v-if="deactivateEditing" class="setting-expand">
+              <p class="field-help field-help--danger">
+                此操作不可撤销。邮箱与用户名将被释放，可用于重新注册；你发表的评论会保留，署名变为「已注销用户」——注销后将无法登录，需要删除的评论请先自行删除。
+              </p>
+              <div class="field field--narrow">
+                <label class="field-label">
+                  请输入用户名 <strong>{{ profile?.username }}</strong> 以确认
+                </label>
+                <input
+                  v-model="deactivateConfirm"
+                  class="field-input"
+                  :placeholder="profile?.username"
+                  maxlength="16"
+                  autocomplete="off"
+                />
+              </div>
+              <div class="form-actions">
+                <button
+                  class="danger-btn"
+                  :disabled="!canDeactivate || deactivateSaving"
+                  @click="submitDeactivate"
+                >
+                  <span v-if="deactivateSaving" class="btn-spinner" />
+                  注销账号
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -829,6 +902,10 @@ function roleLabel(role: number) {
   line-height: 1.5;
 }
 
+.field-help--danger {
+  color: var(--admin-danger);
+}
+
 .field-row {
   display: flex;
   gap: 12px;
@@ -1001,6 +1078,31 @@ function roleLabel(role: number) {
 }
 .primary-btn:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.danger-btn {
+  height: 34px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--admin-danger);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.danger-btn:hover:not(:disabled) {
+  background: var(--admin-danger-strong);
+}
+.danger-btn:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
 }
 

@@ -5,6 +5,7 @@ export interface UserPageQuery {
   pageSize?: number
   username?: string
   status?: number
+  /** 已注销标记：0-正常，1-已注销。注销后 status 保持原值，只能靠这一列区分 */
   deleted?: number
   startTime?: string
   endTime?: string
@@ -51,7 +52,7 @@ export interface UserStats {
   total: number
   enabled: number
   disabled: number
-  deleted: number
+  deactivated: number
 }
 
 export function getUserStats(): Promise<UserStats> {
@@ -70,16 +71,9 @@ export function updateUsersStatus(userIds: number[], status: 0 | 1): Promise<voi
   return request.patch<never, void>('/v1/admin/users/status', { userIds, status })
 }
 
-export function deleteUsers(userIds: number[]): Promise<void> {
+/** 注销即删号：清 PII、释放邮箱与用户名，不可逆 */
+export function deactivateUsers(userIds: number[]): Promise<void> {
   return request.delete<never, void>('/v1/admin/users', { data: { userIds } })
-}
-
-export function restoreUsers(userIds: number[]): Promise<void> {
-  return request.patch<never, void>('/v1/admin/users/restore', { userIds })
-}
-
-export function permanentDeleteUsers(userIds: number[]): Promise<void> {
-  return request.delete<never, void>('/v1/admin/users/permanent', { data: { userIds } })
 }
 
 export function resetUserPassword(userId: number): Promise<{ newPassword: string }> {
