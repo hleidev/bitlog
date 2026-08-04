@@ -17,7 +17,6 @@ import top.harrylei.bitlog.api.model.auth.RegisterParam;
 import top.harrylei.bitlog.api.model.user.UserRules;
 import top.harrylei.bitlog.api.model.user.req.AdminCreateUserParam;
 import top.harrylei.bitlog.api.model.user.vo.UserCreatedVO;
-import top.harrylei.bitlog.common.config.JwtProperties;
 import top.harrylei.bitlog.common.constans.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
@@ -26,6 +25,7 @@ import top.harrylei.bitlog.common.util.MaskUtil;
 import top.harrylei.bitlog.common.util.RateLimiter;
 import top.harrylei.bitlog.user.component.LoginRateLimiter;
 import top.harrylei.bitlog.user.component.OAuthAvatarEvent;
+import top.harrylei.bitlog.user.component.RefreshTokenStore;
 import top.harrylei.bitlog.user.component.UsernameGenerator;
 import top.harrylei.bitlog.user.component.VerificationCodeService;
 import top.harrylei.bitlog.user.component.VerifyCodePurpose;
@@ -41,8 +41,6 @@ import top.harrylei.bitlog.user.util.JwtUtil;
 import top.harrylei.bitlog.user.util.PasswordUtil;
 
 import java.time.Duration;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 认证服务实现
@@ -64,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
     private final UsernameGenerator usernameGenerator;
     private final ApplicationEventPublisher eventPublisher;
     private final JwtUtil jwtUtil;
-    private final JwtProperties jwtProperties;
+    private final RefreshTokenStore refreshTokenStore;
     private final PasswordEncoder passwordEncoder;
     private final StringRedisTemplate redisTemplate;
     private final LoginRateLimiter loginRateLimiter;
@@ -195,24 +193,18 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResult refresh(String refreshToken) {
-        String redisKey = RedisKeyConstants.getUserRefreshTokenKey(refreshToken);
-        String storedValue = redisTemplate.opsForValue().get(redisKey);
-        if (storedValue == null) {
+        RefreshTokenStore.Payload payload = refreshTokenStore.consume(refreshToken);
+        if (payload == null) {
             ResultCode.REFRESH_TOKEN_INVALID.throwException();
         }
 
-        String[] parts = storedValue.split(":", 2);
-        Long userId = Long.parseLong(parts[0]);
-        UserRoleEnum role = UserRoleEnum.valueOf(parts[1]);
-
-        redisTemplate.delete(redisKey);
-
+        Long userId = payload.userId();
         UserDO user = userDAO.getById(userId);
         if (user == null || !UserStatusEnum.ENABLED.equals(user.getStatus())) {
             ResultCode.USER_DISABLED.throwException();
         }
 
-        LoginResult result = issueTokenPair(userId, role);
+        LoginResult result = issueTokenPair(userId, payload.role());
 
         log.info("用户刷新 Token 成功 userId={}", userId);
         return result;
@@ -224,7 +216,7 @@ public class AuthServiceImpl implements AuthService {
             return;
         }
         try {
-            redisTemplate.delete(RedisKeyConstants.getUserRefreshTokenKey(refreshToken));
+            refreshTokenStore.revoke(refreshToken);
             log.info("用户退出登录，Refresh Token 已撤销");
         } catch (Exception e) {
             log.error("退出登录删除 Refresh Token 异常", e);
@@ -255,6 +247,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         userDAO.updatePassword(user.getId(), passwordEncoder.encode(param.getNewPassword()));
+        // 忘记密码走的是邮箱验证码，请求不带登录态，发起者所在设备上也没有会话可保留，全部撤销
+        refreshTokenStore.revokeAll(user.getId(), null);
         log.info("密码重置成功 userId={}", user.getId());
     }
 
@@ -305,11 +299,7 @@ public class AuthServiceImpl implements AuthService {
 
     private LoginResult issueTokenPair(Long userId, UserRoleEnum role) {
         String accessToken = jwtUtil.generateToken(userId, role);
-        String refreshToken = UUID.randomUUID().toString();
-        String redisValue = userId + ":" + role.name();
-
-        redisTemplate.opsForValue().set(RedisKeyConstants.getUserRefreshTokenKey(refreshToken), redisValue,
-            jwtProperties.getRefreshTokenExpire().getSeconds(), TimeUnit.SECONDS);
+        String refreshToken = refreshTokenStore.issue(userId, role);
 
         log.info("颁发 Token 对 userId={}", userId);
         return new LoginResult(accessToken, refreshToken);

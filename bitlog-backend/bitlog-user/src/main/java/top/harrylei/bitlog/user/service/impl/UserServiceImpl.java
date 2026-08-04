@@ -37,6 +37,7 @@ import top.harrylei.bitlog.common.util.FileUrlHelper;
 import top.harrylei.bitlog.common.util.MaskUtil;
 import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.service.FileService;
+import top.harrylei.bitlog.user.component.RefreshTokenStore;
 import top.harrylei.bitlog.user.component.VerificationCodeService;
 import top.harrylei.bitlog.user.component.VerifyCodePurpose;
 import top.harrylei.bitlog.user.converter.UserConverter;
@@ -89,6 +90,7 @@ public class UserServiceImpl implements UserService {
     private final FileUrlHelper fileUrlHelper;
     private final FileService fileService;
     private final VerificationCodeService verificationCodeService;
+    private final RefreshTokenStore refreshTokenStore;
     private final StringRedisTemplate redisTemplate;
 
     @Override
@@ -177,7 +179,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updatePassword(Long userId, PasswordUpdateParam req) {
+    public void updatePassword(Long userId, PasswordUpdateParam req, String currentRefreshToken) {
         UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
         if (userInfo == null) {
             throw ResultCode.USER_NOT_EXISTS.toException();
@@ -192,12 +194,14 @@ public class UserServiceImpl implements UserService {
         }
 
         userDAO.updatePassword(user.getId(), passwordEncoder.encode(req.getNewPassword()));
+        // 当前设备刚凭旧密码验过身份，保留；改密的意图是踢掉其余设备
+        refreshTokenStore.revokeAll(userId, currentRefreshToken);
         log.info("用户修改密码 userId={}", userId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void initPassword(Long userId, PasswordInitParam req) {
+    public void initPassword(Long userId, PasswordInitParam req, String currentRefreshToken) {
         UserDO user = userDAO.getById(userId);
         if (user == null) {
             throw ResultCode.USER_NOT_EXISTS.toException();
@@ -208,6 +212,7 @@ public class UserServiceImpl implements UserService {
         }
 
         userDAO.updatePassword(userId, passwordEncoder.encode(req.getPassword()));
+        refreshTokenStore.revokeAll(userId, currentRefreshToken);
         log.info("用户首次设置密码 userId={}", userId);
     }
 
@@ -313,6 +318,10 @@ public class UserServiceImpl implements UserService {
         checkNotSelf(userIds);
         checkNotAdmin(userIds);
         userDAO.updateStatusBatch(userIds, status);
+        // 封禁后 Refresh Token 仍能续期，须一并撤销；启用则不必，被封期间会话早已清空
+        if (UserStatusEnum.DISABLED.equals(status)) {
+            userIds.forEach(userId -> refreshTokenStore.revokeAll(userId, null));
+        }
         log.info("批量修改用户状态 userIds={} status={}", userIds, status);
     }
 
@@ -341,6 +350,7 @@ public class UserServiceImpl implements UserService {
             passwordEncoder.encode(PasswordUtil.generateRandomPassword()));
         userInfoDAO.anonymize(userId);
         userIdentityDAO.removeByUserId(userId);
+        refreshTokenStore.revokeAll(userId, null);
 
         // 内容图片不在此处理：ImageCleanupTask 按引用扫描回收孤儿，比按 user_id 删更安全
         if (userInfo != null && StringUtils.hasText(userInfo.getAvatar())) {
@@ -370,6 +380,8 @@ public class UserServiceImpl implements UserService {
         }
         String newPassword = PasswordUtil.generateRandomPassword();
         userDAO.updatePassword(userId, passwordEncoder.encode(newPassword));
+        // 发起者是管理员，目标用户的会话一把都不该留
+        refreshTokenStore.revokeAll(userId, null);
         log.info("管理员重置用户密码 userId={}", userId);
         // TODO: 发送邮件通知用户新密码
         return new PasswordResetVO().setNewPassword(newPassword);

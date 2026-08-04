@@ -21,6 +21,7 @@ public class RedisKeyConstants {
 
     // ===== 功能 Key 前缀 =====
     public static final String USER_REFRESH_TOKEN = USER + "refresh:";
+    public static final String USER_REFRESH_INDEX = USER + "refresh-index:";
     public static final String USER_INFO = USER + "info:";
     public static final String OAUTH_BIND_INTENT = USER + "oauth:bind:";
     public static final String DISTRIBUTED_LOCK = LOCK + "distributed:";
@@ -38,6 +39,11 @@ public class RedisKeyConstants {
 
     public static String getUserRefreshTokenKey(String tokenValue) {
         return USER_REFRESH_TOKEN + tokenValue;
+    }
+
+    /** Refresh Token 按 token 值存，改密/封禁/注销要按用户批量撤销，只能靠这个反向索引找到该用户的所有 token */
+    public static String getUserRefreshIndexKey(Long userId) {
+        return USER_REFRESH_INDEX + userId;
     }
 
     public static String getUserInfoKey(Long userId) {

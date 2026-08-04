@@ -72,16 +72,18 @@ public interface UserService {
      *
      * @param userId 用户 ID
      * @param req 密码更新请求
+     * @param currentRefreshToken 当前设备的 Refresh Token，其余设备一律下线
      */
-    void updatePassword(Long userId, PasswordUpdateParam req);
+    void updatePassword(Long userId, PasswordUpdateParam req, String currentRefreshToken);
 
     /**
      * 首次设置密码，仅限尚无密码的账号（第三方登录建号）
      *
      * @param userId 用户 ID
      * @param req 新密码
+     * @param currentRefreshToken 当前设备的 Refresh Token，其余设备一律下线
      */
-    void initPassword(Long userId, PasswordInitParam req);
+    void initPassword(Long userId, PasswordInitParam req, String currentRefreshToken);
 
     /**
      * 查询已绑定的第三方身份

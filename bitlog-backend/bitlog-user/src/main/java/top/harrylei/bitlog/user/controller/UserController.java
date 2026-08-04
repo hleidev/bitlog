@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +27,7 @@ import top.harrylei.bitlog.api.model.user.vo.UserIdentityVO;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.model.Result;
 import top.harrylei.bitlog.common.security.RequiresLogin;
+import top.harrylei.bitlog.user.component.RefreshTokenCookie;
 import top.harrylei.bitlog.user.service.UserService;
 
 import java.util.List;
@@ -61,15 +63,17 @@ public class UserController {
 
     @Operation(summary = "修改密码")
     @PutMapping("/password")
-    public Result<Void> updatePassword(@Valid @RequestBody PasswordUpdateParam req) {
-        userService.updatePassword(ReqInfoContext.getContext().getUserId(), req);
+    public Result<Void> updatePassword(@Valid @RequestBody PasswordUpdateParam req,
+        @CookieValue(name = RefreshTokenCookie.COOKIE_NAME, required = false) String refreshToken) {
+        userService.updatePassword(ReqInfoContext.getContext().getUserId(), req, refreshToken);
         return Result.success();
     }
 
     @Operation(summary = "首次设置密码")
     @PostMapping("/password")
-    public Result<Void> initPassword(@Valid @RequestBody PasswordInitParam req) {
-        userService.initPassword(ReqInfoContext.getContext().getUserId(), req);
+    public Result<Void> initPassword(@Valid @RequestBody PasswordInitParam req,
+        @CookieValue(name = RefreshTokenCookie.COOKIE_NAME, required = false) String refreshToken) {
+        userService.initPassword(ReqInfoContext.getContext().getUserId(), req, refreshToken);
         return Result.success();
     }
 
