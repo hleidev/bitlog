@@ -27,7 +27,7 @@ spring:
           google:
             # client-id 会出现在浏览器的授权 URL 里，本就是公开信息，无需加密
             client-id: 204351845477-7id29gi9iev8o32d95ufhdhbksuot5fm.apps.googleusercontent.com
-            client-secret: ENC(REMOVED)
+            client-secret: ${GOOGLE_CLIENT_SECRET}
             redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
             scope:
               - openid
@@ -47,7 +47,7 @@ jwt:
 
 mail:
   api-url: https://api.resend.com/emails
-  api-key: ENC(REMOVED)
+  api-key: ${MAIL_API_KEY}
   from: noreply@mail.harrylei.top
   from-name: BitLog
   site-url: bitlog.harrylei.top

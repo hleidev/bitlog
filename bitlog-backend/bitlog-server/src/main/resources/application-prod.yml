@@ -5,24 +5,24 @@ server:
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/bitlog?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
-    username: root
-    password: ENC(REMOVED)
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   data:
     redis:
       host: localhost
       port: 6379
       database: 0
-      password: ENC(REMOVED)
+      password: ${REDIS_PASSWORD}
   flyway:
     clean-disabled: true
 
 jwt:
-  secret: ENC(REMOVED)
+  secret: ${JWT_SECRET}
 
 storage:
   endpoint: http://minio:9000
-  access-key: admin
-  secret-key: ENC(REMOVED)
+  access-key: ${STORAGE_ACCESS_KEY}
+  secret-key: ${STORAGE_SECRET_KEY}
   bucket: bitlog
   public-url: https://api.harrylei.top/assets
 
@@ -55,7 +55,7 @@ bitlog:
     providers:
       qwen:
         base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
-        api-key: ENC(REMOVED)
+        api-key: ${QWEN_API_KEY}
         timeout: 30s
     capabilities:
       text-json:
@@ -68,4 +68,4 @@ bitlog:
 
 cloudflare:
   deploy-hook:
-    url: ENC(REMOVED)
+    url: ${CLOUDFLARE_DEPLOY_HOOK_URL}
