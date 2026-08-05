@@ -2,6 +2,8 @@ package top.harrylei.bitlog.file.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+import top.harrylei.bitlog.common.config.EnvInjected;
 
 /**
  * 对象存储配置属性
@@ -10,6 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @since 2026-04-09
  */
 @Data
+@Validated
 @ConfigurationProperties(prefix = "storage")
 public class StorageProperties {
 
@@ -17,9 +20,11 @@ public class StorageProperties {
     private String endpoint;
 
     /** 访问密钥 */
+    @EnvInjected
     private String accessKey;
 
     /** 秘密密钥 */
+    @EnvInjected
     private String secretKey;
 
     /** 存储桶名称 */

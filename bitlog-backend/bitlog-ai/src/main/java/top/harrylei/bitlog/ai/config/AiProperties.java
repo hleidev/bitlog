@@ -1,7 +1,10 @@
 package top.harrylei.bitlog.ai.config;
 
+import jakarta.validation.Valid;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+import top.harrylei.bitlog.common.config.EnvInjected;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -17,15 +20,18 @@ import java.util.Map;
  * @since 2026-05-24
  */
 @Data
+@Validated
 @ConfigurationProperties(prefix = "bitlog.ai")
 public class AiProperties {
 
+    @Valid
     private Map<String, ProviderConfig> providers = new HashMap<>();
     private Map<String, CapabilityConfig> capabilities = new HashMap<>();
 
     @Data
     public static class ProviderConfig {
         private String baseUrl;
+        @EnvInjected
         private String apiKey;
         private Duration timeout = Duration.ofSeconds(30);
     }

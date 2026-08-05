@@ -2,6 +2,8 @@ package top.harrylei.bitlog.common.mail;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+import top.harrylei.bitlog.common.config.EnvInjected;
 
 /**
  * 邮件发送配置
@@ -10,11 +12,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @since 2026-07-30
  */
 @Data
+@Validated
 @ConfigurationProperties(prefix = "mail")
 public class MailProperties {
 
     private String apiUrl;
 
+    @EnvInjected
     private String apiKey;
 
     private String from;
