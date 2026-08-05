@@ -63,7 +63,7 @@ async function handleLogout() {
           <rect x="3" y="14" width="7" height="7" rx="1" />
           <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
-        后台管理
+        仪表盘
       </RouterLink>
       <RouterLink to="/admin/articles" class="ud-item" @click="close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -73,6 +73,21 @@ async function handleLogout() {
           <line x1="16" y1="17" x2="8" y2="17" />
         </svg>
         文章管理
+      </RouterLink>
+      <RouterLink to="/admin/comments" class="ud-item" @click="close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        评论管理
+      </RouterLink>
+      <RouterLink to="/admin/users" class="ud-item" @click="close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        用户管理
       </RouterLink>
       <div class="ud-divider" />
     </template>
