@@ -25,7 +25,8 @@ import java.lang.annotation.Target;
 @Pattern(regexp = "^(?!\\$\\{).*")
 public @interface EnvInjected {
 
-    String message() default "环境变量未注入，配置读到的是占位符字面量";
+    String message() default "环境变量未注入，配置读到的是占位符字面量。" + "本地开发：先执行 set -a && source .env && set +a 再启动；"
+        + "容器部署：检查 .env 与 docker-compose.yml 是否配置了该变量";
 
     Class<?>[] groups() default {};
 
