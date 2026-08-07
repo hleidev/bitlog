@@ -5,7 +5,7 @@ import top.harrylei.bitlog.api.model.comment.query.CommentAdminPageParam;
 import top.harrylei.bitlog.api.model.comment.req.CommentSaveParam;
 import top.harrylei.bitlog.api.model.comment.vo.CommentAdminVO;
 import top.harrylei.bitlog.api.model.comment.vo.CommentVO;
-import top.harrylei.bitlog.common.model.BasePage;
+import top.harrylei.bitlog.api.model.comment.query.CommentPageParam;
 import top.harrylei.bitlog.common.model.PageVO;
 
 import java.util.List;
@@ -25,7 +25,7 @@ public interface CommentService {
      * @param page 分页参数
      * @return 根评论分页结果
      */
-    PageVO<CommentVO> pageComments(Long articleId, BasePage page);
+    PageVO<CommentVO> pageComments(Long articleId, CommentPageParam query);
 
     /**
      * 发表评论或回复

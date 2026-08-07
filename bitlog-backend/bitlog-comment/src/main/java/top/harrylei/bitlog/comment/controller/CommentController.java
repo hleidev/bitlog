@@ -15,7 +15,7 @@ import top.harrylei.bitlog.api.model.comment.req.CommentSaveParam;
 import top.harrylei.bitlog.api.model.comment.vo.CommentVO;
 import top.harrylei.bitlog.comment.service.CommentService;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
-import top.harrylei.bitlog.common.model.BasePage;
+import top.harrylei.bitlog.api.model.comment.query.CommentPageParam;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.model.Result;
 import top.harrylei.bitlog.common.security.RequiresLogin;
@@ -36,7 +36,7 @@ public class CommentController {
 
     @Operation(summary = "分页查询文章评论（公开，含楼中楼回复）")
     @GetMapping("/page")
-    public Result<PageVO<CommentVO>> page(@PathVariable Long articleId, @Valid BasePage query) {
+    public Result<PageVO<CommentVO>> page(@PathVariable Long articleId, @Valid CommentPageParam query) {
         return Result.success(commentService.pageComments(articleId, query));
     }
 

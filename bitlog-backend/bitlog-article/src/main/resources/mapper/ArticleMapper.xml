@@ -17,19 +17,41 @@
                   OR a.summary LIKE CONCAT('%', #{query.keyword}, '%')
               )
           </if>
-          <if test="query.tagIds != null and query.tagIds.size() > 0">
+          <if test="query.allTagIds != null and query.allTagIds.size() > 0">
               AND a.id IN (
                   SELECT article_id
                   FROM article_tag
                   WHERE tag_id IN
-                  <foreach collection="query.tagIds" item="tagId" open="(" separator="," close=")">
+                  <foreach collection="query.allTagIds" item="tagId" open="(" separator="," close=")">
                       #{tagId}
                   </foreach>
                   GROUP BY article_id
-                  HAVING COUNT(DISTINCT tag_id) = ${query.tagIds.size()}
+                  HAVING COUNT(DISTINCT tag_id) = ${query.allTagIds.size()}
               )
           </if>
-        ORDER BY a.publish_time DESC
+    </select>
+
+    <!-- display_time 是排序用的派生列：未发布（含下架）按创建时间，已发布按发布时间，与前端 displayDate 对齐 -->
+    <select id="pageByUser" resultType="top.harrylei.bitlog.article.repository.entity.ArticleDO">
+        SELECT a.*,
+               CASE WHEN a.published_version_id IS NULL
+                    THEN a.create_time
+                    ELSE COALESCE(a.publish_time, a.create_time) END AS display_time
+        FROM article a
+        WHERE a.deleted = 0
+          AND a.user_id = #{userId}
+          <if test="query.publishedOnly == true">
+              AND a.published_version_id IS NOT NULL
+          </if>
+          <if test="query.publishedOnly == false">
+              AND a.published_version_id IS NULL
+          </if>
+          <if test="query.keyword != null and query.keyword.trim() != ''">
+              AND (
+                  EXISTS (SELECT 1 FROM article_version WHERE id = a.latest_version_id AND title LIKE CONCAT('%', #{query.keyword}, '%'))
+                  OR a.summary LIKE CONCAT('%', #{query.keyword}, '%')
+              )
+          </if>
     </select>
 
 </mapper>

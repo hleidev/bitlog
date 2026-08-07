@@ -1,15 +1,13 @@
 package top.harrylei.bitlog.article.repository.dao;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.StringUtils;
-import top.harrylei.bitlog.api.enums.article.ArticleSortEnum;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
+import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
 import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.article.repository.mapper.ArticleMapper;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
@@ -26,10 +24,6 @@ import java.util.List;
  */
 @Repository
 public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
-
-    /** publish_time 是首次发布时间，下架后不清空，故纯草稿按 create_time 排 */
-    private static final String ORDER_BY_PUBLISH_TIME =
-        "ORDER BY CASE WHEN published_version_id IS NULL THEN create_time ELSE COALESCE(publish_time, create_time) END DESC";
 
     public ArticleDO getByIdAndNotDeleted(Long articleId) {
         if (articleId == null) {
@@ -135,22 +129,8 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
         return getBaseMapper().pagePublished(page, query);
     }
 
-    /** 分页查询用户文章（支持状态过滤），关键词过滤下推到 SQL */
-    public IPage<ArticleDO> pageByUser(Long userId, ArticlePageParam query, Page<ArticleDO> page) {
-        ArticleStatusEnum status = query.getStatus();
-        LambdaQueryWrapper<ArticleDO> wrapper = Wrappers.<ArticleDO>lambdaQuery()
-            .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED).eq(ArticleDO::getUserId, userId)
-            .isNotNull(ArticleStatusEnum.PUBLISHED == status, ArticleDO::getPublishedVersionId)
-            .isNull(ArticleStatusEnum.DRAFT == status, ArticleDO::getPublishedVersionId)
-            .eq(query.getCategoryId() != null, ArticleDO::getCategoryId, query.getCategoryId())
-            .apply(StringUtils.hasText(query.getKeyword()),
-                "EXISTS (SELECT 1 FROM article_version WHERE id = latest_version_id AND title LIKE CONCAT('%', {0}, '%'))",
-                query.getKeyword());
-        if (ArticleSortEnum.PUBLISH_TIME == query.getSortBy()) {
-            wrapper.last(ORDER_BY_PUBLISH_TIME);
-        } else {
-            wrapper.orderByDesc(ArticleDO::getCreateTime);
-        }
-        return page(page, wrapper);
+    /** 分页查询用户文章，排序由 BasePage 提供，DISPLAY_TIME 需要 SELECT 出的派生列故走 XML */
+    public IPage<ArticleDO> pageByUser(Long userId, MyArticlePageParam query, Page<ArticleDO> page) {
+        return getBaseMapper().pageByUser(page, userId, query);
     }
 }

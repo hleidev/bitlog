@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
+import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleBatchDeleteParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleVersionBatchDeleteParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleBatchStatusUpdateParam;
@@ -140,7 +141,7 @@ public class ArticleController {
     @RequiresAdmin
     @Operation(summary = "分页查询我的文章列表（含草稿及状态计数）")
     @GetMapping("/my")
-    public Result<ArticleListVO> myArticles(@Valid ArticlePageParam query) {
+    public Result<ArticleListVO> myArticles(@Valid MyArticlePageParam query) {
         return Result.success(articleService.pageMyArticles(ReqInfoContext.getContext().getUserId(), query));
     }
 }

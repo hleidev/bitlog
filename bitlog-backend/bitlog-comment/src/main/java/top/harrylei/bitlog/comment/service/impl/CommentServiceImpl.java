@@ -1,13 +1,13 @@
 package top.harrylei.bitlog.comment.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.harrylei.bitlog.api.enums.comment.CommentStatusEnum;
 import top.harrylei.bitlog.api.model.comment.query.CommentAdminPageParam;
+import top.harrylei.bitlog.api.model.comment.query.CommentPageParam;
 import top.harrylei.bitlog.api.model.comment.req.CommentSaveParam;
 import top.harrylei.bitlog.api.model.comment.vo.CommentAdminVO;
 import top.harrylei.bitlog.api.model.comment.vo.CommentReplyVO;
@@ -26,7 +26,6 @@ import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.exception.BusinessException;
-import top.harrylei.bitlog.common.model.BasePage;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.util.RateLimiter;
 import top.harrylei.bitlog.user.service.UserService;
@@ -67,13 +66,12 @@ public class CommentServiceImpl implements CommentService {
     private final CommentProperties commentProperties;
 
     @Override
-    public PageVO<CommentVO> pageComments(Long articleId, BasePage page) {
+    public PageVO<CommentVO> pageComments(Long articleId, CommentPageParam query) {
         if (!articleService.isPublished(articleId)) {
             throw ResultCode.ARTICLE_NOT_PUBLISHED.toException();
         }
 
-        IPage<CommentDO> rootPage =
-            commentDAO.pageRootComments(articleId, new Page<>(page.getPageNum(), page.getPageSize()));
+        IPage<CommentDO> rootPage = commentDAO.pageRootComments(articleId, query.toPage());
         List<CommentDO> roots = rootPage.getRecords();
         if (roots.isEmpty()) {
             return PageVO.of(rootPage, List.of());
@@ -140,7 +138,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public PageVO<CommentAdminVO> pageForAdmin(CommentAdminPageParam req) {
-        IPage<CommentDO> result = commentDAO.pageForAdmin(req, new Page<>(req.getPageNum(), req.getPageSize()));
+        IPage<CommentDO> result = commentDAO.pageForAdmin(req, req.toPage());
         List<CommentDO> comments = result.getRecords();
         if (comments.isEmpty()) {
             return PageVO.of(result, List.of());
@@ -209,9 +207,8 @@ public class CommentServiceImpl implements CommentService {
      * 按文章分组指定状态的评论 ID，使计数更新按文章聚合成一次，避免逐条更新
      */
     private Map<Long, List<Long>> groupIdsByArticle(List<CommentDO> comments, CommentStatusEnum status) {
-        return comments.stream().filter(comment -> status.equals(comment.getStatus()))
-            .collect(Collectors.groupingBy(CommentDO::getArticleId,
-                Collectors.mapping(CommentDO::getId, Collectors.toList())));
+        return comments.stream().filter(comment -> status.equals(comment.getStatus())).collect(
+            Collectors.groupingBy(CommentDO::getArticleId, Collectors.mapping(CommentDO::getId, Collectors.toList())));
     }
 
     private boolean isVisible(CommentDO comment) {
@@ -220,8 +217,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     /**
-     * 限流仅针对普通读者。管理员是站点作者，连续回复多条评论是其正常工作方式，
-     * 受自己设的反垃圾规则约束没有意义（WordPress 对可审核评论的角色同样豁免）
+     * 限流仅针对普通读者。管理员是站点作者，连续回复多条评论是其正常工作方式， 受自己设的反垃圾规则约束没有意义（WordPress 对可审核评论的角色同样豁免）
      */
     private void checkRateLimit(Long userId) {
         ReqInfoContext.ReqInfo reqInfo = ReqInfoContext.getContext();

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
+import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
 import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 
 /**
@@ -17,4 +18,7 @@ import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 public interface ArticleMapper extends BaseMapper<ArticleDO> {
 
     IPage<ArticleDO> pagePublished(IPage<ArticleDO> page, @Param("query") ArticlePageParam query);
+
+    IPage<ArticleDO> pageByUser(IPage<ArticleDO> page, @Param("userId") Long userId,
+        @Param("query") MyArticlePageParam query);
 }

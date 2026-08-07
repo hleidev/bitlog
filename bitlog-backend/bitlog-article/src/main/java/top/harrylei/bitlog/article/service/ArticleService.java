@@ -3,6 +3,7 @@ package top.harrylei.bitlog.article.service;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
+import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleMetaUpdateParam;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveParam;
@@ -162,7 +163,7 @@ public interface ArticleService {
      * @param query 查询参数
      * @return 分页结果及状态计数
      */
-    ArticleListVO pageMyArticles(Long userId, ArticlePageParam query);
+    ArticleListVO pageMyArticles(Long userId, MyArticlePageParam query);
 
     /**
      * 根据文章 ID 获取文章基础信息（内部 Feign 接口使用）

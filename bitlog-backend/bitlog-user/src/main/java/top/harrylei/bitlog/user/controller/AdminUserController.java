@@ -52,7 +52,7 @@ public class AdminUserController {
 
     @Operation(summary = "分页查询用户列表")
     @GetMapping("/users")
-    public Result<PageVO<UserListVO>> pageUsers(@ParameterObject UserPageParam query) {
+    public Result<PageVO<UserListVO>> pageUsers(@Valid @ParameterObject UserPageParam query) {
         return Result.success(userService.pageQuery(query));
     }
 

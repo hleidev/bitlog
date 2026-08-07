@@ -34,12 +34,12 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
      * 分页查询文章的根评论，不过滤删除与隐藏状态，可见性由服务层判定（需要保留墓碑）
      *
      * @param articleId 文章 ID
-     * @param page 分页参数
-     * @return 根评论分页结果，按创建时间倒序
+     * @param page 分页参数，排序由 BasePage 提供
+     * @return 根评论分页结果
      */
     public IPage<CommentDO> pageRootComments(Long articleId, Page<CommentDO> page) {
         return lambdaQuery().eq(CommentDO::getArticleId, articleId).eq(CommentDO::getRootId, ROOT_COMMENT_ID)
-            .orderByDesc(CommentDO::getCreateTime).page(page);
+            .page(page);
     }
 
     /**
@@ -87,21 +87,17 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
      * 管理端分页查询，仅排除已删除评论
      *
      * @param param 查询条件
-     * @param page 分页参数
-     * @return 评论分页结果，按创建时间倒序
+     * @param page 分页参数，排序由 BasePage 提供
+     * @return 评论分页结果
      */
     public IPage<CommentDO> pageForAdmin(CommentAdminPageParam param, Page<CommentDO> page) {
         return lambdaQuery().eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .eq(param.getArticleId() != null, CommentDO::getArticleId, param.getArticleId())
-            .eq(param.getUserId() != null, CommentDO::getUserId, param.getUserId())
             .eq(param.getStatus() != null, CommentDO::getStatus, param.getStatus())
-            .like(StringUtils.hasText(param.getKeyword()), CommentDO::getContent, param.getKeyword())
-            .orderByDesc(CommentDO::getCreateTime).page(page);
+            .like(StringUtils.hasText(param.getKeyword()), CommentDO::getContent, param.getKeyword()).page(page);
     }
 
     /**
-     * 条件更新评论状态，仅当评论未删除且当前状态为 from 时才生效。
-     * 返回是否真正发生了状态转移，调用方据此调整计数，避免并发下重复增减
+     * 条件更新评论状态，仅当评论未删除且当前状态为 from 时才生效。 返回是否真正发生了状态转移，调用方据此调整计数，避免并发下重复增减
      *
      * @param commentId 评论 ID
      * @param from 期望的当前状态
@@ -114,8 +110,7 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
     }
 
     /**
-     * 逻辑删除处于指定状态且尚未删除的评论，返回实际影响行数。
-     * 按状态分批是为了让调用方能据实际删除条数调整计数，而不是依赖读取时的快照
+     * 逻辑删除处于指定状态且尚未删除的评论，返回实际影响行数。 按状态分批是为了让调用方能据实际删除条数调整计数，而不是依赖读取时的快照
      *
      * @param commentIds 评论 ID 集合
      * @param status 仅删除处于该状态的评论

@@ -432,7 +432,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public PageVO<UserListVO> pageQuery(UserPageParam query) {
-        IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query);
+        IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query, query.toPage());
 
         List<UserListVO> voList = resultPage.getRecords().stream().map(dto -> {
             UserListVO vo = userConverter.toListVO(dto);
@@ -440,14 +440,6 @@ public class UserServiceImpl implements UserService {
             return vo;
         }).toList();
 
-        PageVO<UserListVO> pageVO = new PageVO<>();
-        pageVO.setPageNum(resultPage.getCurrent());
-        pageVO.setPageSize(resultPage.getSize());
-        pageVO.setTotalElements(resultPage.getTotal());
-        pageVO.setTotalPages(resultPage.getPages());
-        pageVO.setHasPrevious(resultPage.getCurrent() > 1);
-        pageVO.setHasNext(resultPage.getCurrent() < resultPage.getPages());
-        pageVO.setContent(voList);
-        return pageVO;
+        return PageVO.of(resultPage, voList);
     }
 }

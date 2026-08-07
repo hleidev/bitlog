@@ -2,7 +2,6 @@ package top.harrylei.bitlog.article.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -10,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
+import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleMetaUpdateParam;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveParam;
@@ -319,14 +319,14 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     @Transactional(readOnly = true)
     public PageVO<ArticlePublicVO> pagePublished(ArticlePageParam query) {
-        IPage<ArticleDO> page = articleDAO.pagePublished(query, buildPage(query));
+        IPage<ArticleDO> page = articleDAO.pagePublished(query, query.toPage());
         return toPublicArticlePageVO(page);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ArticleListVO pageMyArticles(Long userId, ArticlePageParam query) {
-        IPage<ArticleDO> page = articleDAO.pageByUser(userId, query, buildPage(query));
+    public ArticleListVO pageMyArticles(Long userId, MyArticlePageParam query) {
+        IPage<ArticleDO> page = articleDAO.pageByUser(userId, query, query.toPage());
         long total = articleDAO.countByUser(userId);
         long published = articleDAO.countByUserAndStatus(userId, ArticleStatusEnum.PUBLISHED);
         ArticleCountVO counts =
@@ -551,10 +551,6 @@ public class ArticleServiceImpl implements ArticleService {
         }
 
         return vo;
-    }
-
-    private Page<ArticleDO> buildPage(ArticlePageParam query) {
-        return new Page<>(query.getPageNum(), query.getPageSize());
     }
 
     private PageVO<ArticleVO> toArticlePageVO(IPage<ArticleDO> page, boolean isDraft) {

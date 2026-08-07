@@ -84,8 +84,8 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
         return getBaseMapper().selectUserStats();
     }
 
-    public IPage<UserDetailDTO> pageUsers(UserPageParam queryParam) {
-        return getBaseMapper().pageUsers(new Page<>(queryParam.getPageNum(), queryParam.getPageSize()), queryParam);
+    public IPage<UserDetailDTO> pageUsers(UserPageParam queryParam, Page<UserDetailDTO> page) {
+        return getBaseMapper().pageUsers(page, queryParam);
     }
 
     public UserDetailDTO getUserDetail(Long userId) {
