@@ -1,9 +1,10 @@
 import request from '@/utils/request'
+import { stripEmpty, type BasePageParams, type PageResult } from '@/api/types'
 
 export type ArticleStatus = 'DRAFT' | 'PUBLISHED'
 
 // 后端按枚举名绑定，不是 status 那样的数字码
-export type ArticleSort = 'CREATE_TIME' | 'PUBLISH_TIME'
+export type MyArticleSort = 'CREATE_TIME' | 'DISPLAY_TIME'
 
 const STATUS_FROM_API: Record<number, ArticleStatus> = { 0: 'DRAFT', 1: 'PUBLISHED' }
 const STATUS_TO_API: Record<ArticleStatus, number> = { DRAFT: 0, PUBLISHED: 1 }
@@ -81,24 +82,13 @@ export interface ArticleCounts {
 
 export interface ArticleListResult {
   counts: ArticleCounts
-  page: {
-    content: ArticleVO[]
-    pageNum: number
-    pageSize: number
-    totalElements: number
-    totalPages: number
-    hasPrevious: boolean
-    hasNext: boolean
-  }
+  page: PageResult<ArticleVO>
 }
 
-export interface GetMyArticlesParams {
-  pageNum: number
-  pageSize: number
+export interface GetMyArticlesParams extends BasePageParams {
   status?: ArticleStatus
   keyword?: string
-  categoryId?: number
-  sortBy?: ArticleSort
+  sortField?: MyArticleSort
 }
 
 export interface PublishArticleParams {
@@ -158,14 +148,10 @@ export function rollbackVersion(id: number, versionId: number): Promise<void> {
 // ── Article management ────────────────────────────────────────────────────────
 
 export async function getMyArticles(params: GetMyArticlesParams): Promise<ArticleListResult> {
-  const apiParams: Record<string, unknown> = {
-    pageNum: params.pageNum,
-    pageSize: params.pageSize,
-  }
-  if (params.status !== undefined) apiParams.status = STATUS_TO_API[params.status]
-  if (params.keyword) apiParams.keyword = params.keyword
-  if (params.categoryId !== undefined) apiParams.categoryId = params.categoryId
-  if (params.sortBy !== undefined) apiParams.sortBy = params.sortBy
+  const apiParams = stripEmpty({
+    ...params,
+    status: params.status === undefined ? undefined : STATUS_TO_API[params.status],
+  })
 
   const res = await request.get<never, ArticleListResult>('/v1/article/my', { params: apiParams })
   res.page.content = res.page.content.map((a) => ({

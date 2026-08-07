@@ -1,10 +1,12 @@
 import request from '@/utils/request'
+import type { BasePageParams, PageResult } from '@/api/types'
 
-export interface ArticlePageParams {
-  pageNum?: number
-  pageSize?: number
+export type { PageResult }
+
+export interface ArticlePageParams extends BasePageParams {
   categoryId?: number
-  tagIds?: number[]
+  /** AND 语义：文章需同时包含所有选中标签 */
+  allTagIds?: number[]
   keyword?: string
 }
 
@@ -25,16 +27,6 @@ export interface ArticleItemVO {
   category: CategoryRef | null
   tags: TagRef[]
   publishTime: string
-}
-
-export interface PageResult<T> {
-  pageNum: number
-  pageSize: number
-  totalPages: number
-  totalElements: number
-  hasPrevious: boolean
-  hasNext: boolean
-  content: T[]
 }
 
 export interface ArticleDetailVO {

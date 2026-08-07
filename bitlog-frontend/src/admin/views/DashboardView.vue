@@ -46,7 +46,11 @@ onMounted(async () => {
   }
 
   try {
-    const res = await getMyArticles({ pageNum: 1, pageSize: RECENT_LIMIT, sortBy: 'PUBLISH_TIME' })
+    const res = await getMyArticles({
+      pageNum: 1,
+      pageSize: RECENT_LIMIT,
+      sortField: 'DISPLAY_TIME',
+    })
     counts.value = res.counts
     recent.value = res.page.content
   } catch {

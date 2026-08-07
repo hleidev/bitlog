@@ -5,6 +5,8 @@ import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/useUserStore'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
+import AdminPagination from '@/admin/components/AdminPagination.vue'
+import { useListQuery } from '@/composables/useListQuery'
 import {
   getUsers,
   getUserById,
@@ -14,7 +16,7 @@ import {
   resetUserPassword,
   type UserListItem,
   type UserDetail,
-  type PageVO,
+  type UserState,
 } from '@/api/admin/user'
 
 const router = useRouter()
@@ -22,43 +24,35 @@ const toast = useToast()
 const confirm = useConfirm()
 const { userInfo } = storeToRefs(useUserStore())
 
-const loading = ref(false)
-
 // ── Tab ───────────────────────────────────────────────────────────────────────
 type TabKey = 'all' | 'enabled' | 'disabled' | 'deactivated'
-const activeTab = ref<TabKey>('all')
 
-// 注销不改 status，只置 deleted=1；非注销页签必须显式带 deleted=0，否则墓碑账号会混进来
-const TAB_QUERY: Record<TabKey, { status?: number; deleted?: number }> = {
-  all: { deleted: 0 },
-  enabled: { status: 1, deleted: 0 },
-  disabled: { status: 0, deleted: 0 },
-  deactivated: { deleted: 1 },
+const TAB_STATE: Record<TabKey, UserState | ''> = {
+  all: '',
+  enabled: 'ENABLED',
+  disabled: 'DISABLED',
+  deactivated: 'DEACTIVATED',
 }
 
 function switchTab(tab: TabKey) {
   if (activeTab.value === tab) return
-  activeTab.value = tab
   selected.clear()
-  pagination.pageNum = 1
-  fetchUsers()
+  filters.tab = tab
 }
 
 // ── Selection ─────────────────────────────────────────────────────────────────
 const selected = reactive(new Set<number>())
 
 const allChecked = computed(
-  () =>
-    pageData.value.content.length > 0 &&
-    pageData.value.content.every((r) => selected.has(r.userId)),
+  () => users.value.length > 0 && users.value.every((r) => selected.has(r.userId)),
 )
 const someChecked = computed(
-  () => pageData.value.content.some((r) => selected.has(r.userId)) && !allChecked.value,
+  () => users.value.some((r) => selected.has(r.userId)) && !allChecked.value,
 )
 
 function toggleAll() {
-  if (allChecked.value) pageData.value.content.forEach((r) => selected.delete(r.userId))
-  else pageData.value.content.forEach((r) => selected.add(r.userId))
+  if (allChecked.value) users.value.forEach((r) => selected.delete(r.userId))
+  else users.value.forEach((r) => selected.add(r.userId))
 }
 
 function toggleRow(id: number) {
@@ -69,45 +63,30 @@ function toggleRow(id: number) {
 const selectedCount = computed(() => selected.size)
 
 // ── Filters & pagination ──────────────────────────────────────────────────────
-const filters = reactive({ username: '' })
-const pagination = reactive({ pageNum: 1, pageSize: 10 })
-const pageData = ref<PageVO<UserListItem>>({
-  pageNum: 1,
-  pageSize: 10,
-  totalPages: 0,
-  totalElements: 0,
-  hasNext: false,
-  hasPrevious: false,
-  content: [],
+const query = useListQuery({
+  filters: { tab: 'all' as TabKey, keyword: '' },
+  toParams: (f) => ({ keyword: f.keyword, state: TAB_STATE[f.tab] || undefined }),
+  fetch: (params) => getUsers(params),
+  debounce: ['keyword'],
+  syncUrl: true,
+  sanitize: (f) => {
+    if (!(f.tab in TAB_STATE)) f.tab = 'all'
+  },
+  onError: () => toast.error('加载用户失败'),
 })
 
-async function fetchUsers() {
-  loading.value = true
-  try {
-    pageData.value = await getUsers({
-      pageNum: pagination.pageNum,
-      pageSize: pagination.pageSize,
-      username: filters.username || undefined,
-      ...TAB_QUERY[activeTab.value],
-    })
-  } finally {
-    loading.value = false
-  }
+const { filters, loading, pageNum, pageSize, total, totalPages, pageNumbers } = query
+const users = query.items
+const activeTab = computed(() => filters.tab)
+const fetchUsers = query.load
+
+function clearKeywordFilter() {
+  filters.keyword = ''
 }
 
-function clearUsernameFilter() {
-  filters.username = ''
-  handleSearch()
-}
-
-function handleSearch() {
-  pagination.pageNum = 1
-  fetchUsers()
-}
 function handleReset() {
-  filters.username = ''
-  pagination.pageNum = 1
-  fetchUsers()
+  selected.clear()
+  query.reset()
 }
 
 // ── Tab counts ────────────────────────────────────────────────────────────────
@@ -125,10 +104,8 @@ async function fetchTabCounts() {
   }
 }
 
-onMounted(() => {
-  fetchUsers()
-  fetchTabCounts()
-})
+// 列表首屏由 useListQuery 自行拉取，这里只补统计
+onMounted(fetchTabCounts)
 
 // ── Row dropdown menu ─────────────────────────────────────────────────────────
 // 菜单 Teleport 到 body 并用 fixed 定位：.table-wrap 的 overflow-x: auto 会让
@@ -258,9 +235,7 @@ async function handleDeactivate(row: UserListItem) {
 
 // ── Batch operations ──────────────────────────────────────────────────────────
 function getTargets() {
-  return pageData.value.content.filter(
-    (r) => selected.has(r.userId) && r.userId !== userInfo.value?.userId,
-  )
+  return users.value.filter((r) => selected.has(r.userId) && r.userId !== userInfo.value?.userId)
 }
 
 async function handleBatchStatus(status: 0 | 1) {
@@ -317,34 +292,6 @@ async function handleBatchDeactivate() {
     toast.error('注销失败')
   }
 }
-
-// ── Pagination ────────────────────────────────────────────────────────────────
-const totalPages = computed(
-  () => Math.ceil(pageData.value.totalElements / pagination.pageSize) || 1,
-)
-
-function goPage(n: number) {
-  pagination.pageNum = n
-  fetchUsers()
-}
-
-function pageSizeChange(e: Event) {
-  pagination.pageSize = Number((e.target as HTMLSelectElement).value)
-  pagination.pageNum = 1
-  fetchUsers()
-}
-
-const pageNumbers = computed(() => {
-  const cur = pagination.pageNum,
-    total = totalPages.value
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const pages: (number | '…')[] = [1]
-  if (cur > 3) pages.push('…')
-  for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) pages.push(i)
-  if (cur < total - 2) pages.push('…')
-  pages.push(total)
-  return pages
-})
 
 // ── Password dialog ───────────────────────────────────────────────────────────
 const passwordDialogVisible = ref(false)
@@ -424,12 +371,12 @@ function relativeTime(d: string) {
               <path d="m21 21-4.35-4.35" />
             </svg>
             <input
-              v-model="filters.username"
+              v-model="filters.keyword"
               class="search-input"
               placeholder="搜索用户名"
-              @keyup.enter="handleSearch"
+              @keyup.enter="query.applyFilters"
             />
-            <button v-if="filters.username" class="search-clear" @click="clearUsernameFilter">
+            <button v-if="filters.keyword" class="search-clear" @click="clearKeywordFilter">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 6 6 18M6 6l12 12" />
               </svg>
@@ -507,7 +454,7 @@ function relativeTime(d: string) {
             </tr>
           </thead>
           <tbody>
-            <tr v-if="pageData.content.length === 0 && !loading">
+            <tr v-if="users.length === 0 && !loading">
               <td colspan="7" class="empty-cell">
                 <div class="empty-state">
                   <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
@@ -520,7 +467,7 @@ function relativeTime(d: string) {
               </td>
             </tr>
             <tr
-              v-for="row in pageData.content"
+              v-for="row in users"
               :key="row.userId"
               :class="{ 'row--selected': selected.has(row.userId) }"
             >
@@ -612,10 +559,7 @@ function relativeTime(d: string) {
 
         <!-- Mobile card list -->
         <div class="mobile-list">
-          <div
-            v-if="pageData.content.length === 0 && !loading"
-            class="empty-state empty-state--mobile"
-          >
+          <div v-if="users.length === 0 && !loading" class="empty-state empty-state--mobile">
             <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
               <path
                 d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
@@ -623,7 +567,7 @@ function relativeTime(d: string) {
             </svg>
             <span>{{ activeTab === 'deactivated' ? '没有已注销的账号' : '暂无用户' }}</span>
           </div>
-          <div v-for="row in pageData.content" :key="row.userId" class="mobile-card">
+          <div v-for="row in users" :key="row.userId" class="mobile-card">
             <div class="mc-main">
               <div class="user-avatar">
                 <img v-if="row.avatar" :src="row.avatar" :alt="displayName(row)" />
@@ -688,45 +632,16 @@ function relativeTime(d: string) {
       </div>
 
       <!-- ── Pagination ── -->
-      <div v-if="pageData.totalElements > 0" class="pagination-bar">
-        <span class="pagination-total">共 {{ pageData.totalElements }} 人</span>
-        <div class="pagination-controls">
-          <button
-            class="page-btn"
-            :disabled="pagination.pageNum <= 1"
-            @click="goPage(pagination.pageNum - 1)"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-          <template v-for="p in pageNumbers" :key="p">
-            <span v-if="p === '…'" class="page-ellipsis">…</span>
-            <button
-              v-else
-              class="page-btn page-btn--num"
-              :class="{ 'page-btn--active': p === pagination.pageNum }"
-              @click="goPage(p as number)"
-            >
-              {{ p }}
-            </button>
-          </template>
-          <button
-            class="page-btn"
-            :disabled="pagination.pageNum >= totalPages"
-            @click="goPage(pagination.pageNum + 1)"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
-        </div>
-        <select class="page-size-select" :value="pagination.pageSize" @change="pageSizeChange">
-          <option :value="10">10 / 页</option>
-          <option :value="20">20 / 页</option>
-          <option :value="50">50 / 页</option>
-        </select>
-      </div>
+      <AdminPagination
+        :total="total"
+        :page-num="pageNum"
+        :page-size="pageSize"
+        :total-pages="totalPages"
+        :page-numbers="pageNumbers"
+        unit="人"
+        @go="query.goPage"
+        @size="query.setPageSize"
+      />
     </div>
   </div>
 
@@ -1129,91 +1044,6 @@ function relativeTime(d: string) {
 
 /* ── Pagination ── */
 
-.pagination-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-top: 1px solid var(--admin-sidebar-border);
-}
-
-.pagination-total {
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted);
-  white-space: nowrap;
-  margin-right: 4px;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: auto;
-}
-
-.page-btn {
-  min-width: 28px;
-  height: 28px;
-  padding: 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: var(--admin-radius);
-  background: var(--admin-surface-input);
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text);
-  cursor: pointer;
-  transition:
-    background 0.12s,
-    border-color 0.12s;
-}
-.page-btn svg {
-  width: 13px;
-  height: 13px;
-}
-.page-btn:hover:not(:disabled) {
-  background: var(--admin-sidebar-hover);
-}
-.page-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-.page-btn--active {
-  background: var(--admin-accent);
-  border-color: var(--admin-accent);
-  color: var(--admin-text-on-accent);
-  font-weight: 600;
-}
-.page-btn--active:hover {
-  background: var(--admin-accent);
-}
-
-.page-ellipsis {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  font-size: 12.5px;
-  color: var(--admin-sidebar-text-muted);
-}
-
-.page-size-select {
-  height: 28px;
-  padding: 0 6px;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: var(--admin-radius);
-  background: var(--admin-surface-input);
-  font-size: 12px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text);
-  outline: none;
-  cursor: pointer;
-  margin-left: 8px;
-}
-
 /* ── Dialogs ── */
 
 .dialog-mask {
@@ -1458,14 +1288,6 @@ function relativeTime(d: string) {
     padding: 8px 12px;
   }
   .sel-cancel {
-    margin-left: 0;
-  }
-  .pagination-bar {
-    padding: 10px 12px;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .page-size-select {
     margin-left: 0;
   }
   .dg-grid {

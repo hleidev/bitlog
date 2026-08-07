@@ -1,14 +1,13 @@
 import request from '@/utils/request'
+import type { BasePageParams, PageResult } from '@/api/types'
 
-export interface UserPageQuery {
-  pageNum?: number
-  pageSize?: number
-  username?: string
-  status?: number
-  /** 已注销标记：0-正常，1-已注销。注销后 status 保持原值，只能靠这一列区分 */
-  deleted?: number
-  startTime?: string
-  endTime?: string
+/** 账号三终态，后端翻译成 status + deleted 两列条件 */
+export type UserState = 'ENABLED' | 'DISABLED' | 'DEACTIVATED'
+
+export interface UserPageQuery extends BasePageParams {
+  keyword?: string
+  /** 不传则返回全部未注销账号 */
+  state?: UserState
 }
 
 export interface UserListItem {
@@ -21,16 +20,6 @@ export interface UserListItem {
   deleted: number
   createTime: string
   updateTime: string
-}
-
-export interface PageVO<T> {
-  pageNum: number
-  pageSize: number
-  totalPages: number
-  totalElements: number
-  hasNext: boolean
-  hasPrevious: boolean
-  content: T[]
 }
 
 export interface UserDetail {
@@ -59,8 +48,8 @@ export function getUserStats(): Promise<UserStats> {
   return request.get<never, UserStats>('/v1/admin/users/stats')
 }
 
-export function getUsers(query: UserPageQuery): Promise<PageVO<UserListItem>> {
-  return request.get<never, PageVO<UserListItem>>('/v1/admin/users', { params: query })
+export function getUsers(query: UserPageQuery): Promise<PageResult<UserListItem>> {
+  return request.get<never, PageResult<UserListItem>>('/v1/admin/users', { params: query })
 }
 
 export function getUserById(userId: number): Promise<UserDetail> {

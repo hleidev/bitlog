@@ -3,6 +3,8 @@ import { ref, computed, watch, onMounted, onServerPrefetch, nextTick } from 'vue
 import { useRoute } from 'vue-router'
 import { useSeoMeta, useHead } from '@unhead/vue'
 import { getArticlePage, type ArticleItemVO } from '@/api/article'
+import type { PageResult } from '@/api/types'
+import { useListQuery } from '@/composables/useListQuery'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { getTags, type TagVO } from '@/api/tag'
 import { readSSGState, writeSSGState } from '@/utils/ssgState'
@@ -21,7 +23,6 @@ useSeoMeta({
 })
 
 const route = useRoute()
-let skipWatch = true
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
@@ -35,28 +36,43 @@ const categoryTabs = computed(() => [
 
 // ── Filter state ──────────────────────────────────────────────────────────────
 
-const filterSearch = ref('')
-const filterCategoryIdx = ref(0)
-const filterTagIds = ref<number[]>([])
 const searchFocused = ref(false)
 
-const filterCategoryId = computed(() => categoryTabs.value[filterCategoryIdx.value]?.id ?? null)
+const query = useListQuery({
+  filters: { keyword: '', categoryIdx: 0, tagIds: [] as number[] },
+  toParams: (f) => ({
+    keyword: f.keyword,
+    categoryId: categoryTabs.value[f.categoryIdx]?.id ?? undefined,
+    allTagIds: f.tagIds,
+  }),
+  fetch: (params) => getArticlePage(params),
+  pageSize: 12,
+  debounce: ['keyword'],
+  debounceMs: 350,
+  // SSG：预渲染结果注入首帧，挂载后再决定是否重拉
+  immediate: false,
+})
+
+const { filters, loading, pageNum, total, totalPages, hasPrevious, hasNext } = query
+const articles = query.items
+const visiblePages = query.pageNumbers
+const fetchArticles = query.load
 
 const hasFilters = computed(
-  () => filterSearch.value || filterCategoryIdx.value !== 0 || filterTagIds.value.length > 0,
+  () => filters.keyword || filters.categoryIdx !== 0 || filters.tagIds.length > 0,
 )
 
 function clearAll() {
-  filterSearch.value = ''
-  filterCategoryIdx.value = 0
-  filterTagIds.value = []
+  filters.keyword = ''
+  filters.categoryIdx = 0
+  filters.tagIds = []
   nextTick(updateIndicator)
 }
 
 function toggleTag(tagId: number) {
-  const idx = filterTagIds.value.indexOf(tagId)
-  if (idx === -1) filterTagIds.value = [...filterTagIds.value, tagId]
-  else filterTagIds.value = filterTagIds.value.filter((id) => id !== tagId)
+  const idx = filters.tagIds.indexOf(tagId)
+  if (idx === -1) filters.tagIds = [...filters.tagIds, tagId]
+  else filters.tagIds = filters.tagIds.filter((id) => id !== tagId)
 }
 
 // ── Sliding category indicator ────────────────────────────────────────────────
@@ -65,116 +81,55 @@ const tabEls = ref<HTMLButtonElement[]>([])
 const indicatorStyle = ref({ left: '4px', width: '60px', opacity: '0' })
 
 async function selectCategory(idx: number) {
-  filterCategoryIdx.value = idx
+  filters.categoryIdx = idx
   await nextTick()
   updateIndicator()
 }
 
 function updateIndicator() {
-  const el = tabEls.value[filterCategoryIdx.value]
+  const el = tabEls.value[filters.categoryIdx]
   if (!el) return
   indicatorStyle.value = { left: `${el.offsetLeft}px`, width: `${el.offsetWidth}px`, opacity: '1' }
 }
 
 // ── Article list ──────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 12
-const pageNum = ref(1)
-const loading = ref(false)
 const slow = ref(false)
 let slowTimer: ReturnType<typeof setTimeout> | null = null
-const articles = ref<ArticleItemVO[]>([])
-const totalElements = ref(0)
-const totalPages = ref(1)
-const hasPrevious = ref(false)
-const hasNext = ref(false)
 
-async function fetchArticles() {
-  loading.value = true
+// 超过 6s 仍在加载才提示，避免正常速度下闪一下
+watch(loading, (busy) => {
   if (slowTimer) clearTimeout(slowTimer)
-  slowTimer = setTimeout(() => {
-    if (loading.value) slow.value = true
-  }, 6000)
-  try {
-    const res = await getArticlePage({
-      pageNum: pageNum.value,
-      pageSize: PAGE_SIZE,
-      categoryId: filterCategoryId.value ?? undefined,
-      tagIds: filterTagIds.value.length > 0 ? filterTagIds.value : undefined,
-      keyword: filterSearch.value.trim() || undefined,
-    })
-    articles.value = res.content
-    totalElements.value = res.totalElements
-    totalPages.value = res.totalPages
-    hasPrevious.value = res.hasPrevious
-    hasNext.value = res.hasNext
-  } finally {
-    loading.value = false
-    if (slowTimer) {
-      clearTimeout(slowTimer)
-      slowTimer = null
-    }
+  if (busy) {
+    slowTimer = setTimeout(() => {
+      if (loading.value) slow.value = true
+    }, 6000)
+  } else {
     slow.value = false
   }
+})
+
+// 入站链接契约：文章详情页用 /articles?categoryId=X、?tagId=Y、?keyword=Z 跳进来
+function applyRouteFilters(q: typeof route.query) {
+  filters.keyword = typeof q.keyword === 'string' ? q.keyword : ''
+  const idx = q.categoryId ? categoryTabs.value.findIndex((c) => c.id === Number(q.categoryId)) : -1
+  filters.categoryIdx = idx !== -1 ? idx : 0
+  filters.tagIds = q.tagId ? [Number(q.tagId)] : []
 }
-
-let searchTimer: ReturnType<typeof setTimeout> | null = null
-
-watch(filterSearch, () => {
-  if (skipWatch) return
-  pageNum.value = 1
-  if (searchTimer) clearTimeout(searchTimer)
-  searchTimer = setTimeout(fetchArticles, 350)
-})
-
-watch([filterCategoryIdx, filterTagIds], () => {
-  if (skipWatch) return
-  pageNum.value = 1
-  fetchArticles()
-})
 
 // ── Sync filter state from URL on navigation without component remount ──────
 watch(
   () => route.query,
   (q) => {
-    if (skipWatch) return
-    const { categoryId, tagId, keyword } = q
-    if (keyword) filterSearch.value = keyword as string
-    else filterSearch.value = ''
-
-    if (categoryId) {
-      const idx = categoryTabs.value.findIndex((c) => c.id === Number(categoryId))
-      filterCategoryIdx.value = idx !== -1 ? idx : 0
-    } else {
-      filterCategoryIdx.value = 0
-    }
-
-    if (tagId) filterTagIds.value = [Number(tagId)]
-    else filterTagIds.value = []
-
-    pageNum.value = 1
-    fetchArticles()
+    applyRouteFilters(q)
   },
 )
-
-const visiblePages = computed(() => {
-  const total = totalPages.value
-  const cur = pageNum.value
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1) as (number | '...')[]
-  const pages: (number | '...')[] = [1]
-  if (cur > 3) pages.push('...')
-  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
-  if (cur < total - 2) pages.push('...')
-  pages.push(total)
-  return pages
-})
 
 function changePage(p: number) {
   if (p === pageNum.value) return
   if (p < pageNum.value && !hasPrevious.value) return
   if (p > pageNum.value && !hasNext.value) return
-  pageNum.value = p
-  fetchArticles()
+  query.goPage(p)
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -186,11 +141,7 @@ const SSG_KEY = 'articleList'
 interface ArticleListState {
   categories: CategoryVO[]
   tags: TagVO[]
-  articles: ArticleItemVO[]
-  totalElements: number
-  totalPages: number
-  hasPrevious: boolean
-  hasNext: boolean
+  page: PageResult<ArticleItemVO>
 }
 
 onServerPrefetch(async () => {
@@ -198,16 +149,9 @@ onServerPrefetch(async () => {
     const [cats, tgs] = await Promise.all([getCategories(), getTags()])
     categories.value = cats
     tags.value = tgs
-    await fetchArticles()
-    writeSSGState<ArticleListState>(route, SSG_KEY, {
-      categories: cats,
-      tags: tgs,
-      articles: articles.value,
-      totalElements: totalElements.value,
-      totalPages: totalPages.value,
-      hasPrevious: hasPrevious.value,
-      hasNext: hasNext.value,
-    })
+    const page = await getArticlePage({ pageNum: 1, pageSize: 12 })
+    query.applyPrerendered(page)
+    writeSSGState<ArticleListState>(route, SSG_KEY, { categories: cats, tags: tgs, page })
   } catch (err) {
     // 静态产物会退化成空壳，构建后的 verify-ssg 会据此让构建失败
     console.error(`[ssg] 文章列表页预渲染取数失败: ${(err as Error).message}`)
@@ -219,11 +163,7 @@ const prerendered = readSSGState<ArticleListState>(route, SSG_KEY)
 if (prerendered) {
   categories.value = prerendered.categories
   tags.value = prerendered.tags
-  articles.value = prerendered.articles
-  totalElements.value = prerendered.totalElements
-  totalPages.value = prerendered.totalPages
-  hasPrevious.value = prerendered.hasPrevious
-  hasNext.value = prerendered.hasNext
+  query.applyPrerendered(prerendered.page)
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -240,17 +180,9 @@ onMounted(async () => {
     tags.value = tgs
   }
 
-  const { categoryId, tagId, keyword } = route.query
-  if (keyword) filterSearch.value = keyword as string
-  if (categoryId) {
-    const idx = categoryTabs.value.findIndex((c) => c.id === Number(categoryId))
-    filterCategoryIdx.value = idx !== -1 ? idx : 0
-  } else {
-    filterCategoryIdx.value = 0
-  }
-  if (tagId) filterTagIds.value = [Number(tagId)]
-
-  skipWatch = false
+  // 先写 filters 再 start()，避免初始化赋值触发一次多余请求
+  applyRouteFilters(route.query)
+  query.start()
   await nextTick()
   updateIndicator()
 
@@ -279,7 +211,7 @@ onMounted(async () => {
             <line x1="20" y1="20" x2="15.5" y2="15.5" />
           </svg>
           <input
-            v-model="filterSearch"
+            v-model="filters.keyword"
             class="search-input"
             placeholder="搜索文章..."
             @focus="searchFocused = true"
@@ -287,10 +219,10 @@ onMounted(async () => {
           />
           <Transition name="fade">
             <button
-              v-if="filterSearch"
+              v-if="filters.keyword"
               class="search-clear"
               tabindex="-1"
-              @click="filterSearch = ''"
+              @click="filters.keyword = ''"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -312,7 +244,7 @@ onMounted(async () => {
               }
             "
             class="cat-tab"
-            :class="{ 'cat-tab--active': i === filterCategoryIdx }"
+            :class="{ 'cat-tab--active': i === filters.categoryIdx }"
             @click="selectCategory(i)"
           >
             {{ cat.name }}
@@ -327,7 +259,7 @@ onMounted(async () => {
             v-for="tag in tags"
             :key="tag.id"
             class="tag-chip"
-            :class="{ 'tag-chip--active': filterTagIds.includes(tag.id) }"
+            :class="{ 'tag-chip--active': filters.tagIds.includes(tag.id) }"
             @click="toggleTag(tag.id)"
           >
             {{ tag.name }}
@@ -343,11 +275,11 @@ onMounted(async () => {
       <div class="result-bar">
         <div class="result-info">
           <Transition name="num" mode="out-in">
-            <span :key="totalElements" class="result-num">{{ totalElements }}</span>
+            <span :key="total" class="result-num">{{ total }}</span>
           </Transition>
           <span class="result-label">篇文章</span>
           <Transition name="fade">
-            <span v-if="filterTagIds.length > 1" class="result-hint">（同时满足所有标签）</span>
+            <span v-if="filters.tagIds.length > 1" class="result-hint">（同时满足所有标签）</span>
           </Transition>
         </div>
         <Transition name="fade">
@@ -389,7 +321,7 @@ onMounted(async () => {
               ←
             </button>
             <template v-for="(p, i) in visiblePages" :key="i">
-              <span v-if="p === '...'" class="page-ellipsis">…</span>
+              <span v-if="p === '…'" class="page-ellipsis">…</span>
               <button
                 v-else
                 class="page-btn"

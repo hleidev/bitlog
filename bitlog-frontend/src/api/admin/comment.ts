@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { PageResult } from '@/api/article'
+import type { BasePageParams, PageResult } from '@/api/types'
 
 /** 1-正常，2-已隐藏 */
 export type CommentStatus = 1 | 2
@@ -23,11 +23,7 @@ export interface CommentAdmin {
   createTime: string
 }
 
-export interface CommentAdminPageParams {
-  pageNum?: number
-  pageSize?: number
-  articleId?: number
-  userId?: number
+export interface CommentAdminPageParams extends BasePageParams {
   status?: CommentStatus
   keyword?: string
 }

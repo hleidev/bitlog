@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { PageResult } from '@/api/article'
+import type { BasePageParams, PageResult } from '@/api/types'
 
 export interface CommentUserVO {
   userId: number
@@ -35,10 +35,7 @@ export interface CommentSaveParams {
   parentId?: number
 }
 
-export interface CommentPageParams {
-  pageNum?: number
-  pageSize?: number
-}
+export type CommentPageParams = BasePageParams
 
 export function getCommentPage(
   articleId: number,

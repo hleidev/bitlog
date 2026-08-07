@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
 import AdminEmptyState from '@/admin/components/AdminEmptyState.vue'
+import AdminPagination from '@/admin/components/AdminPagination.vue'
+import { useListQuery } from '@/composables/useListQuery'
 import {
   getAdminCommentPage,
   updateCommentStatus,
@@ -15,75 +17,32 @@ import {
 const toast = useToast()
 const confirm = useConfirm()
 
-const loading = ref(false)
-const comments = ref<CommentAdmin[]>([])
-
-const keyword = ref('')
-const statusFilter = ref<CommentStatus | ''>('')
-
-const pagination = reactive({ pageNum: 1, pageSize: 20, total: 0 })
-const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize) || 1)
-
 const selected = reactive(new Set<number>())
 
 function clearSelection() {
   selected.clear()
 }
 
-async function fetchComments() {
-  loading.value = true
-  try {
-    const res = await getAdminCommentPage({
-      pageNum: pagination.pageNum,
-      pageSize: pagination.pageSize,
-      keyword: keyword.value.trim() || undefined,
-      status: statusFilter.value || undefined,
-    })
-    comments.value = res.content
-    pagination.total = res.totalElements
-    clearSelection()
-    // 删光当前页最后一条后会停在空页，回退一页；pageNum > 1 保证递归终止
-    if (res.content.length === 0 && pagination.pageNum > 1) {
-      pagination.pageNum -= 1
-      return await fetchComments()
-    }
-  } catch {
-    toast.error('加载评论失败')
-  } finally {
-    loading.value = false
-  }
-}
+const query = useListQuery({
+  filters: { keyword: '', status: '' as CommentStatus | '' },
+  toParams: (f) => ({ keyword: f.keyword, status: f.status || undefined }),
+  fetch: (params) => getAdminCommentPage(params),
+  pageSize: 20,
+  debounce: ['keyword'],
+  syncUrl: true,
+  onError: () => toast.error('加载评论失败'),
+})
 
-onMounted(fetchComments)
+const { filters, loading, pageNum, pageSize, total, totalPages, pageNumbers } = query
+const comments = query.items
+const fetchComments = query.load
+
+// 每次列表刷新都清掉选中，避免选中项指向已翻页离开的行
+watch(comments, clearSelection)
 
 function applyFilter() {
-  pagination.pageNum = 1
-  fetchComments()
+  query.applyFilters()
 }
-
-function goPage(n: number) {
-  if (n < 1 || n > totalPages.value || n === pagination.pageNum) return
-  pagination.pageNum = n
-  fetchComments()
-}
-
-function pageSizeChange(e: Event) {
-  pagination.pageSize = Number((e.target as HTMLSelectElement).value)
-  pagination.pageNum = 1
-  fetchComments()
-}
-
-const pageNumbers = computed(() => {
-  const cur = pagination.pageNum
-  const total = totalPages.value
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const pages: (number | '…')[] = [1]
-  if (cur > 3) pages.push('…')
-  for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) pages.push(i)
-  if (cur < total - 2) pages.push('…')
-  pages.push(total)
-  return pages
-})
 
 const allSelected = computed(
   () => comments.value.length > 0 && comments.value.every((c) => selected.has(c.id)),
@@ -157,8 +116,7 @@ async function handleBatchDelete() {
 }
 
 function clearKeyword() {
-  keyword.value = ''
-  applyFilter()
+  filters.keyword = ''
 }
 
 function formatTime(iso: string) {
@@ -182,18 +140,18 @@ function formatTime(iso: string) {
           <path d="m21 21-4.3-4.3" />
         </svg>
         <input
-          v-model="keyword"
+          v-model="filters.keyword"
           class="search-input"
           placeholder="搜索评论内容"
           @keyup.enter="applyFilter"
         />
-        <button v-if="keyword" class="search-clear" @click="clearKeyword">
+        <button v-if="filters.keyword" class="search-clear" @click="clearKeyword">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6 6 18M6 6l12 12" />
           </svg>
         </button>
       </div>
-      <select v-model="statusFilter" class="filter-select" @change="applyFilter">
+      <select v-model="filters.status" class="filter-select">
         <option value="">全部状态</option>
         <option :value="1">正常</option>
         <option :value="2">已隐藏</option>
@@ -341,49 +299,20 @@ function formatTime(iso: string) {
 
     <AdminEmptyState
       v-if="!loading && comments.length === 0"
-      :message="keyword || statusFilter ? '没有匹配的评论' : '还没有评论'"
+      :message="filters.keyword || filters.status ? '没有匹配的评论' : '还没有评论'"
     />
 
     <!-- 分页 -->
-    <div v-if="pagination.total > 0" class="pagination-bar">
-      <span class="pagination-total">共 {{ pagination.total }} 条</span>
-      <div class="pagination-controls">
-        <button
-          class="page-btn"
-          :disabled="pagination.pageNum <= 1"
-          @click="goPage(pagination.pageNum - 1)"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <template v-for="p in pageNumbers" :key="p">
-          <span v-if="p === '…'" class="page-ellipsis">…</span>
-          <button
-            v-else
-            class="page-btn page-btn--num"
-            :class="{ 'page-btn--active': p === pagination.pageNum }"
-            @click="goPage(p as number)"
-          >
-            {{ p }}
-          </button>
-        </template>
-        <button
-          class="page-btn"
-          :disabled="pagination.pageNum >= totalPages"
-          @click="goPage(pagination.pageNum + 1)"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </button>
-      </div>
-      <select class="page-size-select" :value="pagination.pageSize" @change="pageSizeChange">
-        <option :value="10">10 / 页</option>
-        <option :value="20">20 / 页</option>
-        <option :value="50">50 / 页</option>
-      </select>
-    </div>
+    <AdminPagination
+      :total="total"
+      :page-num="pageNum"
+      :page-size="pageSize"
+      :total-pages="totalPages"
+      :page-numbers="pageNumbers"
+      unit="条"
+      @go="query.goPage"
+      @size="query.setPageSize"
+    />
   </div>
 </template>
 
@@ -544,95 +473,6 @@ function formatTime(iso: string) {
 .data-card__actions {
   display: flex;
   gap: 8px;
-}
-
-.pagination-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-top: 1px solid var(--admin-sidebar-border);
-}
-
-.pagination-total {
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted);
-  white-space: nowrap;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: auto;
-}
-
-.page-btn {
-  min-width: 28px;
-  height: 28px;
-  padding: 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: var(--admin-radius);
-  background: var(--admin-surface-input);
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text);
-  cursor: pointer;
-  transition:
-    background 0.12s,
-    border-color 0.12s;
-}
-
-.page-btn svg {
-  width: 13px;
-  height: 13px;
-}
-
-.page-btn:hover:not(:disabled) {
-  background: var(--admin-sidebar-hover);
-}
-
-.page-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.page-btn--active {
-  background: var(--admin-accent);
-  border-color: var(--admin-accent);
-  color: var(--admin-text-on-accent);
-  font-weight: 600;
-}
-
-.page-btn--active:hover {
-  background: var(--admin-accent);
-}
-
-.page-ellipsis {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  font-size: 12.5px;
-  color: var(--admin-sidebar-text-muted);
-}
-
-.page-size-select {
-  height: 28px;
-  padding: 0 6px;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: var(--admin-radius);
-  background: var(--admin-surface-input);
-  font-size: 12px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text);
-  outline: none;
-  cursor: pointer;
-  margin-left: 8px;
 }
 
 .sel-bar-leave-active {

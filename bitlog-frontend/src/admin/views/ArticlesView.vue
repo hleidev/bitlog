@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, reactive, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
+import AdminPagination from '@/admin/components/AdminPagination.vue'
+import { useListQuery } from '@/composables/useListQuery'
 import {
   getMyArticles,
   updateArticlesStatus,
@@ -16,14 +18,11 @@ import {
 import { ApiError } from '@/utils/request'
 import ArticleMetaDialog from '@/admin/components/ArticleMetaDialog.vue'
 
-const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
 
 // ── State ─────────────────────────────────────────────────────────────────────
-const loading = ref(false)
-const articles = ref<ArticleVO[]>([])
 const counts = ref<ArticleCounts>({ total: 0, published: 0, draft: 0 })
 const selected = reactive(new Set<number>())
 
@@ -36,79 +35,46 @@ const TAB_STATUS: Record<TabKey, ArticleStatus | undefined> = {
   draft: 'DRAFT',
 }
 
-const VALID_TABS = new Set<TabKey>(['all', 'published', 'draft'])
-function isValidTab(v: unknown): v is TabKey {
-  return VALID_TABS.has(v as TabKey)
-}
-
-// ── Init from URL ─────────────────────────────────────────────────────────────
-const q = route.query
-const activeTab = ref<TabKey>(isValidTab(q.tab) ? q.tab : 'all')
-const keyword = ref(typeof q.keyword === 'string' ? q.keyword : '')
-const pagination = reactive({
-  pageNum: Math.max(1, Number(q.page) || 1),
-  pageSize: [10, 20, 50].includes(Number(q.size)) ? Number(q.size) : 10,
-  total: 0,
+// ── Query ─────────────────────────────────────────────────────────────────────
+const query = useListQuery({
+  filters: { tab: 'all' as TabKey, keyword: '' },
+  toParams: (f) => ({ status: TAB_STATUS[f.tab], keyword: f.keyword }),
+  fetch: async (params) => {
+    const res = await getMyArticles(params)
+    counts.value = res.counts
+    return res.page
+  },
+  debounce: ['keyword'],
+  syncUrl: true,
+  sanitize: (f) => {
+    if (!(f.tab in TAB_STATUS)) f.tab = 'all'
+  },
+  onError: (err) => handleApiError(err, '加载文章失败'),
 })
 
-function syncUrl() {
-  const query: Record<string, string> = {}
-  if (activeTab.value !== 'all') query.tab = activeTab.value
-  if (keyword.value.trim()) query.keyword = keyword.value.trim()
-  if (pagination.pageNum !== 1) query.page = String(pagination.pageNum)
-  if (pagination.pageSize !== 10) query.size = String(pagination.pageSize)
-  router.replace({ query })
-}
+const { filters, loading, pageNum, pageSize, total, totalPages, pageNumbers } = query
+const articles = query.items
+const activeTab = computed(() => filters.tab)
+const fetchArticles = query.load
 
 function switchTab(tab: TabKey) {
-  if (activeTab.value === tab) return
-  activeTab.value = tab
-  pagination.pageNum = 1
+  if (filters.tab === tab) return
   clearSelection()
-  syncUrl()
-  fetchArticles()
-}
-
-// ── Fetch ─────────────────────────────────────────────────────────────────────
-async function fetchArticles() {
-  loading.value = true
-  try {
-    const res = await getMyArticles({
-      pageNum: pagination.pageNum,
-      pageSize: pagination.pageSize,
-      status: TAB_STATUS[activeTab.value],
-      keyword: keyword.value.trim() || undefined,
-    })
-    articles.value = res.page.content
-    pagination.total = res.page.totalElements
-    counts.value = res.counts
-  } catch (err) {
-    handleApiError(err, '加载文章失败')
-  } finally {
-    loading.value = false
-  }
+  filters.tab = tab
 }
 
 function clearKeyword() {
-  keyword.value = ''
-  handleSearch()
+  filters.keyword = ''
 }
 
 function handleSearch() {
-  pagination.pageNum = 1
-  syncUrl()
-  fetchArticles()
+  query.applyFilters()
 }
 
 function handleReset() {
-  keyword.value = ''
-  pagination.pageNum = 1
   clearSelection()
-  syncUrl()
-  fetchArticles()
+  query.reset()
 }
-
-onMounted(fetchArticles)
 
 // ── Selection ─────────────────────────────────────────────────────────────────
 const allChecked = computed(
@@ -247,34 +213,6 @@ async function handleBatchDelete() {
     handleApiError(err, '批量删除失败')
   }
 }
-
-// ── Pagination ────────────────────────────────────────────────────────────────
-const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize) || 1)
-
-function goPage(n: number) {
-  pagination.pageNum = n
-  syncUrl()
-  fetchArticles()
-}
-
-function pageSizeChange(e: Event) {
-  pagination.pageSize = Number((e.target as HTMLSelectElement).value)
-  pagination.pageNum = 1
-  syncUrl()
-  fetchArticles()
-}
-
-const pageNumbers = computed(() => {
-  const cur = pagination.pageNum
-  const total = totalPages.value
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const pages: (number | '…')[] = [1]
-  if (cur > 3) pages.push('…')
-  for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) pages.push(i)
-  if (cur < total - 2) pages.push('…')
-  pages.push(total)
-  return pages
-})
 
 // ── Quick meta edit ───────────────────────────────────────────────────────────
 const metaModalVisible = ref(false)
@@ -454,12 +392,12 @@ function formatViews(n: number) {
               <path d="m21 21-4.35-4.35" />
             </svg>
             <input
-              v-model="keyword"
+              v-model="filters.keyword"
               class="search-input"
               placeholder="搜索标题"
               @keyup.enter="handleSearch"
             />
-            <button v-if="keyword" class="search-clear" @click="clearKeyword">
+            <button v-if="filters.keyword" class="search-clear" @click="clearKeyword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 6 6 18M6 6l12 12" />
               </svg>
@@ -675,45 +613,16 @@ function formatViews(n: number) {
       </div>
 
       <!-- ── Pagination ── -->
-      <div v-if="pagination.total > 0" class="pagination-bar">
-        <span class="pagination-total">共 {{ pagination.total }} 篇</span>
-        <div class="pagination-controls">
-          <button
-            class="page-btn"
-            :disabled="pagination.pageNum <= 1"
-            @click="goPage(pagination.pageNum - 1)"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-          <template v-for="p in pageNumbers" :key="p">
-            <span v-if="p === '…'" class="page-ellipsis">…</span>
-            <button
-              v-else
-              class="page-btn page-btn--num"
-              :class="{ 'page-btn--active': p === pagination.pageNum }"
-              @click="goPage(p as number)"
-            >
-              {{ p }}
-            </button>
-          </template>
-          <button
-            class="page-btn"
-            :disabled="pagination.pageNum >= totalPages"
-            @click="goPage(pagination.pageNum + 1)"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
-        </div>
-        <select class="page-size-select" :value="pagination.pageSize" @change="pageSizeChange">
-          <option :value="10">10 / 页</option>
-          <option :value="20">20 / 页</option>
-          <option :value="50">50 / 页</option>
-        </select>
-      </div>
+      <AdminPagination
+        :total="total"
+        :page-num="pageNum"
+        :page-size="pageSize"
+        :total-pages="totalPages"
+        :page-numbers="pageNumbers"
+        unit="篇"
+        @go="query.goPage"
+        @size="query.setPageSize"
+      />
     </div>
   </div>
 
@@ -1076,96 +985,6 @@ function formatViews(n: number) {
 }
 
 /* ── Pagination ── */
-
-.pagination-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-top: 1px solid var(--admin-sidebar-border);
-}
-
-.pagination-total {
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted);
-  white-space: nowrap;
-  margin-right: 4px;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: auto;
-}
-
-.page-btn {
-  min-width: 28px;
-  height: 28px;
-  padding: 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: var(--admin-radius);
-  background: var(--admin-surface-input);
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text);
-  cursor: pointer;
-  transition:
-    background 0.12s,
-    border-color 0.12s;
-}
-
-.page-btn svg {
-  width: 13px;
-  height: 13px;
-}
-.page-btn:hover:not(:disabled) {
-  background: var(--admin-sidebar-hover);
-}
-.page-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-.page-btn--num {
-  min-width: 28px;
-}
-.page-btn--active {
-  background: var(--admin-accent);
-  border-color: var(--admin-accent);
-  color: var(--admin-text-on-accent);
-  font-weight: 600;
-}
-
-.page-btn--active:hover {
-  background: var(--admin-accent);
-}
-
-.page-ellipsis {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  font-size: 12.5px;
-  color: var(--admin-sidebar-text-muted);
-}
-
-.page-size-select {
-  height: 28px;
-  padding: 0 6px;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: var(--admin-radius);
-  background: var(--admin-surface-input);
-  font-size: 12px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text);
-  outline: none;
-  cursor: pointer;
-  margin-left: 8px;
-}
 
 /* ── AI (rendered via slots into ArticleMetaDialog) ─────────────────────────── */
 .ai-trigger-btn {
