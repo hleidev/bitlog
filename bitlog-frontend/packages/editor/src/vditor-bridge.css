@@ -70,6 +70,11 @@
 .vditor-writer .vditor-reset table tr:last-child td {
   border-bottom: none;
 }
+/* 中和 .vditor-reset 的行底色与 #fff 斑马纹,否则暗色下数据行漏白(阅读侧 tr 是透明的) */
+.vditor-writer .vditor-reset table tr,
+.vditor-writer .vditor-reset table tbody tr:nth-child(2n) {
+  background-color: transparent;
+}
 
 /* 分隔线:中和 .vditor-reset hr 的灰色填充块,对齐阅读侧 1px 边线 */
 .vditor-writer .vditor-reset hr {
