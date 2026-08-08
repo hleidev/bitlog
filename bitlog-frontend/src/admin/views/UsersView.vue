@@ -70,7 +70,8 @@ const query = useListQuery({
   debounce: ['keyword'],
   syncUrl: true,
   sanitize: (f) => {
-    if (!(f.tab in TAB_STATE)) f.tab = 'all'
+    // hasOwn 而非 in：in 走原型链，?tab=constructor 会被放行
+    if (!Object.hasOwn(TAB_STATE, f.tab)) f.tab = 'all'
   },
   onError: () => toast.error('加载用户失败'),
 })
@@ -85,8 +86,10 @@ function clearKeywordFilter() {
 }
 
 function handleReset() {
+  // 只清搜索词，保留当前 tab —— reset() 会把 tab 也退回 all
   selected.clear()
-  query.reset()
+  filters.keyword = ''
+  query.applyFilters()
 }
 
 // ── Tab counts ────────────────────────────────────────────────────────────────
