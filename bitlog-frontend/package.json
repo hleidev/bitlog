@@ -20,11 +20,11 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "src/**/*.{vue,ts}": [
+    "{src,packages,apps}/**/*.{vue,ts}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "src/**/*.css": "prettier --write"
+    "{src,packages,apps}/**/*.css": "prettier --write"
   },
   "dependencies": {
     "@bitlog/editor": "*",
