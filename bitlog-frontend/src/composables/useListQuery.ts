@@ -1,4 +1,4 @@
-import { computed, nextTick, reactive, ref, watch, type Ref } from 'vue'
+import { computed, nextTick, onScopeDispose, reactive, ref, watch, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { stripEmpty, type PageResult, type SortOrder } from '@/api/types'
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PAGE_WINDOW } from '@/constants/pagination'
@@ -125,7 +125,9 @@ export function useListQuery<F extends Filters, T>(
   }
 
   // ── 拉取 ────────────────────────────────────────────────────────────────────
+  let loadSeq = 0
   async function load(): Promise<void> {
+    const seq = ++loadSeq
     loading.value = true
     try {
       const params = stripEmpty({
@@ -136,6 +138,8 @@ export function useListQuery<F extends Filters, T>(
         sortOrder: sortOrder.value,
       })
       const res = await fetch(params)
+      // 已有更新的请求发出，丢弃本次结果，避免旧响应后到覆盖新内容
+      if (seq !== loadSeq) return
       // 空页直接跳到最后一页；不能逐页递减，URL 里的 page 可以是任意大的数
       const lastPage = Math.max(1, res.totalPages)
       if (res.content.length === 0 && pageNum.value > lastPage) {
@@ -148,7 +152,8 @@ export function useListQuery<F extends Filters, T>(
       if (onError) onError(err)
       else throw err
     } finally {
-      loading.value = false
+      // 过期请求不关 loading，后发的那次还在跑
+      if (seq === loadSeq) loading.value = false
     }
   }
 
@@ -229,6 +234,11 @@ export function useListQuery<F extends Filters, T>(
       },
     )
   }
+
+  // 卸载后防抖回调仍会跑，syncUrl 页面会把 query 写到已经切走的新路由上
+  onScopeDispose(() => {
+    if (timer) clearTimeout(timer)
+  })
 
   const totalPagesSafe = computed(() => totalPages.value || 1)
   const pageNumbers = computed<(number | '…')[]>(() => {
