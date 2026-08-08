@@ -136,9 +136,10 @@ export function useListQuery<F extends Filters, T>(
         sortOrder: sortOrder.value,
       })
       const res = await fetch(params)
-      // 删光当前页最后一条后会停在空页，回退一页；pageNum > 1 保证递归终止
-      if (res.content.length === 0 && pageNum.value > 1) {
-        pageNum.value -= 1
+      // 空页直接跳到最后一页；不能逐页递减，URL 里的 page 可以是任意大的数
+      const lastPage = Math.max(1, res.totalPages)
+      if (res.content.length === 0 && pageNum.value > lastPage) {
+        pageNum.value = lastPage
         writeUrl()
         return await load()
       }
