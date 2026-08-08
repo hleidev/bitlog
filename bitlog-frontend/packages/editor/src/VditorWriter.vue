@@ -72,11 +72,9 @@ onMounted(() => {
     mode: 'ir',
     height: 'auto',
     placeholder: '开始写吧…',
-    // 主题：永远 classic + path='' 避免 Vditor 注入 dark.css link。
-    // 否则 unpkg.com/.../content-theme/dark.css 作为 <body> 末尾的 <link>
-    // 会赢过 prose.css 的 cascade,导致 blockquote / inline code 与详情页不一致。
-    // 我们自己已经在 VditorWriter <style> 里处理 IR preview 的暗色配色。
-    theme: { current: 'classic', path: '' },
+    // 编辑器 UI 主题恒为 classic;暗色由 prose.css 的 token 映射负责,
+    // 切到 Vditor 的 dark 会引入与详情页不一致的配色。
+    theme: 'classic',
     icon: 'ant',
     cache: { enable: false },
     // 输入回调：只在 IR 模式触发
@@ -100,6 +98,9 @@ onMounted(() => {
         if (file.size > 5 * 1024 * 1024) return '文件超出 5MB 限制'
         return true
       },
+      // Vditor 把返回值类型写成 Promise<string> | Promise<null>,表达不了
+      // 「成功返回 null、失败返回错误串」的 Promise<string | null>,是上游类型缺陷
+      // @ts-expect-error -- upstream type is too narrow
       handler: async (files: File[]) => {
         const file = files[0]
         if (!file || !props.uploadImage) return '无文件'
@@ -124,15 +125,8 @@ onMounted(() => {
         style: 'github',
         lineNumber: false,
       },
-      // 关闭数学公式的 MathJax 引擎（节省 6.4MB）—— 后续如果需要再开 KaTeX
-      math: { enable: false },
-      // Vditor 内置 mermaid / flowchart / graphviz 渲染（CDN 加载,无需 enable 开关）
-      // 写作者在 IR 模式下输入 ```mermaid 代码块 → 立即看到图表。
-      // neutral 主题 + 白底卡片(vditor-bridge.css),与详情页的
-      // mermaid.initialize({ theme: 'neutral' }) 渲染路径视觉一致。
-      mermaid: {
-        theme: 'neutral',
-      },
+      // mermaid 主题不可配:Vditor 只在 options.theme === 'dark' 时切 dark,
+      // 否则恒用 mermaid 默认主题,所以编辑侧图表配色与详情页的 neutral 有差异。
       theme: {
         current: isDarkTheme() ? 'dark' : 'light',
         list: { light: 'Light', dark: 'Dark' },
