@@ -1,5 +1,5 @@
 /* admin 的 accent 与公共站共用一套色板：这里只做「引用」，不再抄色值。
-   原始色值统一定义在 assets/styles/variables.css 的 accent primitives 区块。
+   原始色值统一定义在 @bitlog/editor/variables.css 的 accent primitives 区块。
    因为下面全部走 var(--color-accent*)，而那几个 token 已在公共侧按主题映射过，
    所以本文件的 [data-theme='dark'] 块无需再覆盖任何 accent —— 会自动跟随。 */
 :root {

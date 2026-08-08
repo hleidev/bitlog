@@ -22,7 +22,7 @@ import hljs from 'highlight.js/lib/common'
 import { renderMarkdownToHtml } from '@/utils/lute-renderer'
 import { useTheme } from '@/composables/useTheme'
 import ImageLightbox from './ImageLightbox.vue'
-import './prose.css'
+import '@bitlog/editor/prose.css'
 
 const props = withDefaults(
   defineProps<{

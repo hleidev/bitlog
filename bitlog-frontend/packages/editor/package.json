@@ -1,0 +1,15 @@
+{
+  "name": "@bitlog/editor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./prose.css": "./theme/prose.css",
+    "./variables.css": "./theme/variables.css"
+  },
+  "peerDependencies": {
+    "vditor": "^3.11.2",
+    "vue": "^3.5.18"
+  }
+}

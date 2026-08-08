@@ -14,17 +14,56 @@
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
+import '../theme/prose.css'
+import './vditor-bridge.css'
 
-const props = withDefaults(defineProps<{
-  content: string
-  editable?: boolean
-  uploadImage?: (file: File) => Promise<string>
-}>(), { editable: true })
+const props = withDefaults(
+  defineProps<{
+    content: string
+    editable?: boolean
+    uploadImage?: (file: File) => Promise<string>
+  }>(),
+  { editable: true },
+)
 
 const emit = defineEmits<{ change: []; error: [message: string] }>()
 
 const containerRef = ref<HTMLDivElement | null>(null)
 let vditor: Vditor | null = null
+let themeObserver: MutationObserver | null = null
+let codeLangObserver: MutationObserver | null = null
+
+/**
+ * 给每个 IR 代码块节点标注 data-lang,供 vditor-bridge.css 的
+ * ::before { content: attr(data-lang) } 渲染 lang 标签
+ * (无语言回退 'text',与 ArticleContent 的 wrapCodeBlock 一致)。
+ * 只在值变化时写入 → 不触发 childList/characterData,无观察环。
+ */
+function annotateCodeBlocks(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>('.vditor-ir__node[data-type="code-block"]').forEach((node) => {
+    const info = node.querySelector('[data-type="code-block-info"]')?.textContent ?? ''
+    const lang =
+      info
+        .replace(/\u200b/g, '')
+        .trim()
+        .toLowerCase() || 'text'
+    if (node.dataset.lang !== lang) node.dataset.lang = lang
+  })
+}
+
+function isDarkTheme(): boolean {
+  return document.documentElement.dataset.theme === 'dark'
+}
+
+function syncEditorTheme() {
+  if (!vditor) return
+  // We use 'classic' with path='' so Vditor never injects the
+  // dark.css <link> (which would win the cascade over prose.css).
+  // The data-theme transition observer still re-runs this so any
+  // background-color overrides in VditorWriter.vue stay in sync via
+  // prose.css' dark-mode token mapping.
+  vditor.setTheme('classic', 'classic')
+}
 
 onMounted(() => {
   if (!containerRef.value) return
@@ -33,8 +72,11 @@ onMounted(() => {
     mode: 'ir',
     height: 'auto',
     placeholder: '开始写吧…',
-    // 主题：先 light；后续步骤 5 接项目暗色模式
-    theme: 'classic',
+    // 主题：永远 classic + path='' 避免 Vditor 注入 dark.css link。
+    // 否则 unpkg.com/.../content-theme/dark.css 作为 <body> 末尾的 <link>
+    // 会赢过 prose.css 的 cascade,导致 blockquote / inline code 与详情页不一致。
+    // 我们自己已经在 VditorWriter <style> 里处理 IR preview 的暗色配色。
+    theme: { current: 'classic', path: '' },
     icon: 'ant',
     cache: { enable: false },
     // 输入回调：只在 IR 模式触发
@@ -74,6 +116,9 @@ onMounted(() => {
       },
     },
     preview: {
+      // Vditor 用内联 padding 把编辑列居中到该宽度,
+      // 与阅读侧 --spacing-prose (800px) 保持一致
+      maxWidth: 800,
       hljs: {
         enable: true,
         style: 'github',
@@ -81,10 +126,15 @@ onMounted(() => {
       },
       // 关闭数学公式的 MathJax 引擎（节省 6.4MB）—— 后续如果需要再开 KaTeX
       math: { enable: false },
-      // 关闭 mermaid 由 Vditor 渲染，避免与项目现有 mermaid 冲突；保留 KaTeX 选项
-      // mermaid 留给详情页 Tiptap 处理
+      // Vditor 内置 mermaid / flowchart / graphviz 渲染（CDN 加载,无需 enable 开关）
+      // 写作者在 IR 模式下输入 ```mermaid 代码块 → 立即看到图表。
+      // neutral 主题 + 白底卡片(vditor-bridge.css),与详情页的
+      // mermaid.initialize({ theme: 'neutral' }) 渲染路径视觉一致。
+      mermaid: {
+        theme: 'neutral',
+      },
       theme: {
-        current: 'light',
+        current: isDarkTheme() ? 'dark' : 'light',
         list: { light: 'Light', dark: 'Dark' },
       },
       // markdown 选项：开启 GFM 全部特性，与项目 CommonMark + GFM 对齐
@@ -104,26 +154,48 @@ onMounted(() => {
     toolbar: [],
     after: () => {
       vditor!.setValue(props.content || '')
+      syncEditorTheme()
+      // 监听项目暗色模式变化,跟随切换 Vditor 主题
+      themeObserver = new MutationObserver(() => syncEditorTheme())
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme'],
+      })
+      // 代码块 data-lang 标注:Lute spin 会整块重建 DOM,用 MutationObserver
+      // 兜住所有重渲染路径(输入/粘贴/setValue/展开折叠)
+      const irRoot = containerRef.value?.querySelector<HTMLElement>('.vditor-ir .vditor-reset')
+      if (irRoot) {
+        annotateCodeBlocks(irRoot)
+        codeLangObserver = new MutationObserver(() => annotateCodeBlocks(irRoot))
+        codeLangObserver.observe(irRoot, { childList: true, subtree: true, characterData: true })
+      }
       // PoC 调试：暴露到 window 便于 DevTools 验证双向 I/O
       if (import.meta.env.DEV) {
-        (window as unknown as { __vditorWriter: Vditor }).__vditorWriter = vditor!
+        ;(window as unknown as { __vditorWriter: Vditor }).__vditorWriter = vditor!
       }
     },
   })
 })
 
 onBeforeUnmount(() => {
+  themeObserver?.disconnect()
+  themeObserver = null
+  codeLangObserver?.disconnect()
+  codeLangObserver = null
   vditor?.destroy()
   vditor = null
 })
 
 // 外部 content 变化时回灌（防循环：仅在 vditor 内部值与外部不一致时）
-watch(() => props.content, (newContent) => {
-  if (!vditor) return
-  const current = vditor.getValue()
-  if (current === newContent) return
-  vditor.setValue(newContent || '', true)
-})
+watch(
+  () => props.content,
+  (newContent) => {
+    if (!vditor) return
+    const current = vditor.getValue()
+    if (current === newContent) return
+    vditor.setValue(newContent || '', true)
+  },
+)
 
 function getMarkdown(): string {
   return vditor?.getValue() ?? ''
@@ -175,39 +247,21 @@ defineExpose({ getMarkdown, setMarkdown, focus })
   background: transparent !important;
 }
 
-/* 套上项目 warm editorial + Lora 衬线 */
-.vditor-writer .vditor-ir {
-  font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
-  font-size: 16px;
-  line-height: 1.75;
-  color: #2a2520;
-  background: transparent;
-  padding: 0;
+/* Most typography/blockquote/code colors now come from prose.css
+   (imported above) which targets .vditor-ir directly so the IR container
+   matches the read-side ArticleContent pixel-for-pixel. */
+
+/* Placeholder tone: warmer than the default cool grey in dark mode */
+.vditor-writer .vditor-ir__node:empty::before,
+.vditor-writer pre.vditor-reset[placeholder]:empty::before {
+  color: var(--write-placeholder, var(--color-text-faint)) !important;
 }
 
-.vditor-writer .vditor-ir__preview {
-  font-family: inherit;
-}
-
-/* 主色与项目 --color-accent (#b85c38) 对齐 */
+/* Accent color for the live-edit caret markers and link hint. */
 .vditor-writer .vditor-ir__node--expand,
-.vditor-writer .vditor-ir__link {
-  color: #b85c38;
-}
-
-.vditor-writer .vditor-ir__blockquote {
-  border-left: 3px solid #b85c38;
-  color: #5a5248;
-}
-
+.vditor-writer .vditor-ir__link,
 .vditor-writer .vditor-ir__marker--link {
-  color: #b85c38;
-}
-
-.vditor-writer .vditor-ir a {
-  color: #b85c38;
-  text-decoration: none;
-  border-bottom: 1px solid #e07b4f;
+  color: var(--color-accent);
 }
 
 /* 工具栏已禁用（toolbar: []），保留 IR 渲染与节点样式即可 */

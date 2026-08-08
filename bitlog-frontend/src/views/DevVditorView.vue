@@ -5,7 +5,7 @@
  * 用于校准 vditor-bridge.css 与 prose.css 的渲染一致性,验证完可删。
  */
 import { useRoute } from 'vue-router'
-import VditorWriter from '@/admin/components/VditorWriter.vue'
+import { VditorWriter } from '@bitlog/editor'
 import ArticleContent from '@/components/ArticleContent.vue'
 
 // ?theme=dark 便于 headless 截图校验暗色渲染

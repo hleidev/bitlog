@@ -11,7 +11,9 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/**/*.vue"
+    "src/**/*.vue",
+    "packages/editor/src/**/*.ts",
+    "packages/editor/src/**/*.vue"
   ],
   "exclude": ["src/**/__tests__/*"]
 }

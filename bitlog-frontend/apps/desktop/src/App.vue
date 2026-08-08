@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import VditorWriter from './components/VditorWriter.vue'
+import { VditorWriter } from '@bitlog/editor'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile, writeFile } from '@tauri-apps/plugin-fs'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'

@@ -1,4 +1,4 @@
-@import './variables.css';
+@import '@bitlog/editor/variables.css';
 @import './reset.css';
 
 /* Scrollbar */

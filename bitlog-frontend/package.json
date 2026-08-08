@@ -27,6 +27,7 @@
     "src/**/*.css": "prettier --write"
   },
   "dependencies": {
+    "@bitlog/editor": "*",
     "@unhead/vue": "^2.1.16",
     "axios": "^1.14.0",
     "highlight.js": "^11.11.1",

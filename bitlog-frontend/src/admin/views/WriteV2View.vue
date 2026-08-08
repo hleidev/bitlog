@@ -3,7 +3,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
-import VditorWriter from '@/admin/components/VditorWriter.vue'
+import { VditorWriter } from '@bitlog/editor'
 import { uploadFile } from '@/api/file'
 import {
   createArticle,
