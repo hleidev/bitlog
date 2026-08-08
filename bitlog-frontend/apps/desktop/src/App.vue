@@ -5,6 +5,7 @@ import { open, save } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile, writeFile } from '@tauri-apps/plugin-fs'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { getCurrentWebview } from '@tauri-apps/api/webview'
 
 const content = ref('')
 const filePath = ref<string | null>(null)
@@ -57,9 +58,7 @@ async function saveAs(passedMd?: string) {
 }
 
 async function uploadImage(file: File): Promise<string> {
-  const dir = filePath.value
-    ? filePath.value.split('/').slice(0, -1).join('/')
-    : null
+  const dir = filePath.value ? filePath.value.split('/').slice(0, -1).join('/') : null
 
   if (!dir) {
     // No file on disk yet — embed as base64
@@ -85,6 +84,7 @@ function onEditorChange() {
 // Auto-save 1.5s after last change, only when file is already saved to disk
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
 let unlistenOpened: UnlistenFn | null = null
+let unlistenDragDrop: UnlistenFn | null = null
 watch(isDirty, (dirty) => {
   if (!dirty || !filePath.value) return
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
@@ -127,7 +127,19 @@ onMounted(async () => {
   // Warm-runtime: handle subsequent `open file.md` invocations.
   unlistenOpened = await listen<string[]>('opened', (event) => {
     const first = event.payload[0]
-    if (first) loadPath(first).catch((err: unknown) => {
+    if (first)
+      loadPath(first).catch((err: unknown) => {
+        saveError.value = err instanceof Error ? err.message : '打开失败'
+      })
+  })
+
+  // Drag & drop: the webview swallows HTML5 drop events and re-emits them as
+  // tauri://drag-drop, so the empty-state hint only works if we listen here.
+  unlistenDragDrop = await getCurrentWebview().onDragDropEvent((event) => {
+    if (event.payload.type !== 'drop') return
+    const md = event.payload.paths.find((p) => /\.(md|markdown)$/i.test(p))
+    if (!md) return
+    loadPath(md).catch((err: unknown) => {
       saveError.value = err instanceof Error ? err.message : '打开失败'
     })
   })
@@ -137,6 +149,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
   unlistenOpened?.()
+  unlistenDragDrop?.()
 })
 </script>
 
@@ -148,7 +161,9 @@ onUnmounted(() => {
         <span class="file-path">{{ displayPath }}</span>
         <span v-if="isDirty" class="dirty-dot" title="未保存" />
       </div>
-      <span v-if="saveError" class="save-error" @click="saveError = null" title="点击关闭">{{ saveError }}</span>
+      <span v-if="saveError" class="save-error" @click="saveError = null" title="点击关闭">{{
+        saveError
+      }}</span>
     </header>
 
     <!-- Editor -->
