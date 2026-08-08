@@ -180,10 +180,10 @@ onMounted(async () => {
     tags.value = tgs
   }
 
-  // 先写 filters 再 start()，避免初始化赋值触发一次多余请求
+  // 赋值触发的过滤监听排在 pre-flush 队列里，必须等它跑完再 start()，否则开关等于没关
   applyRouteFilters(route.query)
-  query.start()
   await nextTick()
+  query.start()
   updateIndicator()
 
   // 注：静态 HTML 是无筛选的第一页，带 query 落地时会先闪一眼未筛选的列表。
