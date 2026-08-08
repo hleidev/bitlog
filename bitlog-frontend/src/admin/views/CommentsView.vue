@@ -24,7 +24,9 @@ function clearSelection() {
 }
 
 const query = useListQuery({
-  filters: { keyword: '', status: '' as CommentStatus | '' },
+  // status 用 0 表示「全部」而非 ''：useListQuery 按默认值类型还原 URL 参数，
+  // 字符串默认值会让 ?status=1 变回 '1'，与 <option :value="1"> 匹配不上
+  filters: { keyword: '', status: 0 as CommentStatus | 0 },
   toParams: (f) => ({ keyword: f.keyword, status: f.status || undefined }),
   fetch: (params) => getAdminCommentPage(params),
   pageSize: 20,
@@ -152,7 +154,7 @@ function formatTime(iso: string) {
         </button>
       </div>
       <select v-model="filters.status" class="filter-select">
-        <option value="">全部状态</option>
+        <option :value="0">全部状态</option>
         <option :value="1">正常</option>
         <option :value="2">已隐藏</option>
       </select>
