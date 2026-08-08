@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { VditorWriter } from '@bitlog/editor'
-import { open, save } from '@tauri-apps/plugin-dialog'
+import { ask, open, save } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile, writeFile } from '@tauri-apps/plugin-fs'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
@@ -27,7 +27,17 @@ async function openFile() {
   await loadPath(selected)
 }
 
+// 未命名草稿没有 autosave 兜底（autosave 只在 filePath 已存在时生效），覆盖即永久丢失
+async function confirmDiscard(): Promise<boolean> {
+  if (!isDirty.value) return true
+  return await ask('当前修改尚未保存，打开新文件会丢失这些内容。', {
+    title: '放弃未保存的修改？',
+    kind: 'warning',
+  })
+}
+
 async function loadPath(path: string) {
+  if (!(await confirmDiscard())) return
   const text = await readTextFile(path)
   content.value = text
   filePath.value = path
