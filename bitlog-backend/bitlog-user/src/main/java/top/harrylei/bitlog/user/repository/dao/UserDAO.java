@@ -78,10 +78,12 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
             .set(UserDO::getStatus, status).update();
     }
 
-    /** 注销墓碑：覆写唯一列并置 deleted，腾空 uk_username/uk_email 让原邮箱可重新注册 */
-    public void deactivate(Long userId, String username, String email, String encodedPassword) {
+    /**
+     * 注销墓碑：覆写唯一列并置 deleted，腾空 uk_username/uk_email 让原邮箱可重新注册。 密码置空而非改写成随机值——deleted=1 后所有登录查询都过滤该行，空密码本就是第三方建号的常态
+     */
+    public void deactivate(Long userId, String username, String email) {
         lambdaUpdate().eq(UserDO::getId, userId).set(UserDO::getUsername, username).set(UserDO::getEmail, email)
-            .set(UserDO::getPassword, encodedPassword).set(UserDO::getDeleted, DeleteStatusEnum.DELETED).update();
+            .set(UserDO::getPassword, null).set(UserDO::getDeleted, DeleteStatusEnum.DELETED).update();
     }
 
     public UserStatsDTO countStats() {

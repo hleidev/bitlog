@@ -24,7 +24,7 @@ import top.harrylei.bitlog.common.util.EmailUtil;
 import top.harrylei.bitlog.common.util.MaskUtil;
 import top.harrylei.bitlog.common.util.RateLimiter;
 import top.harrylei.bitlog.user.component.LoginRateLimiter;
-import top.harrylei.bitlog.user.component.OAuthAvatarEvent;
+import top.harrylei.bitlog.user.event.OAuthAvatarEvent;
 import top.harrylei.bitlog.user.component.RefreshTokenStore;
 import top.harrylei.bitlog.user.component.VerificationCodeService;
 import top.harrylei.bitlog.user.component.VerifyCodePurpose;

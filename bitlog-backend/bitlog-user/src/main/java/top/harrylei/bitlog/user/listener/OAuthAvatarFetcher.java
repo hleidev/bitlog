@@ -1,4 +1,4 @@
-package top.harrylei.bitlog.user.component;
+package top.harrylei.bitlog.user.listener;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +15,7 @@ import org.springframework.web.client.RestClient;
 import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.model.UploadVO;
 import top.harrylei.bitlog.file.service.FileService;
+import top.harrylei.bitlog.user.event.OAuthAvatarEvent;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
 
 import java.util.Map;

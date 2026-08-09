@@ -3,7 +3,7 @@ package top.harrylei.bitlog.user.service.impl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -27,15 +27,14 @@ import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.util.FileUrlHelper;
 import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.service.FileService;
-import top.harrylei.bitlog.user.component.RefreshTokenStore;
 import top.harrylei.bitlog.user.converter.UserConverter;
+import top.harrylei.bitlog.user.event.UserDeactivatedEvent;
+import top.harrylei.bitlog.user.event.UserDisabledEvent;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
-import top.harrylei.bitlog.user.repository.dao.UserIdentityDAO;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
 import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 import top.harrylei.bitlog.user.service.UserService;
-import top.harrylei.bitlog.user.util.PasswordUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -66,13 +65,11 @@ public class UserServiceImpl implements UserService {
     private static final int TOMBSTONE_SUFFIX_LENGTH = 8;
 
     private final UserDAO userDAO;
-    private final UserIdentityDAO userIdentityDAO;
     private final UserInfoDAO userInfoDAO;
     private final UserConverter userConverter;
-    private final PasswordEncoder passwordEncoder;
     private final FileUrlHelper fileUrlHelper;
     private final FileService fileService;
-    private final RefreshTokenStore refreshTokenStore;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public UserVO getUserById(Long userId) {
@@ -185,9 +182,9 @@ public class UserServiceImpl implements UserService {
         checkNotSelf(userIds);
         checkNotAdmin(userIds);
         userDAO.updateStatusBatch(userIds, status);
-        // 封禁后 Refresh Token 仍能续期，须一并撤销；启用则不必，被封期间会话早已清空
+        // 启用不必发事件：被封期间会话早已清空
         if (UserStatusEnum.DISABLED.equals(status)) {
-            userIds.forEach(userId -> refreshTokenStore.revokeAll(userId, null));
+            eventPublisher.publishEvent(new UserDisabledEvent(userIds));
         }
         log.info("批量修改用户状态 userIds={} status={}", userIds, status);
     }
@@ -213,11 +210,10 @@ public class UserServiceImpl implements UserService {
         UserInfoDO userInfo = userInfoDAO.getByUserIdIncludingDeleted(userId);
 
         String tombstone = generateTombstoneName();
-        userDAO.deactivate(userId, tombstone, tombstone + DEACTIVATED_EMAIL_DOMAIN,
-            passwordEncoder.encode(PasswordUtil.generateRandomPassword()));
+        userDAO.deactivate(userId, tombstone, tombstone + DEACTIVATED_EMAIL_DOMAIN);
         userInfoDAO.anonymize(userId);
-        userIdentityDAO.removeByUserId(userId);
-        refreshTokenStore.revokeAll(userId, null);
+        // 解绑第三方与撤销会话属认证侧职责，同步监听器在本事务内完成
+        eventPublisher.publishEvent(new UserDeactivatedEvent(userId));
 
         // 内容图片不在此处理：ImageCleanupTask 按引用扫描回收孤儿，比按 user_id 删更安全
         if (userInfo != null && StringUtils.hasText(userInfo.getAvatar())) {

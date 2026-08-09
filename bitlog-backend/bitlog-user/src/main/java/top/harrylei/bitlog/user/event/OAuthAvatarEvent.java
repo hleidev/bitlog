@@ -1,4 +1,4 @@
-package top.harrylei.bitlog.user.component;
+package top.harrylei.bitlog.user.event;
 
 /**
  * 第三方登录首次建号事件，携带平台侧头像地址
