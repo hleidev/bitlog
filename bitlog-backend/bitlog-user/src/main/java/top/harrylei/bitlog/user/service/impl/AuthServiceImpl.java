@@ -116,11 +116,7 @@ public class AuthServiceImpl implements AuthService {
 
         loginRateLimiter.reset(clientIp, normalizedEmail);
 
-        Long userId = user.getId();
-        UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
-        UserRoleEnum role = userInfo != null ? userInfo.getUserRole() : UserRoleEnum.NORMAL;
-
-        return issueTokenPair(userId, role);
+        return issueTokenPair(user.getId(), user.getUserRole());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -279,10 +275,11 @@ public class AuthServiceImpl implements AuthService {
     private Long doCreateUser(String email, String username, String rawPassword, UserRoleEnum role) {
         // 第三方登录建号时没有密码，留空即可：Bcrypt 对空密文一律返回不匹配，密码登录自然走不通
         String encodedPassword = rawPassword != null ? passwordEncoder.encode(rawPassword) : null;
-        UserDO newUser = new UserDO().setUsername(username).setEmail(email).setPassword(encodedPassword);
+        UserDO newUser =
+            new UserDO().setUsername(username).setEmail(email).setPassword(encodedPassword).setUserRole(role);
         userDAO.save(newUser);
 
-        UserInfoDO userInfo = new UserInfoDO().setUserId(newUser.getId()).setAvatar("").setUserRole(role);
+        UserInfoDO userInfo = new UserInfoDO().setUserId(newUser.getId()).setAvatar("");
         userInfoDAO.save(userInfo);
         return newUser.getId();
     }
@@ -292,9 +289,7 @@ public class AuthServiceImpl implements AuthService {
         if (user == null || !UserStatusEnum.ENABLED.equals(user.getStatus())) {
             ResultCode.USER_DISABLED.throwException();
         }
-        UserInfoDO userInfo = userInfoDAO.getByUserId(userId);
-        UserRoleEnum role = userInfo != null ? userInfo.getUserRole() : UserRoleEnum.NORMAL;
-        return issueTokenPair(userId, role);
+        return issueTokenPair(userId, user.getUserRole());
     }
 
     private LoginResult issueTokenPair(Long userId, UserRoleEnum role) {

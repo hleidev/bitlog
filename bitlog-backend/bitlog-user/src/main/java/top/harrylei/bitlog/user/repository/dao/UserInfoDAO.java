@@ -22,11 +22,6 @@ public class UserInfoDAO extends ServiceImpl<UserInfoMapper, UserInfoDO> {
             .one();
     }
 
-    public List<UserInfoDO> listByUserIds(List<Long> userIds) {
-        return lambdaQuery().in(UserInfoDO::getUserId, userIds).eq(UserInfoDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .list();
-    }
-
     /** 展示专用：注销后 deleted=1，评论区仍需读到该行才能渲染「已注销用户」 */
     public UserInfoDO getByUserIdIncludingDeleted(Long userId) {
         return lambdaQuery().eq(UserInfoDO::getUserId, userId).one();

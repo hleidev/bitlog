@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
-import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.common.model.BaseDO;
 
 import java.io.Serial;
@@ -36,6 +35,4 @@ public class UserInfoDO extends BaseDO {
     private String profile;
 
     private DeleteStatusEnum deleted;
-
-    private UserRoleEnum userRole;
 }

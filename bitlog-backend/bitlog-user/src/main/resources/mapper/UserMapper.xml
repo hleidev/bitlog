@@ -20,8 +20,8 @@
 
     <select id="pageUsers" resultMap="UserDetailDTOMap">
         select
-            a.id, a.username, a.email, a.status, a.deleted, a.create_time, a.update_time,
-            b.avatar, b.user_role
+            a.id, a.username, a.email, a.status, a.user_role, a.deleted, a.create_time, a.update_time,
+            b.avatar
         from user_account a
         left join user_info b on a.id = b.user_id
         where a.deleted = #{queryParam.deletedFilter}
@@ -42,8 +42,8 @@
 
     <select id="selectUserDetail" resultMap="UserDetailDTOMap">
         select
-            a.id, a.username, a.email, a.status, a.deleted, a.create_time, a.update_time,
-            b.avatar, b.position, b.company, b.profile, b.extend, b.user_role
+            a.id, a.username, a.email, a.status, a.user_role, a.deleted, a.create_time, a.update_time,
+            b.avatar, b.position, b.company, b.profile, b.extend
         from user_account a
         left join user_info b on a.id = b.user_id
         where a.id = #{userId}

@@ -46,6 +46,10 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
         return lambdaQuery().eq(UserDO::getId, userId).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED).one();
     }
 
+    public List<UserDO> listByUserIds(List<Long> userIds) {
+        return lambdaQuery().in(UserDO::getId, userIds).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED).list();
+    }
+
     /** 展示专用：注销后 deleted=1，评论区仍需读到该行才能渲染「已注销用户」 */
     public UserDO getByIdIncludingDeleted(Long userId) {
         return lambdaQuery().eq(UserDO::getId, userId).one();

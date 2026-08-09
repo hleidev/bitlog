@@ -25,7 +25,7 @@ public interface UserConverter {
     @Mapping(source = "userInfo.profile", target = "profile")
     @Mapping(source = "userInfo.position", target = "position")
     @Mapping(source = "userInfo.company", target = "company")
-    @Mapping(source = "userInfo.userRole", target = "userRole")
+    @Mapping(source = "user.userRole", target = "userRole")
     @Mapping(source = "user.email", target = "email")
     UserVO toVO(UserInfoDO userInfo, UserDO user);
 
@@ -35,7 +35,7 @@ public interface UserConverter {
     @Mapping(source = "userInfo.profile", target = "profile")
     @Mapping(source = "userInfo.position", target = "position")
     @Mapping(source = "userInfo.company", target = "company")
-    @Mapping(source = "userInfo.userRole", target = "userRole")
+    @Mapping(source = "user.userRole", target = "userRole")
     @Mapping(source = "user.email", target = "email")
     @Mapping(source = "user.status", target = "status")
     @Mapping(source = "user.deleted", target = "deleted")
@@ -48,7 +48,7 @@ public interface UserConverter {
     @Mapping(source = "userInfo.userId", target = "userId")
     @Mapping(source = "user.username", target = "username")
     @Mapping(source = "userInfo.avatar", target = "avatar")
-    @Mapping(source = "userInfo.userRole", target = "userRole")
+    @Mapping(source = "user.userRole", target = "userRole")
     @Mapping(source = "user.email", target = "email")
     @Mapping(source = "user.status", target = "status")
     @Mapping(source = "user.deleted", target = "deleted")

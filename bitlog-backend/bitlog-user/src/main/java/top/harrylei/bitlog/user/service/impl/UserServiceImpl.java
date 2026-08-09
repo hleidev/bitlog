@@ -397,8 +397,8 @@ public class UserServiceImpl implements UserService {
     private void checkNotAdmin(List<Long> userIds) {
         // TODO: 后续支持分级管理员后，改为只拦同级或更高权限账号
         // TODO: 检查是否为最后一个管理员，防止系统失去管理员
-        List<UserInfoDO> userInfoList = userInfoDAO.listByUserIds(userIds);
-        boolean hasAdmin = userInfoList.stream().anyMatch(info -> UserRoleEnum.ADMIN.equals(info.getUserRole()));
+        List<UserDO> users = userDAO.listByUserIds(userIds);
+        boolean hasAdmin = users.stream().anyMatch(user -> UserRoleEnum.ADMIN.equals(user.getUserRole()));
         if (hasAdmin) {
             ResultCode.OPERATION_NOT_ALLOWED.throwException("不能操作管理员账号");
         }
