@@ -77,9 +77,3 @@ security:
     - /api/v1/category
   allowed-origins:
     - http://localhost:5173
-
-redis:
-  health:
-    check:
-      enabled: true
-      interval: 30000

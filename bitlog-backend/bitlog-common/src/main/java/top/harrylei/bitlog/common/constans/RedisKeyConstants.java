@@ -26,7 +26,6 @@ public class RedisKeyConstants {
     public static final String OAUTH_BIND_INTENT = USER + "oauth:bind:";
     public static final String DISTRIBUTED_LOCK = LOCK + "distributed:";
     public static final String DUPLICATE_LOCK = LOCK + "duplicate:";
-    public static final String HEALTH_CHECK = GLOBAL_PREFIX + "health:check";
     public static final String LOGIN_FAIL_IP = GLOBAL_PREFIX + "login:fail:ip:";
     public static final String LOGIN_FAIL_USER = GLOBAL_PREFIX + "login:fail:user:";
     public static final String ARTICLE_READ = GLOBAL_PREFIX + "article:read:";
