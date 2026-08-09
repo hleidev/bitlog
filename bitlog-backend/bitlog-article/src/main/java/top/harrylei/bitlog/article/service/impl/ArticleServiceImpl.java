@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
-import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
 import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleMetaUpdateParam;
@@ -47,7 +46,6 @@ import top.harrylei.bitlog.common.model.PageVO;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -334,92 +332,9 @@ public class ArticleServiceImpl implements ArticleService {
         return new ArticleListVO().setCounts(counts).setPage(toArticlePageVO(page, true));
     }
 
-    @Override
-    public ArticleDTO getArticleDTO(Long articleId) {
-        ArticleDO article = getArticleOrThrow(articleId);
-        if (article.getPublishedVersionId() == null) {
-            return null;
-        }
-        ArticleVersionDO version = articleVersionDAO.getVersionById(article.getPublishedVersionId());
-        if (version == null) {
-            return null;
-        }
-        ArticleDTO dto = articleConverter.toDTO(article, version);
-        ArticleStatisticsDO stats = articleStatisticsDAO.getByArticleId(articleId);
-        if (stats != null) {
-            dto.setReadCount(stats.getReadCount());
-            dto.setCommentCount(stats.getCommentCount());
-        }
-        return dto;
-    }
 
-    @Override
-    public List<ArticleDTO> getArticleDTOBatch(List<Long> articleIds) {
-        if (articleIds == null || articleIds.isEmpty()) {
-            return List.of();
-        }
-        List<ArticleDO> articles = articleDAO.listByIdsAndNotDeleted(articleIds).stream()
-            .filter(a -> a.getPublishedVersionId() != null).toList();
-        if (articles.isEmpty()) {
-            return List.of();
-        }
-        List<Long> versionIds = articles.stream().map(ArticleDO::getPublishedVersionId).toList();
-        Map<Long, ArticleVersionDO> versionMap = articleVersionDAO.listByVersionIds(versionIds).stream()
-            .collect(Collectors.toMap(ArticleVersionDO::getId, Function.identity()));
-        List<Long> ids = articles.stream().map(ArticleDO::getId).toList();
-        Map<Long, ArticleStatisticsDO> statsMap = articleStatisticsDAO.listByArticleIds(ids).stream()
-            .collect(Collectors.toMap(ArticleStatisticsDO::getArticleId, Function.identity()));
-        return articles.stream().filter(a -> versionMap.containsKey(a.getPublishedVersionId())).map(a -> {
-            ArticleVersionDO version = versionMap.get(a.getPublishedVersionId());
-            ArticleDTO dto = articleConverter.toDTO(a, version);
-            dto.setPublishTime(a.getPublishTime());
-            ArticleStatisticsDO stats = statsMap.get(a.getId());
-            if (stats != null) {
-                dto.setReadCount(stats.getReadCount());
-                dto.setCommentCount(stats.getCommentCount());
-            }
-            return dto;
-        }).toList();
-    }
 
-    @Override
-    public boolean isPublished(Long articleId) {
-        if (articleId == null) {
-            return false;
-        }
-        ArticleDO article = articleDAO.getByIdAndNotDeleted(articleId);
-        return article != null && article.getPublishedVersionId() != null;
-    }
 
-    @Override
-    public Map<Long, String> getArticleTitles(Collection<Long> articleIds) {
-        if (articleIds == null || articleIds.isEmpty()) {
-            return Map.of();
-        }
-        Map<Long, Long> versionIdByArticle = new HashMap<>();
-        for (ArticleDO article : articleDAO.listByIdsAndNotDeleted(articleIds)) {
-            Long versionId = article.getPublishedVersionId() != null ? article.getPublishedVersionId()
-                : article.getLatestVersionId();
-            if (versionId != null) {
-                versionIdByArticle.put(article.getId(), versionId);
-            }
-        }
-        if (versionIdByArticle.isEmpty()) {
-            return Map.of();
-        }
-
-        Map<Long, String> titleByVersion = articleVersionDAO.listTitlesByVersionIds(versionIdByArticle.values())
-            .stream().collect(Collectors.toMap(ArticleVersionDO::getId, ArticleVersionDO::getTitle));
-
-        Map<Long, String> result = new HashMap<>();
-        versionIdByArticle.forEach((articleId, versionId) -> {
-            String title = titleByVersion.get(versionId);
-            if (title != null) {
-                result.put(articleId, title);
-            }
-        });
-        return result;
-    }
 
     // ==================== 私有方法 ====================
 

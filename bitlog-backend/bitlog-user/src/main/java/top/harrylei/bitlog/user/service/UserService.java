@@ -6,7 +6,6 @@ import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
 import top.harrylei.bitlog.api.model.user.vo.UserStatsVO;
-import top.harrylei.bitlog.api.model.user.vo.UserVO;
 import top.harrylei.bitlog.common.model.PageVO;
 
 import java.util.List;
@@ -18,22 +17,6 @@ import java.util.List;
  * @since 2026-03-28
  */
 public interface UserService {
-
-    /**
-     * 根据用户 ID 获取用户基础信息
-     *
-     * @param userId 用户 ID
-     * @return 用户基础信息
-     */
-    UserVO getUserById(Long userId);
-
-    /**
-     * 批量获取用户基础信息
-     *
-     * @param userIds 用户 ID 列表
-     * @return 用户基础信息列表
-     */
-    List<UserVO> getUserBatchByIds(List<Long> userIds);
 
     /**
      * 获取用户详情（含关注数/粉丝数）

@@ -14,8 +14,7 @@ import top.harrylei.bitlog.api.model.comment.vo.CommentReplyVO;
 import top.harrylei.bitlog.api.model.comment.vo.CommentUserVO;
 import top.harrylei.bitlog.api.model.comment.vo.CommentVO;
 import top.harrylei.bitlog.api.model.user.vo.UserVO;
-import top.harrylei.bitlog.article.service.ArticleService;
-import top.harrylei.bitlog.article.service.ArticleStatisticsService;
+import top.harrylei.bitlog.article.port.ArticlePort;
 import top.harrylei.bitlog.comment.config.CommentProperties;
 import top.harrylei.bitlog.comment.converter.CommentConverter;
 import top.harrylei.bitlog.comment.repository.dao.CommentDAO;
@@ -28,7 +27,7 @@ import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.exception.BusinessException;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.util.RateLimiter;
-import top.harrylei.bitlog.user.service.UserService;
+import top.harrylei.bitlog.user.port.UserPort;
 
 import java.util.HashSet;
 import java.util.List;
@@ -59,15 +58,14 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentDAO commentDAO;
     private final CommentConverter commentConverter;
-    private final ArticleService articleService;
-    private final ArticleStatisticsService articleStatisticsService;
-    private final UserService userService;
+    private final ArticlePort articlePort;
+    private final UserPort userPort;
     private final RateLimiter rateLimiter;
     private final CommentProperties commentProperties;
 
     @Override
     public PageVO<CommentVO> pageComments(Long articleId, CommentPageParam query) {
-        if (!articleService.isPublished(articleId)) {
+        if (!articlePort.isPublished(articleId)) {
             throw ResultCode.ARTICLE_NOT_PUBLISHED.toException();
         }
 
@@ -94,7 +92,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long saveComment(Long userId, Long articleId, CommentSaveParam req) {
-        if (!articleService.isPublished(articleId)) {
+        if (!articlePort.isPublished(articleId)) {
             throw ResultCode.COMMENT_NOT_ALLOWED.toException();
         }
         checkRateLimit(userId);
@@ -115,7 +113,7 @@ public class CommentServiceImpl implements CommentService {
         }
 
         commentDAO.save(comment);
-        articleStatisticsService.increaseCommentCount(articleId, 1);
+        articlePort.increaseCommentCount(articleId, 1);
         return comment.getId();
     }
 
@@ -132,7 +130,7 @@ public class CommentServiceImpl implements CommentService {
 
         int deleted = commentDAO.delete(List.of(commentId), comment.getStatus());
         if (deleted > 0 && CommentStatusEnum.NORMAL.equals(comment.getStatus())) {
-            articleStatisticsService.decreaseCommentCount(articleId, deleted);
+            articlePort.decreaseCommentCount(articleId, deleted);
         }
     }
 
@@ -147,7 +145,7 @@ public class CommentServiceImpl implements CommentService {
         Map<Long, CommentUserVO> userMap =
             loadUserMap(comments.stream().map(CommentDO::getUserId).collect(Collectors.toSet()));
         Map<Long, String> titleMap =
-            articleService.getArticleTitles(comments.stream().map(CommentDO::getArticleId).collect(Collectors.toSet()));
+            articlePort.getArticleTitles(comments.stream().map(CommentDO::getArticleId).collect(Collectors.toSet()));
 
         List<CommentAdminVO> content = comments.stream().map(comment -> {
             CommentAdminVO vo = commentConverter.toAdminVO(comment);
@@ -175,9 +173,9 @@ public class CommentServiceImpl implements CommentService {
         }
 
         if (CommentStatusEnum.HIDDEN.equals(status)) {
-            articleStatisticsService.decreaseCommentCount(comment.getArticleId(), 1);
+            articlePort.decreaseCommentCount(comment.getArticleId(), 1);
         } else {
-            articleStatisticsService.increaseCommentCount(comment.getArticleId(), 1);
+            articlePort.increaseCommentCount(comment.getArticleId(), 1);
         }
         log.info("评论审核 commentId={} {} -> {}", commentId, current, status);
     }
@@ -197,7 +195,7 @@ public class CommentServiceImpl implements CommentService {
         groupIdsByArticle(comments, CommentStatusEnum.NORMAL).forEach((articleId, ids) -> {
             int deleted = commentDAO.delete(ids, CommentStatusEnum.NORMAL);
             if (deleted > 0) {
-                articleStatisticsService.decreaseCommentCount(articleId, deleted);
+                articlePort.decreaseCommentCount(articleId, deleted);
             }
         });
         log.info("批量删除评论 count={} ids={}", comments.size(), commentIds);
@@ -257,7 +255,7 @@ public class CommentServiceImpl implements CommentService {
         if (userIds.isEmpty()) {
             return Map.of();
         }
-        return userService.getUserBatchByIds(List.copyOf(userIds)).stream()
+        return userPort.getUserBatchByIds(List.copyOf(userIds)).stream()
             .collect(Collectors.toMap(UserVO::getUserId, commentConverter::toCommentUser, (a, b) -> a));
     }
 

@@ -19,7 +19,6 @@ import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
 import top.harrylei.bitlog.api.model.user.vo.UserStatsVO;
-import top.harrylei.bitlog.api.model.user.vo.UserVO;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
@@ -37,10 +36,7 @@ import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 import top.harrylei.bitlog.user.service.UserService;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * 用户业务服务实现
@@ -52,9 +48,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
-    /** 注销后对外统一展示的用户名，真实用户名已被墓碑值覆写 */
-    private static final String DEACTIVATED_USERNAME = "已注销用户";
 
     /** RFC 2606 保留域，永不可能与真实邮箱冲突 */
     private static final String DEACTIVATED_EMAIL_DOMAIN = "@bitlog.invalid";
@@ -70,49 +63,6 @@ public class UserServiceImpl implements UserService {
     private final FileUrlHelper fileUrlHelper;
     private final FileService fileService;
     private final ApplicationEventPublisher eventPublisher;
-
-    @Override
-    public UserVO getUserById(Long userId) {
-        if (userId == null) {
-            return null;
-        }
-        UserInfoDO userInfo = userInfoDAO.getByUserIdIncludingDeleted(userId);
-        if (userInfo == null) {
-            return null;
-        }
-        return buildUserVO(userInfo, userDAO.getByIdIncludingDeleted(userInfo.getUserId()));
-    }
-
-    @Override
-    public List<UserVO> getUserBatchByIds(List<Long> userIds) {
-        if (userIds == null || userIds.isEmpty()) {
-            return List.of();
-        }
-        List<UserInfoDO> userInfoList = userInfoDAO.listByUserIdsIncludingDeleted(userIds);
-        if (userInfoList.isEmpty()) {
-            return List.of();
-        }
-
-        List<Long> accountIds = userInfoList.stream().map(UserInfoDO::getUserId).toList();
-        List<UserDO> userList = userDAO.listByUserIdsIncludingDeleted(accountIds);
-        Map<Long, UserDO> userMap = userList.stream().collect(Collectors.toMap(UserDO::getId, Function.identity()));
-
-        return userInfoList.stream().map(info -> buildUserVO(info, userMap.get(info.getUserId()))).toList();
-    }
-
-    /**
-     * 展示装配。注销账号的 deleted=1，唯有展示路径需要读到该行，因此这里替换成占位身份， 鉴权与写入路径仍走过滤 deleted 的查询，天然拒绝已注销账号。
-     */
-    private UserVO buildUserVO(UserInfoDO userInfo, UserDO user) {
-        UserVO vo = userConverter.toVO(userInfo, user);
-        boolean deactivated = user != null && DeleteStatusEnum.DELETED.equals(user.getDeleted());
-        vo.setDeactivated(deactivated);
-        if (deactivated) {
-            vo.setUsername(DEACTIVATED_USERNAME);
-        }
-        vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
-        return vo;
-    }
 
     @Override
     public UserDetailVO getUserDetail(Long userId) {

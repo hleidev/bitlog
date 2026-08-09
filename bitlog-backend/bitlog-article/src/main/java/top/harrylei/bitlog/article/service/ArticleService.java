@@ -1,7 +1,6 @@
 package top.harrylei.bitlog.article.service;
 
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
-import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
 import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleMetaUpdateParam;
@@ -16,9 +15,7 @@ import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.common.model.PageVO;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 文章业务服务接口
@@ -164,36 +161,4 @@ public interface ArticleService {
      * @return 分页结果及状态计数
      */
     ArticleListVO pageMyArticles(Long userId, MyArticlePageParam query);
-
-    /**
-     * 根据文章 ID 获取文章基础信息（内部 Feign 接口使用）
-     *
-     * @param articleId 文章 ID
-     * @return 文章 DTO，文章未发布时返回 null
-     */
-    ArticleDTO getArticleDTO(Long articleId);
-
-    /**
-     * 批量查询文章基础信息（内部 Feign 接口使用）
-     *
-     * @param articleIds 文章 ID 列表
-     * @return 文章 DTO 列表（过滤未发布及已删除的文章）
-     */
-    List<ArticleDTO> getArticleDTOBatch(List<Long> articleIds);
-
-    /**
-     * 判断文章当前是否可被读者访问，不加载正文
-     *
-     * @param articleId 文章 ID
-     * @return true 文章存在、未删除且处于已发布状态
-     */
-    boolean isPublished(Long articleId);
-
-    /**
-     * 批量查询文章标题，不加载正文，未发布文章回退到最新草稿版本的标题
-     *
-     * @param articleIds 文章 ID 集合
-     * @return 文章 ID 到标题的映射，已删除文章不在结果中
-     */
-    Map<Long, String> getArticleTitles(Collection<Long> articleIds);
 }

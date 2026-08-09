@@ -2,7 +2,6 @@ package top.harrylei.bitlog.article.converter;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import top.harrylei.bitlog.api.model.article.dto.ArticleDTO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticlePublicDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
@@ -109,14 +108,4 @@ public interface ArticleConverter {
     CategoryVO toCategoryVO(CategoryDO category);
 
     List<CategoryVO> toCategoryVOList(List<CategoryDO> categories);
-
-    /**
-     * ArticleDO + ArticleVersionDO → ArticleDTO（内部 Feign 接口使用）
-     */
-    @Mapping(target = "id", source = "version.articleId")
-    @Mapping(target = "userId", source = "article.userId")
-    @Mapping(target = "publishTime", ignore = true)
-    @Mapping(target = "readCount", ignore = true)
-    @Mapping(target = "commentCount", ignore = true)
-    ArticleDTO toDTO(ArticleDO article, ArticleVersionDO version);
 }
