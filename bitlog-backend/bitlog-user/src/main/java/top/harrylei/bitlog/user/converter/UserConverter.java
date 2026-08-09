@@ -3,6 +3,7 @@ package top.harrylei.bitlog.user.converter;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
+import top.harrylei.bitlog.api.model.user.dto.UserAccountDTO;
 import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
@@ -59,6 +60,9 @@ public interface UserConverter {
     @Mapping(source = "createTime", target = "createTime")
     @Mapping(source = "updateTime", target = "updateTime")
     UserListVO toListVO(UserDetailDTO dto);
+
+    @Mapping(source = "id", target = "userId")
+    UserAccountDTO toAccountDTO(UserDO user);
 
     default Integer map(UserStatusEnum status) {
         return status == null ? null : status.getCode();
