@@ -27,8 +27,8 @@ public enum UserRoleEnum {
     private final Integer code;
     private final String label;
 
-    private static final Map<Integer, UserRoleEnum> CODE_MAP = Arrays.stream(values())
-            .collect(Collectors.toMap(UserRoleEnum::getCode, Function.identity()));
+    private static final Map<Integer, UserRoleEnum> CODE_MAP =
+        Arrays.stream(values()).collect(Collectors.toMap(UserRoleEnum::getCode, Function.identity()));
 
     @JsonValue
     public Integer getCode() {
@@ -38,5 +38,10 @@ public enum UserRoleEnum {
     @JsonCreator
     public static UserRoleEnum fromCode(Integer code) {
         return code == null ? null : CODE_MAP.get(code);
+    }
+
+    /** Spring Security 权限串，ROLE_ 前缀是其 hasRole 的约定写法 */
+    public String getAuthority() {
+        return "ROLE_" + name();
     }
 }

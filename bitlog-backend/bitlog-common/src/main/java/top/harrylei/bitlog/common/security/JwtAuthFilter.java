@@ -24,7 +24,9 @@ import top.harrylei.bitlog.common.context.ReqInfoContext;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * JWT 认证过滤器
@@ -42,9 +44,6 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final String ROLE_ADMIN = "ROLE_ADMIN";
-    private static final String ROLE_NORMAL = "ROLE_NORMAL";
-    private static final String ADMIN_ROLE_CODE = "1";
 
     private final JwtProperties jwtProperties;
     private SecretKey secretKey;
@@ -78,20 +77,32 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private void buildContext(Claims claims, HttpServletRequest request) {
         try {
             Long userId = Long.parseLong(claims.getSubject());
-            Object roleObj = claims.get("role");
-            String roleCode = roleObj != null ? String.valueOf(roleObj) : "";
-            String roleAuthority = ADMIN_ROLE_CODE.equals(roleCode) ? ROLE_ADMIN : ROLE_NORMAL;
+            List<String> authorities = extractAuthorities(claims);
+            if (authorities.isEmpty()) {
+                log.debug("JWT 缺少 {} 声明，按未登录处理", JwtClaims.AUTHORITIES);
+                return;
+            }
 
             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userId, null,
-                List.of(new SimpleGrantedAuthority(roleAuthority)));
+                authorities.stream().map(SimpleGrantedAuthority::new).toList());
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            ReqInfoContext
-                .setContext(new ReqInfoContext.ReqInfo().setUserId(userId).setAuthorities(List.of(roleAuthority))
-                    .setClientIp(getClientIp(request)).setPath(request.getRequestURI()));
+            ReqInfoContext.setContext(new ReqInfoContext.ReqInfo().setUserId(userId).setAuthorities(authorities)
+                .setClientIp(getClientIp(request)).setPath(request.getRequestURI()));
         } catch (Exception e) {
             log.debug("JWT context 构建失败: {}", e.getMessage());
         }
+    }
+
+    /**
+     * 权限串由签发方直接写入，此处只做透传，不解读角色语义
+     */
+    private List<String> extractAuthorities(Claims claims) {
+        Object claim = claims.get(JwtClaims.AUTHORITIES);
+        if (!(claim instanceof Collection<?> values)) {
+            return List.of();
+        }
+        return values.stream().filter(Objects::nonNull).map(String::valueOf).toList();
     }
 
     private String extractToken(HttpServletRequest request) {

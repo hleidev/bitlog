@@ -8,9 +8,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.common.config.JwtProperties;
+import top.harrylei.bitlog.common.security.JwtClaims;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.List;
 
 /**
  * JWT 工具类
@@ -35,7 +37,7 @@ public class JwtTokenIssuer {
      * 生成 Access Token
      *
      * @param userId 用户 ID
-     * @param role   用户角色
+     * @param role 用户角色
      * @return JWT 字符串（有效期由 jwt.access-token-expire 配置决定）
      */
     public String generateToken(Long userId, UserRoleEnum role) {
@@ -44,13 +46,9 @@ public class JwtTokenIssuer {
         }
         long now = System.currentTimeMillis();
         Date expiryDate = new Date(now + jwtProperties.getAccessTokenExpire().toMillis());
-        return Jwts.builder()
-                .setSubject(String.valueOf(userId))
-                .claim("role", role)
-                .setIssuer(jwtProperties.getIssuer())
-                .setIssuedAt(new Date(now))
-                .setExpiration(expiryDate)
-                .signWith(secretKey, SignatureAlgorithm.HS256)
-                .compact();
+        return Jwts.builder().setSubject(String.valueOf(userId))
+            .claim(JwtClaims.AUTHORITIES, List.of(role.getAuthority())).setIssuer(jwtProperties.getIssuer())
+            .setIssuedAt(new Date(now)).setExpiration(expiryDate).signWith(secretKey, SignatureAlgorithm.HS256)
+            .compact();
     }
 }
