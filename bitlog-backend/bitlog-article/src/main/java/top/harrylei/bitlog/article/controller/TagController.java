@@ -2,21 +2,16 @@ package top.harrylei.bitlog.article.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import top.harrylei.bitlog.api.model.article.req.TagBatchDeleteParam;
-import top.harrylei.bitlog.api.model.article.req.TagSaveParam;
-import top.harrylei.bitlog.api.model.article.req.TagUpdateParam;
 import top.harrylei.bitlog.api.model.article.vo.TagVO;
 import top.harrylei.bitlog.article.service.TagService;
 import top.harrylei.bitlog.common.model.Result;
-import top.harrylei.bitlog.common.security.RequiresAdmin;
 
 import java.util.List;
 
 /**
- * 标签接口
+ * 标签接口，仅公开读取，写操作见 {@link AdminTagController}
  *
  * @author Harry
  * @since 2026-04-02
@@ -33,35 +28,5 @@ public class TagController {
     @GetMapping
     public Result<List<TagVO>> listAll(@RequestParam(required = false) String name) {
         return Result.success(tagService.listAll(name));
-    }
-
-    @RequiresAdmin
-    @Operation(summary = "查询或创建标签")
-    @PostMapping("/get-or-create")
-    public Result<Long> getOrCreate(@RequestParam String name) {
-        return Result.success(tagService.getOrCreate(name));
-    }
-
-    @RequiresAdmin
-    @Operation(summary = "创建标签")
-    @PostMapping
-    public Result<Long> create(@Valid @RequestBody TagSaveParam req) {
-        return Result.success(tagService.save(req));
-    }
-
-    @RequiresAdmin
-    @Operation(summary = "更新标签")
-    @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody TagUpdateParam req) {
-        tagService.update(id, req);
-        return Result.success();
-    }
-
-    @RequiresAdmin
-    @Operation(summary = "批量删除标签")
-    @DeleteMapping
-    public Result<Void> batchDelete(@Valid @RequestBody TagBatchDeleteParam req) {
-        tagService.batchDelete(req.getIds());
-        return Result.success();
     }
 }

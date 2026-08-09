@@ -20,6 +20,7 @@ import top.harrylei.bitlog.common.security.RequiresAdmin;
  * @since 2026-05-24
  */
 @Tag(name = "文章 AI 接口")
+@RequiresAdmin
 @RestController
 @RequestMapping("/api/v1/article")
 @RequiredArgsConstructor
@@ -27,7 +28,6 @@ public class ArticleAiController {
 
     private final ArticleAiService articleAiService;
 
-    @RequiresAdmin
     @Operation(summary = "AI 生成文章元数据推荐（摘要 + 分类 + 标签）")
     @PostMapping("/{id}/ai/metadata")
     public Result<AiArticleMetadataVO> generateMetadata(@PathVariable Long id) {
