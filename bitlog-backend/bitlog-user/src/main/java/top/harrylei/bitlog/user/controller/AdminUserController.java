@@ -9,23 +9,18 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.harrylei.bitlog.api.model.user.query.UserPageParam;
-import top.harrylei.bitlog.api.model.user.req.AdminCreateUserParam;
 import top.harrylei.bitlog.api.model.user.req.UserIdsParam;
 import top.harrylei.bitlog.api.model.user.req.UserStatusUpdateParam;
-import top.harrylei.bitlog.api.model.user.vo.PasswordResetVO;
-import top.harrylei.bitlog.api.model.user.vo.UserCreatedVO;
 import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
 import top.harrylei.bitlog.api.model.user.vo.UserListVO;
 import top.harrylei.bitlog.api.model.user.vo.UserStatsVO;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.model.Result;
 import top.harrylei.bitlog.common.security.RequiresAdmin;
-import top.harrylei.bitlog.user.service.AuthService;
 import top.harrylei.bitlog.user.service.UserService;
 
 /**
@@ -41,14 +36,7 @@ import top.harrylei.bitlog.user.service.UserService;
 @RequiredArgsConstructor
 public class AdminUserController {
 
-    private final AuthService authService;
     private final UserService userService;
-
-    @Operation(summary = "创建用户")
-    @PostMapping("/users")
-    public Result<UserCreatedVO> createUser(@Valid @RequestBody AdminCreateUserParam req) {
-        return Result.success(authService.adminCreateUser(req));
-    }
 
     @Operation(summary = "分页查询用户列表")
     @GetMapping("/users")
@@ -80,11 +68,5 @@ public class AdminUserController {
     public Result<Void> deactivateUsers(@Valid @RequestBody UserIdsParam req) {
         userService.deactivateUserBatch(req.getUserIds());
         return Result.success();
-    }
-
-    @Operation(summary = "重置用户密码")
-    @PostMapping("/users/{userId}/password/reset")
-    public Result<PasswordResetVO> resetPassword(@PathVariable Long userId) {
-        return Result.success(userService.resetPassword(userId));
     }
 }

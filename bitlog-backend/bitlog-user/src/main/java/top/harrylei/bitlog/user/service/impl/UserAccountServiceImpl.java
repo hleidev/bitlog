@@ -78,6 +78,11 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     @Override
+    public void updateEmail(Long userId, String email) {
+        userDAO.updateEmail(userId, email);
+    }
+
+    @Override
     public String generateUsername(String preferredName, String email) {
         return usernameGenerator.generate(preferredName, email);
     }

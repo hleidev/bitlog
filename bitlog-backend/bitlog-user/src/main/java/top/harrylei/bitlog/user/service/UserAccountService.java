@@ -76,6 +76,14 @@ public interface UserAccountService {
     void updatePassword(Long userId, String encodedPassword);
 
     /**
+     * 覆写登录邮箱。调用方负责归一化与可用性校验，唯一索引为最后兜底
+     *
+     * @param userId 用户ID
+     * @param email 归一化后的新邮箱
+     */
+    void updateEmail(Long userId, String email);
+
+    /**
      * 生成一个未被占用的用户名，供第三方登录建号使用
      *
      * @param preferredName 第三方返回的昵称，可为空
