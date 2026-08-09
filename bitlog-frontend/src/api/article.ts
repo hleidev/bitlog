@@ -31,6 +31,7 @@ export interface ArticleItemVO {
 
 export interface ArticleDetailVO {
   id: number
+  userId: number
   title: string
   summary?: string
   content: string

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onServerPrefetch, onUnmounted, useTemplateRef } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { useSeoMeta, useHead } from '@unhead/vue'
 import { type ArticleDetailVO } from '@/api/article'
 import { getCachedArticleDetail, fetchArticleDetail } from '@/api/articleCache'
 import { readSSGState, writeSSGState } from '@/utils/ssgState'
 import { formatDate } from '@/utils/format'
+import { useUserStore } from '@/stores/useUserStore'
 import ArticleContent from '@/components/ArticleContent.vue'
 import ArticleToc from '@/components/ArticleToc.vue'
 import CommentSection from '@/components/CommentSection.vue'
@@ -13,12 +15,19 @@ import CommentSection from '@/components/CommentSection.vue'
 const router = useRouter()
 const route = useRoute()
 
+const { isAdmin, userInfo } = storeToRefs(useUserStore())
+
 const article = ref<ArticleDetailVO | null>(null)
 const loading = ref(true)
 const error = ref(false)
 const slow = ref(false)
 let slowTimer: ReturnType<typeof setTimeout> | null = null
 const scrollProgress = ref(0)
+
+// 两个条件缺一不可：写接口挂 @RequiresAdmin，后端 checkOwner 又只认属主
+const canEdit = computed(
+  () => isAdmin.value && !!article.value && article.value.userId === userInfo.value?.userId,
+)
 
 const SITE_URL = 'https://bitlog.harrylei.top'
 
@@ -198,8 +207,17 @@ onUnmounted(() => {
         <!-- Title -->
         <h1 class="article-title">{{ article.title }}</h1>
 
-        <div v-if="article.publishTime" class="article-meta-date">
-          {{ formatDate(article.publishTime) }}
+        <div v-if="article.publishTime || canEdit" class="article-meta">
+          <span v-if="article.publishTime" class="article-meta-date">
+            {{ formatDate(article.publishTime) }}
+          </span>
+          <span v-if="article.publishTime && canEdit" class="article-meta-sep" aria-hidden="true"
+            >·</span
+          >
+          <!-- /admin/write/:id 加载 latestVersionId 对应的草稿，即最新版本而非当前阅读的已发布版本 -->
+          <RouterLink v-if="canEdit" :to="`/admin/write/${article.id}`" class="article-meta-edit">
+            编辑
+          </RouterLink>
         </div>
 
         <div class="article-divider" />
@@ -376,14 +394,41 @@ onUnmounted(() => {
   margin-bottom: 36px;
 }
 
-.article-meta-date {
+.article-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   font-size: 13px;
-  /* 发布日期是正文信息：faint 在明/暗下只有 1.74 / 2.53，不达 AA。 */
-  color: var(--color-text-muted);
   letter-spacing: 0.04em;
   margin-top: -20px;
   margin-bottom: 32px;
   font-family: var(--font-sans);
+}
+
+.article-meta-date {
+  /* 发布日期是正文信息：faint 在明/暗下只有 1.74 / 2.53，不达 AA。 */
+  color: var(--color-text-muted);
+}
+
+.article-meta-edit {
+  color: var(--color-text-muted);
+  padding-bottom: 1px;
+  background-image: linear-gradient(var(--color-accent), var(--color-accent));
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  background-position: left bottom;
+  transition:
+    color var(--transition-base),
+    background-size var(--transition-sweep);
+}
+
+.article-meta-sep {
+  color: var(--color-text-faint);
+}
+
+.article-meta-edit:hover {
+  color: var(--color-accent);
+  background-size: 100% 1px;
 }
 
 .article-footer {
