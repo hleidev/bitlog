@@ -9,9 +9,9 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>bitlog-user</artifactId>
-    <name>bitlog-user</name>
-    <description>用户域：认证、用户管理</description>
+    <artifactId>bitlog-auth</artifactId>
+    <name>bitlog-auth</name>
+    <description>认证域：注册登录、令牌、验证码、第三方身份与凭据管理</description>
 
     <dependencies>
         <dependency>
@@ -19,9 +19,10 @@
             <artifactId>bitlog-common</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- 单向依赖用户域：账号主体的存续与唯一性由 UserAccountService 把守，认证侧不直接访问其 DAO -->
         <dependency>
             <groupId>top.harrylei.bitlog</groupId>
-            <artifactId>bitlog-file</artifactId>
+            <artifactId>bitlog-user</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -29,16 +30,34 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

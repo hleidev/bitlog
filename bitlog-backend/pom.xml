@@ -21,6 +21,7 @@
         <module>bitlog-common</module>
         <module>bitlog-ai</module>
         <module>bitlog-user</module>
+        <module>bitlog-auth</module>
         <module>bitlog-article</module>
         <module>bitlog-file</module>
         <module>bitlog-comment</module>

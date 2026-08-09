@@ -50,7 +50,7 @@ public class SecurityConfig {
 
     private static final List<String> BASE_WHITELIST = List.of("/swagger-ui/**", "/v3/api-docs/**", "/actuator/health");
 
-    /** 授权入口上标记绑定意图的查询参数，值为 UserService 签发的一次性令牌 */
+    /** 授权入口上标记绑定意图的查询参数，值为 AccountCredentialService 签发的一次性令牌 */
     private static final String BIND_INTENT_PARAM = "intent";
     private static final StringKeyGenerator STATE_KEY_GENERATOR = new Base64StringKeyGenerator(Base64.getUrlEncoder());
 
