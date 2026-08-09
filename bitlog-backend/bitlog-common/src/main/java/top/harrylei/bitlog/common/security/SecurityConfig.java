@@ -18,8 +18,12 @@ import org.springframework.security.crypto.keygen.StringKeyGenerator;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -31,6 +35,9 @@ import top.harrylei.bitlog.common.config.JwtProperties;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.Result;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -61,9 +68,29 @@ public class SecurityConfig {
     private static final String OAUTH2_REDIRECTION_BASE_URI = "/api/login/oauth2/code/*";
     private static final List<String> OAUTH2_WHITELIST = List.of("/api/oauth2/**", "/api/login/oauth2/**");
 
-    private final JwtAuthFilter jwtAuthFilter;
+    private final ReqInfoContextFilter reqInfoContextFilter;
     private final ObjectMapper objectMapper;
     private final SecurityProperties securityProperties;
+    private final JwtProperties jwtProperties;
+
+    /** 密钥须与签发侧 bitlog-auth 的 JwtTokenIssuer 同源 */
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        SecretKey key = new SecretKeySpec(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        return NimbusJwtDecoder.withSecretKey(key).build();
+    }
+
+    /** 前缀必须清空：默认的 SCOPE_ 会把 ROLE_ADMIN 变成 SCOPE_ROLE_ADMIN，令 hasRole 判定全部落空 */
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        authoritiesConverter.setAuthoritiesClaimName(JwtClaims.AUTHORITIES);
+        authoritiesConverter.setAuthorityPrefix("");
+
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
+        return converter;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
@@ -81,7 +108,7 @@ public class SecurityConfig {
         }
 
         // 禁用 CSRF token 的前提有两条，缺一不可：
-        // 1. 业务接口只认 Authorization: Bearer（见 JwtAuthFilter），跨站请求无法设置该 header；
+        // 1. 业务接口只认 Authorization: Bearer（见 oauth2ResourceServer），跨站请求无法设置该 header；
         // 2. 唯一以 Cookie 为凭据的入口是 /auth/refresh 与 /auth/logout，靠 RefreshTokenCookie 的 SameSite=Lax 拦住跨站 POST
         // 新增任何 Cookie/Session 认证入口、或放宽该 SameSite 时，必须重新评估这里
         http.csrf(AbstractHttpConfigurer::disable).cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -89,9 +116,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(
                 auth -> auth.requestMatchers(whitelist.toArray(String[]::new)).permitAll().anyRequest().authenticated())
             .formLogin(AbstractHttpConfigurer::disable).httpBasic(AbstractHttpConfigurer::disable)
+            // Resource Server 自带一套入口点，不走 exceptionHandling，故两处都要挂，否则错误响应会丢掉统一信封
+            .oauth2ResourceServer(
+                oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                    .authenticationEntryPoint((request, response, e) -> handleUnauthorized(response))
+                    .accessDeniedHandler((request, response, e) -> handleForbidden(response)))
             .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, e) -> handleUnauthorized(response))
                 .accessDeniedHandler((request, response, e) -> handleForbidden(response)))
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterAfter(reqInfoContextFilter, BearerTokenAuthenticationFilter.class);
 
         if (oauth2Enabled) {
             http.oauth2Login(oauth2 -> oauth2

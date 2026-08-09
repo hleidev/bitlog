@@ -11,6 +11,7 @@ import top.harrylei.bitlog.common.config.JwtProperties;
 import top.harrylei.bitlog.common.security.JwtClaims;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 
@@ -30,7 +31,8 @@ public class JwtTokenIssuer {
 
     @PostConstruct
     public void init() {
-        secretKey = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
+        // 编码须与校验侧 SecurityConfig#jwtDecoder 一致，否则密钥不同源
+        secretKey = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
     /**
