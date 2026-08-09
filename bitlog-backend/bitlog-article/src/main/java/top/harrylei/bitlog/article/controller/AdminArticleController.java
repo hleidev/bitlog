@@ -32,7 +32,7 @@ import top.harrylei.bitlog.common.security.RequiresAdmin;
 import java.util.List;
 
 /**
- * 管理员文章接口，与 {@link ArticleController} 共用前缀，鉴权由类级注解统一覆盖
+ * 管理员文章接口，与 {@link ArticleController} 共用前缀
  *
  * @author Harry
  * @since 2026-08-09
