@@ -21,6 +21,9 @@ public class ArticlePublicDetailVO {
     @Schema(description = "文章 ID")
     private Long id;
 
+    @Schema(description = "作者用户 ID")
+    private Long userId;
+
     @Schema(description = "文章标题")
     private String title;
 

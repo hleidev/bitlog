@@ -91,6 +91,7 @@ public interface ArticleConverter {
      * ArticleDO + ArticleVersionDO → ArticlePublicDetailVO（公开详情，publishTime/category/tags 由服务层填充）
      */
     @Mapping(target = "id", source = "version.articleId")
+    @Mapping(target = "userId", source = "article.userId")
     @Mapping(target = "summary", source = "article.summary")
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "tags", ignore = true)
