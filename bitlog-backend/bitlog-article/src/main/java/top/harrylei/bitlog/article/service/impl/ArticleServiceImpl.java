@@ -167,16 +167,26 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateStatus(Long userId, Long articleId, ArticleStatusEnum status) {
-        doUpdateStatus(userId, articleId, status);
+        if (doUpdateStatus(userId, articleId, status)) {
+            deployHookService.triggerDeploy();
+        }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void batchUpdateStatus(Long userId, List<Long> articleIds, ArticleStatusEnum status) {
-        articleIds.forEach(id -> doUpdateStatus(userId, id, status));
+        boolean changed = false;
+        for (Long articleId : articleIds) {
+            // 非短路的 |=：每篇都要处理，不能因已有变更而跳过
+            changed |= doUpdateStatus(userId, articleId, status);
+        }
+        if (changed) {
+            deployHookService.triggerDeploy();
+        }
     }
 
-    private void doUpdateStatus(Long userId, Long articleId, ArticleStatusEnum status) {
+    /** 返回线上内容是否真的改变，由调用方合并触发部署，避免批量操作逐篇打钩子 */
+    private boolean doUpdateStatus(Long userId, Long articleId, ArticleStatusEnum status) {
         ArticleDO article = getArticleOrThrow(articleId);
         checkOwner(article, userId);
         boolean isPublished = article.getPublishedVersionId() != null;
@@ -186,12 +196,14 @@ public class ArticleServiceImpl implements ArticleService {
                 articleDAO.setPublishTime(articleId, LocalDateTime.now());
             }
             log.info("重新发布文章 articleId={}", articleId);
-            deployHookService.triggerDeploy();
-        } else if (status == ArticleStatusEnum.DRAFT && isPublished) {
+            return true;
+        }
+        if (status == ArticleStatusEnum.DRAFT && isPublished) {
             articleDAO.unpublish(articleId);
             log.info("取消发布文章 articleId={}", articleId);
-            deployHookService.triggerDeploy();
+            return true;
         }
+        return false;
     }
 
     @Override
@@ -331,10 +343,6 @@ public class ArticleServiceImpl implements ArticleService {
             new ArticleCountVO().setTotal(total).setPublished(published).setDraft(total - published);
         return new ArticleListVO().setCounts(counts).setPage(toArticlePageVO(page, true));
     }
-
-
-
-
 
     // ==================== 私有方法 ====================
 
