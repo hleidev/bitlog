@@ -11,6 +11,7 @@ import top.harrylei.bitlog.file.service.FileService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -19,6 +20,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 /**
@@ -67,7 +69,7 @@ class ImageCleanupTaskTest {
 
         imageCleanupTask.cleanOrphanImages();
 
-        verify(articleVersionDAO, never()).listAllContentFromActiveArticles();
+        verify(articleVersionDAO, never()).forEachActiveContent(any());
         verify(fileService, never()).delete(anyString());
         verify(fileService, never()).markDeleted(anyCollection());
     }
@@ -83,7 +85,7 @@ class ImageCleanupTaskTest {
 
         stubExtractKey();
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key));
-        when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of("![image](" + imageUrl + ")"));
+        stubContents(List.of("![image](" + imageUrl + ")"));
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -104,8 +106,7 @@ class ImageCleanupTaskTest {
         stubExtractKey();
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class)))
             .thenReturn(List.of(referencedKey, orphanKey));
-        when(articleVersionDAO.listAllContentFromActiveArticles())
-            .thenReturn(List.of("![image](" + referencedUrl + ")"));
+        stubContents(List.of("![image](" + referencedUrl + ")"));
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -128,7 +129,7 @@ class ImageCleanupTaskTest {
 
         stubExtractKey();
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key1, key2));
-        when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of(content));
+        stubContents(List.of(content));
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -147,8 +148,7 @@ class ImageCleanupTaskTest {
 
         stubExtractKey();
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(orphanKey));
-        when(articleVersionDAO.listAllContentFromActiveArticles())
-            .thenReturn(List.of("![external](" + externalUrl + ")"));
+        stubContents(List.of("![external](" + externalUrl + ")"));
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -165,7 +165,7 @@ class ImageCleanupTaskTest {
         String orphanKey = CONTENT_PREFIX + "1/2026/05/orphan.png";
 
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(orphanKey));
-        when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of("", "   "));
+        stubContents(List.of("", "   "));
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -183,7 +183,7 @@ class ImageCleanupTaskTest {
         String key2 = CONTENT_PREFIX + "1/2026/05/orphan2.jpg";
 
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key1, key2));
-        when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of());
+        stubContents(List.of());
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -204,8 +204,7 @@ class ImageCleanupTaskTest {
 
         stubExtractKey();
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(sharedKey));
-        when(articleVersionDAO.listAllContentFromActiveArticles())
-            .thenReturn(List.of("![img](" + sharedUrl + ")", "![img](" + sharedUrl + ")"));
+        stubContents(List.of("![img](" + sharedUrl + ")", "![img](" + sharedUrl + ")"));
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -223,11 +222,21 @@ class ImageCleanupTaskTest {
         String key2 = CONTENT_PREFIX + "1/2026/05/o2.png";
 
         when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key1, key2));
-        when(articleVersionDAO.listAllContentFromActiveArticles()).thenReturn(List.of());
+        stubContents(List.of());
 
         imageCleanupTask.cleanOrphanImages();
 
         verify(fileService, times(2)).delete(anyString());
         verify(fileService, times(1)).markDeleted(anyCollection());
+    }
+
+    /** DAO 改为逐行回调，桩把给定正文依次喂给消费者，替代原先的返回列表 */
+    @SuppressWarnings("unchecked")
+    private void stubContents(List<String> contents) {
+        doAnswer(invocation -> {
+            Consumer<String> consumer = invocation.getArgument(0);
+            contents.forEach(consumer);
+            return null;
+        }).when(articleVersionDAO).forEachActiveContent(any());
     }
 }

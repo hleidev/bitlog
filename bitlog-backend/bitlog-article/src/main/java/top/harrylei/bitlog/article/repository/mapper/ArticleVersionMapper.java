@@ -3,9 +3,9 @@ package top.harrylei.bitlog.article.repository.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.session.ResultHandler;
 import top.harrylei.bitlog.article.repository.entity.ArticleVersionDO;
 
-import java.util.List;
 
 /**
  * 文章版本 Mapper
@@ -25,9 +25,9 @@ public interface ArticleVersionMapper extends BaseMapper<ArticleVersionDO> {
     int getMaxVersion(@Param("articleId") Long articleId);
 
     /**
-     * 查询所有未删除文章的版本内容
+     * 逐行扫描所有未删除文章的版本内容，结果不落集合
      *
-     * @return 内容列表
+     * @param handler 逐行回调
      */
-    List<String> listAllContentFromActiveArticles();
+    void scanContentFromActiveArticles(ResultHandler<String> handler);
 }

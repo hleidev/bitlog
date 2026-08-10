@@ -42,9 +42,7 @@ public class ImageCleanupTask {
         }
 
         Set<String> referencedKeys = new HashSet<>();
-        for (String content : articleVersionDAO.listAllContentFromActiveArticles()) {
-            extractImageKeys(content, referencedKeys);
-        }
+        articleVersionDAO.forEachActiveContent(content -> extractImageKeys(content, referencedKeys));
 
         List<String> orphanKeys = trackedKeys.stream().filter(key -> !referencedKeys.contains(key)).toList();
 

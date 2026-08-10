@@ -10,8 +10,9 @@
         WHERE article_id = #{articleId}
     </select>
 
-    <!-- 查询所有未删除文章的版本内容，用于 GC 扫描 -->
-    <select id="listAllContentFromActiveArticles" resultType="string">
+    <!-- fetchSize 取 Integer.MIN_VALUE 是 MySQL 驱动开启流式读取的约定值，不设则整个结果集仍会先缓冲到驱动端 -->
+    <select id="scanContentFromActiveArticles" resultType="string" fetchSize="-2147483648"
+            resultSetType="FORWARD_ONLY">
         SELECT av.content
         FROM article_version av
         INNER JOIN article a ON av.article_id = a.id

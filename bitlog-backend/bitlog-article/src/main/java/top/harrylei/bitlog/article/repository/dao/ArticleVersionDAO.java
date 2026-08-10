@@ -7,6 +7,7 @@ import top.harrylei.bitlog.article.repository.mapper.ArticleVersionMapper;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * 文章版本数据访问对象
@@ -57,8 +58,8 @@ public class ArticleVersionDAO extends ServiceImpl<ArticleVersionMapper, Article
             .in(ArticleVersionDO::getId, versionIds).list();
     }
 
-    /** 查询所有未删除文章的版本内容，用于 GC 扫描 */
-    public List<String> listAllContentFromActiveArticles() {
-        return getBaseMapper().listAllContentFromActiveArticles();
+    /** 流式读取期间连接被占用，consumer 内不可再发起数据库查询 */
+    public void forEachActiveContent(Consumer<String> consumer) {
+        getBaseMapper().scanContentFromActiveArticles(context -> consumer.accept(context.getResultObject()));
     }
 }
