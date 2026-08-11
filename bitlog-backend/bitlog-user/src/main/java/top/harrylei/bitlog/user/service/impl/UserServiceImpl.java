@@ -128,6 +128,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateUserStatusBatch(List<Long> userIds, UserStatusEnum status) {
         checkNotSelf(userIds);
         checkNotAdmin(userIds);

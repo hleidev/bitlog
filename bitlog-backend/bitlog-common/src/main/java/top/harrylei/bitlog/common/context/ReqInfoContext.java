@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * 请求上下文管理类
  * <p>
- * 用 TransmittableThreadLocal 而非普通 ThreadLocal，使上下文能随 {@code @Async} 传递到线程池中的任务。
+ * 跨线程传播依赖 {@code AsyncConfig} 对执行器的 TtlExecutors 包装，去掉包装则退化为 InheritableThreadLocal 并串号。
  *
  * @author Harry
  * @since 2026-03-17
