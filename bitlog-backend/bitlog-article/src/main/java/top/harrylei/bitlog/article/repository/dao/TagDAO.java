@@ -32,4 +32,11 @@ public class TagDAO extends ServiceImpl<TagMapper, TagDO> {
         return getBaseMapper().listAllWithCount(name);
     }
 
+    /**
+     * 查询指定文章的标签，articleCount 不填充
+     */
+    public List<TagVO> listByArticleId(Long articleId) {
+        return getBaseMapper().listByArticleId(articleId);
+    }
+
 }

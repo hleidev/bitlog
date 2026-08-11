@@ -17,23 +17,9 @@ import java.util.List;
 public class ArticleTagDAO extends ServiceImpl<ArticleTagMapper, ArticleTagDO> {
 
     /**
-     * 查询文章关联的所有标签 ID
-     *
-     * @param articleId
-     *            文章 ID
-     * 
-     * @return 标签 ID 列表
-     */
-    public List<Long> listTagIdsByArticleId(Long articleId) {
-        return lambdaQuery().select(ArticleTagDO::getTagId).eq(ArticleTagDO::getArticleId, articleId).list().stream()
-                .map(ArticleTagDO::getTagId).toList();
-    }
-
-    /**
      * 删除文章的所有标签关联
      *
-     * @param articleId
-     *            文章 ID
+     * @param articleId 文章 ID
      */
     public void removeByArticleId(Long articleId) {
         lambdaUpdate().eq(ArticleTagDO::getArticleId, articleId).remove();
@@ -42,8 +28,7 @@ public class ArticleTagDAO extends ServiceImpl<ArticleTagMapper, ArticleTagDO> {
     /**
      * 删除指定标签的所有文章关联
      *
-     * @param tagIds
-     *            标签 ID 列表
+     * @param tagIds 标签 ID 列表
      */
     public void removeByTagIds(List<Long> tagIds) {
         if (tagIds == null || tagIds.isEmpty()) {

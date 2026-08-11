@@ -18,4 +18,6 @@ import java.util.List;
 public interface TagMapper extends BaseMapper<TagDO> {
 
     List<TagVO> listAllWithCount(@Param("name") String name);
+
+    List<TagVO> listByArticleId(@Param("articleId") Long articleId);
 }

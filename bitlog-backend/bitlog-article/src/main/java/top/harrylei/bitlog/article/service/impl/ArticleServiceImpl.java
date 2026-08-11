@@ -350,6 +350,10 @@ public class ArticleServiceImpl implements ArticleService {
         return articleVersionDAO.getMaxVersion(articleId) + 1;
     }
 
+    /** 分类与标签，两种详情 VO 的装配完全一致 */
+    private record ArticleTaxonomy(CategoryVO category, List<TagVO> tags) {
+    }
+
     private record ArticleTagsData(Map<Long, List<TagVO>> tagVOsByArticle) {
     }
 
@@ -421,28 +425,26 @@ public class ArticleServiceImpl implements ArticleService {
         articleTagDAO.saveBatch(tagLinks);
     }
 
+    private ArticleTaxonomy loadTaxonomy(ArticleDO article) {
+        CategoryVO categoryVO = null;
+        if (article.getCategoryId() != null) {
+            CategoryDO category = categoryDAO.getById(article.getCategoryId());
+            if (category != null) {
+                categoryVO = new CategoryVO().setId(category.getId()).setName(category.getName());
+            }
+        }
+        return new ArticleTaxonomy(categoryVO, tagDAO.listByArticleId(article.getId()));
+    }
+
     private ArticleDetailVO buildDetailVO(ArticleDO article, ArticleVersionDO version) {
         ArticleDetailVO vo = articleConverter.toDetailVO(article, version);
         vo.setStatus(article.getPublishedVersionId() != null ? ArticleStatusEnum.PUBLISHED : ArticleStatusEnum.DRAFT);
         vo.setUpdateTime(article.getUpdateTime());
         vo.setPublishTime(article.getPublishTime());
 
-        if (article.getCategoryId() != null) {
-            CategoryDO category = categoryDAO.getById(article.getCategoryId());
-            if (category != null) {
-                vo.setCategory(new CategoryVO().setId(category.getId()).setName(category.getName()));
-            }
-        }
-
-        List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(article.getId());
-        if (!tagIds.isEmpty()) {
-            Map<Long, String> tagNameById =
-                tagDAO.listByIds(tagIds).stream().collect(Collectors.toMap(TagDO::getId, TagDO::getName));
-            vo.setTags(
-                tagIds.stream().map(id -> new TagVO().setId(id).setName(tagNameById.getOrDefault(id, ""))).toList());
-        } else {
-            vo.setTags(List.of());
-        }
+        ArticleTaxonomy taxonomy = loadTaxonomy(article);
+        vo.setCategory(taxonomy.category());
+        vo.setTags(taxonomy.tags());
 
         ArticleStatisticsDO stats = articleStatisticsDAO.getByArticleId(article.getId());
         if (stats != null) {
@@ -456,22 +458,9 @@ public class ArticleServiceImpl implements ArticleService {
         ArticlePublicDetailVO vo = articleConverter.toPublicDetailVO(article, version);
         vo.setPublishTime(article.getPublishTime());
 
-        if (article.getCategoryId() != null) {
-            CategoryDO category = categoryDAO.getById(article.getCategoryId());
-            if (category != null) {
-                vo.setCategory(new CategoryVO().setId(category.getId()).setName(category.getName()));
-            }
-        }
-
-        List<Long> tagIds = articleTagDAO.listTagIdsByArticleId(article.getId());
-        if (!tagIds.isEmpty()) {
-            Map<Long, String> tagNameById =
-                tagDAO.listByIds(tagIds).stream().collect(Collectors.toMap(TagDO::getId, TagDO::getName));
-            vo.setTags(
-                tagIds.stream().map(id -> new TagVO().setId(id).setName(tagNameById.getOrDefault(id, ""))).toList());
-        } else {
-            vo.setTags(List.of());
-        }
+        ArticleTaxonomy taxonomy = loadTaxonomy(article);
+        vo.setCategory(taxonomy.category());
+        vo.setTags(taxonomy.tags());
 
         return vo;
     }

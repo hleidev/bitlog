@@ -20,4 +20,12 @@
         ORDER BY article_count DESC
     </select>
 
+    <!-- 一次 join 取回文章的标签，替代「先查 tag_id 再查 tag」的两跳 -->
+    <select id="listByArticleId" resultType="top.harrylei.bitlog.api.model.article.vo.TagVO">
+        SELECT t.id, t.name
+        FROM tag t
+        INNER JOIN article_tag at ON at.tag_id = t.id
+        WHERE at.article_id = #{articleId}
+    </select>
+
 </mapper>
