@@ -23,7 +23,7 @@ import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.PageVO;
-import top.harrylei.bitlog.common.util.FileUrlHelper;
+import top.harrylei.bitlog.file.util.FileUrlHelper;
 import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.service.FileService;
 import top.harrylei.bitlog.user.converter.UserConverter;

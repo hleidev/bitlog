@@ -20,7 +20,7 @@ import top.harrylei.bitlog.auth.listener.AccountCleanupListener;
 import top.harrylei.bitlog.auth.repository.dao.UserIdentityDAO;
 import top.harrylei.bitlog.auth.support.RefreshTokenStore;
 import top.harrylei.bitlog.common.config.MybatisPlusConfig;
-import top.harrylei.bitlog.common.util.FileUrlHelper;
+import top.harrylei.bitlog.file.util.FileUrlHelper;
 import top.harrylei.bitlog.file.service.FileService;
 import top.harrylei.bitlog.user.converter.UserConverterImpl;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;

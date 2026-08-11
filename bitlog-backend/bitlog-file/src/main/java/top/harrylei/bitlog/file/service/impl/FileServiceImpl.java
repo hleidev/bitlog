@@ -11,7 +11,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
-import top.harrylei.bitlog.common.util.FileUrlHelper;
+import top.harrylei.bitlog.file.util.FileUrlHelper;
 import top.harrylei.bitlog.file.config.StorageProperties;
 import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.model.UploadVO;

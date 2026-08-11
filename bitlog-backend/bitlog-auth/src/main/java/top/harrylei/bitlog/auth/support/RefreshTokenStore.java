@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
 import top.harrylei.bitlog.common.config.JwtProperties;
-import top.harrylei.bitlog.common.constans.RedisKeyConstants;
+import top.harrylei.bitlog.common.constants.RedisKeyConstants;
 
 import java.util.HashSet;
 import java.util.Set;

@@ -1,4 +1,4 @@
-package top.harrylei.bitlog.common.mail;
+package top.harrylei.bitlog.auth.mail;
 
 import java.time.Duration;
 

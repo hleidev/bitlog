@@ -1,4 +1,4 @@
-package top.harrylei.bitlog.common.constans;
+package top.harrylei.bitlog.common.constants;
 
 /**
  * Redis 键前缀常量，统一管理所有 Redis Key 结构
@@ -13,26 +13,22 @@ public class RedisKeyConstants {
     }
 
     // ===== 全局前缀 =====
-    public static final String GLOBAL_PREFIX = "bitlog:";
+    private static final String GLOBAL_PREFIX = "bitlog:";
 
     // ===== 模块前缀 =====
-    public static final String USER = GLOBAL_PREFIX + "user:";
-    public static final String LOCK = GLOBAL_PREFIX + "lock:";
+    private static final String USER = GLOBAL_PREFIX + "user:";
 
     // ===== 功能 Key 前缀 =====
-    public static final String USER_REFRESH_TOKEN = USER + "refresh:";
-    public static final String USER_REFRESH_INDEX = USER + "refresh-index:";
-    public static final String USER_INFO = USER + "info:";
-    public static final String OAUTH_BIND_INTENT = USER + "oauth:bind:";
-    public static final String DISTRIBUTED_LOCK = LOCK + "distributed:";
-    public static final String DUPLICATE_LOCK = LOCK + "duplicate:";
-    public static final String LOGIN_FAIL_IP = GLOBAL_PREFIX + "login:fail:ip:";
-    public static final String LOGIN_FAIL_USER = GLOBAL_PREFIX + "login:fail:user:";
-    public static final String ARTICLE_READ = GLOBAL_PREFIX + "article:read:";
-    public static final String COMMENT_RATE = GLOBAL_PREFIX + "comment:rate:";
-    public static final String VERIFY_CODE = USER + "code:";
-    public static final String MAIL_RATE = GLOBAL_PREFIX + "mail:rate:";
-    public static final String REGISTER_RATE = GLOBAL_PREFIX + "register:rate:";
+    private static final String USER_REFRESH_TOKEN = USER + "refresh:";
+    private static final String USER_REFRESH_INDEX = USER + "refresh-index:";
+    private static final String OAUTH_BIND_INTENT = USER + "oauth:bind:";
+    private static final String LOGIN_FAIL_IP = GLOBAL_PREFIX + "login:fail:ip:";
+    private static final String LOGIN_FAIL_USER = GLOBAL_PREFIX + "login:fail:user:";
+    private static final String ARTICLE_READ = GLOBAL_PREFIX + "article:read:";
+    private static final String COMMENT_RATE = GLOBAL_PREFIX + "comment:rate:";
+    private static final String VERIFY_CODE = USER + "code:";
+    private static final String MAIL_RATE = GLOBAL_PREFIX + "mail:rate:";
+    private static final String REGISTER_RATE = GLOBAL_PREFIX + "register:rate:";
 
     // ===== Key 构建方法 =====
 
@@ -45,21 +41,9 @@ public class RedisKeyConstants {
         return USER_REFRESH_INDEX + userId;
     }
 
-    public static String getUserInfoKey(Long userId) {
-        return USER_INFO + userId;
-    }
-
     /** 第三方绑定意图：授权回调不携带业务登录态，靠这个一次性令牌把回调关联回发起绑定的账号 */
     public static String getOAuthBindIntentKey(String token) {
         return OAUTH_BIND_INTENT + token;
-    }
-
-    public static String getDistributedLockKey(String lockKey) {
-        return DISTRIBUTED_LOCK + lockKey;
-    }
-
-    public static String getDuplicateLockKey(String lockKey) {
-        return DUPLICATE_LOCK + lockKey;
     }
 
     public static String getLoginFailIpKey(String ip) {

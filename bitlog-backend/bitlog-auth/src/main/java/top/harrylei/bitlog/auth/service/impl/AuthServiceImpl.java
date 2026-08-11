@@ -17,7 +17,7 @@ import top.harrylei.bitlog.api.model.auth.RegisterParam;
 import top.harrylei.bitlog.api.model.user.dto.UserAccountDTO;
 import top.harrylei.bitlog.api.model.auth.AdminCreateUserParam;
 import top.harrylei.bitlog.api.model.auth.UserCreatedVO;
-import top.harrylei.bitlog.common.constans.RedisKeyConstants;
+import top.harrylei.bitlog.common.constants.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.util.EmailUtil;

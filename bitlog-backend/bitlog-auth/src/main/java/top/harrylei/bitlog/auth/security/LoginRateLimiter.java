@@ -2,7 +2,7 @@ package top.harrylei.bitlog.auth.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import top.harrylei.bitlog.common.constans.RedisKeyConstants;
+import top.harrylei.bitlog.common.constants.RedisKeyConstants;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.exception.BusinessException;
 import top.harrylei.bitlog.common.util.RateLimiter;

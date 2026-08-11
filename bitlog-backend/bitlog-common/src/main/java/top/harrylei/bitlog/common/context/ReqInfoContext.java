@@ -10,13 +10,8 @@ import java.util.List;
 
 /**
  * 请求上下文管理类
- * 使用 TransmittableThreadLocal 存储请求上下文信息，支持异步线程传递。
  * <p>
- * 在微服务架构下，用户信息由 Gateway 验证 JWT 后通过 Header 传入：
- * X-User-Id   → userId
- * X-User-Role → authorities
- * 各服务拦截器从 Header 读取并存入此上下文，不再持有完整的 UserInfoDTO。
- * 需要完整用户信息时，通过 Feign 调用用户服务获取。
+ * 用 TransmittableThreadLocal 而非普通 ThreadLocal，使上下文能随 {@code @Async} 传递到线程池中的任务。
  *
  * @author Harry
  * @since 2026-03-17
@@ -62,8 +57,7 @@ public class ReqInfoContext {
         private Long userId;
 
         /**
-         * 用户角色列表，存储角色字符串（如 "ROLE_ADMIN"）。 不使用 SimpleGrantedAuthority，避免 bitlog-common 依赖 Spring Security， 防止 Servlet 栈与
-         * WebFlux 栈（Gateway）之间的类路径冲突。
+         * 权限串列表，取值形如 ROLE_ADMIN
          */
         private List<String> authorities = new ArrayList<>();
 

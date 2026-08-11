@@ -14,7 +14,7 @@ import top.harrylei.bitlog.api.model.auth.PasswordInitParam;
 import top.harrylei.bitlog.api.model.auth.PasswordUpdateParam;
 import top.harrylei.bitlog.api.model.auth.PasswordResetVO;
 import top.harrylei.bitlog.api.model.auth.UserIdentityVO;
-import top.harrylei.bitlog.common.constans.RedisKeyConstants;
+import top.harrylei.bitlog.common.constants.RedisKeyConstants;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.util.EmailUtil;
 import top.harrylei.bitlog.common.util.MaskUtil;

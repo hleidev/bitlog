@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
-import top.harrylei.bitlog.common.constans.RedisKeyConstants;
+import top.harrylei.bitlog.common.constants.RedisKeyConstants;
 
 import java.util.List;
 

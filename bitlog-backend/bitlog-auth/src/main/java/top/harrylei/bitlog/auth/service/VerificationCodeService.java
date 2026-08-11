@@ -3,10 +3,10 @@ package top.harrylei.bitlog.auth.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-import top.harrylei.bitlog.common.constans.RedisKeyConstants;
+import top.harrylei.bitlog.common.constants.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
-import top.harrylei.bitlog.common.mail.MailService;
+import top.harrylei.bitlog.auth.mail.MailService;
 import top.harrylei.bitlog.common.util.RateLimiter;
 
 import java.security.SecureRandom;

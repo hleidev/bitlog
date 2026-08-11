@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.harrylei.bitlog.api.model.user.vo.UserVO;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
-import top.harrylei.bitlog.common.util.FileUrlHelper;
+import top.harrylei.bitlog.file.util.FileUrlHelper;
 import top.harrylei.bitlog.user.converter.UserConverter;
 import top.harrylei.bitlog.user.port.UserPort;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;

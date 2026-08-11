@@ -7,7 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
-import top.harrylei.bitlog.common.util.FileUrlHelper;
+import top.harrylei.bitlog.file.util.FileUrlHelper;
 import top.harrylei.bitlog.file.config.StorageProperties;
 import top.harrylei.bitlog.file.repository.dao.ImageRecordDAO;
 import top.harrylei.bitlog.file.repository.entity.ImageRecordDO;

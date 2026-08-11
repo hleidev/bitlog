@@ -20,7 +20,7 @@ import top.harrylei.bitlog.comment.converter.CommentConverter;
 import top.harrylei.bitlog.comment.repository.dao.CommentDAO;
 import top.harrylei.bitlog.comment.repository.entity.CommentDO;
 import top.harrylei.bitlog.comment.service.CommentService;
-import top.harrylei.bitlog.common.constans.RedisKeyConstants;
+import top.harrylei.bitlog.common.constants.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
