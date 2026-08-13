@@ -4,7 +4,7 @@ import org.springframework.web.multipart.MultipartFile;
 import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.model.UploadVO;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -59,7 +59,7 @@ public interface FileService {
      * @param before 时间阈值
      * @return file_key 列表
      */
-    List<String> getOldUndeletedContentKeys(LocalDateTime before);
+    List<String> getOldUndeletedContentKeys(OffsetDateTime before);
 
     /**
      * 批量将图片记录标记为已删除

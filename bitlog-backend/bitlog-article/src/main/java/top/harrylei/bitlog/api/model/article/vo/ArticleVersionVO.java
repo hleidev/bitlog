@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * 文章版本历史列表视图对象
@@ -30,7 +30,7 @@ public class ArticleVersionVO {
     private String title;
 
     @Schema(description = "版本创建时间")
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 
     @Schema(description = "是否为最新草稿版本")
     private boolean latest;

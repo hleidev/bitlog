@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * 评论回复视图对象
@@ -30,5 +30,5 @@ public class CommentReplyVO {
     private CommentUserVO replyToUser;
 
     @Schema(description = "发表时间")
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 }

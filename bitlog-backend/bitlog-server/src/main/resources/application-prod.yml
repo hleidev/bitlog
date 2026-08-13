@@ -4,7 +4,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/bitlog?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:postgresql://localhost:5432/bitlog
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   data:

@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * 基础数据对象
@@ -21,7 +21,7 @@ public class BaseDO implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 
-    private LocalDateTime updateTime;
+    private OffsetDateTime updateTime;
 }

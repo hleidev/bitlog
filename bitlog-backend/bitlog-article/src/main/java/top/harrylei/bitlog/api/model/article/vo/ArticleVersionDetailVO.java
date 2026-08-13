@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * 文章版本详情视图对象（含正文内容，用于版本对比）
@@ -33,5 +33,5 @@ public class ArticleVersionDetailVO {
     private String content;
 
     @Schema(description = "版本创建时间")
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 }

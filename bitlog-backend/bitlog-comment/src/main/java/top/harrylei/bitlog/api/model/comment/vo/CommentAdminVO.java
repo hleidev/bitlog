@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 import top.harrylei.bitlog.api.enums.comment.CommentStatusEnum;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * 评论管理视图对象
@@ -40,5 +40,5 @@ public class CommentAdminVO {
     private CommentStatusEnum status;
 
     @Schema(description = "发表时间")
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 }

@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -37,5 +37,5 @@ public class CommentVO {
     private Integer replyCount;
 
     @Schema(description = "发表时间")
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 }

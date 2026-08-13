@@ -6,7 +6,7 @@ import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.file.repository.entity.ImageRecordDO;
 import top.harrylei.bitlog.file.repository.mapper.ImageRecordMapper;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -20,7 +20,7 @@ import java.util.List;
 public class ImageRecordDAO extends ServiceImpl<ImageRecordMapper, ImageRecordDO> {
 
     /** 查询 deleted=0 且上传时间早于 before 的所有 file_key */
-    public List<String> getKeysOlderThan(LocalDateTime before) {
+    public List<String> getKeysOlderThan(OffsetDateTime before) {
         return lambdaQuery().select(ImageRecordDO::getFileKey)
             .eq(ImageRecordDO::getDeleted, DeleteStatusEnum.NOT_DELETED).lt(ImageRecordDO::getCreateTime, before).list()
             .stream().map(ImageRecordDO::getFileKey).toList();

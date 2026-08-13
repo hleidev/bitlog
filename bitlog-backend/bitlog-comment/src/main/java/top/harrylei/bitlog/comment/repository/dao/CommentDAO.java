@@ -26,11 +26,6 @@ import java.util.List;
 public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
 
     /**
-     * root_id 取该值表示评论自身即为根评论
-     */
-    public static final long ROOT_COMMENT_ID = 0L;
-
-    /**
      * 分页查询文章的根评论，不过滤删除与隐藏状态，可见性由服务层判定（需要保留墓碑）
      *
      * @param articleId 文章 ID
@@ -38,7 +33,7 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
      * @return 根评论分页结果
      */
     public IPage<CommentDO> pageRootComments(Long articleId, Page<CommentDO> page) {
-        return lambdaQuery().eq(CommentDO::getArticleId, articleId).eq(CommentDO::getRootId, ROOT_COMMENT_ID)
+        return lambdaQuery().eq(CommentDO::getArticleId, articleId).isNull(CommentDO::getRootId)
             .page(page);
     }
 

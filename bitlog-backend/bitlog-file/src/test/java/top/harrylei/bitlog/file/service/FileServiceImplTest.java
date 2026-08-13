@@ -14,7 +14,7 @@ import top.harrylei.bitlog.file.repository.entity.ImageRecordDO;
 import top.harrylei.bitlog.file.service.impl.FileServiceImpl;
 import software.amazon.awssdk.services.s3.S3Client;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -74,7 +74,7 @@ class FileServiceImplTest {
 
     @Test
     void getOldUndeletedContentKeys_delegatesToDAOAndReturnsResult() {
-        LocalDateTime threshold = LocalDateTime.now().minusHours(48);
+        OffsetDateTime threshold = OffsetDateTime.now().minusHours(48);
         List<String> expected = List.of("article/1/2026/05/img.png");
         when(imageRecordDAO.getKeysOlderThan(threshold)).thenReturn(expected);
 
@@ -86,7 +86,7 @@ class FileServiceImplTest {
 
     @Test
     void getOldUndeletedContentKeys_whenNoRecords_returnsEmptyList() {
-        LocalDateTime threshold = LocalDateTime.now().minusHours(48);
+        OffsetDateTime threshold = OffsetDateTime.now().minusHours(48);
         when(imageRecordDAO.getKeysOlderThan(threshold)).thenReturn(List.of());
 
         List<String> result = fileService.getOldUndeletedContentKeys(threshold);

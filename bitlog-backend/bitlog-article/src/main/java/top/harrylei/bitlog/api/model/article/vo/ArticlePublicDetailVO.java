@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -40,5 +40,5 @@ public class ArticlePublicDetailVO {
     private List<TagVO> tags;
 
     @Schema(description = "发布时间")
-    private LocalDateTime publishTime;
+    private OffsetDateTime publishTime;
 }

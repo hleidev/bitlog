@@ -8,7 +8,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * 文章标签关联实体
@@ -40,5 +40,5 @@ public class ArticleTagDO implements Serializable {
     /**
      * 创建时间
      */
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 }

@@ -3,7 +3,7 @@ package top.harrylei.bitlog.common.model;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * VO 基类
@@ -16,7 +16,7 @@ public class BaseVO implements Serializable {
 
     private Long id;
 
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 
-    private LocalDateTime updateTime;
+    private OffsetDateTime updateTime;
 }

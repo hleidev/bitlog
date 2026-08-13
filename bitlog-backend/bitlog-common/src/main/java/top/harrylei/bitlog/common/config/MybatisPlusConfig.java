@@ -19,7 +19,7 @@ public class MybatisPlusConfig {
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        PaginationInnerInterceptor pagination = new PaginationInnerInterceptor(DbType.MYSQL);
+        PaginationInnerInterceptor pagination = new PaginationInnerInterceptor(DbType.POSTGRE_SQL);
         // 与 BasePage 的 @Max 双保险，漏写 @Valid 也打不穿
         pagination.setMaxLimit((long)BasePage.MAX_PAGE_SIZE);
         pagination.setOverflow(false);

@@ -12,7 +12,7 @@ import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.article.repository.mapper.ArticleMapper;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -56,14 +56,14 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
 
     /** 发布文章：更新摘要、分类、已发布版本 ID 和发布时间 */
     public void publish(Long articleId, String summary, Long categoryId, Long publishedVersionId,
-        LocalDateTime publishTime) {
+        OffsetDateTime publishTime) {
         lambdaUpdate().eq(ArticleDO::getId, articleId).set(ArticleDO::getSummary, summary)
             .set(ArticleDO::getCategoryId, categoryId).set(ArticleDO::getPublishedVersionId, publishedVersionId)
             .set(ArticleDO::getPublishTime, publishTime).update();
     }
 
     /** 设置首次发布时间（仅在 publishTime 为 null 时由 updateStatus 重新发布路径调用） */
-    public void setPublishTime(Long articleId, LocalDateTime publishTime) {
+    public void setPublishTime(Long articleId, OffsetDateTime publishTime) {
         lambdaUpdate().eq(ArticleDO::getId, articleId).set(ArticleDO::getPublishTime, publishTime).update();
     }
 

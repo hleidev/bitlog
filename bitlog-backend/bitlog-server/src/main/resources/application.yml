@@ -6,7 +6,7 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.postgresql.Driver
   data:
     redis:
       timeout: 10s

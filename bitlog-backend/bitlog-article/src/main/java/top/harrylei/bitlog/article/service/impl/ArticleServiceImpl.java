@@ -44,7 +44,7 @@ import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.model.PageVO;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -128,7 +128,7 @@ public class ArticleServiceImpl implements ArticleService {
         List<Long> newTagIds = req.getTagIds() != null ? req.getTagIds() : List.of();
         Long newCategoryId = req.getCategoryId();
 
-        LocalDateTime publishTime = article.getPublishTime() != null ? article.getPublishTime() : LocalDateTime.now();
+        OffsetDateTime publishTime = article.getPublishTime() != null ? article.getPublishTime() : OffsetDateTime.now();
         articleDAO.publish(articleId, req.getSummary() != null ? req.getSummary() : "", newCategoryId,
             article.getLatestVersionId(), publishTime);
 
@@ -193,7 +193,7 @@ public class ArticleServiceImpl implements ArticleService {
         if (status == ArticleStatusEnum.PUBLISHED && !isPublished) {
             articleDAO.updatePublishedVersionId(articleId, article.getLatestVersionId());
             if (article.getPublishTime() == null) {
-                articleDAO.setPublishTime(articleId, LocalDateTime.now());
+                articleDAO.setPublishTime(articleId, OffsetDateTime.now());
             }
             log.info("重新发布文章 articleId={}", articleId);
             return true;

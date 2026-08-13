@@ -8,7 +8,7 @@ import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.model.BaseDO;
 
 import java.io.Serial;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * 文章主表实体
@@ -43,7 +43,7 @@ public class ArticleDO extends BaseDO {
     /**
      * 首次发布时间，null 表示从未发布
      */
-    private LocalDateTime publishTime;
+    private OffsetDateTime publishTime;
 
     /**
      * 文章摘要

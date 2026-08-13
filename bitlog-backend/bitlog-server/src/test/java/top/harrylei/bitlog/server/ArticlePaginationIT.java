@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import top.harrylei.bitlog.api.enums.article.MyArticleSortEnum;
@@ -22,12 +22,13 @@ import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.common.config.MybatisPlusConfig;
 import top.harrylei.bitlog.common.enums.SortOrderEnum;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 文章分页排序集成测试，验证派生列与稳定次序键在真实 MySQL 上的行为
+ * 文章分页排序集成测试，验证派生列与稳定次序键在真实 PostgreSQL 上的行为
  *
  * @author Harry
  * @since 2026-08-07
@@ -42,13 +43,14 @@ class ArticlePaginationIT {
 
     @Container
     @SuppressWarnings("resource")
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0").withDatabaseName("bitlog");
+    static final PostgreSQLContainer<?> POSTGRES =
+        new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("bitlog");
 
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
-        registry.add("spring.datasource.username", MYSQL::getUsername);
-        registry.add("spring.datasource.password", MYSQL::getPassword);
+        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRES::getUsername);
+        registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.flyway.enabled", () -> true);
         registry.add("spring.flyway.locations", () -> "classpath:db/migration");
         registry.add("mybatis-plus.configuration.default-enum-type-handler",
@@ -68,6 +70,11 @@ class ArticlePaginationIT {
             AUTHOR);
         jdbc.update("DELETE FROM article WHERE user_id = ?", AUTHOR);
 
+        jdbc.update("""
+            INSERT INTO user_account (id, username, email) VALUES (?, ?, ?)
+            ON CONFLICT (id) DO NOTHING
+            """, AUTHOR, "author-" + AUTHOR, "author-" + AUTHOR + "@test.local");
+
         // A 已发布：创建最早、发布居中 B 已发布：创建最晚、发布最早
         // C 纯草稿：从未发布 D 已下架：发布时间最晚但已取消发布
         insert("A", "2024-01-01", "2024-06-01", true);
@@ -80,7 +87,8 @@ class ArticlePaginationIT {
         jdbc.update("""
             INSERT INTO article (user_id, summary, deleted, create_time, publish_time, version_count)
             VALUES (?, ?, 0, ?, ?, 1)
-            """, AUTHOR, tag, createTime + " 00:00:00", publishTime == null ? null : publishTime + " 00:00:00");
+            """, AUTHOR, tag, LocalDate.parse(createTime).atStartOfDay(),
+            publishTime == null ? null : LocalDate.parse(publishTime).atStartOfDay());
         Long articleId =
             jdbc.queryForObject("SELECT id FROM article WHERE user_id = ? AND summary = ?", Long.class, AUTHOR, tag);
         jdbc.update("INSERT INTO article_version (article_id, version, title, content) VALUES (?, 1, ?, '正文')",

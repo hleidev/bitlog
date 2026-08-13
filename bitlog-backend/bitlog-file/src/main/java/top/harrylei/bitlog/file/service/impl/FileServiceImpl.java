@@ -21,7 +21,7 @@ import top.harrylei.bitlog.file.service.FileService;
 import top.harrylei.bitlog.file.util.ImageProcessor;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Collection;
 import java.util.List;
@@ -97,7 +97,7 @@ public class FileServiceImpl implements FileService {
             throwSizeExceeded(scene);
         }
 
-        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
+        OffsetDateTime now = OffsetDateTime.now(ZoneId.systemDefault());
         String key = String.format("%s/%d/%d/%02d/%s.%s", scene.getCode(), userId, now.getYear(), now.getMonthValue(),
             UUID.randomUUID(), extension);
 
@@ -133,7 +133,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public List<String> getOldUndeletedContentKeys(LocalDateTime before) {
+    public List<String> getOldUndeletedContentKeys(OffsetDateTime before) {
         return imageRecordDAO.getKeysOlderThan(before);
     }
 

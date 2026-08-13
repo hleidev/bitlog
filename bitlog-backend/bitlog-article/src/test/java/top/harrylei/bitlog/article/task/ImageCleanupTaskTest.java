@@ -1,15 +1,16 @@
 package top.harrylei.bitlog.article.task;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import top.harrylei.bitlog.article.repository.dao.ArticleVersionDAO;
+import top.harrylei.bitlog.article.service.impl.ArticleImageReferenceServiceImpl;
 import top.harrylei.bitlog.file.util.FileUrlHelper;
 import top.harrylei.bitlog.file.service.FileService;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -44,8 +45,13 @@ class ImageCleanupTaskTest {
     @Mock
     private FileUrlHelper fileUrlHelper;
 
-    @InjectMocks
     private ImageCleanupTask imageCleanupTask;
+
+    @BeforeEach
+    void setUp() {
+        imageCleanupTask = new ImageCleanupTask(fileService,
+            new ArticleImageReferenceServiceImpl(articleVersionDAO, fileUrlHelper));
+    }
 
     /** Returns an answer that strips PUBLIC_URL prefix, mirroring the real FileUrlHelper. */
     private void stubExtractKey() {
@@ -65,7 +71,7 @@ class ImageCleanupTaskTest {
 
     @Test
     void cleanOrphanImages_noTrackedKeys_returnsEarlyWithNoDeletes() {
-        when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of());
+        when(fileService.getOldUndeletedContentKeys(any(OffsetDateTime.class))).thenReturn(List.of());
 
         imageCleanupTask.cleanOrphanImages();
 
@@ -84,7 +90,7 @@ class ImageCleanupTaskTest {
         String imageUrl = PUBLIC_URL + "/" + key;
 
         stubExtractKey();
-        when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key));
+        when(fileService.getOldUndeletedContentKeys(any(OffsetDateTime.class))).thenReturn(List.of(key));
         stubContents(List.of("![image](" + imageUrl + ")"));
 
         imageCleanupTask.cleanOrphanImages();
@@ -104,7 +110,7 @@ class ImageCleanupTaskTest {
         String referencedUrl = PUBLIC_URL + "/" + referencedKey;
 
         stubExtractKey();
-        when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class)))
+        when(fileService.getOldUndeletedContentKeys(any(OffsetDateTime.class)))
             .thenReturn(List.of(referencedKey, orphanKey));
         stubContents(List.of("![image](" + referencedUrl + ")"));
 
@@ -128,7 +134,7 @@ class ImageCleanupTaskTest {
         String content = "intro\n\n![first image](" + url1 + ")\n\ntext\n\n![second](" + url2 + ")";
 
         stubExtractKey();
-        when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key1, key2));
+        when(fileService.getOldUndeletedContentKeys(any(OffsetDateTime.class))).thenReturn(List.of(key1, key2));
         stubContents(List.of(content));
 
         imageCleanupTask.cleanOrphanImages();
@@ -147,7 +153,7 @@ class ImageCleanupTaskTest {
         String externalUrl = "https://external.example.com/photo.jpg";
 
         stubExtractKey();
-        when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(orphanKey));
+        when(fileService.getOldUndeletedContentKeys(any(OffsetDateTime.class))).thenReturn(List.of(orphanKey));
         stubContents(List.of("![external](" + externalUrl + ")"));
 
         imageCleanupTask.cleanOrphanImages();
@@ -164,7 +170,7 @@ class ImageCleanupTaskTest {
     void cleanOrphanImages_emptyOrNullContentEntries_handledGracefully() {
         String orphanKey = CONTENT_PREFIX + "1/2026/05/orphan.png";
 
-        when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(orphanKey));
+        when(fileService.getOldUndeletedContentKeys(any(OffsetDateTime.class))).thenReturn(List.of(orphanKey));
         stubContents(List.of("", "   "));
 
         imageCleanupTask.cleanOrphanImages();
@@ -182,7 +188,7 @@ class ImageCleanupTaskTest {
         String key1 = CONTENT_PREFIX + "1/2026/05/orphan1.png";
         String key2 = CONTENT_PREFIX + "1/2026/05/orphan2.jpg";
 
-        when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key1, key2));
+        when(fileService.getOldUndeletedContentKeys(any(OffsetDateTime.class))).thenReturn(List.of(key1, key2));
         stubContents(List.of());
 
         imageCleanupTask.cleanOrphanImages();
@@ -203,7 +209,7 @@ class ImageCleanupTaskTest {
         String sharedUrl = PUBLIC_URL + "/" + sharedKey;
 
         stubExtractKey();
-        when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(sharedKey));
+        when(fileService.getOldUndeletedContentKeys(any(OffsetDateTime.class))).thenReturn(List.of(sharedKey));
         stubContents(List.of("![img](" + sharedUrl + ")", "![img](" + sharedUrl + ")"));
 
         imageCleanupTask.cleanOrphanImages();
@@ -221,7 +227,7 @@ class ImageCleanupTaskTest {
         String key1 = CONTENT_PREFIX + "1/2026/05/o1.png";
         String key2 = CONTENT_PREFIX + "1/2026/05/o2.png";
 
-        when(fileService.getOldUndeletedContentKeys(any(LocalDateTime.class))).thenReturn(List.of(key1, key2));
+        when(fileService.getOldUndeletedContentKeys(any(OffsetDateTime.class))).thenReturn(List.of(key1, key2));
         stubContents(List.of());
 
         imageCleanupTask.cleanOrphanImages();

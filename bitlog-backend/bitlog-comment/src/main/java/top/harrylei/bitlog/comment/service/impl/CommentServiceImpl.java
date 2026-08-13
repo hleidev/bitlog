@@ -49,8 +49,6 @@ public class CommentServiceImpl implements CommentService {
     /**
      * root_id / parent_id / reply_to_user_id 的空值约定
      */
-    private static final long NONE = 0L;
-
     /**
      * 最小间隔窗口内只允许一条，故配额固定为 1
      */
@@ -99,17 +97,17 @@ public class CommentServiceImpl implements CommentService {
 
         CommentDO comment = new CommentDO().setArticleId(articleId).setUserId(userId)
             .setContent(req.getContent().trim()).setStatus(CommentStatusEnum.NORMAL)
-            .setDeleted(DeleteStatusEnum.NOT_DELETED).setRootId(NONE).setParentId(NONE).setReplyToUserId(NONE);
+            .setDeleted(DeleteStatusEnum.NOT_DELETED);
 
         Long parentId = req.getParentId();
-        if (parentId != null && parentId > NONE) {
+        if (parentId != null) {
             CommentDO parent = commentDAO.getByIdAndNotDeleted(parentId);
             if (parent == null || !parent.getArticleId().equals(articleId) || !isVisible(parent)) {
                 throw ResultCode.COMMENT_NOT_EXISTS.toException();
             }
-            boolean parentIsRoot = parent.getRootId() == null || parent.getRootId() == NONE;
+            boolean parentIsRoot = parent.getRootId() == null;
             comment.setRootId(parentIsRoot ? parent.getId() : parent.getRootId()).setParentId(parent.getId())
-                .setReplyToUserId(parentIsRoot ? NONE : parent.getUserId());
+                .setReplyToUserId(parentIsRoot ? null : parent.getUserId());
         }
 
         commentDAO.save(comment);
@@ -244,7 +242,7 @@ public class CommentServiceImpl implements CommentService {
         roots.stream().filter(this::isVisible).map(CommentDO::getUserId).forEach(userIds::add);
         repliesByRoot.values().stream().flatMap(List::stream).forEach(reply -> {
             userIds.add(reply.getUserId());
-            if (reply.getReplyToUserId() != null && reply.getReplyToUserId() > NONE) {
+            if (reply.getReplyToUserId() != null) {
                 userIds.add(reply.getReplyToUserId());
             }
         });
@@ -276,7 +274,7 @@ public class CommentServiceImpl implements CommentService {
     private CommentReplyVO buildReplyVO(CommentDO reply, Map<Long, CommentUserVO> userMap) {
         CommentReplyVO vo = commentConverter.toReplyVO(reply);
         vo.setUser(userMap.get(reply.getUserId()));
-        if (reply.getReplyToUserId() != null && reply.getReplyToUserId() > NONE) {
+        if (reply.getReplyToUserId() != null) {
             vo.setReplyToUser(userMap.get(reply.getReplyToUserId()));
         }
         return vo;

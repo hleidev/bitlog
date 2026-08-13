@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -47,13 +47,13 @@ public class ArticleVO {
     private List<TagVO> tags;
 
     @Schema(description = "发布时间")
-    private LocalDateTime publishTime;
+    private OffsetDateTime publishTime;
 
     @Schema(description = "创建时间")
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 
     @Schema(description = "更新时间")
-    private LocalDateTime updateTime;
+    private OffsetDateTime updateTime;
 
     @Schema(description = "阅读数")
     private Integer readCount;

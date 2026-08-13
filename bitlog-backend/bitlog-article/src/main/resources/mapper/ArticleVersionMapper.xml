@@ -10,8 +10,8 @@
         WHERE article_id = #{articleId}
     </select>
 
-    <!-- fetchSize 取 Integer.MIN_VALUE 是 MySQL 驱动开启流式读取的约定值，不设则整个结果集仍会先缓冲到驱动端 -->
-    <select id="scanContentFromActiveArticles" resultType="string" fetchSize="-2147483648"
+    <!-- PG 走游标分批取：需正数 fetchSize，且调用方必须在事务内（autocommit 开着时驱动仍会全量缓冲） -->
+    <select id="scanContentFromActiveArticles" resultType="string" fetchSize="1000"
             resultSetType="FORWARD_ONLY">
         SELECT av.content
         FROM article_version av
