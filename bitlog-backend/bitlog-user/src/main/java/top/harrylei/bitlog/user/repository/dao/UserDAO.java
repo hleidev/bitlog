@@ -23,23 +23,25 @@ import java.util.List;
 @Repository
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
 
-    /** 不过滤 deleted：uk_username 不含 deleted，软删用户的用户名仍占位 */
+    /** 注销账号的用户名释放占位，与 uk_user_account_username 的 partial 条件保持一致 */
     public boolean isUsernameTaken(String username) {
-        return lambdaQuery().eq(UserDO::getUsername, username).exists();
+        return lambdaQuery().eq(UserDO::getUsername, username).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+            .exists();
     }
 
     /** 改名场景：排除自己，否则原样提交会被判成重名 */
     public boolean isUsernameTakenByOthers(String username, Long userId) {
-        return lambdaQuery().eq(UserDO::getUsername, username).ne(UserDO::getId, userId).exists();
+        return lambdaQuery().eq(UserDO::getUsername, username).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+            .ne(UserDO::getId, userId).exists();
     }
 
     public UserDO getByEmail(String email) {
         return lambdaQuery().eq(UserDO::getEmail, email).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED).one();
     }
 
-    /** 不过滤 deleted：uk_email 不含 deleted，软删用户的邮箱仍占位 */
+    /** 注销账号的邮箱释放占位，与 uk_user_account_email 的 partial 条件保持一致 */
     public boolean isEmailTaken(String email) {
-        return lambdaQuery().eq(UserDO::getEmail, email).exists();
+        return lambdaQuery().eq(UserDO::getEmail, email).eq(UserDO::getDeleted, DeleteStatusEnum.NOT_DELETED).exists();
     }
 
     public UserDO getById(Long userId) {
