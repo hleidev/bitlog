@@ -18,7 +18,7 @@ export interface CommentAdmin {
   content: string
   user: CommentAdminUser | null
   /** 0 表示自身即根评论 */
-  rootId: number
+  rootId: number | null
   status: CommentStatus
   createTime: string
 }

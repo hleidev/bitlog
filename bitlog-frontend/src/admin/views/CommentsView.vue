@@ -226,7 +226,7 @@ function formatTime(iso: string) {
             </td>
             <td>
               <span class="comment-text">{{ row.content }}</span>
-              <span v-if="row.rootId !== 0" class="reply-flag">回复</span>
+              <span v-if="row.rootId !== null" class="reply-flag">回复</span>
             </td>
             <td class="col-user">
               <span class="cell-muted">{{ row.user?.username ?? '—' }}</span>
