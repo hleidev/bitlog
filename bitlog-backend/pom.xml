@@ -25,6 +25,7 @@
         <module>bitlog-article</module>
         <module>bitlog-file</module>
         <module>bitlog-comment</module>
+        <module>bitlog-link</module>
         <module>bitlog-server</module>
     </modules>
 
