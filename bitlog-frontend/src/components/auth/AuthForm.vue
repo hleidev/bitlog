@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import PasswordInput from '@/components/common/PasswordInput.vue'
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton.vue'
@@ -89,6 +89,27 @@ function checkConfirmPassword(): boolean {
     form.value.password,
   )
   return !errors.value.confirmPassword
+}
+
+type FieldName = keyof typeof errors.value
+
+const fieldChecks: Record<FieldName, () => boolean> = {
+  email: checkEmail,
+  code: checkCode,
+  username: checkUsername,
+  password: checkPassword,
+  confirmPassword: checkConfirmPassword,
+}
+
+// 首次校验交给提交按钮，已经报过错的字段才随输入复验，让错误随修正立刻消失
+for (const field of Object.keys(fieldChecks) as FieldName[]) {
+  watch(
+    () => form.value[field],
+    () => {
+      if (errors.value[field]) fieldChecks[field]()
+      if (field === 'password' && errors.value.confirmPassword) checkConfirmPassword()
+    },
+  )
 }
 
 function sanitizeCode(event: Event) {
@@ -240,7 +261,6 @@ onUnmounted(stopCountdown)
           autocomplete="nickname"
           maxlength="16"
           :disabled="loading"
-          @blur="checkUsername"
         />
         <p v-if="errors.username" class="field-error">{{ errors.username }}</p>
       </div>
@@ -258,7 +278,6 @@ onUnmounted(stopCountdown)
           autocomplete="username"
           :maxlength="EMAIL_MAX_LENGTH"
           :disabled="loading"
-          @blur="checkEmail"
         />
         <p v-if="errors.email" class="field-error">{{ errors.email }}</p>
       </div>
@@ -278,7 +297,6 @@ onUnmounted(stopCountdown)
             :maxlength="CODE_LENGTH"
             :disabled="loading"
             @input="sanitizeCode"
-            @blur="checkCode"
           />
           <button
             type="button"
@@ -312,7 +330,6 @@ onUnmounted(stopCountdown)
           :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
           maxlength="20"
           :disabled="loading"
-          @blur="checkPassword"
         />
         <p v-if="errors.password" class="field-error">{{ errors.password }}</p>
       </div>
@@ -331,7 +348,6 @@ onUnmounted(stopCountdown)
           autocomplete="new-password"
           maxlength="20"
           :disabled="loading"
-          @blur="checkConfirmPassword"
         />
         <p v-if="errors.confirmPassword" class="field-error">{{ errors.confirmPassword }}</p>
       </div>
