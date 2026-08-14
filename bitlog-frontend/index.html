@@ -12,6 +12,14 @@
     <meta property="og:description" content="BitLog — 个人技术博客" />
     <meta property="og:url" content="https://bitlog.harrylei.top" />
     <meta name="google-site-verification" content="5548x-kYO3DS0jz5ZtY6SJsBs7tXMxkw8HIpadPJ_JE" />
+    <script>
+      // 首屏绘制前读取上次会话提示，供头部按头像尺寸留位
+      try {
+        if (localStorage.getItem('bitlog:session')) {
+          document.documentElement.dataset.session = 'restoring'
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="app"></div>

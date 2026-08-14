@@ -392,6 +392,8 @@ const handleMobileLogin = () => {
 .header__login-btn {
   font-size: 13px;
   letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
   padding: 5px 14px;
   border-radius: 4px;
   border: 1px solid rgba(var(--color-on-dark-rgb), 0.35);
@@ -403,21 +405,38 @@ const handleMobileLogin = () => {
 }
 
 .header__auth-slot {
-  width: 56px;
+  min-width: 60px;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
 }
 
+/* 上次登录过：直接按头像尺寸留位，登录后头像左侧不会多出空当 */
+[data-session='restoring'] .header__auth-slot {
+  min-width: 0;
+}
+
 .header__auth-placeholder {
-  width: 56px;
+  width: 28px;
   height: 28px;
-  border-radius: 4px;
+  border-radius: 50%;
   background: rgba(var(--color-on-dark-rgb), 0.14);
-  animation: auth-placeholder-pulse 1.2s ease-in-out infinite;
+  animation:
+    auth-placeholder-in 160ms ease-out 200ms both,
+    auth-placeholder-pulse 1.4s ease-in-out 360ms infinite;
 }
 
 .header--scrolled .header__auth-placeholder {
   background: var(--color-bg-hover);
+}
+
+@keyframes auth-placeholder-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes auth-placeholder-pulse {

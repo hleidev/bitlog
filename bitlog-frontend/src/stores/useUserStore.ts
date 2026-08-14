@@ -10,6 +10,19 @@ import {
 } from '@/api/auth'
 import { getUserProfile, type UserProfile } from '@/api/user'
 
+// 非敏感的会话提示，仅供首屏决定头部按头像还是登录按钮留位，真实凭证仍在 HttpOnly Cookie
+const SESSION_HINT_KEY = 'bitlog:session'
+
+function markSessionHint(): void {
+  localStorage.setItem(SESSION_HINT_KEY, '1')
+  document.documentElement.dataset.session = 'restoring'
+}
+
+function clearSessionHint(): void {
+  localStorage.removeItem(SESSION_HINT_KEY)
+  delete document.documentElement.dataset.session
+}
+
 export const useUserStore = defineStore('user', () => {
   const token = ref<string>('')
   const userInfo = ref<UserProfile | null>(null)
@@ -31,8 +44,10 @@ export const useUserStore = defineStore('user', () => {
       const res = await refreshApi()
       token.value = res.accessToken
       await fetchProfile()
+      markSessionHint()
     } catch {
       // 无 Refresh Token 或已过期，用户未登录，正常情况
+      clearSessionHint()
     } finally {
       sessionInitialized.value = true
       _readyResolvers.forEach((r) => r())
@@ -44,6 +59,7 @@ export const useUserStore = defineStore('user', () => {
     const res = await loginApi(payload)
     token.value = res.accessToken
     await fetchProfile()
+    markSessionHint()
   }
 
   // 注册接口不返回 token，成功后直接用同一份凭证登录，省去用户再填一遍
@@ -71,6 +87,7 @@ export const useUserStore = defineStore('user', () => {
     }
     token.value = ''
     userInfo.value = null
+    clearSessionHint()
   }
 
   return {
