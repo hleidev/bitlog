@@ -14,7 +14,7 @@ const { isDark, setTheme } = useTheme()
 const modalStore = useModalStore()
 const userStore = useUserStore()
 const router = useRouter()
-const { userInfo, isLoggedIn } = storeToRefs(userStore)
+const { userInfo, isLoggedIn, sessionInitialized } = storeToRefs(userStore)
 
 const mobileMenuOpen = ref(false)
 const dropdownOpen = ref(false)
@@ -106,12 +106,23 @@ const handleMobileLogin = () => {
           </button>
           <!-- 主题切换 -->
           <ThemeToggle />
-          <!-- 登录按钮 / 用户头像 -->
-          <button v-if="!isLoggedIn" class="header__login-btn" @click="modalStore.open('login')">
-            登录
-          </button>
-          <template v-else>
+          <!-- 会话恢复前保留固定空间，避免静态首屏的登录按钮再跳成头像。 -->
+          <div class="header__auth-slot">
+            <span
+              v-if="!sessionInitialized || (isLoggedIn && !userInfo)"
+              class="header__auth-placeholder"
+              aria-hidden="true"
+            ></span>
+            <!-- 登录按钮 / 用户头像 -->
+            <button
+              v-else-if="!isLoggedIn"
+              class="header__login-btn"
+              @click="modalStore.open('login')"
+            >
+              登录
+            </button>
             <div
+              v-else
               class="header__user"
               @mouseenter="dropdownOpen = true"
               @mouseleave="dropdownOpen = false"
@@ -131,7 +142,7 @@ const handleMobileLogin = () => {
                 <UserDropdown v-if="dropdownOpen" show-admin-links class="header__dropdown" />
               </Transition>
             </div>
-          </template>
+          </div>
         </div>
 
         <!-- Mobile hamburger -->
@@ -389,6 +400,30 @@ const handleMobileLogin = () => {
   transition: all var(--transition-base);
   font-family: var(--font-sans);
   cursor: pointer;
+}
+
+.header__auth-slot {
+  width: 56px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.header__auth-placeholder {
+  width: 56px;
+  height: 28px;
+  border-radius: 4px;
+  background: rgba(var(--color-on-dark-rgb), 0.14);
+  animation: auth-placeholder-pulse 1.2s ease-in-out infinite;
+}
+
+.header--scrolled .header__auth-placeholder {
+  background: var(--color-bg-hover);
+}
+
+@keyframes auth-placeholder-pulse {
+  50% {
+    opacity: 0.55;
+  }
 }
 
 .header__login-btn:hover {
