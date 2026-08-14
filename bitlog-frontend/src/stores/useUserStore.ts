@@ -43,6 +43,7 @@ export const useUserStore = defineStore('user', () => {
   async function login(payload: LoginReq): Promise<void> {
     const res = await loginApi(payload)
     token.value = res.accessToken
+    await fetchProfile()
   }
 
   // 注册接口不返回 token，成功后直接用同一份凭证登录，省去用户再填一遍

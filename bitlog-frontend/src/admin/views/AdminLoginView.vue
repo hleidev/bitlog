@@ -24,7 +24,6 @@ async function handleLogin() {
   loading.value = true
   try {
     await userStore.login({ email: form.email.trim(), password: form.password })
-    await userStore.fetchProfile()
     router.push('/admin/dashboard')
   } catch (err) {
     errorMsg.value = err instanceof ApiError ? err.message : '登录失败，请稍后重试'
