@@ -75,14 +75,11 @@ public class FriendLinkServiceImpl implements FriendLinkService {
         checkRateLimit(userId);
 
         if (friendLinkDAO.getByUserId(userId) != null) {
-            throw new BusinessException(ResultCode.LINK_ALREADY_APPLIED.getCode(),
-                ResultCode.LINK_ALREADY_APPLIED.getMessage());
+            ResultCode.LINK_ALREADY_APPLIED.throwException();
         }
 
         String url = normalizeOrThrow(param.getUrl());
-        if (friendLinkDAO.getByUrl(url) != null) {
-            throw new BusinessException(ResultCode.LINK_URL_TAKEN.getCode(), ResultCode.LINK_URL_TAKEN.getMessage());
-        }
+        checkUrlAvailable(url, null);
 
         FriendLinkDO friendLink = new FriendLinkDO();
         friendLinkConverter.applyToEntity(param, friendLink);
@@ -101,17 +98,13 @@ public class FriendLinkServiceImpl implements FriendLinkService {
 
         FriendLinkDO friendLink = friendLinkDAO.getByUserId(userId);
         if (friendLink == null) {
-            throw new BusinessException(ResultCode.LINK_NOT_EXISTS.getCode(), ResultCode.LINK_NOT_EXISTS.getMessage());
+            throw ResultCode.LINK_NOT_EXISTS.toException();
         }
 
         String url = normalizeOrThrow(param.getUrl());
         boolean urlChanged = !Objects.equals(url, friendLink.getUrl());
         if (urlChanged) {
-            FriendLinkDO occupied = friendLinkDAO.getByUrl(url);
-            if (occupied != null && !Objects.equals(occupied.getId(), friendLink.getId())) {
-                throw new BusinessException(ResultCode.LINK_URL_TAKEN.getCode(),
-                    ResultCode.LINK_URL_TAKEN.getMessage());
-            }
+            checkUrlAvailable(url, friendLink.getId());
         }
 
         friendLinkConverter.applyToEntity(param, friendLink);
@@ -138,7 +131,7 @@ public class FriendLinkServiceImpl implements FriendLinkService {
 
         FriendLinkDO friendLink = friendLinkDAO.getByUserId(userId);
         if (friendLink == null) {
-            throw new BusinessException(ResultCode.LINK_NOT_EXISTS.getCode(), ResultCode.LINK_NOT_EXISTS.getMessage());
+            throw ResultCode.LINK_NOT_EXISTS.toException();
         }
 
         friendLinkDAO.removeById(friendLink.getId());
@@ -167,9 +160,7 @@ public class FriendLinkServiceImpl implements FriendLinkService {
     @Transactional(rollbackFor = Exception.class)
     public Long saveByAdmin(FriendLinkSaveParam param) {
         String url = normalizeOrThrow(param.getUrl());
-        if (friendLinkDAO.getByUrl(url) != null) {
-            throw new BusinessException(ResultCode.LINK_URL_TAKEN.getCode(), ResultCode.LINK_URL_TAKEN.getMessage());
-        }
+        checkUrlAvailable(url, null);
 
         FriendLinkDO friendLink = new FriendLinkDO();
         friendLinkConverter.applyToEntity(param, friendLink);
@@ -190,10 +181,7 @@ public class FriendLinkServiceImpl implements FriendLinkService {
 
         String url = normalizeOrThrow(param.getUrl());
         if (!Objects.equals(url, friendLink.getUrl())) {
-            FriendLinkDO occupied = friendLinkDAO.getByUrl(url);
-            if (occupied != null && !Objects.equals(occupied.getId(), id)) {
-                throw new BusinessException(ResultCode.LINK_URL_TAKEN.getCode(), ResultCode.LINK_URL_TAKEN.getMessage());
-            }
+            checkUrlAvailable(url, id);
         }
 
         friendLinkConverter.applyToEntity(param, friendLink);
@@ -212,18 +200,18 @@ public class FriendLinkServiceImpl implements FriendLinkService {
 
         FriendLinkStatusEnum target = param.getStatus();
         if (target != FriendLinkStatusEnum.APPROVED && target != FriendLinkStatusEnum.REJECTED) {
-            throw new BusinessException(ResultCode.LINK_STATUS_ILLEGAL.getCode(), "审核结果只能是通过或拒绝");
+            ResultCode.LINK_STATUS_ILLEGAL.throwException("审核结果只能是通过或拒绝");
         }
         // 只挡重复通过。重复拒绝要放行：理由是给申请人看的，写错了得能改，
         // 拦住的话只能先通过再拒绝，而中间那一下会把站点真的挂上公开页。
         if (target == FriendLinkStatusEnum.APPROVED && friendLink.getStatus() == FriendLinkStatusEnum.APPROVED) {
-            throw new BusinessException(ResultCode.LINK_STATUS_ILLEGAL.getCode(), "该友链已通过审核");
+            ResultCode.LINK_STATUS_ILLEGAL.throwException("该友链已通过审核");
         }
 
         // 通过时清空拒绝理由，否则上一次拒绝的说明会残留，申请人再被拒时看到的是旧文案
         String reason = target == FriendLinkStatusEnum.REJECTED ? trimToNull(param.getRejectReason()) : null;
         if (!friendLinkDAO.updateStatus(id, target, reason)) {
-            throw new BusinessException(ResultCode.LINK_NOT_EXISTS.getCode(), ResultCode.LINK_NOT_EXISTS.getMessage());
+            ResultCode.LINK_NOT_EXISTS.throwException();
         }
 
         if (target == FriendLinkStatusEnum.APPROVED) {
@@ -266,9 +254,19 @@ public class FriendLinkServiceImpl implements FriendLinkService {
     private FriendLinkDO getExisting(Long id) {
         FriendLinkDO friendLink = friendLinkDAO.getById(id);
         if (friendLink == null) {
-            throw new BusinessException(ResultCode.LINK_NOT_EXISTS.getCode(), ResultCode.LINK_NOT_EXISTS.getMessage());
+            throw ResultCode.LINK_NOT_EXISTS.toException();
         }
         return friendLink;
+    }
+
+    /**
+     * 站点地址是否可用，selfId 为空表示新建
+     */
+    private void checkUrlAvailable(String url, Long selfId) {
+        FriendLinkDO occupied = friendLinkDAO.getByUrl(url);
+        if (occupied != null && !Objects.equals(occupied.getId(), selfId)) {
+            ResultCode.LINK_URL_TAKEN.throwException();
+        }
     }
 
     /**
@@ -289,7 +287,7 @@ public class FriendLinkServiceImpl implements FriendLinkService {
     private String normalizeOrThrow(String url) {
         String normalized = SiteUrlNormalizer.normalize(url);
         if (normalized == null) {
-            throw new BusinessException(ResultCode.INVALID_PARAMETER.getCode(), "站点地址不是有效的 http/https 地址");
+            throw ResultCode.INVALID_PARAMETER.toException("站点地址不是有效的 http/https 地址");
         }
         return normalized;
     }
