@@ -195,6 +195,17 @@
 /* ArticlesView / UsersView 共用。两处原本各存一份逐字节相同的副本，且
    .tab-count 的对比度修正只落在其中一份上，合并至此避免继续分叉。 */
 
+/* 后台列表页统一的头部：左侧 view-tabs，右侧 header-actions（搜索 + 操作按钮），
+   同一行。文章页与用户页原本各写一份完全相同的定义。 */
+.card-header {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--admin-sidebar-border);
+  padding: 0 16px 0 20px;
+  gap: 12px;
+}
+
 .view-tabs {
   display: flex;
 }
@@ -298,6 +309,15 @@
   vertical-align: middle;
 }
 
+/* 时间列：所有后台页的时间都是 YYYY-MM-DD HH:mm，宽度需求一致，
+   统一在此定义。各页曾各写一份（110/120/130px 三种），且 td 未设 nowrap，
+   16 个字符放不下就从中间折成两行。 */
+.col-time {
+  width: 150px;
+}
+.data-table td.col-time {
+  white-space: nowrap;
+}
 .data-table tbody tr:last-child td {
   border-bottom: none;
 }
@@ -549,6 +569,21 @@
   pointer-events: none;
 }
 
+.search-input {
+  height: 32px;
+  width: 180px;
+  /* 左侧 28px 是给绝对定位的放大镜图标让位，去掉图标就会压在占位文字上 */
+  padding: 0 28px 0 28px;
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 4px;
+  background: var(--admin-surface-input);
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
 .search-input:focus {
   border-color: var(--admin-accent);
 }

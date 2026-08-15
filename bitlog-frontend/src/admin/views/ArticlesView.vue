@@ -766,35 +766,11 @@ function formatViews(n: number) {
 
 /* ── Header ── */
 
-.card-header {
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--admin-sidebar-border);
-  padding: 0 16px 0 20px;
-  gap: 12px;
-}
-
 /* ── Tabs ── */
 
 /* .view-tabs / .view-tab / .tab-count 见 admin/styles/variables.css */
 
 /* ── Search ── */
-
-.search-input {
-  height: 32px;
-  width: 180px;
-  padding: 0 28px 0 28px;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: 4px;
-  background: var(--admin-surface-input);
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-text-primary);
-  outline: none;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-}
 
 /* ── Buttons ── */
 
@@ -868,9 +844,6 @@ function formatViews(n: number) {
 .col-views {
   width: 68px;
   text-align: right;
-}
-.col-time {
-  width: 110px;
 }
 .col-actions {
   width: 190px;

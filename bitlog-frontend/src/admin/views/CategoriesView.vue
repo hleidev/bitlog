@@ -381,21 +381,6 @@ async function handleDialogSubmit() {
 
 /* ── Search ── */
 
-.search-input {
-  height: 32px;
-  padding: 0 28px 0 28px;
-  width: 180px;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: 4px;
-  background: var(--admin-surface-input);
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-text-primary);
-  outline: none;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-}
-
 /* ── Buttons ── */
 
 /* ── Stats text ── */
@@ -437,10 +422,6 @@ async function handleDialogSubmit() {
 .col-count {
   width: 80px;
   text-align: center;
-}
-.col-time {
-  width: 120px;
-  white-space: nowrap;
 }
 .col-actions {
   width: 100px;
