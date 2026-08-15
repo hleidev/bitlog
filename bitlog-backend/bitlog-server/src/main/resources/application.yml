@@ -75,5 +75,6 @@ security:
     - /api/v1/article/*/comments/page
     - /api/v1/tag
     - /api/v1/category
+    - /api/v1/links
   allowed-origins:
     - http://localhost:5173
