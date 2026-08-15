@@ -65,6 +65,23 @@ public class FriendLinkDAO extends ServiceImpl<FriendLinkMapper, FriendLinkDO> {
     }
 
     /**
+     * 头像转存完成后回写对象存储 key
+     */
+    public boolean updateAvatar(Long id, String avatarKey) {
+        return lambdaUpdate().eq(FriendLinkDO::getId, id).set(FriendLinkDO::getAvatar, avatarKey).update();
+    }
+
+    /**
+     * 解除友链的账号归属，降级为站长托管
+     * <p>
+     * 账号注销后本人已无法登录，友链不该跟着消失——那是站点之间的关系，不是账号的附属物。
+     * </p>
+     */
+    public boolean detachOwner(Long userId) {
+        return lambdaUpdate().eq(FriendLinkDO::getUserId, userId).set(FriendLinkDO::getUserId, null).update();
+    }
+
+    /**
      * 覆盖内容字段，自助修改与站长编辑共用
      * <p>
      * 只列内容列，不含 status 与 rejectReason：改简介不该顺带把审核状态写回去， 否则与并发的审核操作互相覆盖。归属列 userId 同样碰不到。

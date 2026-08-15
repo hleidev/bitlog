@@ -3,6 +3,7 @@ package top.harrylei.bitlog.link.service.impl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +19,10 @@ import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.exception.BusinessException;
 import top.harrylei.bitlog.api.model.user.vo.UserVO;
 import top.harrylei.bitlog.common.model.PageVO;
+import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.util.RateLimiter;
+import top.harrylei.bitlog.file.util.FileUrlHelper;
+import top.harrylei.bitlog.link.event.FriendLinkApprovedEvent;
 import top.harrylei.bitlog.user.port.UserPort;
 import top.harrylei.bitlog.link.config.FriendLinkProperties;
 import top.harrylei.bitlog.link.converter.FriendLinkConverter;
@@ -49,15 +53,20 @@ public class FriendLinkServiceImpl implements FriendLinkService {
     private final FriendLinkProperties friendLinkProperties;
     private final RateLimiter rateLimiter;
     private final UserPort userPort;
+    private final FileUrlHelper fileUrlHelper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public List<FriendLinkVO> listApproved() {
-        return friendLinkConverter.toVOList(friendLinkDAO.listApproved());
+        List<FriendLinkVO> list = friendLinkConverter.toVOList(friendLinkDAO.listApproved());
+        list.forEach(vo -> vo.setAvatar(resolveAvatar(vo.getAvatar())));
+        return list;
     }
 
     @Override
     public MyFriendLinkVO getMine(Long userId) {
-        return friendLinkConverter.toMyVO(friendLinkDAO.getByUserId(userId));
+        MyFriendLinkVO vo = friendLinkConverter.toMyVO(friendLinkDAO.getByUserId(userId));
+        return vo == null ? null : vo.setAvatar(resolveAvatar(vo.getAvatar()));
     }
 
     @Override
@@ -148,6 +157,7 @@ public class FriendLinkServiceImpl implements FriendLinkService {
         List<FriendLinkAdminVO> content = links.stream().map(link -> {
             FriendLinkAdminVO vo = friendLinkConverter.toAdminVO(link);
             vo.setApplicant(link.getUserId() == null ? null : applicants.get(link.getUserId()));
+            vo.setAvatar(resolveAvatar(vo.getAvatar()));
             return vo;
         }).toList();
         return PageVO.of(result, content);
@@ -168,6 +178,7 @@ public class FriendLinkServiceImpl implements FriendLinkService {
         friendLink.setUrl(url).setStatus(FriendLinkStatusEnum.APPROVED);
         friendLinkDAO.save(friendLink);
 
+        publishApproved(friendLink.getId(), friendLink.getAvatar());
         log.info("站长录入友链 linkId={} url={}", friendLink.getId(), url);
         return friendLink.getId();
     }
@@ -215,6 +226,9 @@ public class FriendLinkServiceImpl implements FriendLinkService {
             throw new BusinessException(ResultCode.LINK_NOT_EXISTS.getCode(), ResultCode.LINK_NOT_EXISTS.getMessage());
         }
 
+        if (target == FriendLinkStatusEnum.APPROVED) {
+            publishApproved(id, friendLink.getAvatar());
+        }
         log.info("审核友链 linkId={} {} -> {}", id, friendLink.getStatus(), target);
     }
 
@@ -224,6 +238,29 @@ public class FriendLinkServiceImpl implements FriendLinkService {
         getExisting(id);
         friendLinkDAO.removeById(id);
         log.info("站长删除友链 linkId={}", id);
+    }
+
+    /**
+     * 头像列同时存放两种值：尚未转存的外链，与转存后的对象存储 key。 外链直接用，key 才需要拼公开前缀，否则会拼成 https://存储域名/https://对方域名/...
+     */
+    private String resolveAvatar(String avatar) {
+        return SiteUrlNormalizer.isValid(avatar) ? avatar : fileUrlHelper.buildUrl(avatar);
+    }
+
+    /**
+     * 已是自有存储的 key 就不必再转存一次
+     */
+    private void publishApproved(Long linkId, String avatar) {
+        if (!SiteUrlNormalizer.isValid(avatar)) {
+            return;
+        }
+        ReqInfoContext.ReqInfo reqInfo = ReqInfoContext.getContext();
+        if (reqInfo == null || reqInfo.getUserId() == null) {
+            // 拿不到操作人就拼不出存储路径，保留外链即可，不值得为此让审核失败
+            log.warn("无操作人上下文，跳过友链头像转存 linkId={}", linkId);
+            return;
+        }
+        eventPublisher.publishEvent(new FriendLinkApprovedEvent(linkId, avatar, reqInfo.getUserId()));
     }
 
     private FriendLinkDO getExisting(Long id) {
