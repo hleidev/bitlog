@@ -88,6 +88,7 @@ const handleMobileLogin = () => {
         <nav class="header__nav">
           <RouterLink to="/" class="header__nav-link">首页</RouterLink>
           <RouterLink to="/articles" class="header__nav-link">文章</RouterLink>
+          <RouterLink to="/friends" class="header__nav-link">友链</RouterLink>
         </nav>
 
         <div class="header__actions">
@@ -164,6 +165,9 @@ const handleMobileLogin = () => {
         >
         <RouterLink to="/articles" class="mobile-drawer__link" @click="mobileMenuOpen = false"
           >文章</RouterLink
+        >
+        <RouterLink to="/friends" class="mobile-drawer__link" @click="mobileMenuOpen = false"
+          >友链</RouterLink
         >
         <div class="mobile-theme-row">
           <button

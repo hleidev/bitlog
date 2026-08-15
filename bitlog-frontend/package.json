@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/generate-sitemap.mjs",
+    "prebuild": "node scripts/generate-sitemap.mjs && node scripts/generate-friend-json.mjs",
     "build": "vue-tsc --noEmit && vite-ssg build",
     "postbuild": "node scripts/verify-ssg.mjs",
     "preview": "vite preview",

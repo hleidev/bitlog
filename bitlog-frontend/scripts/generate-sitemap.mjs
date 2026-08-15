@@ -29,6 +29,7 @@ function buildSitemap(articles) {
   const pages = [
     { loc: `${SITE_URL}/`, changefreq: 'weekly', priority: '1.0' },
     { loc: `${SITE_URL}/articles`, changefreq: 'daily', priority: '0.9' },
+    { loc: `${SITE_URL}/friends`, changefreq: 'monthly', priority: '0.5' },
     ...articles.map((a) => ({
       loc: `${SITE_URL}/article/${a.id}`,
       lastmod: a.publishTime ? a.publishTime.slice(0, 10) : undefined,
