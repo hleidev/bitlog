@@ -4,6 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import top.harrylei.bitlog.api.model.link.req.FriendLinkSaveParam;
+import top.harrylei.bitlog.api.model.link.vo.FriendLinkAdminVO;
 import top.harrylei.bitlog.api.model.link.vo.FriendLinkVO;
 import top.harrylei.bitlog.api.model.link.vo.MyFriendLinkVO;
 import top.harrylei.bitlog.link.repository.entity.FriendLinkDO;
@@ -30,6 +31,12 @@ public interface FriendLinkConverter {
      * FriendLinkDO → MyFriendLinkVO（仅返回给申请人本人）
      */
     MyFriendLinkVO toMyVO(FriendLinkDO friendLink);
+
+    /**
+     * FriendLinkDO → FriendLinkAdminVO（申请人由服务层填充）
+     */
+    @Mapping(target = "applicant", ignore = true)
+    FriendLinkAdminVO toAdminVO(FriendLinkDO friendLink);
 
     /**
      * 把提交内容覆盖到实体上

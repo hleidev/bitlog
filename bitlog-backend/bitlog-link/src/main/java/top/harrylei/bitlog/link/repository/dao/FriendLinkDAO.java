@@ -1,8 +1,12 @@
 package top.harrylei.bitlog.link.repository.dao;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.link.FriendLinkStatusEnum;
+import top.harrylei.bitlog.api.model.link.query.FriendLinkPageParam;
 import top.harrylei.bitlog.link.repository.entity.FriendLinkDO;
 import top.harrylei.bitlog.link.repository.mapper.FriendLinkMapper;
 
@@ -40,19 +44,40 @@ public class FriendLinkDAO extends ServiceImpl<FriendLinkMapper, FriendLinkDO> {
     }
 
     /**
-     * 覆盖自助修改可写的字段
+     * 管理端分页：状态精确匹配，关键词同时命中站点名称与地址
+     */
+    public IPage<FriendLinkDO> pageForAdmin(FriendLinkPageParam param, Page<FriendLinkDO> page) {
+        return lambdaQuery().eq(param.getStatus() != null, FriendLinkDO::getStatus, param.getStatus()).and(
+            StringUtils.hasText(param.getKeyword()),
+            w -> w.like(FriendLinkDO::getName, param.getKeyword()).or().like(FriendLinkDO::getUrl, param.getKeyword()))
+            .page(page);
+    }
+
+    /**
+     * 置状态并写入拒绝理由，审核与自助重新提交共用
      * <p>
-     * 不能用 updateById：MyBatis-Plus 默认 NOT_NULL 更新策略会把值为 null 的列从 SET 子句里剔掉， 于是清空头像、清空简介、以及重新提交时清除拒绝理由全都会静默失效。 逐列显式 set
-     * 顺带框死了自助路径能改哪些列，userId 碰不到。
+     * 理由须显式 set：MyBatis-Plus 默认 NOT_NULL 更新策略会把 null 从 SET 子句里剔掉， 传 null 想清空反而会让上一次拒绝的说明留在库里，申请人下次被拒看到的是旧文案。
      * </p>
      */
-    public boolean updateSelfService(FriendLinkDO friendLink) {
+    public boolean updateStatus(Long id, FriendLinkStatusEnum status, String rejectReason) {
+        return lambdaUpdate().eq(FriendLinkDO::getId, id).set(FriendLinkDO::getStatus, status)
+            .set(FriendLinkDO::getRejectReason, rejectReason).update();
+    }
+
+    /**
+     * 覆盖内容字段，自助修改与站长编辑共用
+     * <p>
+     * 只列内容列，不含 status 与 rejectReason：改简介不该顺带把审核状态写回去， 否则与并发的审核操作互相覆盖。归属列 userId 同样碰不到。
+     * </p>
+     * <p>
+     * 同样不能用 updateById，理由见 {@link #updateStatus}。
+     * </p>
+     */
+    public boolean updateContent(FriendLinkDO friendLink) {
         return lambdaUpdate().eq(FriendLinkDO::getId, friendLink.getId())
             .set(FriendLinkDO::getName, friendLink.getName()).set(FriendLinkDO::getUrl, friendLink.getUrl())
             .set(FriendLinkDO::getAvatar, friendLink.getAvatar())
             .set(FriendLinkDO::getDescription, friendLink.getDescription())
-            .set(FriendLinkDO::getApplyMessage, friendLink.getApplyMessage())
-            .set(FriendLinkDO::getStatus, friendLink.getStatus())
-            .set(FriendLinkDO::getRejectReason, friendLink.getRejectReason()).update();
+            .set(FriendLinkDO::getApplyMessage, friendLink.getApplyMessage()).update();
     }
 }

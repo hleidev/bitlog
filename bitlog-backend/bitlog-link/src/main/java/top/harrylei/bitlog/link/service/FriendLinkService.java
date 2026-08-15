@@ -1,8 +1,12 @@
 package top.harrylei.bitlog.link.service;
 
+import top.harrylei.bitlog.api.model.link.query.FriendLinkPageParam;
+import top.harrylei.bitlog.api.model.link.req.FriendLinkAuditParam;
 import top.harrylei.bitlog.api.model.link.req.FriendLinkSaveParam;
+import top.harrylei.bitlog.api.model.link.vo.FriendLinkAdminVO;
 import top.harrylei.bitlog.api.model.link.vo.FriendLinkVO;
 import top.harrylei.bitlog.api.model.link.vo.MyFriendLinkVO;
+import top.harrylei.bitlog.common.model.PageVO;
 
 import java.util.List;
 
@@ -55,4 +59,43 @@ public interface FriendLinkService {
      * @param userId 当前用户
      */
     void deleteMine(Long userId);
+
+    /**
+     * 管理端分页查询
+     *
+     * @param param 查询参数
+     * @return 分页结果
+     */
+    PageVO<FriendLinkAdminVO> pageForAdmin(FriendLinkPageParam param);
+
+    /**
+     * 站长手动录入友链，直接进入展示状态
+     *
+     * @param param 提交内容
+     * @return 新建友链的 ID
+     */
+    Long saveByAdmin(FriendLinkSaveParam param);
+
+    /**
+     * 站长编辑友链内容
+     *
+     * @param id 友链 ID
+     * @param param 提交内容
+     */
+    void updateByAdmin(Long id, FriendLinkSaveParam param);
+
+    /**
+     * 审核友链
+     *
+     * @param id 友链 ID
+     * @param param 审核结果
+     */
+    void audit(Long id, FriendLinkAuditParam param);
+
+    /**
+     * 删除友链
+     *
+     * @param id 友链 ID
+     */
+    void deleteByAdmin(Long id);
 }
