@@ -117,47 +117,69 @@ async function handleBatchDelete() {
   }
 }
 
+const STATUS_TABS: { value: CommentStatus | 0; label: string }[] = [
+  { value: 0, label: '全部' },
+  { value: 1, label: '显示中' },
+  { value: 2, label: '已隐藏' },
+]
+
 function clearKeyword() {
   filters.keyword = ''
 }
 
 function formatTime(iso: string) {
-  return iso ? iso.slice(0, 16) : ''
+  // 去掉 ISO 的 T，否则窄列里会从 T 处折行
+  return iso ? iso.slice(0, 16).replace('T', ' ') : ''
 }
 </script>
 
 <template>
   <div class="main-card">
-    <!-- 筛选 -->
-    <div class="card-toolbar">
-      <div class="search-wrap">
-        <svg
-          class="search-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
+    <!-- 头部与文章页、用户页同构：左 tabs、右操作，同一行 -->
+    <div class="card-header">
+      <div class="view-tabs">
+        <button
+          v-for="tab in STATUS_TABS"
+          :key="tab.value"
+          class="view-tab"
+          :class="{ 'view-tab--active': filters.status === tab.value }"
+          @click="filters.status = tab.value"
         >
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <input
-          v-model="filters.keyword"
-          class="search-input"
-          placeholder="搜索评论内容"
-          @keyup.enter="applyFilter"
-        />
-        <button v-if="filters.keyword" class="search-clear" @click="clearKeyword">
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <div class="header-actions">
+        <div class="search-wrap">
+          <svg
+            class="search-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            v-model="filters.keyword"
+            class="search-input"
+            placeholder="搜索评论内容"
+            @keyup.enter="applyFilter"
+          />
+          <button v-if="filters.keyword" class="search-clear" @click="clearKeyword">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <button class="icon-btn" title="刷新" @click="fetchComments">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6 6 18M6 6l12 12" />
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
           </svg>
         </button>
       </div>
-      <select v-model="filters.status" class="filter-select">
-        <option :value="0">全部状态</option>
-        <option :value="1">正常</option>
-        <option :value="2">已隐藏</option>
-      </select>
     </div>
 
     <!-- 批量操作条 -->
@@ -247,7 +269,7 @@ function formatTime(iso: string) {
             </td>
             <td class="col-status">
               <span class="status-badge" :class="row.status === 1 ? 'is-normal' : 'is-hidden'">
-                {{ row.status === 1 ? '正常' : '已隐藏' }}
+                {{ row.status === 1 ? '显示中' : '已隐藏' }}
               </span>
             </td>
             <td class="col-actions">
@@ -281,7 +303,7 @@ function formatTime(iso: string) {
             />
             <span class="data-card__author">{{ row.user?.username ?? '—' }}</span>
             <span class="status-badge" :class="row.status === 1 ? 'is-normal' : 'is-hidden'">
-              {{ row.status === 1 ? '正常' : '已隐藏' }}
+              {{ row.status === 1 ? '显示中' : '已隐藏' }}
             </span>
           </div>
           <p class="data-card__text">{{ row.content }}</p>
@@ -319,14 +341,6 @@ function formatTime(iso: string) {
 </template>
 
 <style scoped>
-.card-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--admin-sidebar-border);
-}
-
 .table-loading {
   position: absolute;
   inset: 0;
@@ -335,19 +349,6 @@ function formatTime(iso: string) {
   justify-content: center;
   background: rgba(var(--admin-surface-rgb), 0.7);
   z-index: 1;
-}
-
-.filter-select {
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: var(--admin-radius);
-  background: var(--admin-surface-input);
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text);
-  outline: none;
-  cursor: pointer;
 }
 
 .comment-text {
@@ -376,10 +377,6 @@ function formatTime(iso: string) {
 
 .col-article {
   width: 200px;
-}
-
-.col-time {
-  width: 130px;
 }
 
 .col-status {
