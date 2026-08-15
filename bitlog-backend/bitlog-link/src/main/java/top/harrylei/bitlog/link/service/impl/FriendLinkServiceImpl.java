@@ -7,6 +7,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import top.harrylei.bitlog.api.enums.link.FriendLinkStatusEnum;
 import top.harrylei.bitlog.api.model.link.query.FriendLinkPageParam;
 import top.harrylei.bitlog.api.model.link.req.FriendLinkAuditParam;
@@ -21,6 +23,7 @@ import top.harrylei.bitlog.api.model.user.vo.UserVO;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.util.RateLimiter;
+import top.harrylei.bitlog.file.service.FileService;
 import top.harrylei.bitlog.file.util.FileUrlHelper;
 import top.harrylei.bitlog.link.event.FriendLinkApprovedEvent;
 import top.harrylei.bitlog.user.port.UserPort;
@@ -54,6 +57,7 @@ public class FriendLinkServiceImpl implements FriendLinkService {
     private final RateLimiter rateLimiter;
     private final UserPort userPort;
     private final FileUrlHelper fileUrlHelper;
+    private final FileService fileService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -107,6 +111,7 @@ public class FriendLinkServiceImpl implements FriendLinkService {
             checkUrlAvailable(url, friendLink.getId());
         }
 
+        String oldAvatar = friendLink.getAvatar();
         friendLinkConverter.applyToEntity(param, friendLink);
         applyOptionalFields(friendLink, param);
         friendLink.setUrl(url);
@@ -119,6 +124,7 @@ public class FriendLinkServiceImpl implements FriendLinkService {
             friendLinkDAO.updateStatus(friendLink.getId(), FriendLinkStatusEnum.PENDING, null);
             friendLink.setStatus(FriendLinkStatusEnum.PENDING);
         }
+        onAvatarChanged(friendLink, oldAvatar);
 
         log.info("修改友链 userId={} linkId={} urlChanged={} status={}", userId, friendLink.getId(), urlChanged,
             friendLink.getStatus());
@@ -135,6 +141,7 @@ public class FriendLinkServiceImpl implements FriendLinkService {
         }
 
         friendLinkDAO.removeById(friendLink.getId());
+        deleteObjectAfterCommit(friendLink.getAvatar());
         log.info("删除友链 userId={} linkId={}", userId, friendLink.getId());
     }
 
@@ -184,11 +191,13 @@ public class FriendLinkServiceImpl implements FriendLinkService {
             checkUrlAvailable(url, id);
         }
 
+        String oldAvatar = friendLink.getAvatar();
         friendLinkConverter.applyToEntity(param, friendLink);
         applyOptionalFields(friendLink, param);
         friendLink.setUrl(url);
         // 只改内容：站长自己改的东西不必退回自己审，状态列也就不该被这次写入碰到
         friendLinkDAO.updateContent(friendLink);
+        onAvatarChanged(friendLink, oldAvatar);
 
         log.info("站长修改友链 linkId={}", id);
     }
@@ -223,8 +232,9 @@ public class FriendLinkServiceImpl implements FriendLinkService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteByAdmin(Long id) {
-        getExisting(id);
+        FriendLinkDO friendLink = getExisting(id);
         friendLinkDAO.removeById(id);
+        deleteObjectAfterCommit(friendLink.getAvatar());
         log.info("站长删除友链 linkId={}", id);
     }
 
@@ -270,6 +280,40 @@ public class FriendLinkServiceImpl implements FriendLinkService {
     }
 
     /**
+     * 头像换掉后的收尾：新外链交给转存，旧的自有对象顺手回收
+     * <p>
+     * 只有仍在展示中的友链才转存。退回待审的等过审那一刻再转——未过审就转存等于让刷申请的人 往对象存储里灌垃圾，审核是天然的闸门。
+     * </p>
+     */
+    private void onAvatarChanged(FriendLinkDO friendLink, String oldAvatar) {
+        if (Objects.equals(oldAvatar, friendLink.getAvatar())) {
+            return;
+        }
+        if (friendLink.getStatus() == FriendLinkStatusEnum.APPROVED) {
+            publishApproved(friendLink.getId(), friendLink.getAvatar());
+        }
+        deleteObjectAfterCommit(oldAvatar);
+    }
+
+    /**
+     * 提交后回收自有存储里的孤儿对象
+     * <p>
+     * 外链不是本站的东西，跳过。删除放到提交之后：事务一旦回滚，记录还在而对象已经没了。
+     * </p>
+     */
+    private void deleteObjectAfterCommit(String avatar) {
+        if (!StringUtils.hasText(avatar) || SiteUrlNormalizer.isValid(avatar)) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                fileService.delete(avatar);
+            }
+        });
+    }
+
+    /**
      * 批量取申请人，跨域走 UserPort，不直接注入用户域的服务
      */
     private Map<Long, UserVO> loadApplicants(List<FriendLinkDO> links) {
@@ -306,9 +350,20 @@ public class FriendLinkServiceImpl implements FriendLinkService {
 
     /**
      * 头像选填，非法地址按未填处理——为一张图片挡下整次申请不值得，前端本就会退回站名首字
+     * <p>
+     * 已转存的头像出站时被拼成完整 URL，客户端回填表单后原样送回来。这里必须还原成 key： 直接存下带存储域名的绝对地址，公开地址一变这些行就全部破图，全站其余模块存的都是 key。
+     * </p>
      */
     private String normalizeAvatar(String avatar) {
-        return SiteUrlNormalizer.isValid(avatar) ? avatar.trim() : null;
+        if (!StringUtils.hasText(avatar)) {
+            return null;
+        }
+        String trimmed = avatar.trim();
+        String key = fileUrlHelper.extractKey(trimmed);
+        if (!key.equals(trimmed)) {
+            return key;
+        }
+        return SiteUrlNormalizer.isValid(trimmed) ? trimmed : null;
     }
 
     private void checkRateLimit(Long userId) {
