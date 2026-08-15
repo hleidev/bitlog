@@ -22,10 +22,13 @@ import java.util.List;
 public class FriendLinkDAO extends ServiceImpl<FriendLinkMapper, FriendLinkDO> {
 
     /**
-     * 公开展示的友链，新加入的排在前面
+     * 公开展示的友链，早加入的排在前面
+     * <p>
+     * 老朋友占最显眼的位置，新朋友往后排。
+     * </p>
      */
     public List<FriendLinkDO> listApproved() {
-        return lambdaQuery().eq(FriendLinkDO::getStatus, FriendLinkStatusEnum.APPROVED).orderByDesc(FriendLinkDO::getId)
+        return lambdaQuery().eq(FriendLinkDO::getStatus, FriendLinkStatusEnum.APPROVED).orderByAsc(FriendLinkDO::getId)
             .list();
     }
 

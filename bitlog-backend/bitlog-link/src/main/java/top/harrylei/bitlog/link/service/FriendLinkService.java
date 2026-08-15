@@ -19,7 +19,7 @@ import java.util.List;
 public interface FriendLinkService {
 
     /**
-     * 查询公开展示的友链，新加入的排在前面
+     * 查询公开展示的友链，早加入的排在前面
      *
      * @return 已通过审核的友链列表
      */
