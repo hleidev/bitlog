@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import top.harrylei.bitlog.api.enums.link.FriendLinkStatusEnum;
-import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.model.BaseDO;
 
 import java.io.Serial;
@@ -64,9 +63,4 @@ public class FriendLinkDO extends BaseDO {
      * 友链状态：待审核/已通过/已拒绝
      */
     private FriendLinkStatusEnum status;
-
-    /**
-     * 是否删除：0-未删除，1-已删除
-     */
-    private DeleteStatusEnum deleted;
 }

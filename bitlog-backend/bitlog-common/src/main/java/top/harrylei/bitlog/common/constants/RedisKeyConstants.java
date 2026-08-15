@@ -26,6 +26,7 @@ public class RedisKeyConstants {
     private static final String LOGIN_FAIL_USER = GLOBAL_PREFIX + "login:fail:user:";
     private static final String ARTICLE_READ = GLOBAL_PREFIX + "article:read:";
     private static final String COMMENT_RATE = GLOBAL_PREFIX + "comment:rate:";
+    private static final String LINK_RATE = GLOBAL_PREFIX + "link:rate:";
     private static final String VERIFY_CODE = USER + "code:";
     private static final String MAIL_RATE = GLOBAL_PREFIX + "mail:rate:";
     private static final String REGISTER_RATE = GLOBAL_PREFIX + "register:rate:";
@@ -90,5 +91,9 @@ public class RedisKeyConstants {
 
     public static String getCommentHourlyKey(Long userId) {
         return COMMENT_RATE + "hourly:" + userId;
+    }
+
+    public static String getLinkWriteKey(Long userId) {
+        return LINK_RATE + "write:" + userId;
     }
 }

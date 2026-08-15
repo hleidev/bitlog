@@ -42,7 +42,7 @@ public enum ResultCode implements IResultCode {
     COMMENT_TOO_FREQUENT(46003, "评论过于频繁，请稍后再试"), COMMENT_NOT_ALLOWED(46004, "该文章当前不可评论"),
 
     // ========== 友链 47xxx ==========
-    LINK_NOT_EXISTS(47001, "友链不存在"), LINK_ALREADY_APPLIED(47002, "已提交过友链申请"), LINK_URL_TAKEN(47003, "该站点地址已被申请"),
+    LINK_NOT_EXISTS(47001, "友链不存在"), LINK_ALREADY_APPLIED(47002, "已提交过友链申请"), LINK_URL_TAKEN(47003, "该站点已在友链中"),
     LINK_TOO_FREQUENT(47004, "操作过于频繁，请稍后再试"), LINK_STATUS_ILLEGAL(47005, "当前状态不允许该操作"),
 
     // ========== 系统 50xxx ==========
