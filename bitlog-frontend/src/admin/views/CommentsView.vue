@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
-import AdminEmptyState from '@/admin/components/AdminEmptyState.vue'
+import { formatDateTime } from '@/utils/format'
+import AdminIcon from '@/admin/components/AdminIcon.vue'
+import AdminListHeader from '@/admin/components/AdminListHeader.vue'
 import AdminPagination from '@/admin/components/AdminPagination.vue'
+import AdminSelectionBar from '@/admin/components/AdminSelectionBar.vue'
 import { useListQuery } from '@/composables/useListQuery'
 import {
   getAdminCommentPage,
+  getCommentStats,
   updateCommentStatus,
   deleteComments,
   type CommentAdmin,
@@ -16,6 +20,9 @@ import {
 
 const toast = useToast()
 const confirm = useConfirm()
+
+/** 本页量词，批量条与操作提示共用 */
+const UNIT = '条'
 
 const selected = reactive(new Set<number>())
 
@@ -32,6 +39,7 @@ const query = useListQuery({
   pageSize: 20,
   debounce: ['keyword'],
   syncUrl: true,
+  onFiltersApplied: fetchTabCounts,
   onError: () => toast.error('加载评论失败'),
 })
 
@@ -69,6 +77,7 @@ async function handleToggleStatus(row: CommentAdmin) {
     await updateCommentStatus(row.id, next)
     row.status = next
     toast.success(next === 2 ? '已隐藏' : '已恢复')
+    fetchTabCounts()
   } catch {
     toast.error('操作失败')
   } finally {
@@ -89,6 +98,7 @@ async function handleDelete(row: CommentAdmin) {
     await deleteComments([row.id])
     toast.success('已删除')
     await fetchComments()
+    fetchTabCounts()
   } catch {
     toast.error('删除失败')
   }
@@ -108,8 +118,9 @@ async function handleBatchDelete() {
   acting.value = true
   try {
     await deleteComments(ids)
-    toast.success(`已删除 ${ids.length} 条`)
+    toast.success(`已删除 ${ids.length} ${UNIT}`)
     await fetchComments()
+    fetchTabCounts()
   } catch {
     toast.error('删除失败')
   } finally {
@@ -117,89 +128,65 @@ async function handleBatchDelete() {
   }
 }
 
-const STATUS_TABS: { value: CommentStatus | 0; label: string }[] = [
-  { value: 0, label: '全部' },
-  { value: 1, label: '显示中' },
-  { value: 2, label: '已隐藏' },
-]
+// tab 顺序：全部 → 主要工作对象 → 其余。计数恒显示，含 0
+const tabCounts = reactive({ all: 0, visible: 0, hidden: 0 })
 
-function clearKeyword() {
-  filters.keyword = ''
+const TAB_STATUS: Record<string, CommentStatus | 0> = { all: 0, visible: 1, hidden: 2 }
+
+const tabs = computed(() => [
+  { key: 'all', label: '全部', count: tabCounts.all },
+  { key: 'visible', label: '显示中', count: tabCounts.visible },
+  { key: 'hidden', label: '已隐藏', count: tabCounts.hidden },
+])
+
+const activeTab = computed({
+  get: () => Object.keys(TAB_STATUS).find((k) => TAB_STATUS[k] === filters.status) ?? 'all',
+  set: (key: string) => {
+    filters.status = TAB_STATUS[key] ?? 0
+  },
+})
+
+async function fetchTabCounts() {
+  try {
+    const stats = await getCommentStats({ keyword: filters.keyword })
+    tabCounts.all = stats.total
+    tabCounts.visible = stats.visible
+    tabCounts.hidden = stats.hidden
+  } catch {
+    /* 统计失败不影响主流程 */
+  }
 }
 
-function formatTime(iso: string) {
-  // 去掉 ISO 的 T，否则窄列里会从 T 处折行
-  return iso ? iso.slice(0, 16).replace('T', ' ') : ''
+onMounted(fetchTabCounts)
+
+function handleReset() {
+  filters.keyword = ''
+  filters.status = 0
 }
 </script>
 
 <template>
   <div class="main-card">
-    <!-- 头部与文章页、用户页同构：左 tabs、右操作，同一行 -->
-    <div class="card-header">
-      <div class="view-tabs">
-        <button
-          v-for="tab in STATUS_TABS"
-          :key="tab.value"
-          class="view-tab"
-          :class="{ 'view-tab--active': filters.status === tab.value }"
-          @click="filters.status = tab.value"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
+    <AdminListHeader
+      v-model:active-tab="activeTab"
+      v-model:keyword="filters.keyword"
+      :tabs="tabs"
+      search-placeholder="搜索评论内容"
+      @search="applyFilter"
+      @reset="handleReset"
+    />
 
-      <div class="header-actions">
-        <div class="search-wrap">
-          <svg
-            class="search-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            v-model="filters.keyword"
-            class="search-input"
-            placeholder="搜索评论内容"
-            @keyup.enter="applyFilter"
-          />
-          <button v-if="filters.keyword" class="search-clear" @click="clearKeyword">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <button class="icon-btn" title="刷新" @click="fetchComments">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <path d="M3 3v5h5" />
-          </svg>
-        </button>
-      </div>
-    </div>
+    <AdminSelectionBar :count="selected.size" :unit="UNIT" @clear="clearSelection">
+      <button
+        class="ghost-btn ghost-btn--sm ghost-btn--danger"
+        :disabled="acting"
+        @click="handleBatchDelete"
+      >
+        批量删除
+      </button>
+    </AdminSelectionBar>
 
-    <!-- 批量操作条 -->
-    <Transition name="sel-bar">
-      <div v-if="selected.size > 0" class="selection-bar">
-        <span class="sel-count">已选 {{ selected.size }} 条</span>
-        <div class="sel-actions">
-          <button class="ghost-btn ghost-btn--sm" @click="clearSelection">取消选择</button>
-          <button
-            class="ghost-btn ghost-btn--sm ghost-btn--danger"
-            :disabled="acting"
-            @click="handleBatchDelete"
-          >
-            删除
-          </button>
-        </div>
-      </div>
-    </Transition>
-
-    <div v-if="loading || comments.length > 0" class="table-wrap">
+    <div class="table-wrap" :class="{ 'table-wrap--loading': loading }">
       <div v-if="loading" class="table-loading">
         <svg class="spinner" viewBox="0 0 24 24" fill="none">
           <circle
@@ -208,8 +195,8 @@ function formatTime(iso: string) {
             r="9"
             stroke="currentColor"
             stroke-width="2"
-            stroke-linecap="round"
-            stroke-dasharray="40 20"
+            stroke-dasharray="40"
+            stroke-dashoffset="15"
           />
         </svg>
       </div>
@@ -224,15 +211,25 @@ function formatTime(iso: string) {
                 @change="toggleAll"
               />
             </th>
-            <th>评论内容</th>
-            <th class="col-user">评论者</th>
-            <th class="col-article">所属文章</th>
+            <th class="col-main">评论内容</th>
+            <th class="col-name">评论者</th>
+            <th class="col-text">所属文章</th>
             <th class="col-time">时间</th>
             <th class="col-status">状态</th>
-            <th class="col-actions">操作</th>
+            <th class="col-actions" />
           </tr>
         </thead>
         <tbody>
+          <tr v-if="comments.length === 0 && !loading">
+            <td colspan="7" class="empty-cell">
+              <div class="empty-state">
+                <AdminIcon name="comment" class="empty-icon" />
+                <span>{{
+                  filters.keyword || filters.status ? '没有匹配的评论' : '还没有评论'
+                }}</span>
+              </div>
+            </td>
+          </tr>
           <tr
             v-for="row in comments"
             :key="row.id"
@@ -246,14 +243,14 @@ function formatTime(iso: string) {
                 @change="toggleRow(row.id)"
               />
             </td>
-            <td>
-              <span class="comment-text">{{ row.content }}</span>
+            <td class="col-main" :title="row.content">
               <span v-if="row.rootId !== null" class="reply-flag">回复</span>
+              {{ row.content }}
             </td>
-            <td class="col-user">
+            <td class="col-name">
               <span class="cell-muted">{{ row.user?.username ?? '—' }}</span>
             </td>
-            <td class="col-article">
+            <td class="col-text">
               <RouterLink
                 v-if="row.articleTitle"
                 :to="`/article/${row.articleId}`"
@@ -265,10 +262,13 @@ function formatTime(iso: string) {
               <span v-else class="cell-muted">文章已删除</span>
             </td>
             <td class="col-time">
-              <span class="cell-muted">{{ formatTime(row.createTime) }}</span>
+              <span class="cell-muted">{{ formatDateTime(row.createTime) }}</span>
             </td>
             <td class="col-status">
-              <span class="status-badge" :class="row.status === 1 ? 'is-normal' : 'is-hidden'">
+              <span
+                class="status-badge"
+                :class="row.status === 1 ? 'status-badge--ok' : 'status-badge--danger'"
+              >
                 {{ row.status === 1 ? '显示中' : '已隐藏' }}
               </span>
             </td>
@@ -302,14 +302,17 @@ function formatTime(iso: string) {
               @change="toggleRow(row.id)"
             />
             <span class="data-card__author">{{ row.user?.username ?? '—' }}</span>
-            <span class="status-badge" :class="row.status === 1 ? 'is-normal' : 'is-hidden'">
+            <span
+              class="status-badge"
+              :class="row.status === 1 ? 'status-badge--ok' : 'status-badge--danger'"
+            >
               {{ row.status === 1 ? '显示中' : '已隐藏' }}
             </span>
           </div>
           <p class="data-card__text">{{ row.content }}</p>
           <div class="data-card__meta">
             <span class="cell-muted">{{ row.articleTitle ?? '文章已删除' }}</span>
-            <span class="cell-muted">{{ formatTime(row.createTime) }}</span>
+            <span class="cell-muted">{{ formatDateTime(row.createTime) }}</span>
           </div>
           <div class="data-card__actions">
             <button class="action-btn" :disabled="acting" @click="handleToggleStatus(row)">
@@ -321,11 +324,6 @@ function formatTime(iso: string) {
       </ul>
     </div>
 
-    <AdminEmptyState
-      v-if="!loading && comments.length === 0"
-      :message="filters.keyword || filters.status ? '没有匹配的评论' : '还没有评论'"
-    />
-
     <!-- 分页 -->
     <AdminPagination
       :total="total"
@@ -333,7 +331,6 @@ function formatTime(iso: string) {
       :page-size="pageSize"
       :total-pages="totalPages"
       :page-numbers="pageNumbers"
-      unit="条"
       @go="query.goPage"
       @size="query.setPageSize"
     />
@@ -341,23 +338,10 @@ function formatTime(iso: string) {
 </template>
 
 <style scoped>
-.table-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(var(--admin-surface-rgb), 0.7);
-  z-index: 1;
-}
-
-.comment-text {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: break-word;
+/* 固定列合计 40+140+200+150+100+148=778，再给主列留 240px 下限；窄于此宽度改为横向滚动，
+   而不是把主列压成 0（见 variables.css 中 .data-table 的说明） */
+.data-table {
+  min-width: 1020px;
 }
 
 .reply-flag {
@@ -371,52 +355,13 @@ function formatTime(iso: string) {
   vertical-align: middle;
 }
 
-.col-user {
-  width: 110px;
-}
-
-.col-article {
-  width: 200px;
-}
-
-.col-status {
-  width: 80px;
-}
-
-.col-actions {
-  width: 130px;
-}
-
 .article-link {
-  display: block;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--admin-sidebar-text);
   text-decoration: none;
 }
 
 .article-link:hover {
   color: var(--admin-accent);
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: var(--admin-radius);
-  font-size: 11.5px;
-  white-space: nowrap;
-}
-
-.status-badge.is-normal {
-  background: var(--admin-sidebar-hover);
-  color: var(--admin-sidebar-text-muted);
-}
-
-.status-badge.is-hidden {
-  background: var(--color-danger-bg, #fef2f2);
-  color: var(--color-danger, #dc2626);
 }
 
 .row--hidden td {

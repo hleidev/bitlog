@@ -24,6 +24,11 @@ export interface UseListQueryOptions<F extends Filters, T> {
   sanitize?: (filters: F) => void
   /** 首次是否自动拉取；SSG 预渲染场景传 false，并在挂载后调用 start() 再开始监听过滤变更 */
   immediate?: boolean
+  /**
+   * 过滤条件落定后触发（防抖之后，翻页不触发）。
+   * 后台列表用它同步 tab 计数：计数必须跟着搜索词走，否则搜出 2 行而 tab 仍写着总数。
+   */
+  onFiltersApplied?: () => void
   onError?: (err: unknown) => void
 }
 
@@ -68,6 +73,7 @@ export function useListQuery<F extends Filters, T>(
     toParams = (f: F) => ({ ...f }),
     debounce = [],
     debounceMs = 300,
+    onFiltersApplied,
     syncUrl = false,
     immediate = true,
     sanitize,
@@ -175,6 +181,7 @@ export function useListQuery<F extends Filters, T>(
     pageNum.value = 1
     writeUrl()
     void load()
+    onFiltersApplied?.()
   }
 
   function goPage(n: number) {

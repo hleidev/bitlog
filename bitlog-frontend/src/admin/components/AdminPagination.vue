@@ -2,13 +2,12 @@
 import { PAGE_SIZE_OPTIONS } from '@/constants/pagination'
 
 defineProps<{
+  /** 仅用于判断是否渲染分页条；总数由 tab 上的计数呈现，这里不再重复显示 */
   total: number
   pageNum: number
   pageSize: number
   totalPages: number
   pageNumbers: (number | '…')[]
-  /** 总数后缀，如「篇」「人」「条」 */
-  unit: string
   pageSizeOptions?: number[]
 }>()
 
@@ -24,7 +23,6 @@ function onSizeChange(event: Event) {
 
 <template>
   <div v-if="total > 0" class="pagination-bar">
-    <span class="pagination-total">共 {{ total }} {{ unit }}</span>
     <div class="pagination-controls">
       <button class="page-btn" :disabled="pageNum <= 1" @click="emit('go', pageNum - 1)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -63,14 +61,6 @@ function onSizeChange(event: Event) {
   gap: 8px;
   padding: 12px 20px;
   border-top: 1px solid var(--admin-sidebar-border);
-}
-
-.pagination-total {
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted);
-  white-space: nowrap;
-  margin-right: 4px;
 }
 
 .pagination-controls {

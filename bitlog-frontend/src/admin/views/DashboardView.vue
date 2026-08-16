@@ -4,8 +4,13 @@ import { RouterLink } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/useUserStore'
 import { useToast } from '@/admin/composables/useToast'
-import { getMyArticles, type ArticleCounts, type ArticleVO } from '@/api/admin/article'
-import { getAdminCommentPage } from '@/api/admin/comment'
+import {
+  getMyArticles,
+  getMyArticleStats,
+  type ArticleCounts,
+  type ArticleVO,
+} from '@/api/admin/article'
+import { getCommentStats } from '@/api/admin/comment'
 import { formatDate } from '@/utils/format'
 import AdminEmptyState from '@/admin/components/AdminEmptyState.vue'
 
@@ -35,8 +40,8 @@ const commentTotal = ref(0)
 const commentLoading = ref(true)
 const commentFailed = ref(false)
 
-// 统计卡和「最近文章」共用同一个请求：/article/my 一次同时返回 counts 与首页分页数据。
-// 排序下推到后端：只拿回 RECENT_LIMIT 条，前端重排无效。
+// 统计与列表分属两个接口：/article/my 只返回标准 PageResult，计数走 /article/my/stats。
+// 两者无依赖，并发发出。排序下推到后端：只拿回 RECENT_LIMIT 条，前端重排无效。
 onMounted(async () => {
   // 文章与评论接口均仅管理员可用，非管理员直接跳过取数
   if (!isAdmin.value) {
@@ -46,13 +51,12 @@ onMounted(async () => {
   }
 
   try {
-    const res = await getMyArticles({
-      pageNum: 1,
-      pageSize: RECENT_LIMIT,
-      sortField: 'DISPLAY_TIME',
-    })
-    counts.value = res.counts
-    recent.value = res.page.content
+    const [articleStats, page] = await Promise.all([
+      getMyArticleStats(),
+      getMyArticles({ pageNum: 1, pageSize: RECENT_LIMIT, sortField: 'DISPLAY_TIME' }),
+    ])
+    counts.value = articleStats
+    recent.value = page.content
   } catch {
     loadFailed.value = true
     toast.error('加载仪表盘数据失败')
@@ -61,8 +65,7 @@ onMounted(async () => {
   }
 
   try {
-    const res = await getAdminCommentPage({ pageNum: 1, pageSize: 1 })
-    commentTotal.value = res.totalElements
+    commentTotal.value = (await getCommentStats()).total
   } catch {
     commentFailed.value = true
   } finally {
@@ -193,12 +196,10 @@ function displayDate(row: ArticleVO): string {
             {{ row.title || '无标题' }}
           </component>
           <div class="recent-meta">
-            <span v-if="!isPureDraft(row)" class="status-badge status-badge--published"
-              >已发布</span
-            >
+            <span v-if="!isPureDraft(row)" class="status-badge status-badge--ok">已发布</span>
             <span
               v-if="isPureDraft(row) || hasDraftAbovePublish(row)"
-              class="status-badge status-badge--draft"
+              class="status-badge status-badge--muted"
               >草稿</span
             >
             <span class="recent-date">{{ displayDate(row) }}</span>
@@ -446,29 +447,6 @@ function displayDate(row: ArticleVO): string {
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: var(--admin-radius);
-  font-size: 11.5px;
-  font-weight: 500;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.status-badge--published {
-  background: rgba(var(--admin-status-ok-rgb), 0.08);
-  color: var(--admin-status-ok);
-  border: 1px solid rgba(var(--admin-status-ok-rgb), 0.2);
-}
-
-.status-badge--draft {
-  background: var(--admin-sidebar-hover);
-  color: var(--admin-sidebar-text-muted);
-  border: 1px solid var(--admin-sidebar-border);
 }
 
 .recent-date,

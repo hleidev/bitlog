@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
+import { useRowMenu } from '@/admin/composables/useRowMenu'
+import { formatDateTime } from '@/utils/format'
+import AdminIcon from '@/admin/components/AdminIcon.vue'
+import AdminListHeader from '@/admin/components/AdminListHeader.vue'
 import AdminPagination from '@/admin/components/AdminPagination.vue'
+import AdminSelectionBar from '@/admin/components/AdminSelectionBar.vue'
 import { useListQuery } from '@/composables/useListQuery'
 import {
   getMyArticles,
+  getMyArticleStats,
   updateArticlesStatus,
   deleteArticles,
   generateAiMetadata,
@@ -21,6 +27,11 @@ import ArticleMetaDialog from '@/admin/components/ArticleMetaDialog.vue'
 const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
+
+/** 本页量词，批量条与操作提示共用 */
+const UNIT = '篇'
+
+const { openMenuId, menuStyle, toggleMenu, closeMenu } = useRowMenu()
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const counts = ref<ArticleCounts>({ total: 0, published: 0, draft: 0 })
@@ -39,13 +50,10 @@ const TAB_STATUS: Record<TabKey, ArticleStatus | undefined> = {
 const query = useListQuery({
   filters: { tab: 'all' as TabKey, keyword: '' },
   toParams: (f) => ({ status: TAB_STATUS[f.tab], keyword: f.keyword }),
-  fetch: async (params) => {
-    const res = await getMyArticles(params)
-    counts.value = res.counts
-    return res.page
-  },
+  fetch: (params) => getMyArticles(params),
   debounce: ['keyword'],
   syncUrl: true,
+  onFiltersApplied: fetchTabCounts,
   sanitize: (f) => {
     // hasOwn 而非 in：in 走原型链，?tab=constructor 会被放行
     if (!Object.hasOwn(TAB_STATUS, f.tab)) f.tab = 'all'
@@ -55,27 +63,44 @@ const query = useListQuery({
 
 const { filters, loading, pageNum, pageSize, total, totalPages, pageNumbers } = query
 const articles = query.items
-const activeTab = computed(() => filters.tab)
 const fetchArticles = query.load
 
-function switchTab(tab: TabKey) {
-  if (filters.tab === tab) return
-  clearSelection()
-  filters.tab = tab
+// 顺序：全部 → 主要工作对象 → 其余。计数恒显示，含 0
+const tabs = computed(() => [
+  { key: 'all', label: '全部', count: counts.value.total },
+  { key: 'published', label: '已发布', count: counts.value.published },
+  { key: 'draft', label: '草稿', count: counts.value.draft },
+])
+
+// AdminListHeader 的 model 是 string，这里做一层窄化桥接；切 tab 时清掉选中
+const activeTab = computed({
+  get: (): string => filters.tab,
+  set: (key: string) => {
+    if (filters.tab === key) return
+    clearSelection()
+    filters.tab = key as TabKey
+  },
+})
+
+async function fetchTabCounts() {
+  try {
+    counts.value = await getMyArticleStats({ keyword: filters.keyword })
+  } catch {
+    /* 统计失败不影响主流程 */
+  }
 }
 
-function clearKeyword() {
-  filters.keyword = ''
-}
+onMounted(fetchTabCounts)
 
 function handleSearch() {
   query.applyFilters()
 }
 
+// 重置 = 清空全部筛选并回到「全部」，与其余列表页一致
 function handleReset() {
-  // 只清搜索词，保留当前 tab —— reset() 会把 tab 也退回 all
   clearSelection()
   filters.keyword = ''
+  filters.tab = 'all'
   query.applyFilters()
 }
 
@@ -123,6 +148,7 @@ function handleApiError(err: unknown, fallback = '操作失败') {
     if (err.code === 43001) {
       toast.error('文章不存在，列表已刷新')
       fetchArticles()
+      fetchTabCounts()
     } else if (err.code === 43003) toast.error('无权操作该文章')
     else toast.error(err.message || fallback)
     return
@@ -155,6 +181,7 @@ async function handleTogglePublish(row: ArticleVO) {
     await updateArticlesStatus([row.id], next)
     toast.success(next === 'PUBLISHED' ? '文章已发布' : '已取消发布')
     fetchArticles()
+    fetchTabCounts()
   } catch (err) {
     handleApiError(err, '操作失败')
   }
@@ -170,6 +197,7 @@ async function handleDelete(row: ArticleVO) {
     await deleteArticles([row.id])
     toast.success('文章已删除')
     fetchArticles()
+    fetchTabCounts()
   } catch (err) {
     handleApiError(err, '删除失败')
   }
@@ -192,6 +220,7 @@ async function handleBatchPublish(publish: boolean) {
     toast.success(`已${label} ${ids.length} 篇文章`)
     clearSelection()
     fetchArticles()
+    fetchTabCounts()
   } catch (err) {
     handleApiError(err, `批量${label}失败`)
   }
@@ -212,6 +241,7 @@ async function handleBatchDelete() {
     toast.success(`已删除 ${ids.length} 篇文章`)
     clearSelection()
     fetchArticles()
+    fetchTabCounts()
   } catch (err) {
     handleApiError(err, '批量删除失败')
   }
@@ -330,19 +360,6 @@ async function handleMetaSave(data: {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function relativeTime(d: string) {
-  const diff = Date.now() - new Date(d).getTime()
-  const m = Math.floor(diff / 60000)
-  const h = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-  if (m < 1) return '刚刚'
-  if (m < 60) return `${m} 分钟前`
-  if (h < 24) return `${h} 小时前`
-  if (days < 30) return `${days} 天前`
-  if (days < 365) return `${Math.floor(days / 30)} 个月前`
-  return `${Math.floor(days / 365)} 年前`
-}
-
 function formatViews(n: number) {
   if (n >= 10000) return `${(n / 10000).toFixed(1)}w`
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
@@ -353,94 +370,24 @@ function formatViews(n: number) {
 <template>
   <div class="articles-page">
     <div class="main-card">
-      <!-- ── Header ── -->
-      <div class="card-header">
-        <div class="view-tabs">
-          <button
-            class="view-tab"
-            :class="{ 'view-tab--active': activeTab === 'all' }"
-            @click="switchTab('all')"
-          >
-            全部
-            <span v-if="counts.total > 0" class="tab-count">{{ counts.total }}</span>
-          </button>
-          <button
-            class="view-tab"
-            :class="{ 'view-tab--active': activeTab === 'published' }"
-            @click="switchTab('published')"
-          >
-            已发布
-            <span v-if="counts.published > 0" class="tab-count">{{ counts.published }}</span>
-          </button>
-          <button
-            class="view-tab"
-            :class="{ 'view-tab--active': activeTab === 'draft' }"
-            @click="switchTab('draft')"
-          >
-            草稿
-            <span v-if="counts.draft > 0" class="tab-count">{{ counts.draft }}</span>
-          </button>
-        </div>
+      <AdminListHeader
+        v-model:active-tab="activeTab"
+        v-model:keyword="filters.keyword"
+        :tabs="tabs"
+        search-placeholder="搜索标题"
+        action-label="写文章"
+        @search="handleSearch"
+        @reset="handleReset"
+        @action="router.push('/admin/write')"
+      />
 
-        <div class="header-actions">
-          <div class="search-wrap">
-            <svg
-              class="search-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-            <input
-              v-model="filters.keyword"
-              class="search-input"
-              placeholder="搜索标题"
-              @keyup.enter="handleSearch"
-            />
-            <button v-if="filters.keyword" class="search-clear" @click="clearKeyword">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <button class="icon-btn" title="重置" @click="handleReset">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-          </button>
-          <button class="primary-btn" @click="router.push('/admin/write')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            写文章
-          </button>
-        </div>
-      </div>
-
-      <!-- ── Selection bar ── -->
-      <Transition name="sel-bar">
-        <div v-if="selectedCount > 0" class="selection-bar">
-          <span class="sel-count"
-            >已选 <b>{{ selectedCount }}</b> 篇</span
-          >
-          <div class="sel-actions">
-            <button class="ghost-btn ghost-btn--sm" @click="handleBatchPublish(true)">
-              批量发布
-            </button>
-            <button class="ghost-btn ghost-btn--sm" @click="handleBatchPublish(false)">
-              批量撤回
-            </button>
-            <button class="ghost-btn ghost-btn--sm ghost-btn--danger" @click="handleBatchDelete">
-              批量删除
-            </button>
-          </div>
-          <button class="cancel-btn" @click="clearSelection">取消选择</button>
-        </div>
-      </Transition>
+      <AdminSelectionBar :count="selectedCount" :unit="UNIT" @clear="clearSelection">
+        <button class="ghost-btn ghost-btn--sm" @click="handleBatchPublish(true)">批量发布</button>
+        <button class="ghost-btn ghost-btn--sm" @click="handleBatchPublish(false)">批量撤回</button>
+        <button class="ghost-btn ghost-btn--sm ghost-btn--danger" @click="handleBatchDelete">
+          批量删除
+        </button>
+      </AdminSelectionBar>
 
       <!-- ── Table ── -->
       <div class="table-wrap" :class="{ 'table-wrap--loading': loading }">
@@ -470,11 +417,11 @@ function formatViews(n: number) {
                   @change="toggleAll"
                 />
               </th>
-              <th class="col-title">文章</th>
-              <th class="col-category">分类</th>
-              <th class="col-tags">标签</th>
-              <th class="col-status">状态</th>
-              <th class="col-views" style="text-align: right">阅读</th>
+              <th class="col-main">文章</th>
+              <th class="col-narrow">分类</th>
+              <th class="col-text">标签</th>
+              <th class="col-status col-status--wide">状态</th>
+              <th class="col-num">阅读</th>
               <th class="col-time">更新时间</th>
               <th class="col-actions" />
             </tr>
@@ -483,11 +430,7 @@ function formatViews(n: number) {
             <tr v-if="articles.length === 0 && !loading">
               <td colspan="8" class="empty-cell">
                 <div class="empty-state">
-                  <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
-                    <path
-                      d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"
-                    />
-                  </svg>
+                  <AdminIcon name="article" class="empty-icon" />
                   <span>暂无文章</span>
                 </div>
               </td>
@@ -505,7 +448,7 @@ function formatViews(n: number) {
                   @change="toggleRow(row.id)"
                 />
               </td>
-              <td class="col-title">
+              <td class="col-main" :title="row.title">
                 <span
                   class="article-title"
                   :class="{ 'article-title--draft': isPureDraft(row) }"
@@ -514,52 +457,60 @@ function formatViews(n: number) {
                   {{ row.title }}
                 </span>
               </td>
-              <td class="col-category">
+              <td class="col-narrow">
                 <span v-if="row.category" class="category-tag">{{ row.category.name }}</span>
                 <span v-else class="cell-muted">—</span>
               </td>
-              <td class="col-tags">
+              <td class="col-text">
                 <div v-if="row.tags.length > 0" class="tags-cell">
                   <span v-for="tag in row.tags" :key="tag.id" class="tag-chip">{{ tag.name }}</span>
                 </div>
                 <span v-else class="cell-muted">—</span>
               </td>
-              <td class="col-status">
+              <td class="col-status col-status--wide">
                 <div class="status-cell">
-                  <span v-if="!isPureDraft(row)" class="status-badge status-badge--published"
-                    >已发布</span
-                  >
+                  <span v-if="!isPureDraft(row)" class="status-badge status-badge--ok">已发布</span>
                   <span
                     v-if="isPureDraft(row) || hasDraftAbovePublish(row)"
-                    class="status-badge status-badge--draft"
+                    class="status-badge status-badge--muted"
                     >草稿</span
                   >
                 </div>
               </td>
-              <td class="col-views" style="text-align: right">
-                <span class="cell-muted" :style="{ textAlign: 'right', display: 'block' }">{{
+              <td class="col-num">
+                <span class="cell-muted">{{
                   isPureDraft(row) ? '—' : formatViews(row.readCount)
                 }}</span>
               </td>
               <td class="col-time">
                 <span class="cell-muted" :title="row.updateTime">{{
-                  relativeTime(row.updateTime)
+                  formatDateTime(row.updateTime)
                 }}</span>
               </td>
               <td class="col-actions">
                 <div class="row-actions">
                   <button class="action-btn" @click="handlePreview(row)">预览</button>
                   <button class="action-btn" @click="openMetaModal(row)">属性</button>
-                  <button
-                    v-if="!isPureDraft(row)"
-                    class="action-btn"
-                    @click="handleTogglePublish(row)"
-                  >
-                    撤回
-                  </button>
-                  <button class="action-btn action-btn--danger" @click="handleDelete(row)">
-                    删除
-                  </button>
+                  <div v-click-outside="closeMenu" class="menu-wrap">
+                    <button class="more-btn" title="更多" @click.stop="toggleMenu(row.id, $event)">
+                      <AdminIcon name="more" />
+                    </button>
+                    <Teleport to="body">
+                      <div v-if="openMenuId === row.id" class="dropdown-menu" :style="menuStyle">
+                        <button
+                          v-if="!isPureDraft(row)"
+                          class="menu-item"
+                          @click="handleTogglePublish(row)"
+                        >
+                          撤回
+                        </button>
+                        <div v-if="!isPureDraft(row)" class="menu-divider" />
+                        <button class="menu-item menu-item--danger" @click="handleDelete(row)">
+                          删除
+                        </button>
+                      </div>
+                    </Teleport>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -592,15 +543,13 @@ function formatViews(n: number) {
                 <span v-for="tag in row.tags" :key="tag.id" class="tag-chip">{{ tag.name }}</span>
               </div>
               <div class="data-card__status">
-                <span v-if="!isPureDraft(row)" class="status-badge status-badge--published"
-                  >已发布</span
-                >
+                <span v-if="!isPureDraft(row)" class="status-badge status-badge--ok">已发布</span>
                 <span
                   v-if="isPureDraft(row) || hasDraftAbovePublish(row)"
-                  class="status-badge status-badge--draft"
+                  class="status-badge status-badge--muted"
                   >草稿</span
                 >
-                <span class="cell-muted">{{ relativeTime(row.updateTime) }}</span>
+                <span class="cell-muted">{{ formatDateTime(row.updateTime) }}</span>
               </div>
             </div>
             <div class="data-card__actions">
@@ -759,6 +708,12 @@ function formatViews(n: number) {
 </template>
 
 <style scoped>
+/* 固定列合计 40+100+200+140+80+150+148=858，再给主列留 240px 下限；窄于此宽度改为横向滚动，
+   而不是把主列压成 0（见 variables.css 中 .data-table 的说明） */
+.data-table {
+  min-width: 1100px;
+}
+
 .articles-page {
   display: flex;
   flex-direction: column;
@@ -803,51 +758,8 @@ function formatViews(n: number) {
   pointer-events: none;
 }
 
-.table-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(var(--admin-surface-rgb), 0.7);
-  z-index: 1;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.data-table tbody tr:hover td {
-  background: rgba(var(--admin-surface-hover-rgb), 0.4);
-}
-
 .row--draft td:first-child {
   box-shadow: inset 3px 0 0 var(--admin-sidebar-border);
-}
-
-/* Column widths */
-
-.col-title {
-  min-width: 240px;
-}
-.col-category {
-  width: 90px;
-}
-.col-tags {
-  min-width: 140px;
-}
-.col-status {
-  width: 130px;
-}
-.col-views {
-  width: 68px;
-  text-align: right;
-}
-.col-actions {
-  width: 190px;
-  text-align: right;
 }
 
 /* ── Table cells ── */
@@ -902,62 +814,6 @@ function formatViews(n: number) {
   padding: 1px 6px;
   border-radius: var(--admin-radius);
   white-space: nowrap;
-}
-
-.status-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: nowrap;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: var(--admin-radius);
-  font-size: 11.5px;
-  font-weight: 500;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.status-badge--published {
-  background: rgba(var(--admin-status-ok-rgb), 0.08);
-  color: var(--admin-status-ok);
-  border: 1px solid rgba(var(--admin-status-ok-rgb), 0.2);
-}
-
-.status-badge--draft {
-  background: var(--admin-sidebar-hover);
-  color: var(--admin-sidebar-text-muted);
-  border: 1px solid var(--admin-sidebar-border);
-}
-
-.action-btn {
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: var(--admin-radius);
-  white-space: nowrap;
-  transition:
-    background 0.12s,
-    color 0.12s;
-}
-
-.action-btn--danger:hover {
-  background: rgba(var(--admin-danger-rgb), 0.08);
-}
-
-/* ── Empty ── */
-
-.empty-cell {
-  padding: 0 !important;
-  border: none !important;
 }
 
 /* ── Pagination ── */

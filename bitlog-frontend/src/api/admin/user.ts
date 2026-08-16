@@ -1,5 +1,6 @@
 import request from '@/utils/request'
 import type { BasePageParams, PageResult } from '@/api/types'
+import { stripEmpty } from '@/api/types'
 
 /** 账号三终态，后端翻译成 status + deleted 两列条件 */
 export type UserState = 'ENABLED' | 'DISABLED' | 'DEACTIVATED'
@@ -44,8 +45,9 @@ export interface UserStats {
   deactivated: number
 }
 
-export function getUserStats(): Promise<UserStats> {
-  return request.get<never, UserStats>('/v1/admin/users/stats')
+/** 计数与列表同口径：关键词参与过滤 */
+export function getUserStats(params: { keyword?: string } = {}): Promise<UserStats> {
+  return request.get<never, UserStats>('/v1/admin/users/stats', { params: stripEmpty(params) })
 }
 
 export function getUsers(query: UserPageQuery): Promise<PageResult<UserListItem>> {

@@ -2,10 +2,17 @@
 import { ref, computed, reactive, onMounted, nextTick, watch } from 'vue'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
+import { formatDateTime } from '@/utils/format'
+import AdminIcon from '@/admin/components/AdminIcon.vue'
+import AdminListHeader from '@/admin/components/AdminListHeader.vue'
+import AdminSelectionBar from '@/admin/components/AdminSelectionBar.vue'
 import { getTags, createTag, updateTag, deleteTags, type Tag } from '@/api/admin/tag'
 
 const toast = useToast()
 const confirm = useConfirm()
+
+/** 本页量词，批量条与操作提示共用 */
+const UNIT = '个'
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const loading = ref(false)
@@ -30,6 +37,15 @@ const filteredTags = computed(() => {
   if (!kw) return tags.value
   return tags.value.filter((t) => t.name.toLowerCase().includes(kw))
 })
+
+// 标签没有状态维度，只留一个「全部」占位，让六个列表页的头部形态一致
+const activeTab = ref('all')
+const tabs = computed(() => [{ key: 'all', label: '全部', count: tags.value.length }])
+
+function handleReset() {
+  keyword.value = ''
+  fetchTags()
+}
 
 // ── Selection ──────────────────────────────────────────────────────────────────
 const selectedIds = reactive(new Set<number>())
@@ -176,70 +192,26 @@ async function handleDialogSubmit() {
 <template>
   <div class="tags-page">
     <div class="main-card">
-      <!-- Header -->
-      <div class="card-header">
-        <div class="header-left">
-          <p class="stats-text">共 {{ tags.length }} 个标签</p>
-        </div>
-        <div class="header-actions">
-          <div class="search-wrap">
-            <svg
-              class="search-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-            <input v-model="keyword" class="search-input" placeholder="搜索标签" />
-            <button v-if="keyword" class="search-clear" @click="keyword = ''">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                />
-              </svg>
-            </button>
-          </div>
-          <button class="icon-btn" title="刷新" @click="fetchTags">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
-              />
-            </svg>
-          </button>
-          <button class="primary-btn" @click="openCreateDialog">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-            </svg>
-            新建标签
-          </button>
-        </div>
-      </div>
+      <AdminListHeader
+        v-model:active-tab="activeTab"
+        v-model:keyword="keyword"
+        :tabs="tabs"
+        search-placeholder="搜索标签"
+        action-label="新建标签"
+        @reset="handleReset"
+        @action="openCreateDialog"
+      />
 
-      <!-- Selection bar -->
-      <Transition name="sel-bar">
-        <div v-if="selectedIds.size > 0" class="selection-bar">
-          <span class="sel-count"
-            >已选 <b>{{ selectedIds.size }}</b> 个</span
-          >
-          <div class="sel-actions">
-            <button class="ghost-btn ghost-btn--sm" @click="toggleAll">
-              {{ allSelected ? '取消全选' : '全选' }}
-            </button>
-            <button
-              class="ghost-btn ghost-btn--sm ghost-btn--danger"
-              :disabled="batchLoading"
-              @click="handleBatchDelete"
-            >
-              <span v-if="batchLoading" class="btn-spinner btn-spinner--dark" />
-              批量删除
-            </button>
-          </div>
-          <button class="cancel-btn" @click="clearSelection">取消选择</button>
-        </div>
-      </Transition>
+      <AdminSelectionBar :count="selectedIds.size" :unit="UNIT" @clear="clearSelection">
+        <button
+          class="ghost-btn ghost-btn--sm ghost-btn--danger"
+          :disabled="batchLoading"
+          @click="handleBatchDelete"
+        >
+          <span v-if="batchLoading" class="btn-spinner btn-spinner--dark" />
+          批量删除
+        </button>
+      </AdminSelectionBar>
 
       <!-- Table -->
       <div class="table-wrap" :class="{ 'table-wrap--loading': loading }">
@@ -269,8 +241,8 @@ async function handleDialogSubmit() {
                   @change="toggleAll"
                 />
               </th>
-              <th class="col-name">名称</th>
-              <th class="col-count">文章数</th>
+              <th class="col-main">名称</th>
+              <th class="col-num">文章数</th>
               <th class="col-time">创建时间</th>
               <th class="col-actions" />
             </tr>
@@ -279,11 +251,7 @@ async function handleDialogSubmit() {
             <tr v-if="filteredTags.length === 0 && !loading">
               <td colspan="5" class="empty-cell">
                 <div class="empty-state">
-                  <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
-                    <path
-                      d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"
-                    />
-                  </svg>
+                  <AdminIcon name="tag" class="empty-icon" />
                   <span>{{ keyword ? '没有匹配的标签' : '还没有标签，点击右上角新建' }}</span>
                 </div>
               </td>
@@ -301,14 +269,14 @@ async function handleDialogSubmit() {
                   @change="toggleRow(row.id)"
                 />
               </td>
-              <td class="col-name">{{ row.name }}</td>
-              <td class="col-count">
-                <span class="count-badge" :class="{ 'count-badge--zero': row.articleCount === 0 }">
-                  {{ row.articleCount }} 篇
-                </span>
+              <td class="col-main" :title="row.name">{{ row.name }}</td>
+              <td class="col-num">
+                <span :class="row.articleCount === 0 ? 'cell-muted' : ''">{{
+                  row.articleCount
+                }}</span>
               </td>
               <td class="col-time">
-                <span class="cell-muted">{{ row.createTime }}</span>
+                <span class="cell-muted">{{ formatDateTime(row.createTime) }}</span>
               </td>
               <td class="col-actions">
                 <div class="row-actions">
@@ -356,97 +324,23 @@ async function handleDialogSubmit() {
 </template>
 
 <style scoped>
+/* 固定列合计 40+80+150+148=418，再给主列留 240px 下限；窄于此宽度改为横向滚动，
+   而不是把主列压成 0（见 variables.css 中 .data-table 的说明） */
+.data-table {
+  min-width: 660px;
+}
+
 .tags-page {
   display: flex;
   flex-direction: column;
 }
-
-/* ── Header ── */
-
-.card-header {
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--admin-sidebar-border);
-  padding: 0 20px;
-  gap: 12px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* ── Search ── */
-
-/* ── Buttons ── */
-
-/* ── Stats text ── */
-
-.stats-text {
-  font-size: 13px;
-  color: var(--admin-sidebar-text-muted);
-  white-space: nowrap;
-}
-
-/* ── Selection bar ── */
 
 .ghost-btn--danger {
   color: var(--admin-danger);
   border-color: var(--admin-danger-border);
 }
 
-.cancel-btn {
-  margin-left: auto;
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted);
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: color 0.15s;
-}
-
-.sel-bar-enter-active,
-
-.sel-bar-enter-from,
-
-/* ── Table ── */
-
-
-.col-name {
-  max-width: 200px;
-}
-.col-count {
-  width: 80px;
-  text-align: center;
-}
-.col-actions {
-  width: 100px;
-  text-align: right;
-}
-
-.col-name {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.count-badge {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--admin-accent-dark);
-  background: var(--admin-accent-bg-soft);
-  padding: 2px 8px;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-
-.count-badge--zero {
-  color: var(--admin-sidebar-text-muted);
-  background: rgba(var(--admin-muted-rgb), 0.1);
-}
+/* 头部、批量条、列宽、空状态图标全部走 admin/styles/variables.css 与共享组件 */
 
 /* ── Dialog ── */
 .dialog-fade-enter-active,

@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useListQuery } from '@/composables/useListQuery'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
+import { useRowMenu } from '@/admin/composables/useRowMenu'
+import { formatDateTime } from '@/utils/format'
+import AdminIcon from '@/admin/components/AdminIcon.vue'
+import AdminListHeader from '@/admin/components/AdminListHeader.vue'
 import AdminPagination from '@/admin/components/AdminPagination.vue'
 import { ApiError } from '@/utils/request'
 import { LINK_STATUS, type FriendLinkSaveParam, type LinkStatus } from '@/api/link'
@@ -11,12 +15,15 @@ import {
   createAdminLink,
   deleteAdminLink,
   getAdminLinkPage,
+  getAdminLinkStats,
   updateAdminLink,
   type FriendLinkAdmin,
 } from '@/api/admin/link'
 
 const toast = useToast()
 const confirm = useConfirm()
+
+const { openMenuId, menuStyle, toggleMenu, closeMenu } = useRowMenu()
 
 type TabKey = 'all' | 'pending' | 'approved' | 'rejected'
 
@@ -27,13 +34,42 @@ const TAB_STATUS: Record<TabKey, LinkStatus | undefined> = {
   rejected: LINK_STATUS.REJECTED,
 }
 
-// 全部排第一并作为默认，与文章页、用户页一致
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'all', label: '全部' },
-  { key: 'pending', label: '待审核' },
-  { key: 'approved', label: '展示中' },
-  { key: 'rejected', label: '未通过' },
-]
+// 顺序：全部 → 主要工作对象（友链的日常就是审核）→ 其余
+const tabCounts = reactive({ all: 0, pending: 0, approved: 0, rejected: 0 })
+
+const tabs = computed(() => [
+  { key: 'all', label: '全部', count: tabCounts.all },
+  { key: 'pending', label: '待审核', count: tabCounts.pending },
+  { key: 'approved', label: '展示中', count: tabCounts.approved },
+  { key: 'rejected', label: '未通过', count: tabCounts.rejected },
+])
+
+async function fetchTabCounts() {
+  try {
+    const stats = await getAdminLinkStats({ keyword: filters.keyword })
+    tabCounts.all = stats.total
+    tabCounts.pending = stats.pending
+    tabCounts.approved = stats.approved
+    tabCounts.rejected = stats.rejected
+  } catch {
+    /* 统计失败不影响主流程 */
+  }
+}
+
+onMounted(fetchTabCounts)
+
+// AdminListHeader 的 model 是 string，这里做一层窄化桥接
+const activeTab = computed({
+  get: (): string => filters.tab,
+  set: (key: string) => {
+    filters.tab = key as TabKey
+  },
+})
+
+function handleReset() {
+  filters.keyword = ''
+  filters.tab = 'all'
+}
 
 const query = useListQuery({
   filters: { tab: 'all' as TabKey, keyword: '' },
@@ -41,6 +77,7 @@ const query = useListQuery({
   fetch: (params) => getAdminLinkPage(params),
   debounce: ['keyword'],
   syncUrl: true,
+  onFiltersApplied: fetchTabCounts,
 })
 
 const { filters, items: links, loading, pageNum, pageSize, total, totalPages, pageNumbers } = query
@@ -72,7 +109,7 @@ async function confirmReject() {
   closeReject()
 }
 
-// ── 录入 / 编辑弹窗 ─────────────────────────────────────────────────────────
+// ── 添加 / 编辑弹窗 ─────────────────────────────────────────────────────────
 
 const formVisible = ref(false)
 // null 表示新增；非 null 表示正在编辑的那一行
@@ -123,7 +160,7 @@ async function submitForm() {
         await createAdminLink(payload)
       }
     },
-    row ? '已保存' : '已录入',
+    row ? '已保存' : '已添加',
   )
   if (ok) closeForm()
 }
@@ -137,6 +174,7 @@ async function runAction(action: () => Promise<void>, okText: string): Promise<b
     await action()
     toast.success(okText)
     await query.load()
+    fetchTabCounts()
     return true
   } catch (err) {
     toast.error(err instanceof ApiError ? err.message : '操作失败')
@@ -162,15 +200,9 @@ async function handleDelete(row: FriendLinkAdmin) {
 // ── 展示 ────────────────────────────────────────────────────────────────────
 
 const statusMeta: Record<LinkStatus, { label: string; cls: string }> = {
-  [LINK_STATUS.PENDING]: { label: '待审核', cls: 'is-pending' },
-  [LINK_STATUS.APPROVED]: { label: '展示中', cls: 'is-live' },
-  [LINK_STATUS.REJECTED]: { label: '未通过', cls: 'is-rejected' },
-}
-
-const isEmpty = computed(() => !loading.value && links.value.length === 0)
-
-function formatTime(value: string) {
-  return value ? value.slice(0, 16).replace('T', ' ') : '—'
+  [LINK_STATUS.PENDING]: { label: '待审核', cls: 'status-badge--pending' },
+  [LINK_STATUS.APPROVED]: { label: '展示中', cls: 'status-badge--ok' },
+  [LINK_STATUS.REJECTED]: { label: '未通过', cls: 'status-badge--danger' },
 }
 
 function hostOf(url: string) {
@@ -184,55 +216,18 @@ function hostOf(url: string) {
 
 <template>
   <div class="main-card">
-    <!-- 头部与文章页、用户页同构：左 tabs、右操作，同一行 -->
-    <div class="card-header">
-      <div class="view-tabs">
-        <button
-          v-for="tab in TABS"
-          :key="tab.key"
-          class="view-tab"
-          :class="{ 'view-tab--active': filters.tab === tab.key }"
-          @click="filters.tab = tab.key"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
+    <AdminListHeader
+      v-model:active-tab="activeTab"
+      v-model:keyword="filters.keyword"
+      :tabs="tabs"
+      search-placeholder="搜索站点名称或地址"
+      action-label="新增友链"
+      @search="query.applyFilters"
+      @reset="handleReset"
+      @action="openCreate"
+    />
 
-      <div class="header-actions">
-        <div class="search-wrap">
-          <svg
-            class="search-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          <input v-model="filters.keyword" class="search-input" placeholder="搜索站点名称或地址" />
-          <button v-if="filters.keyword" class="search-clear" @click="filters.keyword = ''">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <button class="icon-btn" title="刷新" @click="query.load">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <path d="M3 3v5h5" />
-          </svg>
-        </button>
-        <button class="primary-btn" @click="openCreate">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-          </svg>
-          新增友链
-        </button>
-      </div>
-    </div>
-
-    <div v-if="loading || links.length > 0" class="table-wrap">
+    <div class="table-wrap" :class="{ 'table-wrap--loading': loading }">
       <div v-if="loading" class="table-loading">
         <svg class="spinner" viewBox="0 0 24 24" fill="none">
           <circle
@@ -241,8 +236,8 @@ function hostOf(url: string) {
             r="9"
             stroke="currentColor"
             stroke-width="2"
-            stroke-linecap="round"
-            stroke-dasharray="40 20"
+            stroke-dasharray="40"
+            stroke-dashoffset="15"
           />
         </svg>
       </div>
@@ -250,18 +245,26 @@ function hostOf(url: string) {
       <table class="data-table">
         <thead>
           <tr>
-            <th>站点</th>
-            <th class="col-url">地址</th>
-            <th class="col-user">申请人</th>
-            <th class="col-msg">留言</th>
+            <th class="col-main">站点</th>
+            <th class="col-text">地址</th>
+            <th class="col-name">申请人</th>
+            <th class="col-text">留言</th>
             <th class="col-time">提交时间</th>
             <th class="col-status">状态</th>
-            <th class="col-actions">操作</th>
+            <th class="col-actions" />
           </tr>
         </thead>
         <tbody>
+          <tr v-if="links.length === 0 && !loading">
+            <td colspan="7" class="empty-cell">
+              <div class="empty-state">
+                <AdminIcon name="link" class="empty-icon" />
+                <span>{{ filters.keyword ? '没有匹配的友链' : '暂无友链' }}</span>
+              </div>
+            </td>
+          </tr>
           <tr v-for="row in links" :key="row.id">
-            <td>
+            <td class="col-main">
               <div class="site-cell">
                 <div class="site-avatar">
                   <img v-if="row.avatar" :src="row.avatar" :alt="row.name" />
@@ -273,21 +276,27 @@ function hostOf(url: string) {
                 </div>
               </div>
             </td>
-            <td class="col-url">
-              <a :href="row.url" target="_blank" rel="noopener noreferrer" class="url-link">
+            <td class="col-text">
+              <a
+                :href="row.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="url-link"
+                :title="row.url"
+              >
                 {{ hostOf(row.url) }}
               </a>
             </td>
-            <td class="col-user">
+            <td class="col-name">
               <span class="cell-muted">{{ row.applicant?.username ?? '—' }}</span>
             </td>
-            <td class="col-msg">
+            <td class="col-text">
               <span class="cell-muted" :title="row.applyMessage">{{
                 row.applyMessage || '—'
               }}</span>
             </td>
             <td class="col-time">
-              <span class="cell-muted">{{ formatTime(row.createTime) }}</span>
+              <span class="cell-muted">{{ formatDateTime(row.createTime) }}</span>
             </td>
             <td class="col-status">
               <span class="status-badge" :class="statusMeta[row.status].cls">
@@ -314,29 +323,27 @@ function hostOf(url: string) {
                 <button class="action-btn" :disabled="acting" @click="openReject(row)">
                   {{ row.status === LINK_STATUS.REJECTED ? '改理由' : '拒绝' }}
                 </button>
-                <button class="action-btn" :disabled="acting" @click="openEdit(row)">编辑</button>
-                <button class="action-btn action-btn--danger" @click="handleDelete(row)">
-                  删除
-                </button>
+                <div v-click-outside="closeMenu" class="menu-wrap">
+                  <button class="more-btn" title="更多" @click.stop="toggleMenu(row.id, $event)">
+                    <AdminIcon name="more" />
+                  </button>
+                  <Teleport to="body">
+                    <div v-if="openMenuId === row.id" class="dropdown-menu" :style="menuStyle">
+                      <button class="menu-item" :disabled="acting" @click="openEdit(row)">
+                        编辑
+                      </button>
+                      <div class="menu-divider" />
+                      <button class="menu-item menu-item--danger" @click="handleDelete(row)">
+                        删除
+                      </button>
+                    </div>
+                  </Teleport>
+                </div>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
-
-    <div v-if="isEmpty" class="empty-state">
-      <svg
-        class="empty-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
-      >
-        <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
-        <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
-      </svg>
-      <p>暂无友链</p>
     </div>
 
     <AdminPagination
@@ -345,7 +352,6 @@ function hostOf(url: string) {
       :page-size="pageSize"
       :total-pages="totalPages"
       :page-numbers="pageNumbers"
-      unit="条"
       @go="query.goPage"
       @size="query.setPageSize"
     />
@@ -371,7 +377,7 @@ function hostOf(url: string) {
       </div>
     </div>
 
-    <!-- 录入 / 编辑：站长录入的友链直接进入展示中，不再走审核 -->
+    <!-- 添加 / 编辑：站长手动添加的友链直接进入展示中，不再走审核 -->
     <div v-if="formVisible" class="dialog-overlay" @click.self="closeForm">
       <div class="dialog-box dialog-box--form">
         <h3 class="dialog-title">{{ formTarget ? '编辑友链' : '新增友链' }}</h3>
@@ -413,9 +419,7 @@ function hostOf(url: string) {
           />
         </div>
 
-        <p class="input-hint">
-          {{ formTarget ? '只改内容，不影响当前状态。' : '录入后直接展示，无需再审核。' }}
-        </p>
+        <p v-if="formTarget" class="input-hint">只改内容，不影响当前状态。</p>
 
         <div class="dialog-actions">
           <button class="dialog-btn dialog-btn--cancel" @click="closeForm">取消</button>
@@ -424,7 +428,7 @@ function hostOf(url: string) {
             :disabled="acting || !formValid"
             @click="submitForm"
           >
-            {{ formTarget ? '保存' : '录入' }}
+            {{ formTarget ? '保存' : '添加' }}
           </button>
         </div>
       </div>
@@ -433,28 +437,13 @@ function hostOf(url: string) {
 </template>
 
 <style scoped>
-/* 以下取自 CommentsView / UsersView 的同名定义，两页保持一致，勿各写一套 */
-
-.col-url {
-  width: 160px;
+/* 固定列合计 200+140+200+150+100+148=938，再给主列留 240px 下限；窄于此宽度改为横向滚动，
+   而不是把主列压成 0（见 variables.css 中 .data-table 的说明） */
+.data-table {
+  min-width: 1180px;
 }
 
-.col-user {
-  width: 110px;
-}
-
-.col-msg {
-  width: 180px;
-}
-
-.col-status {
-  width: 110px;
-}
-
-/* 待审核行有四个按钮（通过 / 拒绝 / 编辑 / 删除），150px 会挤成两行 */
-.col-actions {
-  width: 190px;
-}
+/* 列宽、状态徽章、下拉菜单均在 admin/styles/variables.css，这里只留本页独有的单元格 */
 
 /* 头像单元格：与 UsersView 的 .user-cell / .user-avatar 同构 */
 .site-cell {
@@ -500,9 +489,7 @@ function hostOf(url: string) {
   white-space: nowrap;
 }
 
-.site-names .cell-muted,
-.col-msg .cell-muted,
-.url-link {
+.site-names .cell-muted {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -517,30 +504,6 @@ function hostOf(url: string) {
 .url-link:hover {
   color: var(--admin-accent);
   text-decoration: underline;
-}
-
-/* 徽章：形状与 CommentsView 的 .status-badge 完全一致，只是多一档状态 */
-.status-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: var(--admin-radius);
-  font-size: 11.5px;
-  white-space: nowrap;
-}
-
-.status-badge.is-pending {
-  background: var(--admin-accent-bg-soft);
-  color: var(--admin-accent-dark);
-}
-
-.status-badge.is-live {
-  background: var(--admin-sidebar-hover);
-  color: var(--admin-sidebar-text-muted);
-}
-
-.status-badge.is-rejected {
-  background: var(--admin-danger-bg-soft);
-  color: var(--admin-danger-on-soft);
 }
 
 .reject-hint {
@@ -569,9 +532,12 @@ function hostOf(url: string) {
   color: var(--admin-text-secondary);
 }
 
+/* 窄屏优先砍留言与时间，站点、状态、操作必须留下 */
 @media (max-width: 900px) {
-  .col-msg,
-  .col-time {
+  .data-table th:nth-child(4),
+  .data-table td:nth-child(4),
+  .data-table th:nth-child(5),
+  .data-table td:nth-child(5) {
     display: none;
   }
 }

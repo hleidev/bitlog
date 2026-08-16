@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/useUserStore'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
+import { formatDateTime } from '@/utils/format'
+import AdminIcon from '@/admin/components/AdminIcon.vue'
+import AdminListHeader from '@/admin/components/AdminListHeader.vue'
 import AdminPagination from '@/admin/components/AdminPagination.vue'
+import AdminSelectionBar from '@/admin/components/AdminSelectionBar.vue'
+import { useRowMenu } from '@/admin/composables/useRowMenu'
 import { useListQuery } from '@/composables/useListQuery'
 import {
   getUsers,
@@ -24,6 +29,11 @@ const toast = useToast()
 const confirm = useConfirm()
 const { userInfo } = storeToRefs(useUserStore())
 
+/** 本页量词，批量条与操作提示共用 */
+const UNIT = '人'
+
+const { openMenuId, menuStyle, toggleMenu, closeMenu } = useRowMenu()
+
 // ── Tab ───────────────────────────────────────────────────────────────────────
 type TabKey = 'all' | 'enabled' | 'disabled' | 'deactivated'
 
@@ -34,11 +44,22 @@ const TAB_STATE: Record<TabKey, UserState | ''> = {
   deactivated: 'DEACTIVATED',
 }
 
-function switchTab(tab: TabKey) {
-  if (activeTab.value === tab) return
-  selected.clear()
-  filters.tab = tab
-}
+// AdminListHeader 的 model 是 string，这里做一层窄化桥接；切 tab 时清掉选中
+const activeTab = computed({
+  get: (): string => filters.tab,
+  set: (key: string) => {
+    if (filters.tab === key) return
+    selected.clear()
+    filters.tab = key as TabKey
+  },
+})
+
+const tabs = computed(() => [
+  { key: 'all', label: '全部', count: tabCounts.all },
+  { key: 'enabled', label: '启用', count: tabCounts.enabled },
+  { key: 'disabled', label: '禁用', count: tabCounts.disabled },
+  { key: 'deactivated', label: '已注销', count: tabCounts.deactivated },
+])
 
 // ── Selection ─────────────────────────────────────────────────────────────────
 const selected = reactive(new Set<number>())
@@ -69,6 +90,7 @@ const query = useListQuery({
   fetch: (params) => getUsers(params),
   debounce: ['keyword'],
   syncUrl: true,
+  onFiltersApplied: fetchTabCounts,
   sanitize: (f) => {
     // hasOwn 而非 in：in 走原型链，?tab=constructor 会被放行
     if (!Object.hasOwn(TAB_STATE, f.tab)) f.tab = 'all'
@@ -78,17 +100,13 @@ const query = useListQuery({
 
 const { filters, loading, pageNum, pageSize, total, totalPages, pageNumbers } = query
 const users = query.items
-const activeTab = computed(() => filters.tab)
 const fetchUsers = query.load
 
-function clearKeywordFilter() {
-  filters.keyword = ''
-}
-
+// 重置 = 清空全部筛选并回到「全部」，与其余列表页一致
 function handleReset() {
-  // 只清搜索词，保留当前 tab —— reset() 会把 tab 也退回 all
   selected.clear()
   filters.keyword = ''
+  filters.tab = 'all'
   query.applyFilters()
 }
 
@@ -97,7 +115,7 @@ const tabCounts = reactive({ all: 0, enabled: 0, disabled: 0, deactivated: 0 })
 
 async function fetchTabCounts() {
   try {
-    const stats = await getUserStats()
+    const stats = await getUserStats({ keyword: filters.keyword })
     tabCounts.all = stats.total
     tabCounts.enabled = stats.enabled
     tabCounts.disabled = stats.disabled
@@ -109,45 +127,6 @@ async function fetchTabCounts() {
 
 // 列表首屏由 useListQuery 自行拉取，这里只补统计
 onMounted(fetchTabCounts)
-
-// ── Row dropdown menu ─────────────────────────────────────────────────────────
-// 菜单 Teleport 到 body 并用 fixed 定位：.table-wrap 的 overflow-x: auto 会让
-// overflow-y 被算成 auto，绝对定位的菜单一旦超出容器底边就会被裁掉（末行菜单
-// 因此被分页栏"吃掉"），这种裁剪不是层叠问题，调 z-index 无效。
-const openMenuId = ref<number | null>(null)
-const menuStyle = ref<Record<string, string>>({})
-
-// 菜单最多 6 项 + 2 条分隔线，取略保守的高度用于判断翻转
-const MENU_MAX_HEIGHT = 220
-
-function toggleMenu(id: number, ev?: MouseEvent, align: 'right' | 'left' = 'right') {
-  if (openMenuId.value === id) {
-    openMenuId.value = null
-    return
-  }
-  const btn = ev?.currentTarget as HTMLElement | undefined
-  if (btn) {
-    const r = btn.getBoundingClientRect()
-    const flipUp = window.innerHeight - r.bottom < MENU_MAX_HEIGHT
-    menuStyle.value = {
-      ...(align === 'right'
-        ? { right: `${window.innerWidth - r.right}px` }
-        : { left: `${r.left}px` }),
-      ...(flipUp
-        ? { bottom: `${window.innerHeight - r.top + 4}px` }
-        : { top: `${r.bottom + 4}px` }),
-    }
-  }
-  openMenuId.value = id
-}
-
-function closeMenu() {
-  openMenuId.value = null
-}
-
-// fixed 定位不跟随滚动，滚动时直接关闭而非重算位置
-onMounted(() => window.addEventListener('scroll', closeMenu, true))
-onUnmounted(() => window.removeEventListener('scroll', closeMenu, true))
 
 // 注销是终态，标记在 deleted 而非 status 上；后端不再允许改状态或重置密码
 type StatusRow = { username: string; status: number; deleted: number }
@@ -162,8 +141,8 @@ function statusLabel(row: StatusRow) {
 }
 
 function statusClass(row: StatusRow) {
-  if (isDeactivated(row)) return 'status-badge--deactivated'
-  return row.status === 1 ? 'status-badge--enabled' : 'status-badge--disabled'
+  if (isDeactivated(row)) return 'status-badge--muted'
+  return row.status === 1 ? 'status-badge--ok' : 'status-badge--danger'
 }
 
 // 注销时 username 被覆写成墓碑值（del_xxxxxxxx），直接渲染对管理员无意义
@@ -319,106 +298,29 @@ async function openDetail(row: UserListItem) {
     detailLoading.value = false
   }
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function relativeTime(d: string) {
-  const diff = Date.now() - new Date(d).getTime()
-  const m = Math.floor(diff / 60000),
-    h = Math.floor(diff / 3600000),
-    days = Math.floor(diff / 86400000)
-  if (m < 1) return '刚刚'
-  if (m < 60) return `${m} 分钟前`
-  if (h < 24) return `${h} 小时前`
-  if (days < 30) return `${days} 天前`
-  if (days < 365) return `${Math.floor(days / 30)} 个月前`
-  return `${Math.floor(days / 365)} 年前`
-}
 </script>
 
 <template>
   <div class="users-page">
     <div class="main-card">
-      <!-- ── Header ── -->
-      <div class="card-header">
-        <div class="view-tabs">
-          <button
-            v-for="tab in ['all', 'enabled', 'disabled', 'deactivated'] as TabKey[]"
-            :key="tab"
-            class="view-tab"
-            :class="{ 'view-tab--active': activeTab === tab }"
-            @click="switchTab(tab)"
-          >
-            {{
-              tab === 'all'
-                ? '全部'
-                : tab === 'enabled'
-                  ? '启用'
-                  : tab === 'disabled'
-                    ? '禁用'
-                    : '已注销'
-            }}
-            <span v-if="tabCounts[tab] > 0" class="tab-count">{{ tabCounts[tab] }}</span>
-          </button>
-        </div>
+      <AdminListHeader
+        v-model:active-tab="activeTab"
+        v-model:keyword="filters.keyword"
+        :tabs="tabs"
+        search-placeholder="搜索用户名"
+        action-label="新增用户"
+        @search="query.applyFilters"
+        @reset="handleReset"
+        @action="router.push('/admin/users/add')"
+      />
 
-        <div class="header-actions">
-          <div class="search-wrap">
-            <svg
-              class="search-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-            <input
-              v-model="filters.keyword"
-              class="search-input"
-              placeholder="搜索用户名"
-              @keyup.enter="query.applyFilters"
-            />
-            <button v-if="filters.keyword" class="search-clear" @click="clearKeywordFilter">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <button class="icon-btn" title="重置" @click="handleReset">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-          </button>
-          <button class="primary-btn" @click="router.push('/admin/users/add')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            新增用户
-          </button>
-        </div>
-      </div>
-
-      <!-- ── Selection bar ── -->
-      <Transition name="sel-bar">
-        <div v-if="selectedCount > 0" class="selection-bar">
-          <span class="sel-count"
-            >已选 <b>{{ selectedCount }}</b> 项</span
-          >
-          <div class="sel-actions">
-            <button class="ghost-btn ghost-btn--sm" @click="handleBatchStatus(1)">批量启用</button>
-            <button class="ghost-btn ghost-btn--sm" @click="handleBatchStatus(0)">批量禁用</button>
-            <button
-              class="ghost-btn ghost-btn--sm ghost-btn--danger"
-              @click="handleBatchDeactivate"
-            >
-              批量注销
-            </button>
-          </div>
-          <button class="cancel-btn" @click="selected.clear()">取消选择</button>
-        </div>
-      </Transition>
+      <AdminSelectionBar :count="selectedCount" :unit="UNIT" @clear="selected.clear()">
+        <button class="ghost-btn ghost-btn--sm" @click="handleBatchStatus(1)">批量启用</button>
+        <button class="ghost-btn ghost-btn--sm" @click="handleBatchStatus(0)">批量禁用</button>
+        <button class="ghost-btn ghost-btn--sm ghost-btn--danger" @click="handleBatchDeactivate">
+          批量注销
+        </button>
+      </AdminSelectionBar>
 
       <!-- ── Table (desktop) ── -->
       <div class="table-wrap" :class="{ 'table-wrap--loading': loading }">
@@ -448,9 +350,9 @@ function relativeTime(d: string) {
                   @change="toggleAll"
                 />
               </th>
-              <th class="col-user">用户</th>
-              <th class="col-email">邮箱</th>
-              <th class="col-role">角色</th>
+              <th class="col-main">用户</th>
+              <th class="col-text">邮箱</th>
+              <th class="col-narrow">角色</th>
               <th class="col-status">状态</th>
               <th class="col-time">注册时间</th>
               <th class="col-actions" />
@@ -460,11 +362,7 @@ function relativeTime(d: string) {
             <tr v-if="users.length === 0 && !loading">
               <td colspan="7" class="empty-cell">
                 <div class="empty-state">
-                  <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
-                    <path
-                      d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                    />
-                  </svg>
+                  <AdminIcon name="user" class="empty-icon" />
                   <span>{{ activeTab === 'deactivated' ? '没有已注销的账号' : '暂无用户' }}</span>
                 </div>
               </td>
@@ -482,7 +380,7 @@ function relativeTime(d: string) {
                   @change="toggleRow(row.userId)"
                 />
               </td>
-              <td class="col-user">
+              <td class="col-main">
                 <div class="user-cell">
                   <div class="user-avatar">
                     <img v-if="row.avatar" :src="row.avatar" :alt="displayName(row)" />
@@ -493,10 +391,10 @@ function relativeTime(d: string) {
                   </div>
                 </div>
               </td>
-              <td class="col-email">
-                <span class="cell-muted">{{ row.email || '—' }}</span>
+              <td class="col-text">
+                <span class="cell-muted" :title="row.email ?? ''">{{ row.email || '—' }}</span>
               </td>
-              <td class="col-role">
+              <td class="col-narrow">
                 <span
                   class="role-badge"
                   :class="row.userRole === 1 ? 'role-badge--admin' : 'role-badge--user'"
@@ -510,18 +408,16 @@ function relativeTime(d: string) {
                 </span>
               </td>
               <td class="col-time">
-                <span class="cell-muted" :title="row.createTime">{{
-                  relativeTime(row.createTime)
-                }}</span>
+                <span class="cell-muted">{{ formatDateTime(row.createTime) }}</span>
               </td>
               <td class="col-actions">
                 <div v-click-outside="closeMenu" class="menu-wrap">
-                  <button class="more-btn" @click.stop="toggleMenu(row.userId, $event)">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="12" cy="5" r="1.5" />
-                      <circle cx="12" cy="12" r="1.5" />
-                      <circle cx="12" cy="19" r="1.5" />
-                    </svg>
+                  <button
+                    class="more-btn"
+                    title="更多"
+                    @click.stop="toggleMenu(row.userId, $event)"
+                  >
+                    <AdminIcon name="more" />
                   </button>
                   <Teleport to="body">
                     <div v-if="openMenuId === row.userId" class="dropdown-menu" :style="menuStyle">
@@ -529,7 +425,6 @@ function relativeTime(d: string) {
                       <div class="menu-divider" />
                       <button
                         class="menu-item"
-                        :class="{ 'menu-item--disabled': !canChangeStatus(row) }"
                         :disabled="!canChangeStatus(row)"
                         @click="handleToggleStatus(row)"
                       >
@@ -537,7 +432,6 @@ function relativeTime(d: string) {
                       </button>
                       <button
                         class="menu-item"
-                        :class="{ 'menu-item--disabled': isDeactivated(row) }"
                         :disabled="isDeactivated(row)"
                         @click="handleResetPassword(row)"
                       >
@@ -546,7 +440,6 @@ function relativeTime(d: string) {
                       <div class="menu-divider" />
                       <button
                         class="menu-item menu-item--danger"
-                        :class="{ 'menu-item--disabled': isDeactivated(row) }"
                         :disabled="isDeactivated(row)"
                         @click="handleDeactivate(row)"
                       >
@@ -563,11 +456,7 @@ function relativeTime(d: string) {
         <!-- Mobile card list -->
         <div class="mobile-list">
           <div v-if="users.length === 0 && !loading" class="empty-state empty-state--mobile">
-            <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon">
-              <path
-                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-              />
-            </svg>
+            <AdminIcon name="user" class="empty-icon" />
             <span>{{ activeTab === 'deactivated' ? '没有已注销的账号' : '暂无用户' }}</span>
           </div>
           <div v-for="row in users" :key="row.userId" class="mobile-card">
@@ -590,16 +479,16 @@ function relativeTime(d: string) {
                   </span>
                 </div>
                 <span class="cell-muted mc-email">{{ row.email || '暂无邮箱' }}</span>
-                <span class="cell-muted mc-time">注册于 {{ relativeTime(row.createTime) }}</span>
+                <span class="cell-muted mc-time">注册于 {{ formatDateTime(row.createTime) }}</span>
               </div>
             </div>
             <div v-click-outside="closeMenu" class="menu-wrap">
-              <button class="more-btn" @click.stop="toggleMenu(row.userId, $event, 'left')">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="5" r="1.5" />
-                  <circle cx="12" cy="12" r="1.5" />
-                  <circle cx="12" cy="19" r="1.5" />
-                </svg>
+              <button
+                class="more-btn"
+                title="更多"
+                @click.stop="toggleMenu(row.userId, $event, 'left')"
+              >
+                <AdminIcon name="more" />
               </button>
               <Teleport to="body">
                 <div v-if="openMenuId === row.userId" class="dropdown-menu" :style="menuStyle">
@@ -634,14 +523,12 @@ function relativeTime(d: string) {
         </div>
       </div>
 
-      <!-- ── Pagination ── -->
       <AdminPagination
         :total="total"
         :page-num="pageNum"
         :page-size="pageSize"
         :total-pages="totalPages"
         :page-numbers="pageNumbers"
-        unit="人"
         @go="query.goPage"
         @size="query.setPageSize"
       />
@@ -675,9 +562,7 @@ function relativeTime(d: string) {
     <div v-if="detailVisible" class="dialog-mask" @click.self="detailVisible = false">
       <div class="dialog dialog--detail">
         <button class="dialog-close" @click="detailVisible = false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
+          <AdminIcon name="close" />
         </button>
 
         <div v-if="detailLoading" class="detail-loading">
@@ -743,7 +628,7 @@ function relativeTime(d: string) {
             </div>
             <div class="dg-cell">
               <span class="dg-label">注册时间</span>
-              <span class="dg-value">{{ detailUser.createTime }}</span>
+              <span class="dg-value">{{ formatDateTime(detailUser.createTime) }}</span>
             </div>
           </div>
 
@@ -758,6 +643,12 @@ function relativeTime(d: string) {
 </template>
 
 <style scoped>
+/* 固定列合计 40+200+100+100+150+148=738，再给主列留 240px 下限；窄于此宽度改为横向滚动，
+   而不是把主列压成 0（见 variables.css 中 .data-table 的说明） */
+.data-table {
+  min-width: 980px;
+}
+
 .users-page {
   display: flex;
   flex-direction: column;
@@ -780,54 +671,7 @@ function relativeTime(d: string) {
   border-color: var(--admin-danger-border);
 }
 
-.cancel-btn {
-  margin-left: auto;
-  font-size: 12.5px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted);
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.sel-bar-enter-active,
-
-.sel-bar-enter-from,
-
 /* ── Table ── */
-
-.table-wrap {
-  position: relative;
-  min-height: 120px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-.table-wrap--loading {
-  pointer-events: none;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.col-user {
-  min-width: 160px;
-}
-.col-email {
-  min-width: 160px;
-}
-.col-role {
-  width: 90px;
-}
-.col-status {
-  width: 72px;
-}
-.col-actions {
-  width: 52px;
-  text-align: center;
-}
 
 /* Mobile list hidden by default, shown at breakpoint */
 .mobile-list {
@@ -899,120 +743,7 @@ function relativeTime(d: string) {
   color: var(--admin-sidebar-text);
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: var(--admin-radius);
-  font-size: 11.5px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.status-badge--enabled {
-  background: rgba(var(--admin-status-ok-rgb), 0.08);
-  color: var(--admin-status-ok);
-  border: 1px solid rgba(var(--admin-status-ok-rgb), 0.2);
-}
-.status-badge--disabled {
-  background: var(--admin-danger-bg-soft);
-  color: var(--admin-danger-on-soft);
-  border: 1px solid var(--admin-danger-border);
-}
-/* 注销是用户自己的终态，不是告警，用中性灰与「禁用」的红区分开 */
-.status-badge--deactivated {
-  background: transparent;
-  color: var(--admin-sidebar-text-muted);
-  border: 1px solid var(--admin-sidebar-border);
-}
-
-/* ── Dropdown menu ── */
-
-.menu-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.more-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--admin-sidebar-text-muted);
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.more-btn svg {
-  width: 16px;
-  height: 16px;
-}
-.more-btn:hover {
-  background: var(--admin-sidebar-hover);
-  color: var(--admin-sidebar-text);
-}
-
-/* Teleport 到 body，位置由 toggleMenu 按触发按钮实测坐标写入 inline style */
-.dropdown-menu {
-  position: fixed;
-  /* 低于 .dialog-overlay(1000)：菜单不该盖住对话框 */
-  z-index: 900;
-  min-width: 130px;
-  background: var(--admin-surface-input);
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-}
-
-.menu-item {
-  display: block;
-  width: 100%;
-  padding: 8px 14px;
-  text-align: left;
-  font-size: 13px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text);
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.menu-item:hover {
-  background: var(--admin-sidebar-hover);
-}
-.menu-item--danger {
-  color: var(--admin-danger);
-}
-.menu-item--danger:hover {
-  background: var(--admin-danger-bg-soft);
-}
-.menu-item--disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.menu-item--disabled:hover {
-  background: none;
-}
-
-.menu-divider {
-  height: 1px;
-  background: var(--admin-sidebar-border);
-  margin: 2px 0;
-}
-
 /* ── Empty ── */
-
-.empty-cell {
-  padding: 0 !important;
-  border: none !important;
-}
 
 .empty-state--mobile {
   padding: 40px 0;

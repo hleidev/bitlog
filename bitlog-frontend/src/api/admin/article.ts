@@ -80,11 +80,6 @@ export interface ArticleCounts {
   draft: number
 }
 
-export interface ArticleListResult {
-  counts: ArticleCounts
-  page: PageResult<ArticleVO>
-}
-
 export interface GetMyArticlesParams extends BasePageParams {
   status?: ArticleStatus
   keyword?: string
@@ -147,18 +142,25 @@ export function rollbackVersion(id: number, versionId: number): Promise<void> {
 
 // ── Article management ────────────────────────────────────────────────────────
 
-export async function getMyArticles(params: GetMyArticlesParams): Promise<ArticleListResult> {
+export async function getMyArticles(params: GetMyArticlesParams): Promise<PageResult<ArticleVO>> {
   const apiParams = stripEmpty({
     ...params,
     status: params.status === undefined ? undefined : STATUS_TO_API[params.status],
   })
 
-  const res = await request.get<never, ArticleListResult>('/v1/article/my', { params: apiParams })
-  res.page.content = res.page.content.map((a) => ({
+  const page = await request.get<never, PageResult<ArticleVO>>('/v1/article/my', {
+    params: apiParams,
+  })
+  page.content = page.content.map((a) => ({
     ...a,
     status: STATUS_FROM_API[a.status as unknown as number] ?? a.status,
   }))
-  return res
+  return page
+}
+
+/** 计数与列表同口径：关键词参与过滤，状态分桶由后端一次算出 */
+export function getMyArticleStats(params: { keyword?: string } = {}): Promise<ArticleCounts> {
+  return request.get<never, ArticleCounts>('/v1/article/my/stats', { params: stripEmpty(params) })
 }
 
 export function updateArticlesStatus(ids: number[], status: ArticleStatus): Promise<void> {

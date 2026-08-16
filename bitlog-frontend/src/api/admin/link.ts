@@ -1,5 +1,6 @@
 import request from '@/utils/request'
 import type { BasePageParams, PageResult } from '@/api/types'
+import { stripEmpty } from '@/api/types'
 import type { FriendLinkSaveParam, LinkStatus } from '@/api/link'
 
 export interface FriendLinkApplicant {
@@ -17,7 +18,7 @@ export interface FriendLinkAdmin {
   applyMessage?: string
   status: LinkStatus
   rejectReason?: string
-  /** 站长手动录入的友链没有申请人 */
+  /** 站长手动添加的友链没有申请人 */
   applicant: FriendLinkApplicant | null
   createTime: string
   updateTime: string
@@ -26,6 +27,18 @@ export interface FriendLinkAdmin {
 export interface FriendLinkAdminPageParams extends BasePageParams {
   status?: LinkStatus
   keyword?: string
+}
+
+export interface FriendLinkStats {
+  total: number
+  pending: number
+  approved: number
+  rejected: number
+}
+
+/** 计数与列表同口径：关键词参与过滤 */
+export function getAdminLinkStats(params: { keyword?: string } = {}): Promise<FriendLinkStats> {
+  return request.get('/v1/admin/links/stats', { params: stripEmpty(params) })
 }
 
 export function getAdminLinkPage(
