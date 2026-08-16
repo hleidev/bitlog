@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useListQuery } from '@/composables/useListQuery'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
 import AdminPagination from '@/admin/components/AdminPagination.vue'
 import { ApiError } from '@/utils/request'
-import { LINK_STATUS, type LinkStatus } from '@/api/link'
+import { LINK_STATUS, type FriendLinkSaveParam, type LinkStatus } from '@/api/link'
 import {
   auditAdminLink,
+  createAdminLink,
   deleteAdminLink,
   getAdminLinkPage,
+  updateAdminLink,
   type FriendLinkAdmin,
 } from '@/api/admin/link'
 
@@ -70,17 +72,75 @@ async function confirmReject() {
   closeReject()
 }
 
+// ── 录入 / 编辑弹窗 ─────────────────────────────────────────────────────────
+
+const formVisible = ref(false)
+// null 表示新增；非 null 表示正在编辑的那一行
+const formTarget = ref<FriendLinkAdmin | null>(null)
+
+const form = reactive({ name: '', url: '', avatar: '', description: '' })
+
+const formValid = computed(() => form.name.trim() !== '' && form.url.trim() !== '')
+
+function openCreate() {
+  formTarget.value = null
+  Object.assign(form, { name: '', url: '', avatar: '', description: '' })
+  formVisible.value = true
+}
+
+function openEdit(row: FriendLinkAdmin) {
+  formTarget.value = row
+  Object.assign(form, {
+    name: row.name,
+    url: row.url,
+    avatar: row.avatar ?? '',
+    description: row.description ?? '',
+  })
+  formVisible.value = true
+}
+
+function closeForm() {
+  formVisible.value = false
+  formTarget.value = null
+}
+
+async function submitForm() {
+  if (!formValid.value) return
+  const row = formTarget.value
+  const payload: FriendLinkSaveParam = {
+    name: form.name.trim(),
+    url: form.url.trim(),
+    avatar: form.avatar.trim() || undefined,
+    description: form.description.trim() || undefined,
+    // 后端按整体覆盖写，不回传就会把申请人当初的留言抹成空
+    applyMessage: row?.applyMessage || undefined,
+  }
+  const ok = await runAction(
+    async () => {
+      if (row) {
+        await updateAdminLink(row.id, payload)
+      } else {
+        await createAdminLink(payload)
+      }
+    },
+    row ? '已保存' : '已录入',
+  )
+  if (ok) closeForm()
+}
+
 // ── 操作 ────────────────────────────────────────────────────────────────────
 
-async function runAction(action: () => Promise<void>, okText: string) {
-  if (acting.value) return
+async function runAction(action: () => Promise<void>, okText: string): Promise<boolean> {
+  if (acting.value) return false
   acting.value = true
   try {
     await action()
     toast.success(okText)
     await query.load()
+    return true
   } catch (err) {
     toast.error(err instanceof ApiError ? err.message : '操作失败')
+    return false
   } finally {
     acting.value = false
   }
@@ -162,6 +222,12 @@ function hostOf(url: string) {
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
             <path d="M3 3v5h5" />
           </svg>
+        </button>
+        <button class="primary-btn" @click="openCreate">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+          </svg>
+          新增友链
         </button>
       </div>
     </div>
@@ -248,6 +314,7 @@ function hostOf(url: string) {
                 <button class="action-btn" :disabled="acting" @click="openReject(row)">
                   {{ row.status === LINK_STATUS.REJECTED ? '改理由' : '拒绝' }}
                 </button>
+                <button class="action-btn" :disabled="acting" @click="openEdit(row)">编辑</button>
                 <button class="action-btn action-btn--danger" @click="handleDelete(row)">
                   删除
                 </button>
@@ -303,6 +370,65 @@ function hostOf(url: string) {
         </div>
       </div>
     </div>
+
+    <!-- 录入 / 编辑：站长录入的友链直接进入展示中，不再走审核 -->
+    <div v-if="formVisible" class="dialog-overlay" @click.self="closeForm">
+      <div class="dialog-box dialog-box--form">
+        <h3 class="dialog-title">{{ formTarget ? '编辑友链' : '新增友链' }}</h3>
+
+        <div class="form-field">
+          <label class="form-label">站点名称</label>
+          <input v-model="form.name" class="dialog-input" placeholder="必填" maxlength="64" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">站点地址</label>
+          <input
+            v-model="form.url"
+            class="dialog-input"
+            placeholder="https://"
+            maxlength="512"
+            spellcheck="false"
+          />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">头像地址</label>
+          <input
+            v-model="form.avatar"
+            class="dialog-input"
+            placeholder="选填，留空取站名首字"
+            maxlength="512"
+            spellcheck="false"
+          />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">站点简介</label>
+          <input
+            v-model="form.description"
+            class="dialog-input"
+            placeholder="选填"
+            maxlength="255"
+          />
+        </div>
+
+        <p class="input-hint">
+          {{ formTarget ? '只改内容，不影响当前状态。' : '录入后直接展示，无需再审核。' }}
+        </p>
+
+        <div class="dialog-actions">
+          <button class="dialog-btn dialog-btn--cancel" @click="closeForm">取消</button>
+          <button
+            class="dialog-btn dialog-btn--ok"
+            :disabled="acting || !formValid"
+            @click="submitForm"
+          >
+            {{ formTarget ? '保存' : '录入' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -325,8 +451,9 @@ function hostOf(url: string) {
   width: 110px;
 }
 
+/* 待审核行有四个按钮（通过 / 拒绝 / 编辑 / 删除），150px 会挤成两行 */
 .col-actions {
-  width: 150px;
+  width: 190px;
 }
 
 /* 头像单元格：与 UsersView 的 .user-cell / .user-avatar 同构 */
@@ -424,6 +551,22 @@ function hostOf(url: string) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 表单弹窗：共用 .dialog-box，只放宽并改成逐字段排列 */
+.dialog-box--form {
+  width: 420px;
+}
+
+.form-field {
+  margin-bottom: 14px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--admin-text-secondary);
 }
 
 @media (max-width: 900px) {
