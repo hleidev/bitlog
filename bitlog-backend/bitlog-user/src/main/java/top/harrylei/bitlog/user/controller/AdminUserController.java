@@ -46,8 +46,8 @@ public class AdminUserController {
 
     @Operation(summary = "查询用户数量统计")
     @GetMapping("/users/stats")
-    public Result<UserStatsVO> getUserStats() {
-        return Result.success(userService.getUserStats());
+    public Result<UserStatsVO> getUserStats(@Valid @ParameterObject UserPageParam query) {
+        return Result.success(userService.getUserStats(query));
     }
 
     @Operation(summary = "查询用户完整信息")

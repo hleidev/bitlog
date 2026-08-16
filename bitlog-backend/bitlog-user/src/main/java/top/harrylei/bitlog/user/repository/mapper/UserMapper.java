@@ -23,5 +23,5 @@ public interface UserMapper extends BaseMapper<UserDO> {
 
     UserDetailDTO selectUserDetail(Long userId);
 
-    UserStatsDTO selectUserStats();
+    UserStatsDTO selectUserStats(@Param("queryParam") UserPageParam queryParam);
 }

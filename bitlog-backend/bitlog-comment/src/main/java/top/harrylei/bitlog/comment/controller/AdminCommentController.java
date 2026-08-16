@@ -15,6 +15,7 @@ import top.harrylei.bitlog.api.model.comment.query.CommentAdminPageParam;
 import top.harrylei.bitlog.api.model.comment.req.CommentBatchDeleteParam;
 import top.harrylei.bitlog.api.model.comment.req.CommentStatusUpdateParam;
 import top.harrylei.bitlog.api.model.comment.vo.CommentAdminVO;
+import top.harrylei.bitlog.api.model.comment.vo.CommentStatsVO;
 import top.harrylei.bitlog.comment.service.CommentService;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.model.Result;
@@ -39,6 +40,12 @@ public class AdminCommentController {
     @GetMapping("/page")
     public Result<PageVO<CommentAdminVO>> page(@Valid CommentAdminPageParam query) {
         return Result.success(commentService.pageForAdmin(query));
+    }
+
+    @Operation(summary = "统计全站评论各状态数量")
+    @GetMapping("/stats")
+    public Result<CommentStatsVO> stats(@Valid CommentAdminPageParam query) {
+        return Result.success(commentService.getCommentStats(query));
     }
 
     @Operation(summary = "更新评论状态")

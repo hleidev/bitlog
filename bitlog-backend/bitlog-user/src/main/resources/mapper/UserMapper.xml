@@ -26,18 +26,29 @@
         left join user_info b on a.id = b.user_id
         where a.deleted = #{queryParam.deletedFilter}
         <if test="queryParam.statusFilter != null">and a.status = #{queryParam.statusFilter}</if>
+        <include refid="userKeywordFilter"/>
+    </select>
+
+    <!--
+      列表与计数共用的关键词谓词。计数不带 deleted/status 条件——四个档位由 FILTER 分桶，
+      但关键词必须与列表一致，否则搜索时 tab 数字和列表行数会对不上。
+    -->
+    <sql id="userKeywordFilter">
         <if test="queryParam.keyword != null and queryParam.keyword.trim() != ''">
             and a.username like concat('%', #{queryParam.keyword}, '%')
         </if>
-    </select>
+    </sql>
 
     <select id="selectUserStats" resultType="top.harrylei.bitlog.api.model.user.dto.UserStatsDTO">
         select
-            COALESCE(SUM(deleted = 0),                0) AS total,
-            COALESCE(SUM(deleted = 0 AND status = 1), 0) AS enabled,
-            COALESCE(SUM(deleted = 0 AND status = 0), 0) AS disabled,
-            COALESCE(SUM(deleted = 1),                0) AS deactivated
-        from user_account
+            COUNT(*) FILTER (WHERE a.deleted = 0)                  AS total,
+            COUNT(*) FILTER (WHERE a.deleted = 0 AND a.status = 1) AS enabled,
+            COUNT(*) FILTER (WHERE a.deleted = 0 AND a.status = 0) AS disabled,
+            COUNT(*) FILTER (WHERE a.deleted = 1)                  AS deactivated
+        from user_account a
+        <where>
+            <include refid="userKeywordFilter"/>
+        </where>
     </select>
 
     <select id="selectUserDetail" resultMap="UserDetailDTOMap">

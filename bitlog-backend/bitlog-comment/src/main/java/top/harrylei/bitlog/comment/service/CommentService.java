@@ -4,6 +4,7 @@ import top.harrylei.bitlog.api.enums.comment.CommentStatusEnum;
 import top.harrylei.bitlog.api.model.comment.query.CommentAdminPageParam;
 import top.harrylei.bitlog.api.model.comment.req.CommentSaveParam;
 import top.harrylei.bitlog.api.model.comment.vo.CommentAdminVO;
+import top.harrylei.bitlog.api.model.comment.vo.CommentStatsVO;
 import top.harrylei.bitlog.api.model.comment.vo.CommentVO;
 import top.harrylei.bitlog.api.model.comment.query.CommentPageParam;
 import top.harrylei.bitlog.common.model.PageVO;
@@ -53,6 +54,13 @@ public interface CommentService {
      * @return 评论分页结果
      */
     PageVO<CommentAdminVO> pageForAdmin(CommentAdminPageParam req);
+
+    /**
+     * 管理端统计各状态的评论数量
+     *
+     * @return 状态计数
+     */
+    CommentStatsVO getCommentStats(CommentAdminPageParam req);
 
     /**
      * 更新评论状态（隐藏或恢复）

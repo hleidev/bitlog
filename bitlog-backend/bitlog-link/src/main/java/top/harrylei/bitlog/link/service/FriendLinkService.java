@@ -4,6 +4,7 @@ import top.harrylei.bitlog.api.model.link.query.FriendLinkPageParam;
 import top.harrylei.bitlog.api.model.link.req.FriendLinkAuditParam;
 import top.harrylei.bitlog.api.model.link.req.FriendLinkSaveParam;
 import top.harrylei.bitlog.api.model.link.vo.FriendLinkAdminVO;
+import top.harrylei.bitlog.api.model.link.vo.FriendLinkStatsVO;
 import top.harrylei.bitlog.api.model.link.vo.FriendLinkVO;
 import top.harrylei.bitlog.api.model.link.vo.MyFriendLinkVO;
 import top.harrylei.bitlog.common.model.PageVO;
@@ -67,6 +68,13 @@ public interface FriendLinkService {
      * @return 分页结果
      */
     PageVO<FriendLinkAdminVO> pageForAdmin(FriendLinkPageParam param);
+
+    /**
+     * 管理端统计各状态的友链数量
+     *
+     * @return 状态计数
+     */
+    FriendLinkStatsVO getFriendLinkStats(FriendLinkPageParam param);
 
     /**
      * 站长手动录入友链，直接进入展示状态

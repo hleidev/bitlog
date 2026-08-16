@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
+import top.harrylei.bitlog.api.model.article.dto.ArticleCountDTO;
 import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
 import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.article.repository.mapper.ArticleMapper;
@@ -112,17 +113,9 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
             .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED).select(ArticleDO::getCategoryId).list();
     }
 
-    /** 统计用户全部未删除文章数 */
-    public long countByUser(Long userId) {
-        return lambdaQuery().eq(ArticleDO::getUserId, userId).eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .count();
-    }
-
-    /** 统计用户指定状态的文章数 */
-    public long countByUserAndStatus(Long userId, ArticleStatusEnum status) {
-        return lambdaQuery().eq(ArticleDO::getUserId, userId).eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .isNotNull(ArticleStatusEnum.PUBLISHED == status, ArticleDO::getPublishedVersionId)
-            .isNull(ArticleStatusEnum.DRAFT == status, ArticleDO::getPublishedVersionId).count();
+    /** 统计当前筛选下各状态的文章数，与 pageByUser 共用 XML 片段 */
+    public ArticleCountDTO countStats(Long userId, MyArticlePageParam query) {
+        return getBaseMapper().selectMyArticleStats(userId, query);
     }
 
     public IPage<ArticleDO> pagePublished(ArticlePageParam query, Page<ArticleDO> page) {

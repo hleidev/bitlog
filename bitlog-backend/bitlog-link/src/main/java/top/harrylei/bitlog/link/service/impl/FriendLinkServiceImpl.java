@@ -13,7 +13,9 @@ import top.harrylei.bitlog.api.enums.link.FriendLinkStatusEnum;
 import top.harrylei.bitlog.api.model.link.query.FriendLinkPageParam;
 import top.harrylei.bitlog.api.model.link.req.FriendLinkAuditParam;
 import top.harrylei.bitlog.api.model.link.req.FriendLinkSaveParam;
+import top.harrylei.bitlog.api.model.link.dto.FriendLinkStatsDTO;
 import top.harrylei.bitlog.api.model.link.vo.FriendLinkAdminVO;
+import top.harrylei.bitlog.api.model.link.vo.FriendLinkStatsVO;
 import top.harrylei.bitlog.api.model.link.vo.FriendLinkVO;
 import top.harrylei.bitlog.api.model.link.vo.MyFriendLinkVO;
 import top.harrylei.bitlog.common.constants.RedisKeyConstants;
@@ -143,6 +145,13 @@ public class FriendLinkServiceImpl implements FriendLinkService {
         friendLinkDAO.removeById(friendLink.getId());
         deleteObjectAfterCommit(friendLink.getAvatar());
         log.info("删除友链 userId={} linkId={}", userId, friendLink.getId());
+    }
+
+    @Override
+    public FriendLinkStatsVO getFriendLinkStats(FriendLinkPageParam param) {
+        FriendLinkStatsDTO dto = friendLinkDAO.countStats(param);
+        return new FriendLinkStatsVO().setTotal(dto.getTotal()).setPending(dto.getPending())
+            .setApproved(dto.getApproved()).setRejected(dto.getRejected());
     }
 
     @Override

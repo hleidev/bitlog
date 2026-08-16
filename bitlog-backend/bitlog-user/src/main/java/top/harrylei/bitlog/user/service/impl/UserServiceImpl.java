@@ -175,8 +175,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserStatsVO getUserStats() {
-        UserStatsDTO dto = userDAO.countStats();
+    public UserStatsVO getUserStats(UserPageParam query) {
+        UserStatsDTO dto = userDAO.countStats(query);
         UserStatsVO vo = new UserStatsVO();
         vo.setTotal(dto.getTotal());
         vo.setEnabled(dto.getEnabled());

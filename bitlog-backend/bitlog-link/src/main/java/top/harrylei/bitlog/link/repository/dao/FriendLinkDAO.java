@@ -1,11 +1,13 @@
 package top.harrylei.bitlog.link.repository.dao;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.link.FriendLinkStatusEnum;
+import top.harrylei.bitlog.api.model.link.dto.FriendLinkStatsDTO;
 import top.harrylei.bitlog.api.model.link.query.FriendLinkPageParam;
 import top.harrylei.bitlog.link.repository.entity.FriendLinkDO;
 import top.harrylei.bitlog.link.repository.mapper.FriendLinkMapper;
@@ -50,10 +52,33 @@ public class FriendLinkDAO extends ServiceImpl<FriendLinkMapper, FriendLinkDO> {
      * 管理端分页：状态精确匹配，关键词同时命中站点名称与地址
      */
     public IPage<FriendLinkDO> pageForAdmin(FriendLinkPageParam param, Page<FriendLinkDO> page) {
-        return lambdaQuery().eq(param.getStatus() != null, FriendLinkDO::getStatus, param.getStatus()).and(
-            StringUtils.hasText(param.getKeyword()),
-            w -> w.like(FriendLinkDO::getName, param.getKeyword()).or().like(FriendLinkDO::getUrl, param.getKeyword()))
+        return adminBaseQuery(param).eq(param.getStatus() != null, FriendLinkDO::getStatus, param.getStatus())
             .page(page);
+    }
+
+    /** 管理端列表与计数共用的基础过滤：只有关键词，不含状态。friend_link 是硬删，没有 deleted 列 */
+    private LambdaQueryChainWrapper<FriendLinkDO> adminBaseQuery(FriendLinkPageParam param) {
+        return lambdaQuery().and(StringUtils.hasText(param.getKeyword()),
+            w -> w.like(FriendLinkDO::getName, param.getKeyword()).or().like(FriendLinkDO::getUrl,
+                param.getKeyword()));
+    }
+
+    /**
+     * 统计当前筛选下各状态的友链数量，供管理端 tab 计数使用
+     * <p>
+     * 与 pageForAdmin 共用 {@link #adminBaseQuery}，关键词口径必须一致， 否则搜索时 tab 数字会和列表行数对不上。
+     * </p>
+     *
+     * @param param 查询条件，仅取关键词，状态分桶由本方法逐档统计
+     * @return 状态计数
+     */
+    public FriendLinkStatsDTO countStats(FriendLinkPageParam param) {
+        FriendLinkStatsDTO stats = new FriendLinkStatsDTO();
+        stats.setTotal(adminBaseQuery(param).count());
+        stats.setPending(adminBaseQuery(param).eq(FriendLinkDO::getStatus, FriendLinkStatusEnum.PENDING).count());
+        stats.setApproved(adminBaseQuery(param).eq(FriendLinkDO::getStatus, FriendLinkStatusEnum.APPROVED).count());
+        stats.setRejected(adminBaseQuery(param).eq(FriendLinkDO::getStatus, FriendLinkStatusEnum.REJECTED).count());
+        return stats;
     }
 
     /**

@@ -88,8 +88,8 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
             .set(UserDO::getPassword, null).set(UserDO::getDeleted, DeleteStatusEnum.DELETED).update();
     }
 
-    public UserStatsDTO countStats() {
-        return getBaseMapper().selectUserStats();
+    public UserStatsDTO countStats(UserPageParam queryParam) {
+        return getBaseMapper().selectUserStats(queryParam);
     }
 
     public IPage<UserDetailDTO> pageUsers(UserPageParam queryParam, Page<UserDetailDTO> page) {

@@ -6,8 +6,8 @@ import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleMetaUpdateParam;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveParam;
+import top.harrylei.bitlog.api.model.article.vo.ArticleCountVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticlePublicDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
@@ -154,11 +154,20 @@ public interface ArticleService {
     void batchDelete(Long userId, List<Long> articleIds);
 
     /**
-     * 分页查询当前用户的文章列表（含草稿），同时返回各状态计数
+     * 分页查询当前用户的文章列表（含草稿）
      *
      * @param userId 用户 ID
      * @param query 查询参数
-     * @return 分页结果及状态计数
+     * @return 分页结果
      */
-    ArticleListVO pageMyArticles(Long userId, MyArticlePageParam query);
+    PageVO<ArticleVO> pageMyArticles(Long userId, MyArticlePageParam query);
+
+    /**
+     * 统计当前筛选条件下各状态的文章数量（关键词参与过滤，与列表口径一致）
+     *
+     * @param userId 用户 ID
+     * @param query 查询参数，仅取关键词，状态分桶由计数本身表达
+     * @return 状态计数
+     */
+    ArticleCountVO countMyArticles(Long userId, MyArticlePageParam query);
 }

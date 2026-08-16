@@ -16,6 +16,7 @@ import top.harrylei.bitlog.api.model.link.query.FriendLinkPageParam;
 import top.harrylei.bitlog.api.model.link.req.FriendLinkAuditParam;
 import top.harrylei.bitlog.api.model.link.req.FriendLinkSaveParam;
 import top.harrylei.bitlog.api.model.link.vo.FriendLinkAdminVO;
+import top.harrylei.bitlog.api.model.link.vo.FriendLinkStatsVO;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.model.Result;
 import top.harrylei.bitlog.common.security.RequiresAdmin;
@@ -43,6 +44,12 @@ public class AdminFriendLinkController {
     @GetMapping("/page")
     public Result<PageVO<FriendLinkAdminVO>> page(@Valid FriendLinkPageParam query) {
         return Result.success(friendLinkService.pageForAdmin(query));
+    }
+
+    @Operation(summary = "统计友链各状态数量")
+    @GetMapping("/stats")
+    public Result<FriendLinkStatsVO> stats(@Valid FriendLinkPageParam query) {
+        return Result.success(friendLinkService.getFriendLinkStats(query));
     }
 
     @Operation(summary = "录入友链，直接进入展示状态")

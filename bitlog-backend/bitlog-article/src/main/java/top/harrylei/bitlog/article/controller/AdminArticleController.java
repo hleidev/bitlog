@@ -20,12 +20,14 @@ import top.harrylei.bitlog.api.model.article.req.ArticleMetaUpdateParam;
 import top.harrylei.bitlog.api.model.article.req.ArticlePublishParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleVersionBatchDeleteParam;
+import top.harrylei.bitlog.api.model.article.vo.ArticleCountVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
+import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
 import top.harrylei.bitlog.article.service.ArticleService;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
+import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.model.Result;
 import top.harrylei.bitlog.common.security.RequiresAdmin;
 
@@ -120,9 +122,15 @@ public class AdminArticleController {
         return Result.success();
     }
 
-    @Operation(summary = "分页查询我的文章列表（含草稿及状态计数）")
+    @Operation(summary = "分页查询我的文章列表（含草稿）")
     @GetMapping("/my")
-    public Result<ArticleListVO> myArticles(@Valid MyArticlePageParam query) {
+    public Result<PageVO<ArticleVO>> myArticles(@Valid MyArticlePageParam query) {
         return Result.success(articleService.pageMyArticles(ReqInfoContext.getContext().getUserId(), query));
+    }
+
+    @Operation(summary = "统计我的文章各状态数量（关键词参与过滤，与列表口径一致）")
+    @GetMapping("/my/stats")
+    public Result<ArticleCountVO> myArticleStats(@Valid MyArticlePageParam query) {
+        return Result.success(articleService.countMyArticles(ReqInfoContext.getContext().getUserId(), query));
     }
 }

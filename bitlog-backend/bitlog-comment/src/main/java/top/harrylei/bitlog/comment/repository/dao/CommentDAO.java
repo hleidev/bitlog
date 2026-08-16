@@ -3,11 +3,13 @@ package top.harrylei.bitlog.comment.repository.dao;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 import top.harrylei.bitlog.api.enums.comment.CommentStatusEnum;
+import top.harrylei.bitlog.api.model.comment.dto.CommentStatsDTO;
 import top.harrylei.bitlog.api.model.comment.query.CommentAdminPageParam;
 import top.harrylei.bitlog.comment.repository.entity.CommentDO;
 import top.harrylei.bitlog.comment.repository.mapper.CommentMapper;
@@ -33,8 +35,7 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
      * @return 根评论分页结果
      */
     public IPage<CommentDO> pageRootComments(Long articleId, Page<CommentDO> page) {
-        return lambdaQuery().eq(CommentDO::getArticleId, articleId).isNull(CommentDO::getRootId)
-            .page(page);
+        return lambdaQuery().eq(CommentDO::getArticleId, articleId).isNull(CommentDO::getRootId).page(page);
     }
 
     /**
@@ -86,9 +87,31 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
      * @return 评论分页结果
      */
     public IPage<CommentDO> pageForAdmin(CommentAdminPageParam param, Page<CommentDO> page) {
+        return adminBaseQuery(param).eq(param.getStatus() != null, CommentDO::getStatus, param.getStatus())
+            .page(page);
+    }
+
+    /**
+     * 统计当前筛选下各状态的评论数量，供管理端 tab 计数使用
+     * <p>
+     * 与 pageForAdmin 共用 {@link #adminBaseQuery}，关键词口径必须一致， 否则搜索时 tab 数字会和列表行数对不上。
+     * </p>
+     *
+     * @param param 查询条件，仅取关键词，状态分桶由本方法逐档统计
+     * @return 状态计数
+     */
+    public CommentStatsDTO countStats(CommentAdminPageParam param) {
+        CommentStatsDTO stats = new CommentStatsDTO();
+        stats.setTotal(adminBaseQuery(param).count());
+        stats.setVisible(adminBaseQuery(param).eq(CommentDO::getStatus, CommentStatusEnum.NORMAL).count());
+        stats.setHidden(adminBaseQuery(param).eq(CommentDO::getStatus, CommentStatusEnum.HIDDEN).count());
+        return stats;
+    }
+
+    /** 管理端列表与计数共用的基础过滤：排除已删除 + 关键词，不含状态 */
+    private LambdaQueryChainWrapper<CommentDO> adminBaseQuery(CommentAdminPageParam param) {
         return lambdaQuery().eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .eq(param.getStatus() != null, CommentDO::getStatus, param.getStatus())
-            .like(StringUtils.hasText(param.getKeyword()), CommentDO::getContent, param.getKeyword()).page(page);
+            .like(StringUtils.hasText(param.getKeyword()), CommentDO::getContent, param.getKeyword());
     }
 
     /**

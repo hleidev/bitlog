@@ -9,7 +9,9 @@ import top.harrylei.bitlog.api.enums.comment.CommentStatusEnum;
 import top.harrylei.bitlog.api.model.comment.query.CommentAdminPageParam;
 import top.harrylei.bitlog.api.model.comment.query.CommentPageParam;
 import top.harrylei.bitlog.api.model.comment.req.CommentSaveParam;
+import top.harrylei.bitlog.api.model.comment.dto.CommentStatsDTO;
 import top.harrylei.bitlog.api.model.comment.vo.CommentAdminVO;
+import top.harrylei.bitlog.api.model.comment.vo.CommentStatsVO;
 import top.harrylei.bitlog.api.model.comment.vo.CommentReplyVO;
 import top.harrylei.bitlog.api.model.comment.vo.CommentUserVO;
 import top.harrylei.bitlog.api.model.comment.vo.CommentVO;
@@ -95,9 +97,9 @@ public class CommentServiceImpl implements CommentService {
         }
         checkRateLimit(userId);
 
-        CommentDO comment = new CommentDO().setArticleId(articleId).setUserId(userId)
-            .setContent(req.getContent().trim()).setStatus(CommentStatusEnum.NORMAL)
-            .setDeleted(DeleteStatusEnum.NOT_DELETED);
+        CommentDO comment =
+            new CommentDO().setArticleId(articleId).setUserId(userId).setContent(req.getContent().trim())
+                .setStatus(CommentStatusEnum.NORMAL).setDeleted(DeleteStatusEnum.NOT_DELETED);
 
         Long parentId = req.getParentId();
         if (parentId != null) {
@@ -130,6 +132,12 @@ public class CommentServiceImpl implements CommentService {
         if (deleted > 0 && CommentStatusEnum.NORMAL.equals(comment.getStatus())) {
             articlePort.decreaseCommentCount(articleId, deleted);
         }
+    }
+
+    @Override
+    public CommentStatsVO getCommentStats(CommentAdminPageParam req) {
+        CommentStatsDTO dto = commentDAO.countStats(req);
+        return new CommentStatsVO().setTotal(dto.getTotal()).setVisible(dto.getVisible()).setHidden(dto.getHidden());
     }
 
     @Override

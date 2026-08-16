@@ -77,7 +77,7 @@ public interface UserService {
      *
      * @return 各状态用户数量
      */
-    UserStatsVO getUserStats();
+    UserStatsVO getUserStats(UserPageParam query);
 
     /**
      * 分页查询用户列表

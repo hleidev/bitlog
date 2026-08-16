@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
+import top.harrylei.bitlog.api.model.article.dto.ArticleCountDTO;
 import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
 import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleMetaUpdateParam;
@@ -14,7 +15,6 @@ import top.harrylei.bitlog.api.model.article.req.ArticlePublishParam;
 import top.harrylei.bitlog.api.model.article.req.ArticleSaveParam;
 import top.harrylei.bitlog.api.model.article.vo.ArticleCountVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticleListVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticlePublicDetailVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
 import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
@@ -335,13 +335,16 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional(readOnly = true)
-    public ArticleListVO pageMyArticles(Long userId, MyArticlePageParam query) {
+    public PageVO<ArticleVO> pageMyArticles(Long userId, MyArticlePageParam query) {
         IPage<ArticleDO> page = articleDAO.pageByUser(userId, query, query.toPage());
-        long total = articleDAO.countByUser(userId);
-        long published = articleDAO.countByUserAndStatus(userId, ArticleStatusEnum.PUBLISHED);
-        ArticleCountVO counts =
-            new ArticleCountVO().setTotal(total).setPublished(published).setDraft(total - published);
-        return new ArticleListVO().setCounts(counts).setPage(toArticlePageVO(page, true));
+        return toArticlePageVO(page, true);
+    }
+
+    @Override
+    public ArticleCountVO countMyArticles(Long userId, MyArticlePageParam query) {
+        ArticleCountDTO dto = articleDAO.countStats(userId, query);
+        return new ArticleCountVO().setTotal(dto.getTotal()).setPublished(dto.getPublished())
+            .setDraft(dto.getDraft());
     }
 
     // ==================== 私有方法 ====================

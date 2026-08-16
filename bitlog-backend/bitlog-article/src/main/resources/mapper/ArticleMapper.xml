@@ -31,6 +31,22 @@
           </if>
     </select>
 
+    <!--
+      「我的文章」列表与状态计数共用的过滤条件。刻意不含状态分桶（publishedOnly）：
+      计数要在同一批行上一次算出三档，分桶由 FILTER 表达。
+      两处必须用同一份谓词，否则 tab 上的数字和列表行数会对不上——这种偏差没人会立刻发现。
+    -->
+    <sql id="myArticleFilter">
+        a.deleted = 0
+        AND a.user_id = #{userId}
+        <if test="query.keyword != null and query.keyword.trim() != ''">
+            AND (
+                EXISTS (SELECT 1 FROM article_version WHERE id = a.latest_version_id AND title LIKE CONCAT('%', #{query.keyword}, '%'))
+                OR a.summary LIKE CONCAT('%', #{query.keyword}, '%')
+            )
+        </if>
+    </sql>
+
     <!-- display_time 是排序用的派生列：未发布（含下架）按创建时间，已发布按发布时间，与前端 displayDate 对齐 -->
     <select id="pageByUser" resultType="top.harrylei.bitlog.article.repository.entity.ArticleDO">
         SELECT a.*,
@@ -38,20 +54,21 @@
                     THEN a.create_time
                     ELSE COALESCE(a.publish_time, a.create_time) END AS display_time
         FROM article a
-        WHERE a.deleted = 0
-          AND a.user_id = #{userId}
+        WHERE <include refid="myArticleFilter"/>
           <if test="query.publishedOnly == true">
               AND a.published_version_id IS NOT NULL
           </if>
           <if test="query.publishedOnly == false">
               AND a.published_version_id IS NULL
           </if>
-          <if test="query.keyword != null and query.keyword.trim() != ''">
-              AND (
-                  EXISTS (SELECT 1 FROM article_version WHERE id = a.latest_version_id AND title LIKE CONCAT('%', #{query.keyword}, '%'))
-                  OR a.summary LIKE CONCAT('%', #{query.keyword}, '%')
-              )
-          </if>
+    </select>
+
+    <select id="selectMyArticleStats" resultType="top.harrylei.bitlog.api.model.article.dto.ArticleCountDTO">
+        SELECT COUNT(*)                                                  AS total,
+               COUNT(*) FILTER (WHERE a.published_version_id IS NOT NULL) AS published,
+               COUNT(*) FILTER (WHERE a.published_version_id IS NULL)     AS draft
+        FROM article a
+        WHERE <include refid="myArticleFilter"/>
     </select>
 
 </mapper>
