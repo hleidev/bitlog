@@ -123,6 +123,11 @@ export function updateArticleMeta(id: number, params: UpdateArticleMetaParams): 
   return request.patch<never, void>(`/v1/article/${id}/meta`, params)
 }
 
+/** 放弃未发布的草稿改动：草稿头回退到已发布版本，被放弃的版本仍留在历史里 */
+export function discardDraftAbovePublish(id: number): Promise<void> {
+  return request.post<never, void>(`/v1/article/${id}/draft/discard`)
+}
+
 // ── Version history ───────────────────────────────────────────────────────────
 
 export function getArticleVersions(id: number): Promise<ArticleVersionVO[]> {

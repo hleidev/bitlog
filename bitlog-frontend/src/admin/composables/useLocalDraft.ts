@@ -16,18 +16,21 @@ const DEBOUNCE_MS = 800
 const TTL_MS = 7 * 24 * 3600 * 1000 // 7 天过期
 
 export function useLocalDraft(
-  id: number | 'new',
+  getId: () => number | 'new',
   getSnapshot: () => { title: string; content: string },
 ) {
-  const key = `${KEY_PREFIX}${id}`
+  // id 必须每次现取：新文章保存后会拿到真实 id，键要跟着换，否则后续兜底全写进 "new"
+  // 键里，重新打开 /admin/write/{id} 时读不到。
+  const keyOf = () => `${KEY_PREFIX}${getId()}`
   let timer: ReturnType<typeof setTimeout> | undefined
 
   function write() {
+    const id = getId()
     const { title, content } = getSnapshot()
     if (id === 'new' && !title.trim() && !content.trim()) return
     const payload: LocalDraftPayload = { title, content, ts: Date.now() }
     try {
-      localStorage.setItem(key, JSON.stringify(payload))
+      localStorage.setItem(`${KEY_PREFIX}${id}`, JSON.stringify(payload))
     } catch {
       // localStorage 满 / 隐私模式不可用 —— 静默
     }
@@ -35,7 +38,7 @@ export function useLocalDraft(
 
   function read(): LocalDraftPayload | null {
     try {
-      const raw = localStorage.getItem(key)
+      const raw = localStorage.getItem(keyOf())
       if (!raw) return null
       const data = JSON.parse(raw) as LocalDraftPayload
       if (Date.now() - data.ts > TTL_MS) return null
@@ -47,7 +50,7 @@ export function useLocalDraft(
 
   function clear() {
     try {
-      localStorage.removeItem(key)
+      localStorage.removeItem(keyOf())
     } catch {
       /* noop */
     }

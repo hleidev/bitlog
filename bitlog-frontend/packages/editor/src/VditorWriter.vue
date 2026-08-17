@@ -26,7 +26,10 @@ const props = withDefaults(
   { editable: true },
 )
 
-const emit = defineEmits<{ change: []; error: [message: string] }>()
+// ready：初始内容已灌入，此刻 getMarkdown() 才是 Lute 规范化后的真实值。宿主要拿它做
+// 「有没有改动」的基线 —— autoSpace / fixTermTypo 会重写 markdown，直接拿播种的字符串
+// 当基线会让文章一打开就显示成已修改。
+const emit = defineEmits<{ change: []; error: [message: string]; ready: [] }>()
 
 const containerRef = ref<HTMLDivElement | null>(null)
 let vditor: Vditor | null = null
@@ -167,6 +170,7 @@ onMounted(() => {
       if (import.meta.env.DEV) {
         ;(window as unknown as { __vditorWriter: Vditor }).__vditorWriter = vditor!
       }
+      emit('ready')
     },
   })
 })

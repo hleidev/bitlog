@@ -26,7 +26,8 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/admin/views/AdminLoginView.vue'),
   },
   {
-    path: '/admin/preview/:id(\\d+)',
+    // "new" 让还没保存过的新文章也能预览（内容由写作页通过 localStorage 交接）
+    path: '/admin/preview/:id(\\d+|new)',
     component: () => import('@/admin/views/PreviewView.vue'),
     meta: { requiresAuth: true, requiresAdmin: true },
   },

@@ -2,20 +2,55 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getArticleDraft } from '@/api/admin/article'
-import type { ArticleDetailVO } from '@/api/admin/article'
+import { readPreviewHandoff } from '@/admin/composables/usePreviewHandoff'
 import ArticleContent from '@/components/ArticleContent.vue'
 
+interface PreviewData {
+  title: string
+  content: string
+  category: { id: number; name: string } | null
+  tags: { id: number; name: string }[]
+}
+
 const route = useRoute()
-const article = ref<ArticleDetailVO | null>(null)
+const article = ref<PreviewData | null>(null)
 const loading = ref(true)
 const error = ref(false)
 
 onMounted(async () => {
-  const id = Number(route.params.id)
+  const raw = String(route.params.id)
+
+  // 新文章还没有 id，正文只能来自交接；没有交接就无从预览
+  if (raw === 'new') {
+    const handoff = readPreviewHandoff('new')
+    if (handoff) {
+      article.value = { title: handoff.title, content: handoff.content, category: null, tags: [] }
+    } else {
+      error.value = true
+    }
+    loading.value = false
+    return
+  }
+
+  const id = Number(raw)
+  const handoff = readPreviewHandoff(id)
   try {
-    article.value = await getArticleDraft(id)
+    const data = await getArticleDraft(id)
+    // 分类/标签只在服务器上，正文以编辑器交接的为准（含未保存的改动）
+    article.value = {
+      title: handoff ? handoff.title : data.title,
+      content: handoff ? handoff.content : data.content,
+      category: data.category,
+      tags: data.tags,
+    }
   } catch {
-    error.value = true
+    // 预览本身不写任何东西，服务器拿不到时退化成只渲染交接内容（缺分类/标签），
+    // 比整页报错有用 —— 用户要看的就是编辑器里那份
+    if (handoff) {
+      article.value = { title: handoff.title, content: handoff.content, category: null, tags: [] }
+    } else {
+      error.value = true
+    }
   } finally {
     loading.value = false
   }
