@@ -2,7 +2,12 @@
 import { pending } from '@/admin/composables/useConfirm'
 
 function onConfirm() {
-  pending.value?.resolve()
+  pending.value?.resolve('confirm')
+  pending.value = null
+}
+
+function onExtra() {
+  pending.value?.resolve('extra')
   pending.value = null
 }
 
@@ -22,6 +27,13 @@ function onCancel() {
           <div class="confirm-actions">
             <button class="confirm-btn confirm-btn--cancel" @click="onCancel">
               {{ pending.options.cancelText }}
+            </button>
+            <button
+              v-if="pending.options.extraText"
+              class="confirm-btn confirm-btn--extra"
+              @click="onExtra"
+            >
+              {{ pending.options.extraText }}
             </button>
             <button
               class="confirm-btn confirm-btn--ok"
@@ -102,6 +114,17 @@ function onCancel() {
 .confirm-btn--cancel:hover {
   background: var(--admin-surface-hover);
   border-color: var(--admin-border-strong);
+}
+
+/* 第三出口：比取消重、比主操作轻 */
+.confirm-btn--extra {
+  background: var(--admin-surface-2);
+  color: var(--admin-text-secondary);
+  border-color: var(--admin-border);
+}
+
+.confirm-btn--extra:hover {
+  background: var(--admin-border);
 }
 
 .confirm-btn--ok {

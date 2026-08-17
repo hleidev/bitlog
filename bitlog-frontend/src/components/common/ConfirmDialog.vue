@@ -2,7 +2,7 @@
 import { pending } from '@/composables/useConfirm'
 
 function onConfirm() {
-  pending.value?.resolve()
+  pending.value?.resolve('confirm')
   pending.value = null
 }
 
