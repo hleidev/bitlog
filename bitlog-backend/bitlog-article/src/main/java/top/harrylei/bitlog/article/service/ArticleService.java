@@ -53,6 +53,14 @@ public interface ArticleService {
     void publishArticle(Long userId, Long articleId, ArticlePublishParam req);
 
     /**
+     * 放弃未发布的草稿改动（草稿头指针回退到已发布版本，不新增版本）
+     *
+     * @param userId 操作用户 ID
+     * @param articleId 文章 ID
+     */
+    void discardDraftAbovePublish(Long userId, Long articleId);
+
+    /**
      * 快速更新文章元数据（摘要、分类、标签），不影响文章内容和版本
      *
      * @param userId 操作用户 ID

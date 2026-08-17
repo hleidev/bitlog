@@ -144,6 +144,26 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void discardDraftAbovePublish(Long userId, Long articleId) {
+        ArticleDO article = getArticleOrThrow(articleId);
+        checkOwner(article, userId);
+
+        Long publishedVersionId = article.getPublishedVersionId();
+        if (publishedVersionId == null) {
+            ResultCode.ARTICLE_NOT_PUBLISHED.throwException();
+        }
+        if (publishedVersionId.equals(article.getLatestVersionId())) {
+            ResultCode.ARTICLE_NO_DRAFT_ABOVE_PUBLISH.throwException();
+        }
+
+        // 只回退草稿头指针，被放弃的版本留在历史里，由版本侧栏按需删除
+        articleDAO.resetLatestVersion(articleId, publishedVersionId);
+
+        log.info("放弃未发布草稿 articleId={} 草稿头回退至 versionId={}", articleId, publishedVersionId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateArticleMeta(Long userId, Long articleId, ArticleMetaUpdateParam req) {
         ArticleDO article = getArticleOrThrow(articleId);
         checkOwner(article, userId);
@@ -191,6 +211,10 @@ public class ArticleServiceImpl implements ArticleService {
         checkOwner(article, userId);
         boolean isPublished = article.getPublishedVersionId() != null;
         if (status == ArticleStatusEnum.PUBLISHED && !isPublished) {
+            // 与 publishArticle 的 categoryId 必填对齐：这条路径不带参数，只能校验文章上已有的分类
+            if (article.getCategoryId() == null) {
+                ResultCode.ARTICLE_CATEGORY_REQUIRED.throwException();
+            }
             articleDAO.updatePublishedVersionId(articleId, article.getLatestVersionId());
             if (article.getPublishTime() == null) {
                 articleDAO.setPublishTime(articleId, OffsetDateTime.now());

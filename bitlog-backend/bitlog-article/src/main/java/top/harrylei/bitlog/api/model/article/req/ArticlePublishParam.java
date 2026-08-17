@@ -1,6 +1,7 @@
 package top.harrylei.bitlog.api.model.article.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -22,7 +23,8 @@ public class ArticlePublishParam {
     @Schema(description = "文章摘要")
     private String summary;
 
-    @Schema(description = "分类 ID")
+    @NotNull(message = "分类不能为空")
+    @Schema(description = "分类 ID", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long categoryId;
 
     @Schema(description = "标签 ID 列表")

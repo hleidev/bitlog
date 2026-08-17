@@ -55,6 +55,11 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
             .setSql("version_count = version_count + 1").update();
     }
 
+    /** 放弃未发布草稿：草稿头指针回退到指定版本，不新增版本，故不动版本计数 */
+    public void resetLatestVersion(Long articleId, Long versionId) {
+        lambdaUpdate().eq(ArticleDO::getId, articleId).set(ArticleDO::getLatestVersionId, versionId).update();
+    }
+
     /** 发布文章：更新摘要、分类、已发布版本 ID 和发布时间 */
     public void publish(Long articleId, String summary, Long categoryId, Long publishedVersionId,
         OffsetDateTime publishTime) {

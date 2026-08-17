@@ -68,6 +68,13 @@ public class AdminArticleController {
         return Result.success();
     }
 
+    @Operation(summary = "放弃未发布的草稿改动（草稿头回退到已发布版本）")
+    @PostMapping("/{id}/draft/discard")
+    public Result<Void> discardDraft(@PathVariable Long id) {
+        articleService.discardDraftAbovePublish(ReqInfoContext.getContext().getUserId(), id);
+        return Result.success();
+    }
+
     @Operation(summary = "快速更新文章元数据（摘要、分类、标签），不影响内容与版本")
     @PatchMapping("/{id}/meta")
     public Result<Void> updateMeta(@PathVariable Long id, @Valid @RequestBody ArticleMetaUpdateParam req) {

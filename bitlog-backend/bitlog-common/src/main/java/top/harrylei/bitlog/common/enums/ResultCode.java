@@ -27,7 +27,8 @@ public enum ResultCode implements IResultCode {
 
     // ========== 文章 43xxx ==========
     ARTICLE_NOT_EXISTS(43001, "文章不存在"), ARTICLE_NOT_PUBLISHED(43002, "文章未发布"), ARTICLE_NO_PERMISSION(43003, "无权操作该文章"),
-    ARTICLE_VERSION_NOT_EXISTS(43004, "文章版本不存在"), CATEGORY_NOT_EXISTS(43101, "分类不存在"),
+    ARTICLE_VERSION_NOT_EXISTS(43004, "文章版本不存在"), ARTICLE_CATEGORY_REQUIRED(43005, "发布前请先设置文章分类"),
+    ARTICLE_NO_DRAFT_ABOVE_PUBLISH(43006, "没有未发布的草稿改动"), CATEGORY_NOT_EXISTS(43101, "分类不存在"),
     CATEGORY_ALREADY_EXISTS(43102, "分类已存在"), CATEGORY_HAS_ARTICLES(43104, "该分类下存在文章，请先移除文章"),
     TAG_NOT_EXISTS(43201, "标签不存在"), TAG_ALREADY_EXISTS(43202, "标签已存在"),
 
