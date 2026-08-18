@@ -1,4 +1,15 @@
 spring:
+  # 本地开发的环境变量来源。Spring Boot 2.4+ 的原生能力，不需要 direnv，也不需要第三方库。
+  # 真实 OS 环境变量优先级更高，生产由 docker-compose 直接注入、镜像里没有 .env，optional: 保证跳过。
+  # 相对路径按进程工作目录解析，所以本地必须从 bitlog-backend/ 启动。
+  # 不要加 ../.env 兜底：那是仓库根的生产密钥文件，键名与这份大量重叠，会把生产密钥灌进 dev。
+  config:
+    import: optional:file:.env[.properties]
+  # 默认档。把 SPRING_PROFILES_ACTIVE 放进 .env 是无效的：作为 properties 导入后键名就是字面的
+  # SPRING_PROFILES_ACTIVE，只有 OS 环境变量才会被映射成 spring.profiles.active。生产在
+  # docker-compose 里以真环境变量覆盖此处为 prod。
+  profiles:
+    active: dev
   application:
     name: bitlog-server
   servlet:
