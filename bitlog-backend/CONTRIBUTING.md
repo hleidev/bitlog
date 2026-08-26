@@ -17,3 +17,6 @@ mvn verify
 
 集成测试使用 Testcontainers，需要 Docker。代码格式遵循 `.editorconfig`，代码注释以中文为主。
 请保持 `Controller -> Service -> DAO/Mapper` 分层，跨模块调用通过目标模块的 `port` API 完成。
+
+项目依赖由维护者定期手动检查和升级，不使用自动依赖更新机器人。依赖升级应单独提交，并在合并
+前运行测试和验证受影响模块。
