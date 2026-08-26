@@ -49,8 +49,12 @@ npm run lint
 npm run build
 ```
 
-`npm run build` 会先生成 sitemap 和友链数据，再执行类型检查、SSG 构建及产物校验。远程内容暂时
-不可用时，生成脚本会退化为静态 sitemap 和空友链清单，不会中断构建。
+`npm run build` 是完整的生产构建：npm 会依次执行 `prebuild`、`build` 和 `postbuild`，生成
+sitemap 与友链数据，完成类型检查和 SSG 构建，并校验文章是否进入静态产物。该流程需要生产
+API 可达且能返回文章数据，否则产物校验会失败。
+
+CI 使用 `npm run build:ci`，只执行类型检查和 SSG 编译，不触发依赖生产数据的 `prebuild` 与
+`postbuild` 生命周期钩子。
 
 ## 桌面端
 
