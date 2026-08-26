@@ -5,7 +5,13 @@ public/friend.json
 
 # IDE
 .idea/
+
+# Local AI assistant configuration
+AGENTS.md
+CLAUDE.md
 .claude/
+.cursor/
+.github/copilot-instructions.md
 
 # macOS
 .DS_Store
