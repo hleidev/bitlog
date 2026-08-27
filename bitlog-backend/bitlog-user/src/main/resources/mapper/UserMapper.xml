@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="top.harrylei.bitlog.user.repository.mapper.UserMapper">
 
-    <resultMap id="UserDetailDTOMap" type="top.harrylei.bitlog.api.model.user.dto.UserDetailDTO">
+    <resultMap id="UserDetailDTOMap" type="top.harrylei.bitlog.user.model.dto.UserDetailDTO">
         <id column="id" property="userId"/>
         <result column="username" property="username"/>
         <result column="email" property="email"/>
@@ -39,7 +39,7 @@
         </if>
     </sql>
 
-    <select id="selectUserStats" resultType="top.harrylei.bitlog.api.model.user.dto.UserStatsDTO">
+    <select id="selectUserStats" resultType="top.harrylei.bitlog.user.model.dto.UserStatsDTO">
         select
             COUNT(*) FILTER (WHERE a.deleted = 0)                  AS total,
             COUNT(*) FILTER (WHERE a.deleted = 0 AND a.status = 1) AS enabled,

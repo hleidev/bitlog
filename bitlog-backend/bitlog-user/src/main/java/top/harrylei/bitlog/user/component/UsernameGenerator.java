@@ -2,7 +2,7 @@ package top.harrylei.bitlog.user.component;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import top.harrylei.bitlog.api.model.user.UserRules;
+import top.harrylei.bitlog.user.model.UserRules;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
 

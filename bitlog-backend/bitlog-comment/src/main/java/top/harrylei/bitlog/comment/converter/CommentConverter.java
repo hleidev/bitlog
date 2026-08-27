@@ -2,11 +2,11 @@ package top.harrylei.bitlog.comment.converter;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import top.harrylei.bitlog.api.model.comment.vo.CommentAdminVO;
-import top.harrylei.bitlog.api.model.comment.vo.CommentReplyVO;
-import top.harrylei.bitlog.api.model.comment.vo.CommentUserVO;
-import top.harrylei.bitlog.api.model.comment.vo.CommentVO;
-import top.harrylei.bitlog.api.model.user.vo.UserVO;
+import top.harrylei.bitlog.comment.model.vo.CommentAdminVO;
+import top.harrylei.bitlog.comment.model.vo.CommentReplyVO;
+import top.harrylei.bitlog.comment.model.vo.CommentUserVO;
+import top.harrylei.bitlog.comment.model.vo.CommentVO;
+import top.harrylei.bitlog.user.model.vo.UserVO;
 import top.harrylei.bitlog.comment.repository.entity.CommentDO;
 
 /**

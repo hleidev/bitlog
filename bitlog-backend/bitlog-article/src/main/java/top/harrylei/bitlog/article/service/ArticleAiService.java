@@ -1,6 +1,6 @@
 package top.harrylei.bitlog.article.service;
 
-import top.harrylei.bitlog.api.model.article.vo.AiArticleMetadataVO;
+import top.harrylei.bitlog.article.model.vo.AiArticleMetadataVO;
 
 /**
  * 文章 AI 辅助服务

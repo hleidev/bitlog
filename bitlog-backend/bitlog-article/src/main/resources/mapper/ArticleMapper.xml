@@ -63,7 +63,7 @@
           </if>
     </select>
 
-    <select id="selectMyArticleStats" resultType="top.harrylei.bitlog.api.model.article.dto.ArticleCountDTO">
+    <select id="selectMyArticleStats" resultType="top.harrylei.bitlog.article.model.dto.ArticleCountDTO">
         SELECT COUNT(*)                                                  AS total,
                COUNT(*) FILTER (WHERE a.published_version_id IS NOT NULL) AS published,
                COUNT(*) FILTER (WHERE a.published_version_id IS NULL)     AS draft

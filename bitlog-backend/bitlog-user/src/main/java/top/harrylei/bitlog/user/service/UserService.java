@@ -1,11 +1,11 @@
 package top.harrylei.bitlog.user.service;
 
-import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
-import top.harrylei.bitlog.api.model.user.query.UserPageParam;
-import top.harrylei.bitlog.api.model.user.req.UserUpdateParam;
-import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
-import top.harrylei.bitlog.api.model.user.vo.UserListVO;
-import top.harrylei.bitlog.api.model.user.vo.UserStatsVO;
+import top.harrylei.bitlog.user.model.enums.UserStatusEnum;
+import top.harrylei.bitlog.user.model.query.UserPageParam;
+import top.harrylei.bitlog.user.model.req.UserUpdateParam;
+import top.harrylei.bitlog.user.model.vo.UserDetailVO;
+import top.harrylei.bitlog.user.model.vo.UserListVO;
+import top.harrylei.bitlog.user.model.vo.UserStatsVO;
 import top.harrylei.bitlog.common.model.PageVO;
 
 import java.util.List;

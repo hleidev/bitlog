@@ -1,11 +1,11 @@
 package top.harrylei.bitlog.auth.service;
 
-import top.harrylei.bitlog.api.model.auth.LoginParam;
-import top.harrylei.bitlog.api.model.auth.OAuthLoginParam;
-import top.harrylei.bitlog.api.model.auth.PasswordResetParam;
-import top.harrylei.bitlog.api.model.auth.RegisterParam;
-import top.harrylei.bitlog.api.model.auth.AdminCreateUserParam;
-import top.harrylei.bitlog.api.model.auth.UserCreatedVO;
+import top.harrylei.bitlog.auth.model.LoginParam;
+import top.harrylei.bitlog.auth.model.OAuthLoginParam;
+import top.harrylei.bitlog.auth.model.PasswordResetParam;
+import top.harrylei.bitlog.auth.model.RegisterParam;
+import top.harrylei.bitlog.auth.model.AdminCreateUserParam;
+import top.harrylei.bitlog.auth.model.UserCreatedVO;
 
 /**
  * 认证服务接口

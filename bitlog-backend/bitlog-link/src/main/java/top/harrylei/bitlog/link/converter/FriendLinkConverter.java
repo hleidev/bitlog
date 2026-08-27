@@ -3,10 +3,10 @@ package top.harrylei.bitlog.link.converter;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-import top.harrylei.bitlog.api.model.link.req.FriendLinkSaveParam;
-import top.harrylei.bitlog.api.model.link.vo.FriendLinkAdminVO;
-import top.harrylei.bitlog.api.model.link.vo.FriendLinkVO;
-import top.harrylei.bitlog.api.model.link.vo.MyFriendLinkVO;
+import top.harrylei.bitlog.link.model.req.FriendLinkSaveParam;
+import top.harrylei.bitlog.link.model.vo.FriendLinkAdminVO;
+import top.harrylei.bitlog.link.model.vo.FriendLinkVO;
+import top.harrylei.bitlog.link.model.vo.MyFriendLinkVO;
 import top.harrylei.bitlog.link.repository.entity.FriendLinkDO;
 
 import java.util.List;

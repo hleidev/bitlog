@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
-import top.harrylei.bitlog.api.enums.link.FriendLinkStatusEnum;
+import top.harrylei.bitlog.link.model.enums.FriendLinkStatusEnum;
 import top.harrylei.bitlog.common.model.BaseDO;
 
 import java.io.Serial;

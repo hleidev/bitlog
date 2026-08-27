@@ -1,11 +1,11 @@
 package top.harrylei.bitlog.auth.service;
 
-import top.harrylei.bitlog.api.model.auth.EmailCodeParam;
-import top.harrylei.bitlog.api.model.auth.EmailUpdateParam;
-import top.harrylei.bitlog.api.model.auth.PasswordInitParam;
-import top.harrylei.bitlog.api.model.auth.PasswordUpdateParam;
-import top.harrylei.bitlog.api.model.auth.PasswordResetVO;
-import top.harrylei.bitlog.api.model.auth.UserIdentityVO;
+import top.harrylei.bitlog.auth.model.EmailCodeParam;
+import top.harrylei.bitlog.auth.model.EmailUpdateParam;
+import top.harrylei.bitlog.auth.model.PasswordInitParam;
+import top.harrylei.bitlog.auth.model.PasswordUpdateParam;
+import top.harrylei.bitlog.auth.model.PasswordResetVO;
+import top.harrylei.bitlog.auth.model.UserIdentityVO;
 
 import java.util.List;
 

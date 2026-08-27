@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.harrylei.bitlog.api.model.article.vo.AiArticleMetadataVO;
+import top.harrylei.bitlog.article.model.vo.AiArticleMetadataVO;
 import top.harrylei.bitlog.article.service.ArticleAiService;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.model.Result;

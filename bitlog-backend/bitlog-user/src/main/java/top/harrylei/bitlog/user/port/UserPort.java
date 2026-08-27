@@ -1,6 +1,6 @@
 package top.harrylei.bitlog.user.port;
 
-import top.harrylei.bitlog.api.model.user.vo.UserVO;
+import top.harrylei.bitlog.user.model.vo.UserVO;
 
 import java.util.List;
 

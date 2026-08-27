@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import top.harrylei.bitlog.api.model.user.query.UserPageParam;
-import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
-import top.harrylei.bitlog.api.model.user.dto.UserStatsDTO;
+import top.harrylei.bitlog.user.model.query.UserPageParam;
+import top.harrylei.bitlog.user.model.dto.UserDetailDTO;
+import top.harrylei.bitlog.user.model.dto.UserStatsDTO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
 
 /**

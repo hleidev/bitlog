@@ -6,7 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
+import top.harrylei.bitlog.article.model.enums.ArticleStatusEnum;
 import top.harrylei.bitlog.article.component.ArticleReadDedupe;
 import top.harrylei.bitlog.article.component.DeployHookService;
 import top.harrylei.bitlog.article.converter.ArticleConverter;

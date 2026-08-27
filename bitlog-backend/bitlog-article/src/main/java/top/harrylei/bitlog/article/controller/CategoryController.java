@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
+import top.harrylei.bitlog.article.model.vo.CategoryVO;
 import top.harrylei.bitlog.article.service.CategoryService;
 import top.harrylei.bitlog.common.model.Result;
 

@@ -6,7 +6,7 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
+import top.harrylei.bitlog.user.model.enums.UserRoleEnum;
 import top.harrylei.bitlog.common.config.JwtProperties;
 import top.harrylei.bitlog.common.security.JwtClaims;
 

@@ -15,8 +15,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import top.harrylei.bitlog.api.enums.article.MyArticleSortEnum;
-import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
+import top.harrylei.bitlog.article.model.enums.MyArticleSortEnum;
+import top.harrylei.bitlog.article.model.query.MyArticlePageParam;
 import top.harrylei.bitlog.article.repository.dao.ArticleDAO;
 import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.common.config.MybatisPlusConfig;
@@ -155,9 +155,9 @@ class ArticlePaginationIT {
     @DisplayName("状态过滤经布尔翻译落到已发布/未发布两条件上")
     void pageByUser_statusFilter_splitsPublishedAndDraft() {
         MyArticlePageParam published =
-            new MyArticlePageParam().setStatus(top.harrylei.bitlog.api.enums.article.ArticleStatusEnum.PUBLISHED);
+            new MyArticlePageParam().setStatus(top.harrylei.bitlog.article.model.enums.ArticleStatusEnum.PUBLISHED);
         MyArticlePageParam draft =
-            new MyArticlePageParam().setStatus(top.harrylei.bitlog.api.enums.article.ArticleStatusEnum.DRAFT);
+            new MyArticlePageParam().setStatus(top.harrylei.bitlog.article.model.enums.ArticleStatusEnum.DRAFT);
 
         assertThat(order(published)).containsExactlyInAnyOrder("A", "B");
         assertThat(order(draft)).containsExactlyInAnyOrder("C", "D");

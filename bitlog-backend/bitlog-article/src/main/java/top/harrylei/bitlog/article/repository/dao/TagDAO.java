@@ -2,7 +2,7 @@ package top.harrylei.bitlog.article.repository.dao;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
-import top.harrylei.bitlog.api.model.article.vo.TagVO;
+import top.harrylei.bitlog.article.model.vo.TagVO;
 import top.harrylei.bitlog.article.repository.entity.TagDO;
 import top.harrylei.bitlog.article.repository.mapper.TagMapper;
 

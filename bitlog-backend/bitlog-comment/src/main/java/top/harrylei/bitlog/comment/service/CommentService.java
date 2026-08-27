@@ -1,12 +1,12 @@
 package top.harrylei.bitlog.comment.service;
 
-import top.harrylei.bitlog.api.enums.comment.CommentStatusEnum;
-import top.harrylei.bitlog.api.model.comment.query.CommentAdminPageParam;
-import top.harrylei.bitlog.api.model.comment.req.CommentSaveParam;
-import top.harrylei.bitlog.api.model.comment.vo.CommentAdminVO;
-import top.harrylei.bitlog.api.model.comment.vo.CommentStatsVO;
-import top.harrylei.bitlog.api.model.comment.vo.CommentVO;
-import top.harrylei.bitlog.api.model.comment.query.CommentPageParam;
+import top.harrylei.bitlog.comment.model.enums.CommentStatusEnum;
+import top.harrylei.bitlog.comment.model.query.CommentAdminPageParam;
+import top.harrylei.bitlog.comment.model.req.CommentSaveParam;
+import top.harrylei.bitlog.comment.model.vo.CommentAdminVO;
+import top.harrylei.bitlog.comment.model.vo.CommentStatsVO;
+import top.harrylei.bitlog.comment.model.vo.CommentVO;
+import top.harrylei.bitlog.comment.model.query.CommentPageParam;
 import top.harrylei.bitlog.common.model.PageVO;
 
 import java.util.List;

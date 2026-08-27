@@ -6,9 +6,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
-import top.harrylei.bitlog.api.enums.link.FriendLinkStatusEnum;
-import top.harrylei.bitlog.api.model.link.dto.FriendLinkStatsDTO;
-import top.harrylei.bitlog.api.model.link.query.FriendLinkPageParam;
+import top.harrylei.bitlog.link.model.enums.FriendLinkStatusEnum;
+import top.harrylei.bitlog.link.model.dto.FriendLinkStatsDTO;
+import top.harrylei.bitlog.link.model.query.FriendLinkPageParam;
 import top.harrylei.bitlog.link.repository.entity.FriendLinkDO;
 import top.harrylei.bitlog.link.repository.mapper.FriendLinkMapper;
 

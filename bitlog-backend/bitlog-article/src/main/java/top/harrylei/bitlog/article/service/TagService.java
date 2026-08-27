@@ -1,8 +1,8 @@
 package top.harrylei.bitlog.article.service;
 
-import top.harrylei.bitlog.api.model.article.req.TagSaveParam;
-import top.harrylei.bitlog.api.model.article.req.TagUpdateParam;
-import top.harrylei.bitlog.api.model.article.vo.TagVO;
+import top.harrylei.bitlog.article.model.req.TagSaveParam;
+import top.harrylei.bitlog.article.model.req.TagUpdateParam;
+import top.harrylei.bitlog.article.model.vo.TagVO;
 
 import java.util.List;
 

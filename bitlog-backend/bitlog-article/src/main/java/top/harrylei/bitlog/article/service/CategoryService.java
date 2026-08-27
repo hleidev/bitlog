@@ -1,8 +1,8 @@
 package top.harrylei.bitlog.article.service;
 
-import top.harrylei.bitlog.api.model.article.req.CategoryCreateParam;
-import top.harrylei.bitlog.api.model.article.req.CategoryUpdateParam;
-import top.harrylei.bitlog.api.model.article.vo.CategoryVO;
+import top.harrylei.bitlog.article.model.req.CategoryCreateParam;
+import top.harrylei.bitlog.article.model.req.CategoryUpdateParam;
+import top.harrylei.bitlog.article.model.vo.CategoryVO;
 
 import java.util.List;
 

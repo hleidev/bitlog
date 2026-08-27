@@ -1,12 +1,12 @@
 package top.harrylei.bitlog.link.service;
 
-import top.harrylei.bitlog.api.model.link.query.FriendLinkPageParam;
-import top.harrylei.bitlog.api.model.link.req.FriendLinkAuditParam;
-import top.harrylei.bitlog.api.model.link.req.FriendLinkSaveParam;
-import top.harrylei.bitlog.api.model.link.vo.FriendLinkAdminVO;
-import top.harrylei.bitlog.api.model.link.vo.FriendLinkStatsVO;
-import top.harrylei.bitlog.api.model.link.vo.FriendLinkVO;
-import top.harrylei.bitlog.api.model.link.vo.MyFriendLinkVO;
+import top.harrylei.bitlog.link.model.query.FriendLinkPageParam;
+import top.harrylei.bitlog.link.model.req.FriendLinkAuditParam;
+import top.harrylei.bitlog.link.model.req.FriendLinkSaveParam;
+import top.harrylei.bitlog.link.model.vo.FriendLinkAdminVO;
+import top.harrylei.bitlog.link.model.vo.FriendLinkStatsVO;
+import top.harrylei.bitlog.link.model.vo.FriendLinkVO;
+import top.harrylei.bitlog.link.model.vo.MyFriendLinkVO;
 import top.harrylei.bitlog.common.model.PageVO;
 
 import java.util.List;

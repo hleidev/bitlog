@@ -10,7 +10,7 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import top.harrylei.bitlog.api.model.auth.OAuthLoginParam;
+import top.harrylei.bitlog.auth.model.OAuthLoginParam;
 import top.harrylei.bitlog.common.exception.BusinessException;
 import top.harrylei.bitlog.common.security.OAuth2SuccessHandler;
 import top.harrylei.bitlog.common.util.MaskUtil;

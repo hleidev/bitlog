@@ -12,7 +12,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
+import top.harrylei.bitlog.user.model.enums.UserRoleEnum;
 import top.harrylei.bitlog.auth.security.JwtTokenIssuer;
 import top.harrylei.bitlog.common.config.JwtProperties;
 import top.harrylei.bitlog.common.security.SecurityConfig;

@@ -14,7 +14,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import top.harrylei.bitlog.api.enums.link.FriendLinkStatusEnum;
+import top.harrylei.bitlog.link.model.enums.FriendLinkStatusEnum;
 import top.harrylei.bitlog.common.config.MybatisPlusConfig;
 import top.harrylei.bitlog.link.repository.dao.FriendLinkDAO;
 import top.harrylei.bitlog.link.repository.entity.FriendLinkDO;

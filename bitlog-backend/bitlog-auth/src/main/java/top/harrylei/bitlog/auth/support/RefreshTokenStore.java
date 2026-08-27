@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
+import top.harrylei.bitlog.user.model.enums.UserRoleEnum;
 import top.harrylei.bitlog.common.config.JwtProperties;
 import top.harrylei.bitlog.common.constants.RedisKeyConstants;
 

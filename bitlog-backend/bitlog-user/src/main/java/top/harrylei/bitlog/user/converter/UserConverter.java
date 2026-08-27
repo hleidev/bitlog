@@ -2,12 +2,12 @@ package top.harrylei.bitlog.user.converter;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import top.harrylei.bitlog.api.enums.user.UserStatusEnum;
-import top.harrylei.bitlog.api.model.user.dto.UserAccountDTO;
-import top.harrylei.bitlog.api.model.user.dto.UserDetailDTO;
-import top.harrylei.bitlog.api.model.user.vo.UserDetailVO;
-import top.harrylei.bitlog.api.model.user.vo.UserListVO;
-import top.harrylei.bitlog.api.model.user.vo.UserVO;
+import top.harrylei.bitlog.user.model.enums.UserStatusEnum;
+import top.harrylei.bitlog.user.model.dto.UserAccountDTO;
+import top.harrylei.bitlog.user.model.dto.UserDetailDTO;
+import top.harrylei.bitlog.user.model.vo.UserDetailVO;
+import top.harrylei.bitlog.user.model.vo.UserListVO;
+import top.harrylei.bitlog.user.model.vo.UserVO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
 import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 

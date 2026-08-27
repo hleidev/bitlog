@@ -1,7 +1,7 @@
 package top.harrylei.bitlog.user.service;
 
-import top.harrylei.bitlog.api.enums.user.UserRoleEnum;
-import top.harrylei.bitlog.api.model.user.dto.UserAccountDTO;
+import top.harrylei.bitlog.user.model.enums.UserRoleEnum;
+import top.harrylei.bitlog.user.model.dto.UserAccountDTO;
 
 /**
  * 账号主体服务

@@ -1,18 +1,18 @@
 package top.harrylei.bitlog.article.service;
 
-import top.harrylei.bitlog.api.enums.article.ArticleStatusEnum;
-import top.harrylei.bitlog.api.model.article.query.ArticlePageParam;
-import top.harrylei.bitlog.api.model.article.query.MyArticlePageParam;
-import top.harrylei.bitlog.api.model.article.req.ArticleMetaUpdateParam;
-import top.harrylei.bitlog.api.model.article.req.ArticlePublishParam;
-import top.harrylei.bitlog.api.model.article.req.ArticleSaveParam;
-import top.harrylei.bitlog.api.model.article.vo.ArticleCountVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticleDetailVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticlePublicDetailVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticlePublicVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticleVersionDetailVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticleVersionVO;
-import top.harrylei.bitlog.api.model.article.vo.ArticleVO;
+import top.harrylei.bitlog.article.model.enums.ArticleStatusEnum;
+import top.harrylei.bitlog.article.model.query.ArticlePageParam;
+import top.harrylei.bitlog.article.model.query.MyArticlePageParam;
+import top.harrylei.bitlog.article.model.req.ArticleMetaUpdateParam;
+import top.harrylei.bitlog.article.model.req.ArticlePublishParam;
+import top.harrylei.bitlog.article.model.req.ArticleSaveParam;
+import top.harrylei.bitlog.article.model.vo.ArticleCountVO;
+import top.harrylei.bitlog.article.model.vo.ArticleDetailVO;
+import top.harrylei.bitlog.article.model.vo.ArticlePublicDetailVO;
+import top.harrylei.bitlog.article.model.vo.ArticlePublicVO;
+import top.harrylei.bitlog.article.model.vo.ArticleVersionDetailVO;
+import top.harrylei.bitlog.article.model.vo.ArticleVersionVO;
+import top.harrylei.bitlog.article.model.vo.ArticleVO;
 import top.harrylei.bitlog.common.model.PageVO;
 
 import java.util.List;

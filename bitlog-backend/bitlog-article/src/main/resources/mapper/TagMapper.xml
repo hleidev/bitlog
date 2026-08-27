@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="top.harrylei.bitlog.article.repository.mapper.TagMapper">
 
-    <select id="listAllWithCount" resultType="top.harrylei.bitlog.api.model.article.vo.TagVO">
+    <select id="listAllWithCount" resultType="top.harrylei.bitlog.article.model.vo.TagVO">
         SELECT t.id, t.name, t.create_time, t.update_time,
                COUNT(a.id) AS article_count
         FROM tag t
@@ -21,7 +21,7 @@
     </select>
 
     <!-- 一次 join 取回文章的标签，替代「先查 tag_id 再查 tag」的两跳 -->
-    <select id="listByArticleId" resultType="top.harrylei.bitlog.api.model.article.vo.TagVO">
+    <select id="listByArticleId" resultType="top.harrylei.bitlog.article.model.vo.TagVO">
         SELECT t.id, t.name
         FROM tag t
         INNER JOIN article_tag at ON at.tag_id = t.id
