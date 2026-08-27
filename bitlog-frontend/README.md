@@ -36,8 +36,10 @@ scripts/             sitemap、友链数据生成与 SSG 构建校验脚本
 git clone https://github.com/hleidev/bitlog-frontend.git
 cd bitlog-frontend
 npm ci
-npm run dev
+./start.sh
 ```
+
+启动脚本会检查依赖是否已安装，然后运行 Vite 开发服务器。
 
 开发服务器默认将 `/api` 代理到 `http://127.0.0.1:12301`。如需完整功能，请先启动
 [BitLog Backend](https://github.com/hleidev/bitlog-backend)。
