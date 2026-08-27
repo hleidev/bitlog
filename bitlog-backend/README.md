@@ -56,9 +56,11 @@ cp .env.example .env
 数据库结构。
 
 ```bash
-mvn -q package -DskipTests
-java -jar bitlog-server/target/bitlog-server-0.0.1-SNAPSHOT.jar
+./start.sh
 ```
+
+启动脚本会先执行 `mvn -q package -DskipTests`，然后从仓库根目录运行生成的可执行 JAR，
+确保 Spring Boot 能正确读取本地 `.env`。
 
 开发环境默认监听 `12301` 端口。
 
