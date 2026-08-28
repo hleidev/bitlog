@@ -450,6 +450,7 @@ onMounted(async () => {
 /* Category tabs */
 .cat-tabs {
   position: relative;
+  margin-left: auto;
   display: flex;
   align-items: center;
   background: var(--color-bg-hover);
@@ -776,6 +777,8 @@ onMounted(async () => {
   }
 
   .cat-tabs {
+    /* 窄屏是 column + stretch，auto margin 会盖掉 stretch 让它缩成靠右一小条 */
+    margin-left: 0;
     overflow-x: auto;
     scrollbar-width: none;
   }
