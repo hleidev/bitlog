@@ -128,7 +128,7 @@ onMounted(async () => {
   margin-top: 44px;
   font-size: 12.5px;
   letter-spacing: 0.07em;
-  color: var(--color-text-muted);
+  color: var(--color-accent);
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0% 1px;
@@ -140,7 +140,7 @@ onMounted(async () => {
 }
 
 .more-link:hover {
-  color: var(--color-text-secondary);
+  color: var(--color-accent-dark);
   background-size: 100% 1px;
 }
 

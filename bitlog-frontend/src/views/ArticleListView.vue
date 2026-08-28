@@ -486,7 +486,7 @@ onMounted(async () => {
 }
 
 .cat-tab--active {
-  color: var(--color-text-primary);
+  color: var(--color-accent);
   font-weight: 500;
 }
 
