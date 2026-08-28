@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onServerPrefetch } from 'vue'
+import { ref, onMounted, onServerPrefetch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import HeroSection from '@/components/home/HeroSection.vue'
 import { getArticlePage, type ArticleItemVO } from '@/api/article'
@@ -11,16 +11,6 @@ const route = useRoute()
 
 const articles = ref<ArticleItemVO[]>([])
 const loading = ref(false)
-const articleListRef = ref<HTMLElement | null>(null)
-
-function initRowAnimation() {
-  const rows = articleListRef.value?.querySelectorAll<HTMLElement>('.article-row')
-  if (!rows?.length) return
-  rows.forEach((row, i) => {
-    row.style.animationDelay = `${i * 55}ms`
-    row.classList.add('is-visible')
-  })
-}
 
 async function loadArticles() {
   loading.value = true
@@ -54,10 +44,6 @@ if (prerendered) articles.value = prerendered
 
 onMounted(async () => {
   if (articles.value.length === 0) await loadArticles()
-  await nextTick()
-  // 预渲染的行已经画在静态 HTML 上了。入场动画是 fill-mode: both + from{opacity:0}，
-  // 补加只会把已经可见的内容先抹成透明再淡入，反而闪一下。
-  if (!prerendered) initRowAnimation()
 })
 </script>
 
@@ -65,24 +51,24 @@ onMounted(async () => {
   <main>
     <HeroSection />
 
-    <div id="content-area" class="home-main view-enter">
-      <div class="section-header">
+    <div id="content-area" class="home-main">
+      <div class="section-header reveal">
         <span class="section-label">近期文章</span>
         <div class="section-rule"></div>
       </div>
 
       <ArticleListSkeleton v-if="loading && articles.length === 0" :rows="7" />
 
-      <div
-        v-else
-        ref="articleListRef"
-        class="article-list"
-        :class="{ 'article-list--loading': loading }"
-      >
-        <ArticleRow v-for="article in articles" :key="article.id" :article="article" />
+      <div v-else class="article-list" :class="{ 'article-list--loading': loading }">
+        <ArticleRow
+          v-for="article in articles"
+          :key="article.id"
+          :article="article"
+          class="reveal"
+        />
       </div>
 
-      <RouterLink to="/articles" class="more-link">
+      <RouterLink to="/articles" class="more-link reveal">
         全部文章 <span class="more-arrow">→</span>
       </RouterLink>
     </div>

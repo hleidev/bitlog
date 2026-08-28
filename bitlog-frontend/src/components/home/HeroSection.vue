@@ -126,7 +126,7 @@ import { RouterLink } from 'vue-router'
 .hero__char {
   display: inline-block;
   opacity: 0;
-  animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeUp 0.7s var(--ease-out-expo) both;
 }
 
 .hero__dot {
@@ -141,7 +141,7 @@ import { RouterLink } from 'vue-router'
   color: rgba(var(--color-on-dark-rgb), 0.52);
   letter-spacing: 0.1em;
   opacity: 0;
-  animation: fadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
+  animation: fadeUp 0.9s var(--ease-out-expo) 0.35s forwards;
 }
 
 /* ── Right ── */
@@ -154,7 +154,7 @@ import { RouterLink } from 'vue-router'
   flex-direction: column;
   gap: 10px;
   opacity: 0;
-  animation: fadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+  animation: fadeUp 0.9s var(--ease-out-expo) 0.5s forwards;
 }
 
 .hero__author-header {
@@ -226,6 +226,38 @@ import { RouterLink } from 'vue-router'
 }
 
 /* ── Animation ── */
+
+/* hero 内容随滚动落后于页面并淡出，让它从一块静止的深色板变成有纵深的一层。
+   必须显式 scroll(root)：.hero 的 overflow: hidden 本身就是滚动容器，
+   匿名 scroll() 会绑到它上面，而它永远不滚。 */
+@supports (animation-timeline: scroll(root)) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hero__inner {
+      animation: heroDrift linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 60vh;
+    }
+
+    .hero__after {
+      animation: heroGlowFade linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 60vh;
+    }
+  }
+}
+
+@keyframes heroDrift {
+  to {
+    transform: translateY(56px);
+    opacity: 0.35;
+  }
+}
+
+@keyframes heroGlowFade {
+  to {
+    opacity: 0.35;
+  }
+}
 
 @keyframes fadeUp {
   from {

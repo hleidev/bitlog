@@ -36,6 +36,7 @@ defineProps<{ article: ArticleItemVO }>()
   margin: 0 -10px;
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
+  position: relative;
   transition: background var(--transition-base);
 }
 
@@ -58,23 +59,38 @@ defineProps<{ article: ArticleItemVO }>()
   flex-shrink: 0;
 }
 
-.article-row.is-visible {
-  animation: rowFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
 .article-row:hover {
   background: var(--color-bg-hover);
 }
 
-@keyframes rowFadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* hover 的落点是最左侧这根短竖线，与 hero 的 accent-bar 同一形状语言。
+   正文列被它推开 5px，右侧分类不动，列对齐不塌。 */
+.article-row::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2.5px;
+  height: 26px;
+  margin-top: -13px;
+  background: var(--color-accent);
+  border-radius: var(--radius-tag);
+  transform: scaleY(0);
+  transition: transform var(--transition-sweep);
+}
+
+.article-row:hover::after {
+  transform: scaleY(1);
+}
+
+.article-meta,
+.article-body {
+  transition: transform var(--transition-sweep);
+}
+
+.article-row:hover .article-meta,
+.article-row:hover .article-body {
+  transform: translateX(5px);
 }
 
 .article-date {

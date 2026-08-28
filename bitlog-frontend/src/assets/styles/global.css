@@ -41,6 +41,34 @@
   animation: viewFadeIn 0.18s ease both;
 }
 
+/* Scroll-driven reveal：进度由滚动位置驱动，所以首屏内已可见的元素直接落在终态，
+   不会被先抹成透明再淡入 —— 这正是首页预渲染后不得不关掉 JS 入场动画的原因。
+   Firefox 尚未支持，@supports 落空即静态可见。文件末尾那条 reduced-motion 的
+   animation-duration 覆盖对 scroll-driven 动画无效（时长由 timeline 接管），
+   这里必须单独再挡一次。 */
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: revealUp linear both;
+      animation-timeline: view();
+      /* 用绝对长度而非 entry 百分比：百分比的实际距离含元素自身高度，
+         高矮不同的块完成节奏会差出好几倍。 */
+      animation-range: entry 0% entry 180px;
+    }
+  }
+}
+
 /* Visually hidden (accessibility) */
 .sr-only {
   position: absolute;

@@ -47,8 +47,10 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 </template>
 
 <style scoped>
+/* 只动 opacity：ArticleToc 与阅读进度条是 position: fixed 且在 RouterView 内，
+   祖先一旦有 transform 就会改锚点，过渡期间跳位。 */
 .page-enter-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.3s var(--ease-out-expo);
 }
 
 .page-leave-active {

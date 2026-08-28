@@ -178,7 +178,7 @@ async function removeMine() {
 </script>
 
 <template>
-  <div class="friends-page view-enter">
+  <div class="friends-page">
     <div class="friends-main">
       <header class="page-head">
         <h1 class="page-title">友链</h1>

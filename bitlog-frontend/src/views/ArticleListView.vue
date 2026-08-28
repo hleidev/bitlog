@@ -166,6 +166,12 @@ if (prerendered) {
   query.applyPrerendered(prerendered.page)
 }
 
+// 换页与筛选后 :key 变化重建列表，让入场动画重播。scroll-driven 的 reveal
+// 在这里没用：行早已在视口内，滚动进度已是终态，换新数据不会重新触发。
+// watch 建在 applyPrerendered 之后，静态首屏因此不会多播一次。
+const listSeq = ref(0)
+watch(articles, () => listSeq.value++)
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
@@ -194,7 +200,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="articles-page view-enter">
+  <div class="articles-page">
     <!-- Sticky filter bar -->
     <div class="filter-bar">
       <div class="filter-bar__row container">
@@ -307,8 +313,13 @@ onMounted(async () => {
 
         <div v-else key="list" :class="{ 'list--loading': loading }">
           <!-- Article list -->
-          <div class="article-list">
-            <ArticleRow v-for="article in articles" :key="article.id" :article="article" />
+          <div :key="listSeq" class="article-list stagger">
+            <ArticleRow
+              v-for="(article, i) in articles"
+              :key="article.id"
+              :article="article"
+              :style="{ '--i': i }"
+            />
           </div>
 
           <!-- Pagination -->
@@ -633,6 +644,15 @@ onMounted(async () => {
 .article-list {
   border-top: 1px solid var(--color-border);
   counter-reset: article-counter;
+}
+
+/* revealUp 定义在 global.css：本文件没有同名 keyframes，scoped 不会改写引用。 */
+@media (prefers-reduced-motion: no-preference) {
+  .stagger > * {
+    animation: revealUp var(--transition-reveal) both;
+    /* 延迟封顶在第 8 行：再往下本来就要滚动才看得到，继续累加只会让换页拖尾。 */
+    animation-delay: calc(38ms * min(var(--i, 0), 7));
+  }
 }
 
 /* ── Empty state ──────────────────────────────────────────────────────────── */

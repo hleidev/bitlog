@@ -216,7 +216,7 @@ onUnmounted(() => {
       <button @click="router.back()">返回上一页</button>
     </div>
 
-    <div v-else-if="article" class="article-layout container view-enter">
+    <div v-else-if="article" class="article-layout container">
       <ArticleToc ref="tocRef" />
 
       <article class="article-body">
@@ -261,10 +261,10 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <RelatedArticles :articles="related" />
+        <RelatedArticles :articles="related" class="reveal" />
 
         <!-- Comment section -->
-        <div class="comment-section">
+        <div class="comment-section reveal">
           <div class="section-header">
             <span class="section-label">评论</span>
             <div class="section-rule"></div>
