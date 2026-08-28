@@ -77,9 +77,10 @@
   --radius-tag: 4px;
 
   /* ── Transitions ── */
-  --transition-base: 0.2s ease;
-  --transition-header: 0.15s ease;
-  --transition-sweep: 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.2s var(--ease-standard);
+  --transition-header: 0.15s var(--ease-standard);
+  --transition-sweep: 0.32s var(--ease-standard);
 
   /* ── Code block (light: neutral) ── */
   --code-bg: #fafafa;
