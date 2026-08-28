@@ -36,6 +36,11 @@ export const createApp = ViteSSG(
 
       router.beforeEach(async (to) => {
         NProgress.start()
+
+        // 公开页不能在这里 await:vite-ssg 要 router.isReady() 之后才 mount,
+        // 等会话会把整个 hydration 卡在刷新令牌的往返上,首屏因此晚一拍整页重绘。
+        if (!to.path.startsWith('/admin')) return
+
         const userStore = useUserStore()
         await userStore.waitForSession()
 

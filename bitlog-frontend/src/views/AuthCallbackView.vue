@@ -17,15 +17,16 @@ const ERROR_MESSAGES: Record<string, string> = {
   server_error: '登录处理失败，请稍后重试',
 }
 
-onMounted(() => {
+onMounted(async () => {
   const error = route.query.error
   if (typeof error === 'string') {
     errorMessage.value = ERROR_MESSAGES[error] ?? '登录失败，请重试'
     return
   }
 
-  // 路由守卫已 await waitForSession，此处会话必然就绪。
   // 不能自己调 refresh：Refresh Token 单次使用强制轮换，与 initSession 并发会互相作废
+  await userStore.waitForSession()
+
   if (!userStore.isLoggedIn) {
     errorMessage.value = '登录状态获取失败，请重试'
     return
