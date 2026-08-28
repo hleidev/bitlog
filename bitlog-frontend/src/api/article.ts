@@ -29,6 +29,9 @@ export interface ArticleItemVO {
   publishTime: string
 }
 
+/** 「继续阅读」只渲染这三个字段；预渲染时按这个形状写入静态 HTML */
+export type ArticleLink = Pick<ArticleItemVO, 'id' | 'title' | 'publishTime'>
+
 export interface ArticleDetailVO {
   id: number
   userId: number

@@ -3,7 +3,8 @@ import { ref, computed, onMounted, onServerPrefetch, onUnmounted, useTemplateRef
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useSeoMeta, useHead } from '@unhead/vue'
-import { type ArticleDetailVO } from '@/api/article'
+import { type ArticleDetailVO, type ArticleLink } from '@/api/article'
+import { getRelatedArticles } from '@/api/relatedArticles'
 import { getCachedArticleDetail, fetchArticleDetail } from '@/api/articleCache'
 import { readSSGState, writeSSGState } from '@/utils/ssgState'
 import { formatDate } from '@/utils/format'
@@ -11,6 +12,7 @@ import { useUserStore } from '@/stores/useUserStore'
 import ArticleContent from '@/components/ArticleContent.vue'
 import ArticleToc from '@/components/ArticleToc.vue'
 import CommentSection from '@/components/CommentSection.vue'
+import RelatedArticles from '@/components/RelatedArticles.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -18,6 +20,7 @@ const route = useRoute()
 const { isAdmin, userInfo } = storeToRefs(useUserStore())
 
 const article = ref<ArticleDetailVO | null>(null)
+const related = ref<ArticleLink[]>([])
 const loading = ref(true)
 const error = ref(false)
 const slow = ref(false)
@@ -94,6 +97,19 @@ const onScroll = () => {
   scrollProgress.value = total > 0 ? (el.scrollTop / total) * 100 : 0
 }
 
+async function loadRelated(current: ArticleDetailVO) {
+  try {
+    related.value = await getRelatedArticles(current)
+  } catch (err) {
+    // 相关文章是锦上添花，失败不该让文章页报错；但预渲染阶段静默降级会让静态产物
+    // 悄悄少一块，构建日志里必须留一句
+    if (import.meta.env.SSR) {
+      console.warn(`[ssg] 文章 ${current.id} 相关文章取数失败: ${(err as Error).message}`)
+    }
+    related.value = []
+  }
+}
+
 // ── 预渲染取数 ────────────────────────────────────────────────────────────────
 // 预渲染阶段 onMounted 不执行，数据必须在 onServerPrefetch 里取，
 // 上面的 useHead / useSeoMeta 取值函数才能拿到 article，把标题、og、
@@ -102,6 +118,7 @@ const onScroll = () => {
 // 正文 content 不写进 initialState：它由客户端 Lute WASM 渲染，不参与服务端
 // DOM，省掉每篇文章 HTML 里再带一份 Markdown 全文的体积。
 const SSG_KEY = 'article'
+const RELATED_KEY = 'related'
 
 onServerPrefetch(async () => {
   try {
@@ -109,6 +126,8 @@ onServerPrefetch(async () => {
     article.value = data
     loading.value = false
     writeSSGState(route, SSG_KEY, { ...data, content: '' })
+    await loadRelated(data)
+    writeSSGState(route, RELATED_KEY, related.value)
   } catch (err) {
     // 静态产物会退化成骨架屏空壳，构建后的 verify-ssg 会据此让构建失败
     console.error(`[ssg] 文章 ${route.params.id} 预渲染取数失败: ${(err as Error).message}`)
@@ -121,6 +140,9 @@ if (prerendered) {
   article.value = prerendered
   loading.value = false
 }
+
+const prerenderedRelated = readSSGState<ArticleLink[]>(route, RELATED_KEY)
+if (prerenderedRelated?.length) related.value = prerenderedRelated
 
 onMounted(async () => {
   const id = Number(route.params.id)
@@ -150,6 +172,8 @@ onMounted(async () => {
     }
     slow.value = false
   }
+
+  if (!related.value.length && article.value) void loadRelated(article.value)
 
   window.addEventListener('scroll', onScroll, { passive: true })
 })
@@ -236,6 +260,8 @@ onUnmounted(() => {
             >
           </div>
         </div>
+
+        <RelatedArticles :articles="related" />
 
         <!-- Comment section -->
         <div class="comment-section">
