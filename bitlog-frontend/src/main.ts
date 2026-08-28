@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import { routes } from '@/router'
+import { scrollBehavior } from '@/router/scrollBehavior'
 import { useUserStore } from '@/stores/useUserStore'
 import App from './App.vue'
 import '@/assets/styles/global.css'
@@ -10,60 +11,56 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 
 NProgress.configure({ showSpinner: false })
 
-export const createApp = ViteSSG(
-  App,
-  { routes, scrollBehavior: (_to, _from, savedPosition) => savedPosition ?? { top: 0, left: 0 } },
-  ({ app, router }) => {
-    app.use(createPinia())
-    app.component('ConfirmDialog', ConfirmDialog)
+export const createApp = ViteSSG(App, { routes, scrollBehavior }, ({ app, router }) => {
+  app.use(createPinia())
+  app.component('ConfirmDialog', ConfirmDialog)
 
-    app.directive('click-outside', {
-      mounted(el, binding) {
-        el._clickOutsideHandler = (e: MouseEvent) => {
-          if (!el.contains(e.target as Node)) {
-            binding.value()
-          }
+  app.directive('click-outside', {
+    mounted(el, binding) {
+      el._clickOutsideHandler = (e: MouseEvent) => {
+        if (!el.contains(e.target as Node)) {
+          binding.value()
         }
-        document.addEventListener('click', el._clickOutsideHandler)
-      },
-      unmounted(el) {
-        document.removeEventListener('click', el._clickOutsideHandler)
-      },
+      }
+      document.addEventListener('click', el._clickOutsideHandler)
+    },
+    unmounted(el) {
+      document.removeEventListener('click', el._clickOutsideHandler)
+    },
+  })
+
+  if (!import.meta.env.SSR) {
+    useUserStore().initSession()
+
+    router.beforeEach(async (to) => {
+      NProgress.start()
+
+      // 公开页不能在这里 await:vite-ssg 要 router.isReady() 之后才 mount,
+      // 等会话会把整个 hydration 卡在刷新令牌的往返上,首屏因此晚一拍整页重绘。
+      if (!to.path.startsWith('/admin')) return
+
+      const userStore = useUserStore()
+      await userStore.waitForSession()
+
+      if (to.path === '/admin/login') {
+        if (userStore.isLoggedIn) return '/admin/dashboard'
+        return
+      }
+
+      if (to.meta.requiresAuth && !userStore.isLoggedIn) {
+        return '/admin/login'
+      }
+
+      if (to.meta.requiresAdmin && !userStore.isAdmin) {
+        return '/admin/dashboard'
+      }
     })
 
-    if (!import.meta.env.SSR) {
-      useUserStore().initSession()
-
-      router.beforeEach(async (to) => {
-        NProgress.start()
-
-        // 公开页不能在这里 await:vite-ssg 要 router.isReady() 之后才 mount,
-        // 等会话会把整个 hydration 卡在刷新令牌的往返上,首屏因此晚一拍整页重绘。
-        if (!to.path.startsWith('/admin')) return
-
-        const userStore = useUserStore()
-        await userStore.waitForSession()
-
-        if (to.path === '/admin/login') {
-          if (userStore.isLoggedIn) return '/admin/dashboard'
-          return
-        }
-
-        if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-          return '/admin/login'
-        }
-
-        if (to.meta.requiresAdmin && !userStore.isAdmin) {
-          return '/admin/dashboard'
-        }
-      })
-
-      router.afterEach(() => {
-        NProgress.done()
-      })
-    }
-  },
-)
+    router.afterEach(() => {
+      NProgress.done()
+    })
+  }
+})
 
 const API_BASE = 'https://api.harrylei.top/api'
 

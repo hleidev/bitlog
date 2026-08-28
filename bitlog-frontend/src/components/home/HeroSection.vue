@@ -1,5 +1,5 @@
 <template>
-  <section id="hero" class="hero">
+  <section id="hero" class="hero" :class="{ 'hero--intro': playIntro }">
     <div class="hero__after"></div>
     <div class="hero__inner">
       <div class="hero__left">
@@ -45,6 +45,16 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+
+// 标记挂在 window 上而不是模块作用域：整页刷新时它随之重置（该播），SPA 后退
+// 回首页时保留（不该播）。后退会让 HeroSection 重新挂载，入场动画重播会让人
+// 觉得首页被重新打开了。模块作用域在 dev 下会被 HMR 重新求值，靠不住。
+const w =
+  typeof window === 'undefined'
+    ? undefined
+    : (window as Window & { __bitlogHeroIntroPlayed?: boolean })
+const playIntro = !w?.__bitlogHeroIntroPlayed
+if (w) w.__bitlogHeroIntroPlayed = true
 </script>
 
 <style scoped>
@@ -125,6 +135,9 @@ import { RouterLink } from 'vue-router'
 
 .hero__char {
   display: inline-block;
+}
+
+.hero--intro .hero__char {
   opacity: 0;
   animation: fadeUp 0.7s var(--ease-out-expo) both;
 }
@@ -140,6 +153,9 @@ import { RouterLink } from 'vue-router'
   /* 站点标语是正文内容：0.32 合成后只有 2.73；0.52 为 5.45。 */
   color: rgba(var(--color-on-dark-rgb), 0.52);
   letter-spacing: 0.1em;
+}
+
+.hero--intro .hero__subtitle {
   opacity: 0;
   animation: fadeUp 0.9s var(--ease-out-expo) 0.35s forwards;
 }
@@ -153,6 +169,9 @@ import { RouterLink } from 'vue-router'
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.hero--intro .hero__right {
   opacity: 0;
   animation: fadeUp 0.9s var(--ease-out-expo) 0.5s forwards;
 }
