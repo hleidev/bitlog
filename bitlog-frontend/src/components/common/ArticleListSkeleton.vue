@@ -5,7 +5,7 @@ withDefaults(defineProps<{ rows?: number }>(), { rows: 6 })
 <template>
   <div class="skeleton-list" aria-hidden="true">
     <div v-for="i in rows" :key="i" class="skeleton-row">
-      <div class="sk sk-date" />
+      <div class="sk sk-meta" />
       <div class="sk-body">
         <div class="sk sk-title" />
         <div class="sk sk-excerpt" />
@@ -21,7 +21,7 @@ withDefaults(defineProps<{ rows?: number }>(), { rows: 6 })
 
 .skeleton-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 40px;
   padding: 28px 0;
   border-bottom: 1px solid var(--color-border);
@@ -39,15 +39,16 @@ withDefaults(defineProps<{ rows?: number }>(), { rows: 6 })
   animation: shimmer 1.4s infinite;
 }
 
-.sk-date {
-  width: 80px;
+.sk-meta {
+  width: 96px;
   height: 11px;
   flex-shrink: 0;
 }
 
 .sk-body {
   flex: 1;
-  max-width: 680px;
+  max-width: 840px;
+  min-height: 58px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -73,7 +74,7 @@ withDefaults(defineProps<{ rows?: number }>(), { rows: 6 })
 }
 
 @media (max-width: 640px) {
-  .sk-date {
+  .sk-meta {
     display: none;
   }
 }

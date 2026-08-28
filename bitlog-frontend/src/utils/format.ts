@@ -9,3 +9,10 @@ export const formatDate = (iso: string | null | undefined): string => (iso ? iso
  */
 export const formatDateTime = (iso: string | null | undefined): string =>
   iso ? iso.slice(0, 16).replace('T', ' ') : '—'
+
+/** 列表侧的紧凑发布时间：YYYY.MM。 */
+export const formatYearMonth = (iso: string | null | undefined): string => {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`
+}

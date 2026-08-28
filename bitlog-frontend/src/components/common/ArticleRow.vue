@@ -2,14 +2,9 @@
 import { RouterLink } from 'vue-router'
 import { type ArticleItemVO } from '@/api/article'
 import { prefetchArticleDetail } from '@/api/articleCache'
+import { formatYearMonth } from '@/utils/format'
 
 defineProps<{ article: ArticleItemVO }>()
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`
-}
 </script>
 
 <template>
@@ -19,7 +14,9 @@ function formatDate(iso: string | null): string {
     @mouseenter="prefetchArticleDetail(article.id)"
     @focus="prefetchArticleDetail(article.id)"
   >
-    <div class="article-date">{{ formatDate(article.publishTime) }}</div>
+    <div class="article-meta">
+      <span class="article-date">{{ formatYearMonth(article.publishTime) }}</span>
+    </div>
     <div class="article-body">
       <span class="article-title">{{ article.title }}</span>
       <span v-if="article.summary" class="article-excerpt">{{ article.summary }}</span>
@@ -33,7 +30,7 @@ function formatDate(iso: string | null): string {
 <style scoped>
 .article-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 40px;
   padding: 28px 10px;
   margin: 0 -10px;
@@ -42,7 +39,15 @@ function formatDate(iso: string | null): string {
   transition: background var(--transition-base);
 }
 
-.article-row::before {
+.article-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.article-meta::before {
   counter-increment: article-counter;
   content: counter(article-counter, decimal-leading-zero);
   font-family: var(--font-mono);
@@ -51,7 +56,6 @@ function formatDate(iso: string | null): string {
   color: var(--color-text-faint);
   letter-spacing: 0.06em;
   flex-shrink: 0;
-  width: 24px;
 }
 
 .article-row.is-visible {
@@ -74,8 +78,6 @@ function formatDate(iso: string | null): string {
 }
 
 .article-date {
-  width: 80px;
-  flex-shrink: 0;
   font-size: 11px;
   color: var(--color-text-muted);
   letter-spacing: 0.03em;
@@ -95,6 +97,8 @@ function formatDate(iso: string | null): string {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  /* 标题 + 一行摘要的高度。没有摘要的文章不至于把整行压矮半截，列表节奏才稳。 */
+  min-height: 58px;
 }
 
 .article-title {
@@ -132,7 +136,6 @@ function formatDate(iso: string | null): string {
 .article-right {
   margin-left: auto;
   flex-shrink: 0;
-  padding-top: 3px;
 }
 
 .article-tag {
@@ -163,7 +166,7 @@ function formatDate(iso: string | null): string {
 }
 
 @media (max-width: 640px) {
-  .article-date {
+  .article-meta {
     display: none;
   }
 }
