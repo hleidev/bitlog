@@ -69,10 +69,11 @@ defineProps<{ article: ArticleItemVO }>()
   content: '';
   position: absolute;
   left: 0;
-  top: 50%;
+  /* 与上下 padding 对齐，让竖线随行高伸缩：行有无摘要相差 20 多像素，
+     写死高度会让同一条杠在不同行里比例完全不同。 */
+  top: 28px;
+  bottom: 28px;
   width: 2.5px;
-  height: 26px;
-  margin-top: -13px;
   background: var(--color-accent);
   border-radius: var(--radius-tag);
   transform: scaleY(0);
