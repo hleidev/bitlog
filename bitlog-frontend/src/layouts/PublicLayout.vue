@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import LoginModal from '@/components/common/LoginModal.vue'
+import { notifyViewEntering } from '@/router/viewReady'
 
 const showBackTop = ref(false)
 
@@ -21,7 +22,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 <template>
   <AppHeader />
   <RouterView v-slot="{ Component, route }">
-    <Transition name="page" mode="out-in">
+    <Transition name="page" mode="out-in" @before-enter="notifyViewEntering">
       <component :is="Component" :key="route.path" />
     </Transition>
   </RouterView>
