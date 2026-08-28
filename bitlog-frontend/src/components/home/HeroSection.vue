@@ -67,8 +67,9 @@ import { RouterLink } from 'vue-router'
   pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='280' height='280' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 280px 280px;
-  opacity: 0.045;
-  mix-blend-mode: overlay;
+  /* 底色近黑：overlay 在 b≈0 时结果恒为 0，这层颗粒等于不存在，只能用 screen */
+  opacity: 0.05;
+  mix-blend-mode: screen;
 }
 
 .hero__after {
@@ -80,8 +81,16 @@ import { RouterLink } from 'vue-router'
   pointer-events: none;
 }
 
+/* 暗色下 hero(#000) 与页面(#0a0a0a) 只差 10/255，再叠黑色渐变是纯做功；
+   改为放一处暖光源，让 hero 靠"有光"而不是"更暗"成为独立的面。 */
 [data-theme='dark'] .hero__after {
-  background: linear-gradient(to bottom, transparent 55%, rgba(0, 0, 0, 0.3) 100%);
+  background:
+    radial-gradient(
+      ellipse 55% 70% at 5% 110%,
+      rgba(var(--accent-400-rgb), 0.16) 0%,
+      transparent 62%
+    ),
+    linear-gradient(to bottom, transparent 58%, rgba(var(--color-on-dark-rgb), 0.06) 100%);
 }
 
 .hero__inner {
@@ -110,7 +119,7 @@ import { RouterLink } from 'vue-router'
   font-weight: 500;
   line-height: 1;
   color: var(--color-text-on-dark);
-  letter-spacing: 0.03em;
+  letter-spacing: -0.015em;
   margin-bottom: 24px;
 }
 
