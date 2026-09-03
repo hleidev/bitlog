@@ -1,0 +1,30 @@
+node_modules/
+dist/
+public/sitemap.xml
+public/friend.json
+
+# IDE
+.idea/
+
+# Local AI assistant configuration
+AGENTS.md
+CLAUDE.md
+.claude/
+.cursor/
+.github/copilot-instructions.md
+
+# macOS
+.DS_Store
+
+# Local docs and design files
+API_CLEANUP.md
+design-preview.html
+homepage-redesign.html
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build output (if not using /dist)
+# coverage/

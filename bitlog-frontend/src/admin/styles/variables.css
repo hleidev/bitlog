@@ -1,0 +1,981 @@
+/* admin 的 accent 与公共站共用一套色板：这里只做「引用」，不再抄色值。
+   原始色值统一定义在 @bitlog/editor/variables.css 的 accent primitives 区块。
+   因为下面全部走 var(--color-accent*)，而那几个 token 已在公共侧按主题映射过，
+   所以本文件的 [data-theme='dark'] 块无需再覆盖任何 accent —— 会自动跟随。 */
+:root {
+  --admin-sidebar-bg: #fafafa;
+  --admin-sidebar-border: #e5e5e5;
+  --admin-sidebar-hover: #f0f0f0;
+  --admin-sidebar-active-bg: var(--admin-accent-bg-soft);
+  --admin-sidebar-text: #555555;
+  --admin-sidebar-text-muted: #6c6c6c;
+  --admin-sidebar-text-active: var(--color-accent);
+  --admin-sidebar-width: 220px;
+  --admin-sidebar-width-collapsed: 60px;
+
+  --admin-header-bg: #ffffff;
+  --admin-header-border: #e5e5e5;
+  --admin-header-height: 56px;
+
+  --admin-body-bg: #fafafa;
+  --admin-accent: var(--color-accent);
+  --admin-accent-dark: var(--color-accent-dark);
+  --admin-accent-light: var(--color-accent-light);
+
+  /* ── Accent alpha 层级 ──
+     accent 做淡底只用这四档，不要再就地写 rgba(..., 0.0x)：原先散落 10 档，
+     其中 0.04/0.05/0.06/0.07/0.08 五档肉眼无从分辨，纯属随手取值。
+     ⚠️ 文字压在这些底上一律用 --admin-accent-dark：浅色模式下 accent 压
+     自己的淡底，α≥0.08 即跌破 AA(0.08→4.46 / 0.12→4.25)，
+     换 accent-dark 后四档分别为 6.18 / 5.88 / 5.64，全部达标。 */
+  --admin-accent-bg-subtle: rgba(
+    var(--admin-accent-rgb),
+    0.05
+  ); /* 大面积弱底：选中行、操作栏、横幅 */
+  --admin-accent-bg-soft: rgba(var(--admin-accent-rgb), 0.08); /* 控件底 / hover 态 */
+  --admin-accent-bg-strong: rgba(var(--admin-accent-rgb), 0.12); /* 徽章、头像、计数角标 */
+  --admin-accent-border: rgba(var(--admin-accent-rgb), 0.15); /* 描边 */
+
+  /* ── Semantic surfaces (shared admin palette) ── */
+  --admin-text-primary: #111111;
+  --admin-text-secondary: #555555;
+  /* 与公共侧 --color-text-muted 保持同值：同语义的 token 不应分叉。
+     #767676 压在 hover 底(#f5f5f5)上只有 4.17，不达 AA。 */
+  --admin-text-muted: #707070;
+  --admin-text-faint: #c4c4c4;
+  --admin-text-subtle: #6e6e6e;
+  --admin-text-on-accent: #ffffff;
+
+  --admin-surface: #ffffff;
+  --admin-surface-2: #fafafa;
+  --admin-surface-hover: #f0f0f0;
+  --admin-surface-input: #ffffff;
+  --admin-surface-soft: #f7f7f7;
+
+  --admin-border: #e5e5e5;
+  --admin-border-strong: #cccccc;
+  --admin-border-soft: #efefef;
+
+  --admin-overlay: rgba(0, 0, 0, 0.3);
+  --admin-overlay-soft: rgba(0, 0, 0, 0.04);
+  --admin-overlay-modal: rgba(0, 0, 0, 0.45);
+
+  --admin-danger: #dc2626;
+  --admin-danger-strong: #b91c1c;
+  --admin-danger-soft: rgba(220, 38, 38, 0.08);
+  --admin-danger-border: rgba(220, 38, 38, 0.25);
+  --admin-danger-bg-soft: rgba(220, 38, 38, 0.06);
+  --admin-danger-bg-strong: #dc2626;
+  --admin-danger-border-strong: #dc2626;
+  /* 文字压在 danger 淡底上时用它，别用 -strong（那是按钮底色，见公共侧注释）。
+     明暗映射已在公共侧做好，故 dark 块无需覆盖。 */
+  --admin-danger-on-soft: var(--color-danger-on-soft);
+
+  --admin-success: #16a34a;
+  --admin-warning: #b45309;
+
+  /* ── Status badge (published / enabled) ── */
+  /* 只作文字色用（底色/描边走下面的 -rgb 伴生）。取 #15803d 而非 #16a34a：
+     后者压在自己的 8% 淡底上只有 3.02，远不达 AA；#15803d 为 4.59。 */
+  --admin-status-ok: #15803d;
+  --admin-status-ok-rgb: 22, 163, 74;
+
+  /* ── Inline validation / error ── */
+  --admin-error: #dc2626;
+  --admin-error-bg: #fef2f2;
+  --admin-required: #dc2626;
+
+  /* ── Warning pill ── */
+  --admin-warning-bg: #fffbeb;
+
+  /* ── RGB companions: for rgba() alpha compositing ── */
+  --admin-accent-rgb: var(--color-accent-rgb);
+  --admin-on-accent-rgb: 255, 255, 255;
+  --admin-muted-rgb: 118, 118, 118;
+  --admin-surface-rgb: 255, 255, 255;
+  --admin-surface-hover-rgb: 240, 240, 240;
+  --admin-danger-rgb: 220, 38, 38;
+  --admin-danger-strong-rgb: 220, 38, 38;
+  --admin-success-rgb: 22, 163, 74;
+
+  --admin-radius-sm: 3px;
+  --admin-radius: 4px;
+  --admin-radius-lg: 6px;
+
+  /* ── Editor palette (light: mirrors public site bg #ffffff) ── */
+  --write-bg: #ffffff;
+}
+
+[data-theme='dark'] {
+  --admin-sidebar-bg: #141414;
+  --admin-sidebar-border: rgba(255, 255, 255, 0.1);
+  --admin-sidebar-hover: #1f1f1f;
+  /* accent 本身跟随公共侧自动切换，这里只是暗色下需要更重的底色 alpha */
+  --admin-sidebar-active-bg: var(--admin-accent-bg-strong);
+  --admin-sidebar-text: #a3a3a3;
+  --admin-sidebar-text-muted: #8a8a8a;
+
+  --admin-header-bg: #0a0a0a;
+  --admin-header-border: rgba(255, 255, 255, 0.08);
+  --admin-body-bg: #0a0a0a;
+
+  --admin-text-primary: #fafafa;
+  --admin-text-secondary: #a3a3a3;
+  --admin-text-muted: #8a8a8a;
+  --admin-text-faint: #525252;
+  --admin-text-subtle: #8a8a8a;
+  --admin-text-on-accent: #0a0a0a;
+
+  --admin-surface: #141414;
+  --admin-surface-2: #1f1f1f;
+  --admin-surface-hover: #292929;
+  --admin-surface-input: #1f1f1f;
+  --admin-surface-soft: #1f1f1f;
+
+  --admin-border: rgba(255, 255, 255, 0.12);
+  --admin-border-strong: rgba(255, 255, 255, 0.2);
+  --admin-border-soft: rgba(255, 255, 255, 0.07);
+
+  --admin-overlay: rgba(0, 0, 0, 0.55);
+  --admin-overlay-soft: rgba(255, 255, 255, 0.04);
+  --admin-overlay-modal: rgba(0, 0, 0, 0.6);
+
+  --admin-danger: #f87171;
+  --admin-danger-strong: #ef4444;
+  --admin-danger-soft: rgba(248, 113, 113, 0.12);
+  --admin-danger-border: rgba(248, 113, 113, 0.3);
+  --admin-danger-bg-soft: rgba(248, 113, 113, 0.1);
+  --admin-danger-bg-strong: #dc2626;
+  --admin-danger-border-strong: #dc2626;
+
+  --admin-success: #4ade80;
+  --admin-warning: #fbbf24;
+
+  /* ── Status badge (published / enabled) ── */
+  --admin-status-ok: #4ade80;
+  --admin-status-ok-rgb: 74, 222, 128;
+
+  /* ── Inline validation / error ── */
+  --admin-error: #f87171;
+  --admin-error-bg: rgba(248, 113, 113, 0.1);
+  --admin-required: #f87171;
+
+  /* ── Warning pill ── */
+  --admin-warning-bg: rgba(251, 191, 36, 0.12);
+
+  /* ── RGB companions: for rgba() alpha compositing ── */
+  --admin-on-accent-rgb: 10, 10, 10;
+  --admin-muted-rgb: 138, 138, 138;
+  --admin-surface-rgb: 20, 20, 20;
+  --admin-surface-hover-rgb: 41, 41, 41;
+  --admin-danger-rgb: 248, 113, 113;
+  --admin-danger-strong-rgb: 239, 68, 68;
+  --admin-success-rgb: 74, 222, 128;
+
+  /* ── Editor palette (mirrors public site bg) ── */
+  --write-bg: #0f0f0f;
+  --write-toolbar-bg: #0a0a0a;
+  --write-text: #e8e8e8;
+  --write-text-muted: #737373;
+  --write-border: rgba(255, 255, 255, 0.08);
+  --write-placeholder: rgba(232, 232, 232, 0.32);
+}
+
+#nprogress .bar {
+  background: var(--admin-accent) !important;
+}
+
+#nprogress .peg {
+  box-shadow:
+    0 0 10px var(--admin-accent),
+    0 0 5px var(--admin-accent) !important;
+}
+
+/* ── Shared view tabs ──────────────────────────────────────────────── */
+/* ArticlesView / UsersView 共用。两处原本各存一份逐字节相同的副本，且
+   .tab-count 的对比度修正只落在其中一份上，合并至此避免继续分叉。 */
+
+/* 后台列表页统一的头部：左侧 view-tabs，右侧 header-actions（搜索 + 操作按钮），
+   同一行。文章页与用户页原本各写一份完全相同的定义。 */
+.card-header {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--admin-sidebar-border);
+  padding: 0 16px 0 20px;
+  gap: 12px;
+}
+
+.view-tabs {
+  display: flex;
+}
+
+.view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  margin-right: 20px;
+  height: 48px;
+  font-size: 13.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+  white-space: nowrap;
+}
+
+.view-tab:hover {
+  color: var(--admin-sidebar-text);
+}
+
+.view-tab--active {
+  color: var(--admin-accent);
+  border-bottom-color: var(--admin-accent);
+  font-weight: 600;
+}
+
+/* 选中态必须自带 hover：否则 .view-tab:hover(0,2,0) 特异性高于
+   .view-tab--active(0,1,0)，会把文字改回灰色，只剩 accent 下划线。 */
+.view-tab--active:hover {
+  color: var(--admin-accent-dark);
+  border-bottom-color: var(--admin-accent-dark);
+}
+
+/* 计数恒显示，含 0。曾用 v-if="count > 0" 逐个判断，结果同一行 tab 里
+   有的带数字有的不带，看起来像随机缺失。 */
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: var(--admin-accent-bg-strong);
+  /* accent 压在自己的 10% 淡底上只有 4.35，不达 AA；换深一档的 accent-dark(6.07)。 */
+  color: var(--admin-accent-dark);
+  border-radius: 8px;
+}
+
+/* 未激活 tab 的计数压低存在感，避免一排数字和标题抢视线 */
+.view-tab:not(.view-tab--active) .tab-count {
+  background: var(--admin-sidebar-hover);
+  color: var(--admin-sidebar-text-muted);
+}
+
+@media (max-width: 768px) {
+  .view-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--admin-sidebar-border);
+  }
+  .view-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .view-tab {
+    flex-shrink: 0;
+    margin-right: 12px;
+    height: 42px;
+  }
+}
+
+/* ── Shared admin table ────────────────────────────────────────────── */
+
+/* table-layout: fixed 是整套列宽规范的前提。auto 布局下浏览器按内容重新分配，
+   td 的 max-width 直接被忽略（CategoriesView 的 .col-name 省略号因此一直没生效），
+   短内容的列会撑开、长内容的列会被挤扁。固定布局后列宽只认下面的档位。
+
+   代价是 .col-main（width:auto）只拿剩余空间且没有下限：容器一旦窄于固定列之和，
+   主列会被压到 0px 直接消失，而不是让表格溢出滚动。所以每个列表页必须在自己的
+   <style> 里声明 .data-table { min-width } = 固定列之和 + 主列下限(240px)，
+   超出部分由 .table-wrap 的 overflow-x 横向滚动兜住。 */
+.data-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+}
+
+.data-table thead tr {
+  background: var(--admin-sidebar-hover);
+  border-bottom: 1px solid var(--admin-sidebar-border);
+}
+
+.data-table th {
+  padding: 9px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--admin-sidebar-text-muted);
+  text-align: left;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.data-table td {
+  padding: 11px 12px;
+  font-size: 13px;
+  color: var(--admin-text-primary);
+  border-bottom: 1px solid var(--admin-sidebar-border);
+  vertical-align: middle;
+}
+
+/* ── 列宽档位 ──────────────────────────────────────────────────────────
+   按内容类型分档，六个列表页只挑档位、不再各写一份宽度。每张表恰好一个
+   .col-main：table-layout: fixed 下 width:auto 的列吃掉全部剩余空间，
+   两个就会被平分，长内容列因此被砍半（评论页的「评论内容」原本就没有
+   任何宽度约束，和固定 200px 的「所属文章」抢空间）。 */
+
+/* 主列：每表一个，吸收剩余宽度 */
+.col-main {
+  width: auto;
+}
+
+/* 短标识：分类名、角色 */
+.col-narrow {
+  width: 100px;
+}
+
+/* 人名、用户名一类的短文本 */
+.col-name {
+  width: 140px;
+}
+
+/* 中等文本：邮箱、所属文章、留言、站点地址 */
+.col-text {
+  width: 200px;
+}
+
+/* 状态徽章。双徽章（文章页「已发布 + 草稿」）用 --wide */
+.col-status {
+  width: 100px;
+}
+.col-status--wide {
+  width: 140px;
+}
+
+/* 数字一律右对齐，单位写进表头而不是每格重复 */
+.col-num {
+  width: 80px;
+  text-align: right;
+}
+
+/* 时间列：所有后台页的时间都是 YYYY-MM-DD HH:mm，宽度需求一致。
+   各页曾各写一份（110/120/130px 三种），且 td 未设 nowrap，
+   16 个字符放不下就从中间折成两行。 */
+.col-time {
+  width: 150px;
+}
+.data-table td.col-time {
+  white-space: nowrap;
+}
+
+/* 操作列：inline 按钮最多 3 个，第 4 个起收进「更多」下拉，所以宽度恒定。
+   表头一律留空——曾有两页写「操作」贴左，而 .row-actions 是 flex-end，
+   表头和按钮对不上。 */
+.col-actions {
+  width: 148px;
+  text-align: right;
+}
+
+/* 固定布局下超长文本必须显式截断，否则会溢出到相邻列 */
+.data-table td.col-main,
+.data-table td.col-narrow,
+.data-table td.col-name,
+.data-table td.col-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.data-table tbody tr:hover td {
+  background: var(--admin-overlay-soft);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  min-height: 120px;
+}
+
+.table-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--admin-overlay-soft);
+  z-index: 1;
+}
+
+.row-checkbox {
+  cursor: pointer;
+  accent-color: var(--admin-accent);
+}
+
+/* ── Shared action buttons ─────────────────────────────────────────── */
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.action-btn {
+  font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--admin-radius-sm);
+  white-space: nowrap;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.action-btn:hover {
+  background: var(--admin-sidebar-hover);
+}
+.action-btn--danger {
+  color: var(--admin-danger);
+}
+.action-btn--danger:hover {
+  background: var(--admin-danger-soft);
+}
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.action-btn:disabled:hover {
+  background: transparent;
+}
+
+/* ── 状态徽章 ──────────────────────────────────────────────────────────
+   四个页面原本各定义一套（--published/--enabled/.is-normal/.is-live …），
+   同一种「正常」在文章页是绿色、在评论页和友链页却是灰色。这里按语义收成
+   四档，各页只挑档位：
+     ok      正常运行态   已发布 / 启用 / 显示中 / 展示中
+     pending 待你处理     待审核
+     danger  被停用       禁用 / 已隐藏 / 未通过
+     muted   中性或终态   草稿 / 已注销 */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--admin-radius);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+
+.status-badge--ok {
+  background: rgba(var(--admin-status-ok-rgb), 0.08);
+  color: var(--admin-status-ok);
+  border-color: rgba(var(--admin-status-ok-rgb), 0.2);
+}
+
+.status-badge--pending {
+  background: var(--admin-accent-bg-soft);
+  color: var(--admin-accent-dark);
+  border-color: var(--admin-accent-border);
+}
+
+.status-badge--danger {
+  background: var(--admin-danger-bg-soft);
+  color: var(--admin-danger-on-soft);
+  border-color: var(--admin-danger-border);
+}
+
+.status-badge--muted {
+  background: var(--admin-sidebar-hover);
+  color: var(--admin-sidebar-text-muted);
+  border-color: var(--admin-sidebar-border);
+}
+
+/* 状态列可能并排两个徽章（文章的「已发布 + 草稿」） */
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── 行内「更多」下拉 ───────────────────────────────────────────────────
+   操作超过 3 个时，第 4 个起收进这里。原本只有 UsersView 有一份，
+   文章页和友链页各自平铺 4 个按钮把操作列撑到 190px。 */
+
+.menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.more-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--admin-radius-sm);
+  background: transparent;
+  color: var(--admin-sidebar-text-muted);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.more-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.more-btn:hover {
+  background: var(--admin-sidebar-hover);
+  color: var(--admin-sidebar-text);
+}
+
+/* Teleport 到 body，位置由各页 toggleMenu 按触发按钮实测坐标写入 inline style */
+.dropdown-menu {
+  position: fixed;
+  /* 低于 .dialog-overlay(9000)：菜单不该盖住对话框 */
+  z-index: 900;
+  min-width: 130px;
+  background: var(--admin-surface-input);
+  border: 1px solid var(--admin-border-strong);
+  border-radius: var(--admin-radius);
+  overflow: hidden;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  text-align: left;
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.menu-item:hover {
+  background: var(--admin-sidebar-hover);
+}
+.menu-item--danger {
+  color: var(--admin-danger);
+}
+.menu-item--danger:hover {
+  background: var(--admin-danger-soft);
+}
+.menu-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.menu-item:disabled:hover {
+  background: none;
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--admin-sidebar-border);
+  margin: 2px 0;
+}
+
+/* 空状态占整行，去掉单元格自身的内边距和分隔线 */
+.empty-cell {
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* ── Shared empty state ───────────────────────────────────────────── */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 60px 0;
+  color: var(--admin-sidebar-text-muted);
+}
+
+.empty-icon {
+  width: 32px;
+  height: 32px;
+  opacity: 0.3;
+}
+.empty-state span {
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  color: var(--admin-sidebar-text-muted);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Shared dialog ─────────────────────────────────────────────────── */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--admin-overlay);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-box {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  padding: 28px 28px 22px;
+  width: 360px;
+  max-width: calc(100vw - 40px);
+}
+
+.dialog-title {
+  font-family: var(--font-serif, 'Lora', serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--admin-text-primary);
+  margin: 0 0 16px;
+}
+
+.dialog-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  background: var(--admin-surface-input);
+  font-size: 13.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.dialog-input:focus {
+  border-color: var(--admin-accent);
+}
+.dialog-input::placeholder {
+  color: var(--admin-text-muted);
+}
+
+.input-hint {
+  font-size: 11px;
+  color: var(--admin-text-muted);
+  text-align: right;
+  margin: 4px 0 20px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dialog-btn {
+  height: 34px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  border-radius: var(--admin-radius);
+  cursor: pointer;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.dialog-btn--cancel {
+  background: transparent;
+  color: var(--admin-sidebar-text);
+  border-color: var(--admin-border-strong);
+}
+
+.dialog-btn--cancel:hover {
+  background: var(--admin-sidebar-hover);
+}
+
+.dialog-btn--ok {
+  background: var(--admin-accent);
+  color: var(--admin-text-on-accent);
+  border-color: var(--admin-accent);
+}
+
+.dialog-btn--ok:hover:not(:disabled) {
+  background: var(--admin-accent-dark);
+  border-color: var(--admin-accent-dark);
+}
+.dialog-btn--ok:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(var(--admin-on-accent-rgb), 0.3);
+  border-top-color: var(--admin-text-on-accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.btn-spinner--dark {
+  border-color: rgba(var(--admin-muted-rgb), 0.3);
+  border-top-color: var(--admin-sidebar-text);
+}
+
+/* ── Shared CRUD page shell ────────────────────────────────────────── */
+/* Articles / Categories / Tags / Users 四个列表页共用。仅收完全一致的规则，
+   列宽(.col-*)、.card-header 内边距等页面各异的部分仍留在各自组件内。 */
+
+.main-card {
+  background: var(--admin-header-bg);
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  flex-shrink: 0;
+}
+
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 8px;
+  width: 14px;
+  height: 14px;
+  color: var(--admin-sidebar-text-muted);
+  pointer-events: none;
+}
+
+.search-input {
+  height: 32px;
+  width: 180px;
+  /* 左侧 28px 是给绝对定位的放大镜图标让位，去掉图标就会压在占位文字上 */
+  padding: 0 28px 0 28px;
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 4px;
+  background: var(--admin-surface-input);
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.search-input:focus {
+  border-color: var(--admin-accent);
+}
+
+.search-input::placeholder {
+  color: var(--admin-sidebar-text-muted);
+}
+
+.search-clear {
+  position: absolute;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--admin-sidebar-text-muted);
+  padding: 0;
+}
+
+.search-clear svg {
+  width: 12px;
+  height: 12px;
+}
+
+.search-clear:hover {
+  color: var(--admin-sidebar-text);
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--admin-sidebar-text);
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.icon-btn:hover {
+  background: var(--admin-sidebar-hover);
+}
+
+.primary-btn {
+  height: 32px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--admin-accent);
+  color: var(--admin-text-on-accent);
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.primary-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.primary-btn:hover {
+  background: var(--admin-accent-dark);
+}
+
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 20px;
+  background: var(--admin-accent-bg-subtle);
+  border-bottom: 1px solid var(--admin-accent-border);
+}
+
+.sel-count {
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-accent);
+  white-space: nowrap;
+}
+
+.sel-count b {
+  font-weight: 700;
+}
+
+.sel-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ghost-btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-sidebar-border);
+  border-radius: 4px;
+  background: var(--admin-surface-input);
+  font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text);
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.ghost-btn--sm {
+  height: 26px;
+}
+
+.ghost-btn:hover {
+  background: var(--admin-sidebar-hover);
+}
+
+.ghost-btn--danger:hover {
+  background: rgba(var(--admin-danger-rgb), 0.05);
+}
+
+/* 固定贴最右：margin-left:auto 把它推离业务动作区，与之区分开 */
+.cancel-btn {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--admin-sidebar-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.cancel-btn:hover {
+  color: var(--admin-sidebar-text);
+}
+
+.sel-bar-enter-active,
+.sel-bar-leave-active {
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+
+.sel-bar-enter-from,
+.sel-bar-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.row--selected td {
+  background: var(--admin-accent-bg-subtle);
+}
+
+.col-check {
+  width: 40px;
+}
+
+.cell-muted {
+  font-size: 12.5px;
+  color: var(--admin-sidebar-text-muted);
+}

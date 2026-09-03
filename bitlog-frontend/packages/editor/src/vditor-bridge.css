@@ -1,0 +1,346 @@
+/* ── Vditor IR → 阅读侧视觉桥接 ─────────────────────────────────────────────
+ * 分工:prose.css 负责两侧 DOM 同构元素(标题/段落/引用/列表/表格)的共享排版;
+ * 本文件把 Vditor 的私有 DOM 映射到详情页(ArticleContent)的视觉基准:
+ *   1. 中和 .vditor-reset 自带的 GitHub 排版(行高 1.5 / 冷灰 / Helvetica);
+ *   2. IR 代码块节点模拟 .code-block-wrapper 卡片(lang 标签 + 暖纸色);
+ *   3. 压制 Vditor 运行时注入的 CDN hljs github 主题,让暖色 token 生效;
+ *   4. IR 标记(## / ``` / **)弱化为主题 faint 色。
+ * 类名是 Vditor 内部实现,升级 vditor 需回归此文件。
+ * 所有选择器以 .vditor-writer 作命名空间,只影响写作页编辑区。
+ */
+
+/* ── 1. 基础排版(对齐 prose.css 的 .ProseMirror 宿主) ───────────────────
+ * 限宽不在这里做:Vditor IR 模式会在 .vditor-reset 上用内联样式设置
+ * 动态左右 padding,把内容列居中到 preview.maxWidth(800px,与
+ * --spacing-prose 一致,见 VditorWriter.vue)。CSS 限宽会与内联 padding
+ * 叠加,把内容区挤没。 */
+
+.vditor-writer .vditor-reset {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 900px) {
+  .vditor-writer .vditor-reset {
+    font-size: 15px;
+  }
+}
+
+/* 标题行高:中和 .vditor-reset 的 1.25,对齐阅读侧(无显式行高,继承 1.85) */
+.vditor-writer .vditor-reset h1,
+.vditor-writer .vditor-reset h2,
+.vditor-writer .vditor-reset h3,
+.vditor-writer .vditor-reset h4,
+.vditor-writer .vditor-reset h5,
+.vditor-writer .vditor-reset h6 {
+  line-height: 1.85;
+}
+
+/* 引用块文字色:中和 .vditor-reset blockquote 的 GitHub 冷灰 */
+.vditor-writer .vditor-reset blockquote {
+  color: inherit;
+}
+
+/* 表格:中和 .vditor-reset 的 GitHub 默认(display:block 自适应宽、
+   padding 6/13、全 1px 边框),对齐 prose.css 的 100% 宽与 th/td 参数 */
+.vditor-writer .vditor-reset table {
+  display: table;
+  width: 100%;
+}
+.vditor-writer .vditor-reset table th {
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 2px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+}
+.vditor-writer .vditor-reset table td {
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border-light);
+}
+.vditor-writer .vditor-reset table th:last-child {
+  border-right: none;
+}
+.vditor-writer .vditor-reset table td:last-child {
+  border-right: none;
+}
+.vditor-writer .vditor-reset table tr:last-child td {
+  border-bottom: none;
+}
+/* 中和 .vditor-reset 的行底色与 #fff 斑马纹,否则暗色下数据行漏白(阅读侧 tr 是透明的) */
+.vditor-writer .vditor-reset table tr,
+.vditor-writer .vditor-reset table tbody tr:nth-child(2n) {
+  background-color: transparent;
+}
+
+/* 分隔线:中和 .vditor-reset hr 的灰色填充块,对齐阅读侧 1px 边线 */
+.vditor-writer .vditor-reset hr {
+  height: 0;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+/* ── 2. IR 标记调色:融入主题,不抢内容 ─────────────────────────────────── */
+
+.vditor-writer .vditor-ir__node--expand .vditor-ir__marker {
+  color: var(--color-text-faint);
+}
+
+.vditor-writer .vditor-ir__node--expand .vditor-ir__marker--heading,
+.vditor-writer .vditor-ir__node--expand .vditor-ir__marker--info {
+  color: var(--color-text-muted);
+}
+
+/* ── 展开态(源码编辑) = 折叠态的几何复刻 ─────────────────────────────────
+ * 点击代码块进出编辑时,卡片高宽、标签行、代码体逐像素不动,唯一视觉
+ * 变化是 token 高亮变单色(这正是"在编辑源码"的信号)。
+ * Vditor 的 ``` 围栏只是节点 ::before/::after 伪元素(真实围栏 span
+ * 永远 display:none),纯装饰、不可编辑,可整体隐藏;语言名由真实的
+ * --info span 原位顶替折叠态的 ::before 标签,并因此可点击编辑。 */
+
+/* 隐藏展开态 ``` 围栏(覆盖 Vditor 的 content:'```') */
+.vditor-writer .vditor-ir__node--expand[data-type='code-block']::before,
+.vditor-writer .vditor-ir__node--expand[data-type='code-block']::after {
+  content: none;
+}
+
+/* 语言名复刻折叠态 lang 标签:margin/字号/行高须与下方折叠态
+   ::before 标签规则严格一致,两态头部才同高。Lute 在 span 内置有
+   零宽空格,语言为空时行盒不塌,头部高度仍成立。 */
+.vditor-writer .vditor-ir__node--expand[data-type='code-block'] .vditor-ir__marker--info {
+  display: block;
+  margin: 8px 14px 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--code-text-muted);
+  text-transform: lowercase;
+}
+
+/* 源码 pre 块化:Vditor 展开态默认把它转 inline,行内级盒会产生多余的
+   匿名行盒;块级化后源码与预览共享同一套盒参数(见下方 pre > code) */
+.vditor-writer .vditor-ir__node--expand[data-type='code-block'] .vditor-ir__marker--pre {
+  display: block;
+}
+
+/* ── 3. 代码块卡片(视觉等价于详情页 .code-block-wrapper) ─────────────── */
+
+.vditor-writer .vditor-ir__node[data-type='code-block'] {
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 4px;
+  margin: 26px 0;
+  overflow: hidden;
+}
+
+/* 折叠态消除幽灵空行:节点内被压成 0×0 的标记(``` 围栏/源码 pre)各自
+   占据一个文本行,编辑区根容器是 pre-wrap,DOM 换行符全部产生 ~30px 行盒;
+   Vditor 还在节点 ::before/::after 挂了 content:' ',pre-wrap 下同样成行。
+   之前无背景看不见,加了卡片背景后显形为上下大片空白。
+   white-space:normal 让空白符折叠,line-height:0 消掉残余 strut;
+   可见内容(lang 标签 1.4 / 代码体 1.65)各自显式声明行高,不受影响。 */
+.vditor-writer .vditor-ir__node[data-type='code-block']:not(.vditor-ir__node--expand) {
+  white-space: normal;
+  line-height: 0;
+}
+
+.vditor-writer .vditor-ir__node[data-type='code-block']:not(.vditor-ir__node--expand)::after {
+  content: none;
+}
+
+/* 折叠态把 0×0 标记(语言 span/源码 pre)从 Vditor 默认的 inline-block
+   改为 block:行内级盒会在标签与预览之间撑出一个依赖字体度量的匿名
+   行盒(实测 ~5px),块级 0 尺寸盒不产生行盒,头部高度回到确定的
+   8+17+6,与展开态严格同高。 */
+.vditor-writer
+  .vditor-ir__node[data-type='code-block']:not(.vditor-ir__node--expand)
+  .vditor-ir__marker {
+  display: block;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* 编辑展开态:隐藏渲染预览,只留源码(Typora 式)。源码与预览同色同底,
+   两份代码叠在一起无法分辨;mermaid 例外——编辑图表源码时需要实时看图。 */
+.vditor-writer
+  .vditor-ir__node--expand[data-type='code-block']:not([data-lang='mermaid'])
+  .vditor-ir__preview {
+  display: none;
+}
+
+/* ── 4. 图片:编辑器内改回 inline-block ─────────────────────────────────────
+ * prose.css 把 img 设为 block,但 IR 模式下图片前面有一串折叠成 0×0 的
+ * Markdown 标记(![alt](url)),块级图片把它们挤成独立的空行(~30px 的"头")。
+ * inline-block 让标记与图片同行,外边距仍是 20px,与阅读侧视觉一致。 */
+
+.vditor-writer .vditor-ir img {
+  display: inline-block;
+  vertical-align: top;
+  /* inline-block 的 margin 不参与外边距折叠:阅读侧 block 图片的 20px 上下
+     边距会与段落边距折叠成 20/26,这里等效换算为 2px 上边距(18+2=20)、
+     0 下边距(与后继块的 26px 边距对齐)。 */
+  margin: 2px 0 0;
+}
+
+/* 折叠态 lang 标签(对齐 .code-lang-label):VditorWriter 的 MutationObserver
+   给每个代码块节点标注 data-lang(无语言回退 'text',与 ArticleContent 的
+   wrapCodeBlock 一致),用 ::before 渲染,不依赖 Vditor 的标记元素。
+   Vditor 对折叠标记有 padding:0 !important,间距用 margin 实现。 */
+.vditor-writer .vditor-ir__node[data-type='code-block']:not(.vditor-ir__node--expand)::before {
+  content: attr(data-lang);
+  display: block;
+  /* 8+17+6 ≈ 阅读侧 header(padding 8/6 + 12px 标签行)的 31px 总高 */
+  margin: 8px 14px 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--code-text-muted);
+  text-transform: lowercase;
+}
+
+/* 代码体:编辑态 pre 与渲染态 preview 共用同一组参数(对齐 pre.code-body) */
+.vditor-writer .vditor-ir__node[data-type='code-block'] pre {
+  margin: 0;
+  background: transparent;
+}
+
+.vditor-writer .vditor-ir__node[data-type='code-block'] pre > code {
+  display: block;
+  padding: 2px 22px 16px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--code-text);
+  background: none;
+  border: none;
+  border-radius: 0;
+  white-space: pre;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--code-scrollbar) transparent;
+}
+
+.vditor-writer .vditor-ir__node[data-type='code-block'] pre > code::-webkit-scrollbar {
+  height: 3px;
+}
+.vditor-writer .vditor-ir__node[data-type='code-block'] pre > code::-webkit-scrollbar-track {
+  background: transparent;
+}
+.vditor-writer .vditor-ir__node[data-type='code-block'] pre > code::-webkit-scrollbar-thumb {
+  background: var(--code-scrollbar);
+  border-radius: 2px;
+}
+
+/* ── 4. Mermaid 预览:白底卡片,对齐详情页 .mermaid-block(暗色下同样白底) */
+
+.vditor-writer .vditor-ir__preview .language-mermaid {
+  display: block;
+  /* 中和 Vditor 的 margin-bottom:16px——外边距会从白卡下缘漏出节点底色 */
+  margin: 0;
+  background: var(--color-mermaid-canvas);
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.vditor-writer .vditor-ir__preview .language-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* mermaid 块:折叠态无 lang 标签(它是图表不是代码,详情页同样无 header)。
+   白底由预览区(.language-mermaid)自带,节点保持 --code-bg——折叠态
+   白卡观感不变,展开态语言行+源码落在 --code-bg 上,暗色主题下源码
+   (亮色 --code-text)才不会贴在白底上不可读。 */
+.vditor-writer .vditor-ir__node[data-type='code-block'][data-lang='mermaid'] {
+  border-color: var(--color-border);
+}
+
+.vditor-writer
+  .vditor-ir__node[data-type='code-block'][data-lang='mermaid']:not(
+    .vditor-ir__node--expand
+  )::before {
+  content: none;
+}
+
+/* ── 5. hljs 暖色 token(压制 CDN 注入的 github 主题) ─────────────────────
+ * Vditor 运行时往 <head> 末尾追加 github.css <link>,晚于打包样式,
+ * 同特异度下会赢过 prose.css 的全局 .hljs-* 规则;这里用命名空间
+ * 提升一级特异度,token 映射与 prose.css 完全一致。 */
+
+.vditor-writer .hljs {
+  color: var(--code-text);
+  background: transparent;
+}
+
+.vditor-writer .hljs-comment,
+.vditor-writer .hljs-quote {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+.vditor-writer .hljs-doctag,
+.vditor-writer .hljs-keyword,
+.vditor-writer .hljs-formula {
+  color: var(--code-keyword);
+}
+
+.vditor-writer .hljs-section,
+.vditor-writer .hljs-name,
+.vditor-writer .hljs-selector-tag,
+.vditor-writer .hljs-deletion,
+.vditor-writer .hljs-subst {
+  color: var(--code-section);
+}
+
+.vditor-writer .hljs-literal {
+  color: var(--code-literal);
+}
+
+.vditor-writer .hljs-string,
+.vditor-writer .hljs-regexp,
+.vditor-writer .hljs-addition,
+.vditor-writer .hljs-attribute,
+.vditor-writer .hljs-meta .hljs-string {
+  color: var(--code-string);
+}
+
+.vditor-writer .hljs-attr,
+.vditor-writer .hljs-variable,
+.vditor-writer .hljs-template-variable,
+.vditor-writer .hljs-type,
+.vditor-writer .hljs-selector-class,
+.vditor-writer .hljs-selector-attr,
+.vditor-writer .hljs-selector-pseudo,
+.vditor-writer .hljs-number {
+  color: var(--code-number);
+}
+
+.vditor-writer .hljs-symbol,
+.vditor-writer .hljs-bullet,
+.vditor-writer .hljs-link,
+.vditor-writer .hljs-meta,
+.vditor-writer .hljs-selector-id,
+.vditor-writer .hljs-title {
+  color: var(--code-meta);
+}
+
+.vditor-writer .hljs-built_in,
+.vditor-writer .hljs-title.class_,
+.vditor-writer .hljs-class .hljs-title {
+  color: var(--code-builtin);
+}
+
+.vditor-writer .hljs-emphasis {
+  font-style: italic;
+}
+.vditor-writer .hljs-strong {
+  font-weight: bold;
+}
+.vditor-writer .hljs-link {
+  text-decoration: underline;
+}

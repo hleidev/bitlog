@@ -1,0 +1,22 @@
+{
+  "identifier": "default",
+  "description": "Capabilities for the main editor window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-title",
+    "dialog:allow-ask",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:allow-read-text-file",
+    "fs:allow-read-file",
+    "fs:allow-write-text-file",
+    "fs:allow-write-file",
+    "fs:allow-mkdir",
+    {
+      "identifier": "fs:scope",
+      "allow": ["$HOME/**", "$HOME/**/*"]
+    },
+    "opener:allow-open-url"
+  ]
+}

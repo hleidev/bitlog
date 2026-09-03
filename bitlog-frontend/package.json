@@ -1,0 +1,66 @@
+{
+  "name": "bitlog-frontend",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "prebuild": "node scripts/generate-sitemap.mjs && node scripts/generate-friend-json.mjs",
+    "build": "vue-tsc --noEmit && vite-ssg build",
+    "build:ci": "vue-tsc --noEmit && vite-ssg build",
+    "postbuild": "node scripts/verify-ssg.mjs",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{vue,ts,css}\"",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "{src,packages,apps}/**/*.{vue,ts}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "{src,packages,apps}/**/*.css": "prettier --write"
+  },
+  "dependencies": {
+    "@bitlog/editor": "*",
+    "@unhead/vue": "^2.1.16",
+    "axios": "^1.14.0",
+    "highlight.js": "^11.11.1",
+    "mermaid": "^11.15.0",
+    "nprogress": "^0.2.0",
+    "pinia": "^3.0.4",
+    "vditor": "^3.11.2",
+    "vite-ssg": "^28.3.0",
+    "vue": "^3.5.18",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@tsconfig/node20": "^20.1.9",
+    "@types/nprogress": "^0.2.3",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@vue/tsconfig": "^0.9.1",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.8.0",
+    "globals": "^17.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.1",
+    "sharp": "^0.34.5",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.58.0",
+    "vite": "^7.3.3",
+    "vue-eslint-parser": "^10.4.0",
+    "vue-tsc": "^2.2.8"
+  },
+  "volta": {
+    "node": "22.22.2"
+  }
+}

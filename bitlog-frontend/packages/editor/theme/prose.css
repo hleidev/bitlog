@@ -1,0 +1,574 @@
+/* ── Base ───────────────────────────────────────────────────────────────────
+ * Styles are scoped to two host selectors on purpose:
+ *   .ProseMirror     — Tiptap (read-only ArticleContent in legacy / future)
+ *   .vditor-ir       — Vditor IR mode (the actual write-side renderer)
+ * Both rendering paths must look identical to readers.
+ */
+
+.ProseMirror,
+.vditor-ir {
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--color-text-secondary);
+  outline: none;
+}
+
+.article-editor.is-editable .ProseMirror {
+  min-height: 400px;
+  cursor: text;
+}
+
+/* ── Headings ─────────────────────────────────────────────────────────────── */
+
+.ProseMirror h1,
+.vditor-ir h1 {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 48px 0 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ProseMirror h2,
+.vditor-ir h2 {
+  font-family: var(--font-serif);
+  font-size: 23px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 40px 0 16px;
+}
+
+.ProseMirror h1:first-child,
+.ProseMirror h2:first-child,
+.vditor-ir h1:first-child,
+.vditor-ir h2:first-child {
+  margin-top: 0;
+}
+
+.ProseMirror h3,
+.vditor-ir h3 {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 32px 0 12px;
+}
+
+.ProseMirror h4,
+.vditor-ir h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.04em;
+  margin: 24px 0 10px;
+}
+
+/* ── Heading anchor ───────────────────────────────────────────────────────────
+   Lute 的 SetHeadingAnchor 会在标题末尾注入 <a class="vditor-anchor">＋内联 SVG。
+   默认无样式：紧贴文字、全强度深色、常驻可见，读起来像错字而不是功能。
+   这里让它默认隐藏，仅在标题 hover / 键盘聚焦时以 muted 色淡入。 */
+
+.ProseMirror .vditor-anchor,
+.vditor-ir .vditor-anchor {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35em;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  vertical-align: middle;
+}
+
+.ProseMirror .vditor-anchor svg,
+.vditor-ir .vditor-anchor svg {
+  width: 0.62em;
+  height: 0.62em;
+  fill: currentColor;
+}
+
+.ProseMirror h1:hover .vditor-anchor,
+.ProseMirror h2:hover .vditor-anchor,
+.ProseMirror h3:hover .vditor-anchor,
+.ProseMirror h4:hover .vditor-anchor,
+.ProseMirror h5:hover .vditor-anchor,
+.ProseMirror h6:hover .vditor-anchor,
+.vditor-ir h1:hover .vditor-anchor,
+.vditor-ir h2:hover .vditor-anchor,
+.vditor-ir h3:hover .vditor-anchor,
+.vditor-ir h4:hover .vditor-anchor,
+.vditor-ir h5:hover .vditor-anchor,
+.vditor-ir h6:hover .vditor-anchor,
+.ProseMirror .vditor-anchor:focus-visible,
+.vditor-ir .vditor-anchor:focus-visible {
+  opacity: 1;
+}
+
+.ProseMirror .vditor-anchor:hover,
+.vditor-ir .vditor-anchor:hover {
+  color: var(--color-accent);
+}
+
+/* ── Paragraphs & inline ──────────────────────────────────────────────────── */
+
+.ProseMirror p,
+.vditor-ir p {
+  margin-bottom: 18px;
+}
+
+.ProseMirror strong,
+.vditor-ir strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.ProseMirror em,
+.vditor-ir em {
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.ProseMirror s,
+.ProseMirror del,
+.vditor-ir s,
+.vditor-ir del {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+
+.ProseMirror a,
+.vditor-ir a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--color-accent-rgb), 0.35);
+  text-underline-offset: 3px;
+  transition:
+    color var(--transition-base),
+    text-decoration-color var(--transition-base);
+}
+
+.ProseMirror a:hover,
+.vditor-ir a:hover {
+  color: var(--color-accent-dark);
+  text-decoration-color: var(--color-accent-dark);
+}
+
+/* ── Inline code ──────────────────────────────────────────────────────────── */
+
+/* Plain Vditor <code> (no language-*) — inline code, warm chip style.
+   In ArticleContent we run enhanceCodeBlocks() which wraps any <code> in
+   a .code-block-wrapper, so the plain <code> rule only matters for the
+   write-side IR where inline code is the *only* code path (no wrappers).
+
+   NOTE: specificity must beat Vditor's own
+   `.vditor-reset code:not(.hljs):not(.highlight-chroma)` (0,2,1).
+   The double-class selectors below are 0,2,1 / 0,2,1, so order wins;
+   since prose.css is imported after vditor/dist/index.css in
+   VditorWriter.vue, ours loads later and wins the cascade. */
+.ProseMirror code,
+.ProseMirror code:not(.hljs):not(.highlight-chroma),
+.vditor-ir code,
+.vditor-ir code:not(.hljs):not(.highlight-chroma) {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--color-bg-hover);
+  color: var(--color-accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  /* Override Vditor's monospace font + 85% size */
+  font-family: var(--font-mono);
+}
+
+/* ── Code blocks (ArticleContent NodeView-equivalent) ────────────────────── */
+
+.ProseMirror .code-block-wrapper,
+.vditor-ir .code-block-wrapper {
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 4px;
+  margin: 26px 0;
+  overflow: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--code-scrollbar) transparent;
+}
+
+.ProseMirror .code-block-wrapper::-webkit-scrollbar,
+.vditor-ir .code-block-wrapper::-webkit-scrollbar {
+  height: 3px;
+}
+.ProseMirror .code-block-wrapper::-webkit-scrollbar-track,
+.vditor-ir .code-block-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ProseMirror .code-block-wrapper::-webkit-scrollbar-thumb,
+.vditor-ir .code-block-wrapper::-webkit-scrollbar-thumb {
+  background: var(--code-scrollbar);
+  border-radius: 2px;
+}
+
+.ProseMirror .code-header,
+.vditor-ir .code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px 6px;
+  background: var(--code-header-bg);
+}
+
+.ProseMirror .code-lang-label,
+.vditor-ir .code-lang-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--code-text-muted);
+  text-transform: lowercase;
+}
+
+.ProseMirror .copy-btn,
+.vditor-ir .copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--code-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 3px;
+  transition: color 0.15s;
+  line-height: 1;
+}
+
+.ProseMirror .copy-btn:hover,
+.vditor-ir .copy-btn:hover {
+  color: var(--code-text);
+}
+.ProseMirror .copy-btn--copied,
+.vditor-ir .copy-btn--copied {
+  color: var(--code-copy-done);
+}
+.ProseMirror .copy-btn--copied:hover,
+.vditor-ir .copy-btn--copied:hover {
+  color: var(--code-copy-done);
+}
+
+.ProseMirror .code-lang-input,
+.vditor-ir .code-lang-input {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--code-text-muted);
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  width: 100px;
+  transition: color 0.15s;
+}
+
+.ProseMirror .code-lang-input:focus,
+.vditor-ir .code-lang-input:focus {
+  color: var(--code-text);
+  cursor: text;
+}
+
+.ProseMirror pre.code-body,
+.vditor-ir pre.code-body {
+  margin: 0;
+  background: transparent;
+  overflow-x: auto;
+}
+
+.ProseMirror pre.code-body code,
+.vditor-ir pre.code-body code {
+  display: block;
+  padding: 16px 22px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--code-text);
+  white-space: pre;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding-top: 2px;
+  padding-bottom: 16px;
+}
+
+/* Reset inline code styles inside code blocks */
+.ProseMirror pre code,
+.vditor-ir pre code {
+  font-size: inherit;
+  background: none;
+  color: inherit;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+/* ── Mermaid diagram view ─────────────────────────────────────────────────── */
+
+.ProseMirror .mermaid-preview,
+.vditor-ir .mermaid-preview {
+  padding: 24px 20px;
+  background: var(--color-mermaid-canvas);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 0 0 4px 4px;
+}
+
+.ProseMirror .mermaid-preview--clickable,
+.vditor-ir .mermaid-preview--clickable {
+  cursor: pointer;
+}
+
+.ProseMirror .mermaid-preview--clickable:hover,
+.vditor-ir .mermaid-preview--clickable:hover {
+  background: var(--color-mermaid-canvas-hover);
+}
+
+.ProseMirror .mermaid-preview--zoomable,
+.vditor-ir .mermaid-preview--zoomable {
+  cursor: zoom-in;
+}
+
+.ProseMirror .mermaid-svg-wrap,
+.vditor-ir .mermaid-svg-wrap {
+  width: 100%;
+}
+
+/* 尺寸由 ArticleContent 的 sizeMermaidSvg() 按 viewBox 显式写在 style 上
+   （width:100% + viewBox 没有固有宽度，纯 CSS 无法还原设计尺寸）。
+   这里只负责居中；超宽图由 .mermaid-svg-wrap 横向滚动承接。 */
+.ProseMirror .mermaid-svg-wrap svg,
+.vditor-ir .mermaid-svg-wrap svg {
+  margin: 0 auto;
+}
+
+.ProseMirror .mermaid-error,
+.vditor-ir .mermaid-error {
+  padding: 12px 0;
+  color: var(--color-danger);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* ── Blockquote ───────────────────────────────────────────────────────────── */
+
+.ProseMirror blockquote,
+.vditor-ir blockquote {
+  border-left: 2px solid var(--color-accent);
+  margin: 28px 0;
+  padding: 14px 20px;
+  background: rgba(var(--color-accent-rgb), 0.04);
+}
+
+.ProseMirror blockquote p,
+.vditor-ir blockquote p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ── Lists ────────────────────────────────────────────────────────────────── */
+
+.ProseMirror ul,
+.ProseMirror ol,
+.vditor-ir ul,
+.vditor-ir ol {
+  padding-left: 24px;
+  margin-bottom: 18px;
+}
+
+.ProseMirror li,
+.vditor-ir li {
+  margin-bottom: 8px;
+  line-height: 1.75;
+}
+
+.ProseMirror ul li,
+.vditor-ir ul li {
+  list-style: disc;
+}
+.ProseMirror ol li,
+.vditor-ir ol li {
+  list-style: decimal;
+}
+
+/* ── Horizontal rule ──────────────────────────────────────────────────────── */
+
+.ProseMirror hr,
+.vditor-ir hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 40px 0;
+}
+
+/* ── Images ───────────────────────────────────────────────────────────────── */
+
+.ProseMirror img,
+.vditor-ir img {
+  max-width: 100%;
+  border-radius: 4px;
+  margin: 20px 0;
+  display: block;
+}
+
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+
+.ProseMirror table,
+.vditor-ir table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 28px 0;
+  font-size: 14px;
+  border: 1px solid var(--color-border);
+}
+
+.ProseMirror th,
+.vditor-ir th {
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 16px;
+  border-bottom: 2px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+}
+
+.ProseMirror th:last-child,
+.vditor-ir th:last-child {
+  border-right: none;
+}
+
+.ProseMirror td,
+.vditor-ir td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border-light);
+  color: var(--color-text-secondary);
+}
+
+.ProseMirror td:last-child,
+.vditor-ir td:last-child {
+  border-right: none;
+}
+
+.ProseMirror tr:last-child td,
+.vditor-ir tr:last-child td {
+  border-bottom: none;
+}
+
+.ProseMirror td p,
+.ProseMirror th p,
+.vditor-ir td p,
+.vditor-ir th p {
+  margin-bottom: 0;
+}
+
+.ProseMirror tbody tr:hover td,
+.vditor-ir tbody tr:hover td {
+  background: var(--color-bg-hover);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .ProseMirror,
+  .vditor-ir {
+    font-size: 15px;
+  }
+  .ProseMirror h1,
+  .vditor-ir h1 {
+    font-size: 24px;
+  }
+  .ProseMirror h2,
+  .vditor-ir h2 {
+    font-size: 20px;
+  }
+  .ProseMirror h3,
+  .vditor-ir h3 {
+    font-size: 17px;
+  }
+}
+
+/* ── Syntax token colors (hljs) ───────────────────────────────────────────
+ * 自定义中性主题，取代全局 atom-one-dark.css 导入。
+ * 变量在 variables.css 中按 [data-theme] 切换：
+ *   浅色 → 中性浅灰背景 (#fafafa) + 低饱和语法色
+ *   深色 → 中性深灰背景 (#141414) + 低饱和亮色语法色
+ * ─────────────────────────────────────────────────────────────────────── */
+
+.hljs {
+  color: var(--code-text);
+  background: var(--code-bg);
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+.hljs-doctag,
+.hljs-keyword,
+.hljs-formula {
+  color: var(--code-keyword);
+}
+
+.hljs-section,
+.hljs-name,
+.hljs-selector-tag,
+.hljs-deletion,
+.hljs-subst {
+  color: var(--code-section);
+}
+
+.hljs-literal {
+  color: var(--code-literal);
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-attribute,
+.hljs-meta .hljs-string {
+  color: var(--code-string);
+}
+
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-type,
+.hljs-selector-class,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-number {
+  color: var(--code-number);
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link,
+.hljs-meta,
+.hljs-selector-id,
+.hljs-title {
+  color: var(--code-meta);
+}
+
+.hljs-built_in,
+.hljs-title.class_,
+.hljs-class .hljs-title {
+  color: var(--code-builtin);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: bold;
+}
+.hljs-link {
+  text-decoration: underline;
+}

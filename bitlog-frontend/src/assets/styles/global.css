@@ -1,0 +1,102 @@
+@import '@bitlog/editor/variables.css';
+@import './reset.css';
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-faint);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) var(--color-bg);
+}
+
+/* Container */
+.container {
+  max-width: var(--spacing-container);
+  margin: 0 auto;
+  padding: 0 var(--spacing-page-padding);
+}
+
+/* Page enter animation */
+@keyframes viewFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.page-state {
+  animation: viewFadeIn 0.18s ease both;
+}
+
+/* Scroll-driven reveal：进度由滚动位置驱动，所以首屏内已可见的元素直接落在终态，
+   不会被先抹成透明再淡入 —— 这正是首页预渲染后不得不关掉 JS 入场动画的原因。
+   Firefox 尚未支持，@supports 落空即静态可见。文件末尾那条 reduced-motion 的
+   animation-duration 覆盖对 scroll-driven 动画无效（时长由 timeline 接管），
+   这里必须单独再挡一次。 */
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: revealUp linear both;
+      animation-timeline: view();
+      /* 用绝对长度而非 entry 百分比：百分比的实际距离含元素自身高度，
+         高矮不同的块完成节奏会差出好几倍。 */
+      animation-range: entry 0% entry 180px;
+    }
+  }
+}
+
+/* Visually hidden (accessibility) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Keyboard focus indicator (WCAG 2.4.7) — only shows for keyboard nav,
+   not mouse clicks. reset.css clears outlines, so this restores them. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Respect users who reduce motion (prefers-reduced-motion). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

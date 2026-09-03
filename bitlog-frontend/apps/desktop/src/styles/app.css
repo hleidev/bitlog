@@ -1,0 +1,23 @@
+/* Design tokens come from @bitlog/editor/variables.css (imported in main.ts).
+   Only app-chrome tokens that have no web-side counterpart live here. */
+:root {
+  --toolbar-height: 44px;
+  --toolbar-bg:     var(--color-bg-card);
+  --toolbar-border: var(--color-border);
+}
+
+/* ── Reset ────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #app {
+  height: 100%;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  /* Disable native text selection drag in app chrome */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Re-enable selection inside the editor */
+.article-editor { -webkit-user-select: text; user-select: text; }
