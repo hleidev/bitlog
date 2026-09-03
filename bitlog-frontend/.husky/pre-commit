@@ -1,1 +1,1 @@
-npx lint-staged
+cd bitlog-frontend && npx lint-staged

@@ -18,7 +18,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{vue,ts,css}\"",
-    "prepare": "husky"
+    "prepare": "cd .. && husky bitlog-frontend/.husky"
   },
   "lint-staged": {
     "{src,packages,apps}/**/*.{vue,ts}": [
