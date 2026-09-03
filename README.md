@@ -46,25 +46,36 @@ highlight.js、Tauri 2、Rust、ESLint、Prettier、Husky、lint-staged
 环境要求：JDK 21、Maven 3.9+、PostgreSQL 16+（数据库名和角色默认均为 `bitlog`）、Redis 7+、
 MinIO 或其他 S3 兼容对象存储、Node.js 22.22.2（已由 Volta 固定）。
 
-### 后端
+首次运行需先准备后端环境变量并安装前端依赖：
 
 ```bash
-cd bitlog-backend
-cp .env.example .env
+cp bitlog-backend/.env.example bitlog-backend/.env
+(cd bitlog-frontend && npm ci)
+```
+
+之后在仓库根目录一条命令同时启动前后端，Ctrl-C 一并停止：
+
+```bash
 ./start.sh
 ```
 
-完整变量说明和申请地址见 [`bitlog-backend/.env.example`](bitlog-backend/.env.example)。`.env`
-的读取路径相对于进程工作目录，因此启动命令必须在 `bitlog-backend/` 下执行。首次启动时 Flyway
-会自动创建和升级数据库结构。启动脚本会先执行 `mvn -q package -DskipTests`，再运行生成的可执行
-JAR。开发环境默认监听 `12301` 端口。
+也可以只启动其中一个：`./start.sh backend`、`./start.sh frontend`、`./start.sh desktop`。
+
+### 后端
+
+```bash
+./start.sh backend
+```
+
+完整变量说明和申请地址见 [`bitlog-backend/.env.example`](bitlog-backend/.env.example)。Spring Boot
+按进程工作目录读取 `.env`，启动脚本内部会切到 `bitlog-backend/` 再运行，因此从仓库根调用也没问题；
+手动运行 JAR 时则必须在 `bitlog-backend/` 下执行。首次启动时 Flyway 会自动创建和升级数据库结构。
+启动脚本会先执行 `mvn -q package -DskipTests`，再运行生成的可执行 JAR。开发环境默认监听 `12301` 端口。
 
 ### 前端
 
 ```bash
-cd bitlog-frontend
-npm ci
-./start.sh
+./start.sh frontend
 ```
 
 启动脚本会检查依赖是否已安装，然后运行 Vite 开发服务器。开发服务器默认将 `/api` 代理到
@@ -108,9 +119,8 @@ CI 使用 `npm run build:ci`，只执行类型检查和 SSG 编译，不触发�
 [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)。
 
 ```bash
-cd bitlog-frontend
-npm run tauri --workspace apps/desktop -- dev
-npm run tauri --workspace apps/desktop -- build
+./start.sh desktop                                    # 构建并启动
+cd bitlog-frontend && npm run tauri --workspace apps/desktop -- dev    # 开发模式
 ```
 
 ## API 文档
