@@ -1,8 +1,9 @@
-name: Deploy
+name: Deploy Backend
 
 on:
   push:
     branches: [main]
+    paths: ["bitlog-backend/**"]
 
 concurrency:
   group: deploy
@@ -28,6 +29,7 @@ jobs:
           cache: maven
 
       - name: Build with Maven
+        working-directory: bitlog-backend
         run: mvn clean package -DskipTests -q
 
       - name: Log in to ghcr.io
@@ -43,7 +45,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: bitlog-backend
           push: true
           tags: |
             ghcr.io/hleidev/bitlog-backend:latest

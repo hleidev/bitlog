@@ -1,9 +1,11 @@
-name: CI
+name: CI Backend
 
 on:
   push:
     branches: [main, dev]
+    paths: ["bitlog-backend/**"]
   pull_request:
+    paths: ["bitlog-backend/**"]
 
 permissions:
   contents: read
@@ -11,6 +13,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bitlog-backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
