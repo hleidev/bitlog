@@ -1,14 +1,10 @@
 name: Deploy Backend
 
-# 暂时只允许手动触发：新仓库尚未配置 VPS secrets（VPS_HOST / VPS_USER / VPS_SSH_KEY）
-# 与 GHCR 包 ghcr.io/hleidev/bitlog-backend 的 Actions 访问权限。
-# 两者配好后删掉 workflow_dispatch、恢复下面注释掉的 push 触发即可。
 on:
+  push:
+    branches: [main]
+    paths: ["bitlog-backend/**"]
   workflow_dispatch:
-# on:
-#   push:
-#     branches: [main]
-#     paths: ["bitlog-backend/**"]
 
 concurrency:
   group: deploy
