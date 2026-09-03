@@ -3,6 +3,17 @@ description: 报告可以稳定复现的问题
 title: "fix: "
 labels: [bug]
 body:
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围
+      options:
+        - 后端
+        - 前端（Web）
+        - 桌面端（Markwright）
+        - 不确定
+    validations:
+      required: true
   - type: textarea
     id: description
     attributes:
@@ -15,8 +26,8 @@ body:
     attributes:
       label: 复现步骤
       placeholder: |
-        1. 打开……
-        2. 点击……
+        1. 打开 / 准备……
+        2. 点击 / 请求……
         3. 出现……
     validations:
       required: true
@@ -24,11 +35,11 @@ body:
     id: environment
     attributes:
       label: 运行环境
-      description: 操作系统、浏览器或桌面端版本。
+      description: 后端请提供 JDK、数据库和操作系统版本；前端请提供操作系统、浏览器或桌面端版本。
     validations:
       required: true
   - type: textarea
     id: additional
     attributes:
       label: 补充信息
-      description: 可附上日志、截图或最小复现。
+      description: 可附上脱敏后的日志、请求参数、截图或最小复现。

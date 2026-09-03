@@ -1,8 +1,19 @@
 name: 功能建议
-description: 提议新功能或体验改进
+description: 提议新功能、架构或体验改进
 title: "feat: "
 labels: [enhancement]
 body:
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围
+      options:
+        - 后端
+        - 前端（Web）
+        - 桌面端（Markwright）
+        - 不确定
+    validations:
+      required: true
   - type: textarea
     id: problem
     attributes:
@@ -14,7 +25,7 @@ body:
     id: proposal
     attributes:
       label: 建议方案
-      description: 请描述期望的行为和可能的交互方式。
+      description: 请描述期望行为，以及可能影响的接口、模块或交互方式。
     validations:
       required: true
   - type: textarea
