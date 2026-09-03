@@ -127,7 +127,7 @@ npm run tauri --workspace apps/desktop -- build
 
 CI 按目录触发：改动 `bitlog-backend/` 只跑后端构建，改动 `bitlog-frontend/` 只跑前端构建。
 
-贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)，安全问题报告见 [SECURITY.md](SECURITY.md)。
+贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 许可
 
