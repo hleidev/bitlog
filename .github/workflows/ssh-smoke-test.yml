@@ -1,0 +1,23 @@
+# 临时工作流：只验证 VPS SSH 连通性（密钥 / 用户名 / 主机）。
+# 不构建、不部署、不改动服务器上任何东西，仅执行只读命令。
+# 部署链路验证通过后即可删除本文件。
+name: SSH Smoke Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ssh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Try SSH to VPS (read-only)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "connected-as: $(whoami)"
+            echo "hostname: $(hostname)"
+            echo "compose-dir: $([ -d /opt/bitlog ] && echo present || echo missing)"
+            echo "version-file: $(cat /opt/bitlog/.version 2>/dev/null | cut -c1-12)"
