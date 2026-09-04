@@ -44,7 +44,7 @@ highlight.js、Tauri 2、Rust、ESLint、Prettier、Husky、lint-staged
 ## 快速开始
 
 环境要求：JDK 21、Maven 3.9+、PostgreSQL 16+（数据库名和角色默认均为 `bitlog`）、Redis 7+、
-MinIO 或其他 S3 兼容对象存储、Node.js 22.22.2（已由 Volta 固定）。
+MinIO 或其他 S3 兼容对象存储、Node.js 22.22.2（根 `mise.toml` 与前端 `package.json` 的 volta 字段均已声明，CI 用的也是这个版本）。
 
 首次运行需先准备后端环境变量并安装前端依赖：
 
