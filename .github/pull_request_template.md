@@ -20,6 +20,6 @@
 **前端**
 
 - [ ] 已运行 `npm run lint`
-- [ ] 已运行 `npm run build`
+- [ ] 已运行 `npm run build:ci`
 - [ ] 已验证受影响的主要交互
 - [ ] 可见界面改动已附截图或录屏

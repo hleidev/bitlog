@@ -1,143 +1,93 @@
 # BitLog
 
-BitLog is a self-hosted blogging platform. This repository contains both halves: a Java 21 and
-Spring Boot API, and a Vue 3 client that ships the public site, the admin console and Markwright,
-a Tauri desktop writing client. Live site: [bitlog.harrylei.top](https://bitlog.harrylei.top).
+自托管的个人博客系统。后端是 Java 21 + Spring Boot 的模块化单体，前端是 Vue 3 + Vite SSG，
+公开站点、内容管理后台和写作端在同一个仓库里。
 
-## 项目简介
+**线上站点：[bitlog.harrylei.top](https://bitlog.harrylei.top)**，这个仓库的代码就跑在上面。
 
-BitLog 为博客公开站点、内容管理后台和桌面写作客户端提供完整实现。后端采用模块化单体架构：
-各领域在同一应用内独立维护数据和业务边界，跨模块调用通过目标模块公开的 port 完成。前端 Web
-与桌面端共用编辑器包，避免编辑和展示效果因重复实现而产生差异。
+[![Backend CI](https://github.com/hleidev/bitlog/actions/workflows/ci-backend.yml/badge.svg)](https://github.com/hleidev/bitlog/actions/workflows/ci-backend.yml)
+[![Frontend CI](https://github.com/hleidev/bitlog/actions/workflows/ci-frontend.yml/badge.svg)](https://github.com/hleidev/bitlog/actions/workflows/ci-frontend.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## 仓库结构
+## 它是什么
 
-```text
-bitlog-backend/          Java 21 + Spring Boot 3.5 API
-  bitlog-common/         API 响应、分页、安全配置、上下文及公共基础设施
-  bitlog-ai/             AI 模型配置与调用能力
-  bitlog-user/           用户账号、资料及后台用户查询
-  bitlog-auth/           登录注册、令牌、验证码、OAuth 身份和凭据管理
-  bitlog-article/        文章、版本、分类和标签
-  bitlog-file/           基于 S3 / MinIO 的文件上传与地址转换
-  bitlog-comment/        评论与回复
-  bitlog-link/           友链申请、审核与展示
-  bitlog-server/         应用入口、运行配置和 Flyway 数据库迁移
+一套完整的个人博客实现，不是脚手架也不是教程项目：文章的写作、版本、发布、检索、评论、友链
+和后台管理都已经在线上跑着。
 
-bitlog-frontend/         Vue 3 + Vite SSG 客户端
-  src/                   Web 应用：公开站点、管理后台、API 与状态管理
-  packages/editor/       Web 与桌面端共用的 Markdown 编辑器和内容样式
-  apps/desktop/          Markwright 桌面客户端（Tauri）
-  public/                静态资源
-  scripts/               sitemap、友链数据生成与 SSG 构建校验脚本
+做它的出发点是自己用得顺手，同时把一些工程上的取舍认真做一遍：模块化单体的边界怎么划、
+Web 与桌面端如何共用一套编辑器、博客这种读多写少的站点为什么走静态生成。这些决定和它们的
+代价写在 [架构说明](docs/architecture.md) 里，比技术栈列表更能说明这个项目在做什么。
+
+## 功能
+
+- **文章**：Markdown 写作，草稿与发布分离，历史版本可回溯，分类与标签
+- **阅读体验**：公开页面全部静态生成，构建期校验文章已进入产物，代码高亮与 Mermaid 图表
+- **互动**：评论与回复，带频率限制；友链申请与审核
+- **账号**：邮箱注册登录、Google OAuth，JWT 双令牌，管理员与普通用户分权
+- **后台**：文章、用户、评论、友链的管理界面
+- **AI 辅助**：接入大模型做写作辅助，按能力而非按模型配置，换供应商只改一行映射
+
+桌面端 Markwright（Tauri）也在仓库里，它是为自己写作准备的，没有按对外分发来设计。
+
+## 快速开始
+
+环境要求：JDK 21、Maven 3.9+、Node.js 22.22.2，以及本机可用的 PostgreSQL 16+（库名和角色默认
+都是 `bitlog`）、Redis 7+ 和 MinIO。这三项服务需要自行安装并启动。
+
+```bash
+cp bitlog-backend/.env.example bitlog-backend/.env  # 填入各项密钥
+(cd bitlog-frontend && npm ci)
+./start.sh                                          # 前后端一起起，Ctrl-C 一并停止
 ```
+
+后端监听 `12301`，前端开发服务器监听 `5173` 并把 `/api` 代理到后端。首次启动时 Flyway 会自动
+建表。也可以只起一侧：`./start.sh backend`、`./start.sh frontend`。
+
+环境变量的完整说明在 [`bitlog-backend/.env.example`](bitlog-backend/.env.example) 里。目前所有
+变量都没有默认值，缺任何一项启动都会失败并指明缺哪一项，这意味着即使只想本地看看，也要先准备
+好 AI、邮件和 OAuth 三项的密钥。
+
+### 把自己设成管理员
+
+注册接口创建的都是普通用户（`user_role = 0`），写文章和进后台都需要管理员权限。
+
+注册要走邮箱验证码，验证码由 Resend 发送，所以 `MAIL_API_KEY` 得是有效的、邮箱也要能真实收信。
+注册完之后把自己升成管理员：
+
+```sql
+UPDATE user_account SET user_role = 1 WHERE email = lower('你注册用的邮箱');
+```
+
+邮箱统一按小写存储，所以套一层 `lower()`。角色写在 JWT 里，改完要重新登录一次才会生效。
+
+## 架构
+
+后端是模块化单体：`user`、`auth`、`article`、`comment`、`file`、`link`、`ai` 各自维护数据和
+业务边界，跨模块调用走目标模块暴露的 `port` 接口，而不是直接注入对方的 Service。这条约定还有
+存量没收口，架构说明里写明了现状。
+前端的 Web 站点和桌面端共用 `packages/editor`，让编辑时和阅读时的渲染结果出自同一份实现。
+
+模块依赖关系、这些边界解决了什么问题、以及它们的代价，见 [docs/architecture.md](docs/architecture.md)。
 
 ## 技术栈
 
-**后端**：Java 21、Spring Boot 3.5.0、MyBatis-Plus 3.5.12、PostgreSQL、Flyway、Redis、
-MinIO / AWS SDK v2、Spring Security、JWT（jjwt）、OAuth 2.0、springdoc-openapi、MapStruct、
-Lombok、JUnit 5、Mockito、Testcontainers、JaCoCo
+<details>
+<summary>展开</summary>
+
+**后端**：Java 21、Spring Boot 3.5、MyBatis-Plus、PostgreSQL、Flyway、Redis、MinIO / AWS SDK v2、
+Spring Security、JWT（jjwt）、OAuth 2.0、MapStruct、Lombok、JUnit 5、Mockito、Testcontainers、
+JaCoCo
 
 **前端**：Vue 3.5、Vue Router、Pinia、Vite 7、vite-ssg、TypeScript 5.8、Vditor、Mermaid、
 highlight.js、Tauri 2、Rust、ESLint、Prettier、Husky、lint-staged
 
-## 快速开始
+</details>
 
-环境要求：JDK 21、Maven 3.9+、PostgreSQL 16+（数据库名和角色默认均为 `bitlog`）、Redis 7+、
-MinIO 或其他 S3 兼容对象存储、Node.js 22.22.2（根 `mise.toml` 与前端 `package.json` 的 volta 字段均已声明，CI 用的也是这个版本）。
 
-首次运行需先准备后端环境变量并安装前端依赖：
+## 开发与贡献
 
-```bash
-cp bitlog-backend/.env.example bitlog-backend/.env
-(cd bitlog-frontend && npm ci)
-```
-
-之后在仓库根目录一条命令同时启动前后端，Ctrl-C 一并停止：
-
-```bash
-./start.sh
-```
-
-也可以只启动其中一个：`./start.sh backend`、`./start.sh frontend`、`./start.sh desktop`。
-
-### 后端
-
-```bash
-./start.sh backend
-```
-
-完整变量说明和申请地址见 [`bitlog-backend/.env.example`](bitlog-backend/.env.example)。Spring Boot
-按进程工作目录读取 `.env`，启动脚本内部会切到 `bitlog-backend/` 再运行，因此从仓库根调用也没问题；
-手动运行 JAR 时则必须在 `bitlog-backend/` 下执行。首次启动时 Flyway 会自动创建和升级数据库结构。
-启动脚本会先执行 `mvn -q package -DskipTests`，再运行生成的可执行 JAR。开发环境默认监听 `12301` 端口。
-
-### 前端
-
-```bash
-./start.sh frontend
-```
-
-启动脚本会检查依赖是否已安装，然后运行 Vite 开发服务器。开发服务器默认将 `/api` 代理到
-`http://127.0.0.1:12301`，完整功能需先启动后端。
-
-## 构建与测试
-
-### 后端
-
-```bash
-cd bitlog-backend
-mvn compile
-mvn test
-mvn verify
-```
-
-集成测试使用 Testcontainers，需要本机已启动 Docker。可按测试类运行：
-
-```bash
-mvn test -pl bitlog-server -Dtest=ArticlePaginationIT
-```
-
-### 前端
-
-```bash
-cd bitlog-frontend
-npm run lint
-npm run build
-```
-
-`npm run build` 是完整的生产构建：npm 会依次执行 `prebuild`、`build` 和 `postbuild`，生成
-sitemap 与友链数据，完成类型检查和 SSG 构建，并校验文章是否进入静态产物。该流程需要生产 API
-可达且能返回文章数据，否则产物校验会失败。
-
-CI 使用 `npm run build:ci`，只执行类型检查和 SSG 编译，不触发依赖生产数据的 `prebuild` 与
-`postbuild` 生命周期钩子。
-
-## 桌面端
-
-桌面端位于 `bitlog-frontend/apps/desktop/`，构建前需安装 Rust 以及当前平台对应的
-[Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)。
-
-```bash
-./start.sh desktop                                    # 构建并启动
-cd bitlog-frontend && npm run tauri --workspace apps/desktop -- dev    # 开发模式
-```
-
-## API 文档
-
-后端启动后可通过 `http://localhost:12301/v3/api-docs` 获取 OpenAPI JSON。
-
-## 开发约定
-
-后端保持 `Controller -> Service -> DAO/Mapper` 分层。跨模块调用必须通过目标模块的 `port` API，
-复杂查询放在 MyBatis XML Mapper 中，事务边界放在 Service 层。
-
-前端使用 ESLint 和 Prettier，提交时由 Husky 与 lint-staged 检查暂存文件。代码注释以中文为主，
-应解释设计原因或容易误解的行为，而不是重复代码本身。
-
-CI 按目录触发：改动 `bitlog-backend/` 只跑后端构建，改动 `bitlog-frontend/` 只跑前端构建。
-
-贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+欢迎 Issue 和 Pull Request。仓库结构、构建测试命令、代码约定和提交规范都在
+[CONTRIBUTING.md](CONTRIBUTING.md) 里，安全问题的报告方式见 [SECURITY.md](SECURITY.md)。
 
 ## 许可
 
