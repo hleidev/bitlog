@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.harrylei.bitlog.notification.repository.mapper.NotificationMapper">
+
+    <!-- ON CONFLICT DO NOTHING：约束冲突不抛异常，避免把调用方（如发评论）的事务标记为 aborted -->
+    <insert id="insertIgnoreDuplicate" parameterType="top.harrylei.bitlog.notification.repository.entity.NotificationDO">
+        INSERT INTO notification (recipient_id, type, actor_id, target_type, target_id, payload)
+        VALUES (#{recipientId}, #{type}, #{actorId}, #{targetType}, #{targetId},
+                #{payload, typeHandler=top.harrylei.bitlog.common.handler.JsonbTypeHandler})
+        ON CONFLICT DO NOTHING
+    </insert>
+
+</mapper>

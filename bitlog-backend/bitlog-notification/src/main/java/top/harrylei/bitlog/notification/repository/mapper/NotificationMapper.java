@@ -11,4 +11,13 @@ import top.harrylei.bitlog.notification.repository.entity.NotificationDO;
  * @since 2026-09-06
  */
 @Mapper
-public interface NotificationMapper extends BaseMapper<NotificationDO> {}
+public interface NotificationMapper extends BaseMapper<NotificationDO> {
+
+    /**
+     * 幂等写入一条通知，命中 uk_notification_dedupe 时静默跳过
+     *
+     * @param notification 待写入的通知
+     * @return 受影响行数，0 表示命中唯一约束被跳过
+     */
+    int insertIgnoreDuplicate(NotificationDO notification);
+}

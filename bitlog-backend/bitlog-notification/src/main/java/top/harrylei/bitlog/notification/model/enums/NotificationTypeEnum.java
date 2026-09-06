@@ -21,12 +21,17 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public enum NotificationTypeEnum {
 
-    COMMENT_REPLY(1, "有人回复我的评论"), ARTICLE_COMMENT(2, "我的文章有新评论"), LINK_APPLIED(3, "新友链申请"), LINK_REVIEWED(4, "友链审核结果"),
-    SYSTEM(5, "系统通知");
+    COMMENT_REPLY(1, "有人回复我的评论", 50), ARTICLE_COMMENT(2, "我的文章有新评论", 20), LINK_APPLIED(3, "新友链申请", 30),
+    LINK_REVIEWED(4, "友链审核结果", 40), SYSTEM(5, "系统通知", 100);
 
     @EnumValue
     private final Integer code;
     private final String label;
+
+    /**
+     * 同批同收件人去重时的优先级，数值越大越优先；被人直接回复比「我的文章有人评论了」更具体
+     */
+    private final int priority;
 
     private static final Map<Integer, NotificationTypeEnum> CODE_MAP =
         Arrays.stream(values()).collect(Collectors.toMap(NotificationTypeEnum::getCode, Function.identity()));
