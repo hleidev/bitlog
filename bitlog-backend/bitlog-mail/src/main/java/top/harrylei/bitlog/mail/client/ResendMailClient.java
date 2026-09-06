@@ -7,6 +7,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
+import top.harrylei.bitlog.common.config.SiteProperties;
 import top.harrylei.bitlog.common.util.MaskUtil;
 import top.harrylei.bitlog.mail.config.MailProperties;
 import top.harrylei.bitlog.mail.port.MailDeliveryException;
@@ -26,6 +27,7 @@ import java.util.Map;
 public class ResendMailClient implements MailPort {
 
     private final MailProperties mailProperties;
+    private final SiteProperties siteProperties;
     private final RestClient restClient = buildRestClient();
 
     /** 必须设超时：默认无超时，服务端挂起会占死调用线程，最终静默停止发信 */
@@ -49,7 +51,7 @@ public class ResendMailClient implements MailPort {
         }
 
         Map<String, Object> body =
-            Map.of("from", "%s <%s>".formatted(mailProperties.getFromName(), mailProperties.getFrom()), "to",
+            Map.of("from", "%s <%s>".formatted(siteProperties.getName(), mailProperties.getFrom()), "to",
                 new String[] {to}, "subject", subject, "html", html, "text", text);
 
         try {

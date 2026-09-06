@@ -22,9 +22,4 @@ public class MailProperties {
     private String apiKey;
 
     private String from;
-
-    private String fromName;
-
-    /** 邮件页脚展示的站点地址，可为空 */
-    private String siteUrl;
 }
