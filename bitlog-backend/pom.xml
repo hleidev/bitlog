@@ -27,6 +27,7 @@
         <module>bitlog-file</module>
         <module>bitlog-comment</module>
         <module>bitlog-link</module>
+        <module>bitlog-notification</module>
         <module>bitlog-server</module>
     </modules>
 
