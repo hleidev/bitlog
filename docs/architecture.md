@@ -36,8 +36,10 @@ graph TD
     server --> link[bitlog-link]
     server --> user[bitlog-user]
     server --> file[bitlog-file]
+    server --> mail[bitlog-mail]
 
     auth --> user
+    auth --> mail
     comment --> article
     comment --> user
     link --> user
@@ -59,6 +61,7 @@ graph TD
 | `bitlog-file` | 基于 S3 / MinIO 的上传与地址转换 |
 | `bitlog-link` | 友链申请、审核、展示 |
 | `bitlog-ai` | 大模型配置与调用 |
+| `bitlog-mail` | 基于 Resend 的邮件发送，不含任何业务模板 |
 | `bitlog-server` | 应用入口、运行配置、Flyway 迁移 |
 
 依赖是单向的，没有环。`common` 只放真正与业务无关的东西，一旦某个业务概念沉到 `common`，

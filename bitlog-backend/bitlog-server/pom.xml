@@ -21,6 +21,11 @@
         </dependency>
         <dependency>
             <groupId>top.harrylei.bitlog</groupId>
+            <artifactId>bitlog-mail</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>top.harrylei.bitlog</groupId>
             <artifactId>bitlog-auth</artifactId>
             <version>${project.version}</version>
         </dependency>

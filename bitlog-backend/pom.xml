@@ -20,6 +20,7 @@
     <modules>
         <module>bitlog-common</module>
         <module>bitlog-ai</module>
+        <module>bitlog-mail</module>
         <module>bitlog-user</module>
         <module>bitlog-auth</module>
         <module>bitlog-article</module>

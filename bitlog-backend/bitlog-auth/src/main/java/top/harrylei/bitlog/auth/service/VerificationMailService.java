@@ -1,14 +1,14 @@
-package top.harrylei.bitlog.auth.mail;
+package top.harrylei.bitlog.auth.service;
 
 import java.time.Duration;
 
 /**
- * 邮件发送服务
+ * 验证码邮件发送服务
  *
  * @author Harry
- * @since 2026-07-30
+ * @since 2026-09-06
  */
-public interface MailService {
+public interface VerificationMailService {
 
     /**
      * 异步发送验证码邮件，失败只记录日志不向上抛。 主题、HTML 与纯文本三者在此统一组装，调用方只需给出用途与验证码。

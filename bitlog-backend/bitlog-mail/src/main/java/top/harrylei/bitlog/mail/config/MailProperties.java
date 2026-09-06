@@ -1,4 +1,4 @@
-package top.harrylei.bitlog.auth.mail;
+package top.harrylei.bitlog.mail.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
