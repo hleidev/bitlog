@@ -68,6 +68,11 @@ public class ArticlePortImpl implements ArticlePort {
     }
 
     @Override
+    public Long getAuthorId(Long articleId) {
+        return articleDAO.getAuthorId(articleId);
+    }
+
+    @Override
     public void increaseCommentCount(Long articleId, int delta) {
         articleStatisticsDAO.increaseCommentCount(articleId, delta);
     }

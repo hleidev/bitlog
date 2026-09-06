@@ -5,9 +5,8 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Repository;
-import top.harrylei.bitlog.article.model.enums.ArticleStatusEnum;
-import top.harrylei.bitlog.article.model.query.ArticlePageParam;
 import top.harrylei.bitlog.article.model.dto.ArticleCountDTO;
+import top.harrylei.bitlog.article.model.query.ArticlePageParam;
 import top.harrylei.bitlog.article.model.query.MyArticlePageParam;
 import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.article.repository.mapper.ArticleMapper;
@@ -32,6 +31,16 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
         }
         return lambdaQuery().eq(ArticleDO::getId, articleId).eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
             .one();
+    }
+
+    /** 查询未删除文章的作者 */
+    public Long getAuthorId(Long articleId) {
+        if (articleId == null) {
+            return null;
+        }
+        ArticleDO article = lambdaQuery().select(ArticleDO::getUserId).eq(ArticleDO::getId, articleId)
+            .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED).one();
+        return article != null ? article.getUserId() : null;
     }
 
     /** 批量查询未删除文章 */

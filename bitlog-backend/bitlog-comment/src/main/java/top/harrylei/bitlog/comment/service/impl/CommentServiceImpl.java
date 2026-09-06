@@ -3,8 +3,10 @@ package top.harrylei.bitlog.comment.service.impl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.harrylei.bitlog.comment.event.CommentCreatedEvent;
 import top.harrylei.bitlog.comment.model.enums.CommentStatusEnum;
 import top.harrylei.bitlog.comment.model.query.CommentAdminPageParam;
 import top.harrylei.bitlog.comment.model.query.CommentPageParam;
@@ -62,6 +64,7 @@ public class CommentServiceImpl implements CommentService {
     private final UserPort userPort;
     private final RateLimiter rateLimiter;
     private final CommentProperties commentProperties;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public PageVO<CommentVO> pageComments(Long articleId, CommentPageParam query) {
@@ -102,6 +105,8 @@ public class CommentServiceImpl implements CommentService {
                 .setStatus(CommentStatusEnum.NORMAL).setDeleted(DeleteStatusEnum.NOT_DELETED);
 
         Long parentId = req.getParentId();
+        // 通知的被回复者取 parent.getUserId()，即便直接回复根评论时 replyToUserId 被置空
+        Long repliedUserId = null;
         if (parentId != null) {
             CommentDO parent = commentDAO.getByIdAndNotDeleted(parentId);
             if (parent == null || !parent.getArticleId().equals(articleId) || !isVisible(parent)) {
@@ -110,10 +115,13 @@ public class CommentServiceImpl implements CommentService {
             boolean parentIsRoot = parent.getRootId() == null;
             comment.setRootId(parentIsRoot ? parent.getId() : parent.getRootId()).setParentId(parent.getId())
                 .setReplyToUserId(parentIsRoot ? null : parent.getUserId());
+            repliedUserId = parent.getUserId();
         }
 
         commentDAO.save(comment);
         articlePort.increaseCommentCount(articleId, 1);
+        eventPublisher.publishEvent(
+            new CommentCreatedEvent(comment.getId(), articleId, userId, repliedUserId, comment.getContent()));
         return comment.getId();
     }
 

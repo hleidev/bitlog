@@ -37,6 +37,7 @@ graph TD
     server --> user[bitlog-user]
     server --> file[bitlog-file]
     server --> mail[bitlog-mail]
+    server --> notification[bitlog-notification]
 
     auth --> user
     auth --> mail
@@ -47,6 +48,8 @@ graph TD
     article --> ai[bitlog-ai]
     article --> file
     user --> file
+    notification --> comment
+    notification --> article
 
     common[bitlog-common<br/>所有模块都依赖它]
 ```
@@ -62,6 +65,7 @@ graph TD
 | `bitlog-link` | 友链申请、审核、展示 |
 | `bitlog-ai` | 大模型配置与调用 |
 | `bitlog-mail` | 基于 Resend 的邮件发送，不含任何业务模板 |
+| `bitlog-notification` | 站内通知的生成、去重与派发 |
 | `bitlog-server` | 应用入口、运行配置、Flyway 迁移 |
 
 依赖是单向的，没有环。`common` 只放真正与业务无关的东西，一旦某个业务概念沉到 `common`，
