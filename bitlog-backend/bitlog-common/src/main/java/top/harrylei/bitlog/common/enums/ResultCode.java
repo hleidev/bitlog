@@ -46,6 +46,9 @@ public enum ResultCode implements IResultCode {
     LINK_NOT_EXISTS(47001, "友链不存在"), LINK_ALREADY_APPLIED(47002, "已提交过友链申请"), LINK_URL_TAKEN(47003, "该站点已在友链中"),
     LINK_TOO_FREQUENT(47004, "操作过于频繁，请稍后再试"), LINK_STATUS_ILLEGAL(47005, "当前状态不允许该操作"),
 
+    // ========== 通知 48xxx ==========
+    NOTIFICATION_NOT_EXISTS(48001, "通知不存在"),
+
     // ========== 系统 50xxx ==========
     INTERNAL_ERROR(50000, "系统内部错误"), SERVICE_UNAVAILABLE(50003, "服务暂不可用"), DATABASE_ERROR(50010, "数据库操作异常");
 

@@ -31,6 +31,7 @@ import top.harrylei.bitlog.comment.service.CommentService;
 import top.harrylei.bitlog.comment.service.impl.CommentServiceImpl;
 import top.harrylei.bitlog.common.config.MybatisPlusConfig;
 import top.harrylei.bitlog.common.util.RateLimiter;
+import top.harrylei.bitlog.notification.converter.NotificationConverterImpl;
 import top.harrylei.bitlog.notification.listener.CommentNotificationListener;
 import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
 import top.harrylei.bitlog.notification.port.NotificationPort;
@@ -68,8 +69,8 @@ import static org.mockito.Mockito.when;
 @MybatisPlusTest
 @Import({MybatisPlusConfig.class, ArticleDAO.class, ArticleVersionDAO.class, ArticleStatisticsDAO.class,
     ArticlePortImpl.class, CommentDAO.class, CommentConverterImpl.class, CommentConfiguration.class,
-    CommentServiceImpl.class, NotificationDAO.class, NotificationServiceImpl.class, NotificationPortImpl.class,
-    CommentNotificationListener.class})
+    CommentServiceImpl.class, NotificationDAO.class, NotificationConverterImpl.class, NotificationServiceImpl.class,
+    NotificationPortImpl.class, CommentNotificationListener.class})
 @ImportAutoConfiguration(FlywayAutoConfiguration.class)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class CommentNotificationIT {

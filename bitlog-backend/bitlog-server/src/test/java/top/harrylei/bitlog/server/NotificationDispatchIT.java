@@ -11,10 +11,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import top.harrylei.bitlog.common.config.MybatisPlusConfig;
+import top.harrylei.bitlog.notification.converter.NotificationConverterImpl;
 import top.harrylei.bitlog.notification.model.enums.NotificationTargetTypeEnum;
 import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
 import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
@@ -23,6 +25,7 @@ import top.harrylei.bitlog.notification.port.impl.NotificationPortImpl;
 import top.harrylei.bitlog.notification.repository.dao.NotificationDAO;
 import top.harrylei.bitlog.notification.repository.entity.NotificationDO;
 import top.harrylei.bitlog.notification.service.impl.NotificationServiceImpl;
+import top.harrylei.bitlog.user.port.UserPort;
 
 import java.util.List;
 import java.util.Map;
@@ -42,12 +45,17 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  */
 @Testcontainers
 @MybatisPlusTest
-@Import({MybatisPlusConfig.class, NotificationDAO.class, NotificationServiceImpl.class, NotificationPortImpl.class})
+@Import({MybatisPlusConfig.class, NotificationDAO.class, NotificationConverterImpl.class, NotificationServiceImpl.class,
+    NotificationPortImpl.class})
 @ImportAutoConfiguration(FlywayAutoConfiguration.class)
 class NotificationDispatchIT {
 
     private static final long RECIPIENT = 930L;
     private static final long ACTOR = 931L;
+
+    /** dispatch 不会用到，仅用于满足 NotificationServiceImpl 的构造注入 */
+    @MockitoBean
+    private UserPort userPort;
 
     @Container
     @SuppressWarnings("resource")

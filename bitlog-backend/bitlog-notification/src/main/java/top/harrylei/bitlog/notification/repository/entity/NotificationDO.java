@@ -58,6 +58,8 @@ public class NotificationDO extends BaseDO {
     /**
      * 渲染所需的快照
      */
+    // 异构 JSON 快照，值类型无法在类型系统上证明可序列化；DO 不走 Java 序列化，故压制 S1948
+    @SuppressWarnings("java:S1948")
     @TableField(typeHandler = JsonbTypeHandler.class)
     private Map<String, Object> payload;
 

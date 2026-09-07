@@ -1,17 +1,29 @@
 package top.harrylei.bitlog.notification.service.impl;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.harrylei.bitlog.common.enums.ResultCode;
+import top.harrylei.bitlog.common.model.PageVO;
+import top.harrylei.bitlog.notification.converter.NotificationConverter;
 import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
+import top.harrylei.bitlog.notification.model.query.NotificationPageParam;
+import top.harrylei.bitlog.notification.model.vo.NotificationActorVO;
+import top.harrylei.bitlog.notification.model.vo.NotificationVO;
 import top.harrylei.bitlog.notification.repository.dao.NotificationDAO;
 import top.harrylei.bitlog.notification.repository.entity.NotificationDO;
 import top.harrylei.bitlog.notification.service.NotificationService;
+import top.harrylei.bitlog.user.model.vo.UserVO;
+import top.harrylei.bitlog.user.port.UserPort;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 通知模块内部服务实现
@@ -24,6 +36,8 @@ import java.util.Objects;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationDAO notificationDAO;
+    private final NotificationConverter notificationConverter;
+    private final UserPort userPort;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -45,6 +59,54 @@ public class NotificationServiceImpl implements NotificationService {
         for (NotificationCreateDTO candidate : deduped.values()) {
             notificationDAO.getBaseMapper().insertIgnoreDuplicate(toDO(candidate));
         }
+    }
+
+    @Override
+    public PageVO<NotificationVO> pageNotifications(Long userId, NotificationPageParam query) {
+        IPage<NotificationDO> page = notificationDAO.pageByRecipient(userId, query.toPage());
+        List<NotificationDO> records = page.getRecords();
+        if (records.isEmpty()) {
+            return PageVO.of(page, List.of());
+        }
+
+        Map<Long, NotificationActorVO> actorMap = loadActorMap(records);
+        List<NotificationVO> content = records.stream().map(notification -> {
+            NotificationVO vo = notificationConverter.toVO(notification);
+            if (notification.getActorId() != null) {
+                vo.setActor(actorMap.get(notification.getActorId()));
+            }
+            return vo;
+        }).toList();
+        return PageVO.of(page, content);
+    }
+
+    @Override
+    public long countUnread(Long userId) {
+        return notificationDAO.countUnread(userId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markRead(Long userId, Long notificationId) {
+        if (notificationDAO.markRead(notificationId, userId) == 0) {
+            throw ResultCode.NOTIFICATION_NOT_EXISTS.toException();
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markAllRead(Long userId) {
+        notificationDAO.markAllRead(userId);
+    }
+
+    private Map<Long, NotificationActorVO> loadActorMap(List<NotificationDO> notifications) {
+        Set<Long> actorIds =
+            notifications.stream().map(NotificationDO::getActorId).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (actorIds.isEmpty()) {
+            return Map.of();
+        }
+        return userPort.getUserBatchByIds(List.copyOf(actorIds)).stream()
+            .collect(Collectors.toMap(UserVO::getUserId, notificationConverter::toActorVO, (a, b) -> a));
     }
 
     private NotificationDO toDO(NotificationCreateDTO candidate) {

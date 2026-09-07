@@ -7,12 +7,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import top.harrylei.bitlog.notification.converter.NotificationConverter;
 import top.harrylei.bitlog.notification.model.enums.NotificationTargetTypeEnum;
 import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
 import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
 import top.harrylei.bitlog.notification.repository.dao.NotificationDAO;
 import top.harrylei.bitlog.notification.repository.entity.NotificationDO;
 import top.harrylei.bitlog.notification.repository.mapper.NotificationMapper;
+import top.harrylei.bitlog.user.port.UserPort;
 
 import java.util.List;
 import java.util.Map;
@@ -39,11 +41,17 @@ class NotificationServiceImplTest {
     @Mock
     private NotificationMapper notificationMapper;
 
+    @Mock
+    private NotificationConverter notificationConverter;
+
+    @Mock
+    private UserPort userPort;
+
     private NotificationServiceImpl notificationService;
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationServiceImpl(notificationDAO);
+        notificationService = new NotificationServiceImpl(notificationDAO, notificationConverter, userPort);
     }
 
     private NotificationCreateDTO command(Long recipientId, NotificationTypeEnum type, Long actorId, Long targetId) {
