@@ -10,11 +10,11 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "node scripts/generate-sitemap.mjs && node scripts/generate-friend-json.mjs",
-    "build": "vue-tsc --noEmit && vite-ssg build",
-    "build:ci": "vue-tsc --noEmit && vite-ssg build",
+    "build": "npm run type-check && vite-ssg build",
+    "build:ci": "npm run type-check && vite-ssg build",
     "postbuild": "node scripts/verify-ssg.mjs",
     "preview": "vite preview",
-    "type-check": "vue-tsc --noEmit",
+    "type-check": "vue-tsc --build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{vue,ts,css}\"",
@@ -43,6 +43,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tsconfig/node20": "^20.1.9",
+    "@types/node": "^22.20.1",
     "@types/nprogress": "^0.2.3",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/tsconfig": "^0.9.1",

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/useUserStore'
 import { useToast } from '@/admin/composables/useToast'
@@ -77,7 +77,7 @@ onMounted(async () => {
 const articlePending = computed(() => loading.value || loadFailed.value)
 
 const stats = computed(() => {
-  const articleTo = (tab: string) => ({ path: '/admin/articles', query: { tab } })
+  const articleTo = (tab: string): RouteLocationRaw => ({ path: '/admin/articles', query: { tab } })
   const items = [
     {
       label: '全部文章',

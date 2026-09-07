@@ -161,7 +161,7 @@ onUnmounted(() => {
                   v-if="userInfo?.avatar"
                   :src="userInfo.avatar"
                   class="header__avatar"
-                  :alt="userInfo?.userName"
+                  :alt="userInfo?.username"
                 />
                 <span v-else class="header__avatar header__avatar--placeholder">
                   {{ userInfo?.username?.[0]?.toUpperCase() ?? '?' }}

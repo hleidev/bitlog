@@ -92,7 +92,10 @@ function cancelClose() {
   }
 }
 
-function positionPopover(key: string, triggerEl: HTMLElement) {
+function positionPopover(key: string, event: MouseEvent) {
+  if (!(event.currentTarget instanceof HTMLElement)) return
+  const triggerEl = event.currentTarget.querySelector('button')
+  if (!triggerEl) return
   cancelClose()
   const r = triggerEl.getBoundingClientRect()
   popoverPos.value = { top: r.top, left: r.right + 6, key }
@@ -156,7 +159,7 @@ function isGroupActive(item: GroupItem): boolean {
           <div
             v-if="collapsed"
             class="nav-group-popover-wrap"
-            @mouseenter="(e) => positionPopover(item.key, e.currentTarget.querySelector('button'))"
+            @mouseenter="positionPopover(item.key, $event)"
             @mouseleave="clearPopover"
           >
             <button
