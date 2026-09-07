@@ -35,14 +35,16 @@ public class NotificationController {
     @Operation(summary = "分页查询我的通知")
     @GetMapping("/page")
     public Result<PageVO<NotificationVO>> page(@Valid NotificationPageParam query) {
-        return Result.success(notificationService.pageNotifications(ReqInfoContext.getContext().getUserId(), query));
+        return Result.success(notificationService.pageNotifications(
+                ReqInfoContext.getContext().getUserId(), query));
     }
 
     @RequiresLogin
     @Operation(summary = "查询我的未读通知数")
     @GetMapping("/unread-count")
     public Result<Long> unreadCount() {
-        return Result.success(notificationService.countUnread(ReqInfoContext.getContext().getUserId()));
+        return Result.success(
+                notificationService.countUnread(ReqInfoContext.getContext().getUserId()));
     }
 
     @RequiresLogin

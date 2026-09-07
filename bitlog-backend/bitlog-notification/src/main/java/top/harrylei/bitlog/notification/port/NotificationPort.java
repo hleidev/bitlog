@@ -1,8 +1,7 @@
 package top.harrylei.bitlog.notification.port;
 
-import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
-
 import java.util.List;
+import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
 
 /**
  * 通知模块对外契约，其余模块只应依赖本接口，不直接注入领域服务

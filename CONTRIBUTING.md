@@ -57,8 +57,11 @@ cd bitlog-frontend && npm run tauri --workspace apps/desktop -- dev    # 开发�
 
 ```bash
 cd bitlog-backend
+mvn spotless:apply
 mvn verify
 ```
+
+`spotless:check` 已绑定到 `verify`，Java 格式不合规会直接让构建失败，CI 同样会拦。
 
 集成测试使用 Testcontainers，需要 Docker。单元测试以 `*Test` 命名，集成测试以 `*IT` 命名，放在
 对应模块的 `src/test/java` 下。可以按测试类单独运行：
@@ -84,8 +87,13 @@ npm run build:ci
 
 ## 代码约定
 
-代码格式遵循根目录 `.editorconfig`（统一两空格，`*.java` 四空格），前端另有 `.prettierrc`。提交时
-Husky 与 lint-staged 会检查暂存的前端文件。
+后端 Java 的格式由 Maven 构建强制，配置在 `bitlog-backend/pom.xml`：Spotless 插件加 Palantir
+Java Format，不依赖 IDE 设置。改完 Java 跑 `mvn spotless:apply` 格式化，`mvn spotless:check`
+只检查不改动。当前是增量迁移，只作用于基线之后新增或改动过的文件，且以整个文件为单位 —— 碰了
+一行，那个文件会被整体重排；没有触及的历史文件暂不处理。
+
+根目录 `.editorconfig` 管编码、换行和基础缩进（统一两空格，`*.java` 四空格），前端另有
+`.prettierrc`。提交时 Husky 与 lint-staged 会检查暂存的前端文件。
 
 代码注释以中文为主，应解释设计原因或容易误解的行为，而不是重复代码本身。
 

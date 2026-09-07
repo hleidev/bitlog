@@ -1,12 +1,11 @@
 package top.harrylei.bitlog.common.handler;
 
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import org.apache.ibatis.type.JdbcType;
-
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import org.apache.ibatis.type.JdbcType;
 
 /**
  * jsonb 列的通用类型处理器
@@ -30,7 +29,7 @@ public class JsonbTypeHandler extends JacksonTypeHandler {
 
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, Object parameter, JdbcType jdbcType)
-        throws SQLException {
+            throws SQLException {
         ps.setObject(i, toJson(parameter), Types.OTHER);
     }
 }

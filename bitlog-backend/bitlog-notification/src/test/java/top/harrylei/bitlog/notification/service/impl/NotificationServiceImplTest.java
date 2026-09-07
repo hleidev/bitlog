@@ -1,5 +1,14 @@
 package top.harrylei.bitlog.notification.service.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -8,23 +17,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import top.harrylei.bitlog.notification.converter.NotificationConverter;
+import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
 import top.harrylei.bitlog.notification.model.enums.NotificationTargetTypeEnum;
 import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
-import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
 import top.harrylei.bitlog.notification.repository.dao.NotificationDAO;
 import top.harrylei.bitlog.notification.repository.entity.NotificationDO;
 import top.harrylei.bitlog.notification.repository.mapper.NotificationMapper;
 import top.harrylei.bitlog.user.port.UserPort;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 /**
  * NotificationServiceImpl 单元测试
@@ -55,8 +54,8 @@ class NotificationServiceImplTest {
     }
 
     private NotificationCreateDTO command(Long recipientId, NotificationTypeEnum type, Long actorId, Long targetId) {
-        return new NotificationCreateDTO(recipientId, type, actorId, NotificationTargetTypeEnum.COMMENT, targetId,
-            Map.of());
+        return new NotificationCreateDTO(
+                recipientId, type, actorId, NotificationTargetTypeEnum.COMMENT, targetId, Map.of());
     }
 
     @Test

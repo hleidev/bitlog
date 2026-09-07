@@ -1,5 +1,9 @@
 package top.harrylei.bitlog.notification.listener;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -9,11 +13,6 @@ import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
 import top.harrylei.bitlog.notification.model.enums.NotificationTargetTypeEnum;
 import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
 import top.harrylei.bitlog.notification.port.NotificationPort;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 评论创建后按规则列出候选通知并派发
@@ -41,14 +40,24 @@ public class CommentNotificationListener {
         List<NotificationCreateDTO> candidates = new ArrayList<>();
 
         if (event.repliedUserId() != null) {
-            candidates.add(new NotificationCreateDTO(event.repliedUserId(), NotificationTypeEnum.COMMENT_REPLY,
-                event.authorId(), NotificationTargetTypeEnum.COMMENT, event.commentId(), payload));
+            candidates.add(new NotificationCreateDTO(
+                    event.repliedUserId(),
+                    NotificationTypeEnum.COMMENT_REPLY,
+                    event.authorId(),
+                    NotificationTargetTypeEnum.COMMENT,
+                    event.commentId(),
+                    payload));
         }
 
         Long articleAuthorId = articlePort.getAuthorId(event.articleId());
         if (articleAuthorId != null) {
-            candidates.add(new NotificationCreateDTO(articleAuthorId, NotificationTypeEnum.ARTICLE_COMMENT,
-                event.authorId(), NotificationTargetTypeEnum.COMMENT, event.commentId(), payload));
+            candidates.add(new NotificationCreateDTO(
+                    articleAuthorId,
+                    NotificationTypeEnum.ARTICLE_COMMENT,
+                    event.authorId(),
+                    NotificationTargetTypeEnum.COMMENT,
+                    event.commentId(),
+                    payload));
         }
 
         if (!candidates.isEmpty()) {

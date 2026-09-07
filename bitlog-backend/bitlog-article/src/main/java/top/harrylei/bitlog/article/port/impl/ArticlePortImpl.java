@@ -1,5 +1,9 @@
 package top.harrylei.bitlog.article.port.impl;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.harrylei.bitlog.article.port.ArticlePort;
@@ -8,11 +12,6 @@ import top.harrylei.bitlog.article.repository.dao.ArticleStatisticsDAO;
 import top.harrylei.bitlog.article.repository.dao.ArticleVersionDAO;
 import top.harrylei.bitlog.article.repository.entity.ArticleDO;
 import top.harrylei.bitlog.article.repository.entity.ArticleVersionDO;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 文章模块对外契约实现
@@ -44,8 +43,9 @@ public class ArticlePortImpl implements ArticlePort {
         }
         Map<Long, Long> versionIdByArticle = new HashMap<>();
         for (ArticleDO article : articleDAO.listByIdsAndNotDeleted(articleIds)) {
-            Long versionId = article.getPublishedVersionId() != null ? article.getPublishedVersionId()
-                : article.getLatestVersionId();
+            Long versionId = article.getPublishedVersionId() != null
+                    ? article.getPublishedVersionId()
+                    : article.getLatestVersionId();
             if (versionId != null) {
                 versionIdByArticle.put(article.getId(), versionId);
             }
@@ -54,8 +54,9 @@ public class ArticlePortImpl implements ArticlePort {
             return Map.of();
         }
 
-        Map<Long, String> titleByVersion = articleVersionDAO.listTitlesByVersionIds(versionIdByArticle.values())
-            .stream().collect(Collectors.toMap(ArticleVersionDO::getId, ArticleVersionDO::getTitle));
+        Map<Long, String> titleByVersion =
+                articleVersionDAO.listTitlesByVersionIds(versionIdByArticle.values()).stream()
+                        .collect(Collectors.toMap(ArticleVersionDO::getId, ArticleVersionDO::getTitle));
 
         Map<Long, String> result = new HashMap<>();
         versionIdByArticle.forEach((articleId, versionId) -> {

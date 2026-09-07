@@ -1,12 +1,11 @@
 package top.harrylei.bitlog.notification.port.impl;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
 import top.harrylei.bitlog.notification.port.NotificationPort;
 import top.harrylei.bitlog.notification.service.NotificationService;
-
-import java.util.List;
 
 /**
  * 通知模块对外契约实现

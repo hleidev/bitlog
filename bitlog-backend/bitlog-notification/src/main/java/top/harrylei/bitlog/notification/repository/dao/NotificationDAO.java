@@ -27,8 +27,10 @@ public class NotificationDAO extends ServiceImpl<NotificationMapper, Notificatio
      * @return 通知分页结果
      */
     public IPage<NotificationDO> pageByRecipient(Long recipientId, Page<NotificationDO> page) {
-        return lambdaQuery().eq(NotificationDO::getRecipientId, recipientId)
-            .eq(NotificationDO::getDeleted, DeleteStatusEnum.NOT_DELETED).page(page);
+        return lambdaQuery()
+                .eq(NotificationDO::getRecipientId, recipientId)
+                .eq(NotificationDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .page(page);
     }
 
     /**
@@ -38,8 +40,11 @@ public class NotificationDAO extends ServiceImpl<NotificationMapper, Notificatio
      * @return 未读数
      */
     public long countUnread(Long recipientId) {
-        return lambdaQuery().eq(NotificationDO::getRecipientId, recipientId).isNull(NotificationDO::getReadTime)
-            .eq(NotificationDO::getDeleted, DeleteStatusEnum.NOT_DELETED).count();
+        return lambdaQuery()
+                .eq(NotificationDO::getRecipientId, recipientId)
+                .isNull(NotificationDO::getReadTime)
+                .eq(NotificationDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .count();
     }
 
     /**
@@ -50,9 +55,10 @@ public class NotificationDAO extends ServiceImpl<NotificationMapper, Notificatio
      * @return 受影响行数，0 表示通知不存在或不属于该收件人
      */
     public int markRead(Long notificationId, Long recipientId) {
-        LambdaUpdateWrapper<NotificationDO> wrapper =
-            Wrappers.<NotificationDO>lambdaUpdate().eq(NotificationDO::getId, notificationId)
-                .eq(NotificationDO::getRecipientId, recipientId).setSql("read_time = COALESCE(read_time, now())");
+        LambdaUpdateWrapper<NotificationDO> wrapper = Wrappers.<NotificationDO>lambdaUpdate()
+                .eq(NotificationDO::getId, notificationId)
+                .eq(NotificationDO::getRecipientId, recipientId)
+                .setSql("read_time = COALESCE(read_time, now())");
         return getBaseMapper().update(null, wrapper);
     }
 
@@ -63,9 +69,10 @@ public class NotificationDAO extends ServiceImpl<NotificationMapper, Notificatio
      * @return 受影响行数
      */
     public int markAllRead(Long recipientId) {
-        LambdaUpdateWrapper<NotificationDO> wrapper =
-            Wrappers.<NotificationDO>lambdaUpdate().eq(NotificationDO::getRecipientId, recipientId)
-                .isNull(NotificationDO::getReadTime).setSql("read_time = now()");
+        LambdaUpdateWrapper<NotificationDO> wrapper = Wrappers.<NotificationDO>lambdaUpdate()
+                .eq(NotificationDO::getRecipientId, recipientId)
+                .isNull(NotificationDO::getReadTime)
+                .setSql("read_time = now()");
         return getBaseMapper().update(null, wrapper);
     }
 }

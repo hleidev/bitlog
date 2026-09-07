@@ -1,26 +1,30 @@
 package top.harrylei.bitlog.comment.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.harrylei.bitlog.article.port.ArticlePort;
+import top.harrylei.bitlog.comment.config.CommentProperties;
+import top.harrylei.bitlog.comment.converter.CommentConverter;
 import top.harrylei.bitlog.comment.event.CommentCreatedEvent;
+import top.harrylei.bitlog.comment.model.dto.CommentStatsDTO;
 import top.harrylei.bitlog.comment.model.enums.CommentStatusEnum;
 import top.harrylei.bitlog.comment.model.query.CommentAdminPageParam;
 import top.harrylei.bitlog.comment.model.query.CommentPageParam;
 import top.harrylei.bitlog.comment.model.req.CommentSaveParam;
-import top.harrylei.bitlog.comment.model.dto.CommentStatsDTO;
 import top.harrylei.bitlog.comment.model.vo.CommentAdminVO;
-import top.harrylei.bitlog.comment.model.vo.CommentStatsVO;
 import top.harrylei.bitlog.comment.model.vo.CommentReplyVO;
+import top.harrylei.bitlog.comment.model.vo.CommentStatsVO;
 import top.harrylei.bitlog.comment.model.vo.CommentUserVO;
 import top.harrylei.bitlog.comment.model.vo.CommentVO;
-import top.harrylei.bitlog.user.model.vo.UserVO;
-import top.harrylei.bitlog.article.port.ArticlePort;
-import top.harrylei.bitlog.comment.config.CommentProperties;
-import top.harrylei.bitlog.comment.converter.CommentConverter;
 import top.harrylei.bitlog.comment.repository.dao.CommentDAO;
 import top.harrylei.bitlog.comment.repository.entity.CommentDO;
 import top.harrylei.bitlog.comment.service.CommentService;
@@ -31,13 +35,8 @@ import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.exception.BusinessException;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.util.RateLimiter;
+import top.harrylei.bitlog.user.model.vo.UserVO;
 import top.harrylei.bitlog.user.port.UserPort;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * 评论业务服务实现
@@ -79,16 +78,23 @@ public class CommentServiceImpl implements CommentService {
         }
 
         Map<Long, List<CommentDO>> repliesByRoot =
-            commentDAO.listRepliesByRootIds(roots.stream().map(CommentDO::getId).toList()).stream()
-                .filter(this::isVisible).collect(Collectors.groupingBy(CommentDO::getRootId));
+                commentDAO
+                        .listRepliesByRootIds(
+                                roots.stream().map(CommentDO::getId).toList())
+                        .stream()
+                        .filter(this::isVisible)
+                        .collect(Collectors.groupingBy(CommentDO::getRootId));
 
         // 不可见且无可见回复的根评论整条丢弃，其余保留：不可见的渲染为墓碑，托住整楼回复
         List<CommentDO> rendered = roots.stream()
-            .filter(root -> isVisible(root) || !repliesByRoot.getOrDefault(root.getId(), List.of()).isEmpty()).toList();
+                .filter(root -> isVisible(root)
+                        || !repliesByRoot.getOrDefault(root.getId(), List.of()).isEmpty())
+                .toList();
 
         Map<Long, CommentUserVO> userMap = loadUsers(rendered, repliesByRoot);
         List<CommentVO> content = rendered.stream()
-            .map(root -> buildRootVO(root, repliesByRoot.getOrDefault(root.getId(), List.of()), userMap)).toList();
+                .map(root -> buildRootVO(root, repliesByRoot.getOrDefault(root.getId(), List.of()), userMap))
+                .toList();
         return PageVO.of(rootPage, content);
     }
 
@@ -100,9 +106,12 @@ public class CommentServiceImpl implements CommentService {
         }
         checkRateLimit(userId);
 
-        CommentDO comment =
-            new CommentDO().setArticleId(articleId).setUserId(userId).setContent(req.getContent().trim())
-                .setStatus(CommentStatusEnum.NORMAL).setDeleted(DeleteStatusEnum.NOT_DELETED);
+        CommentDO comment = new CommentDO()
+                .setArticleId(articleId)
+                .setUserId(userId)
+                .setContent(req.getContent().trim())
+                .setStatus(CommentStatusEnum.NORMAL)
+                .setDeleted(DeleteStatusEnum.NOT_DELETED);
 
         Long parentId = req.getParentId();
         // 通知的被回复者取 parent.getUserId()，即便直接回复根评论时 replyToUserId 被置空
@@ -113,15 +122,16 @@ public class CommentServiceImpl implements CommentService {
                 throw ResultCode.COMMENT_NOT_EXISTS.toException();
             }
             boolean parentIsRoot = parent.getRootId() == null;
-            comment.setRootId(parentIsRoot ? parent.getId() : parent.getRootId()).setParentId(parent.getId())
-                .setReplyToUserId(parentIsRoot ? null : parent.getUserId());
+            comment.setRootId(parentIsRoot ? parent.getId() : parent.getRootId())
+                    .setParentId(parent.getId())
+                    .setReplyToUserId(parentIsRoot ? null : parent.getUserId());
             repliedUserId = parent.getUserId();
         }
 
         commentDAO.save(comment);
         articlePort.increaseCommentCount(articleId, 1);
         eventPublisher.publishEvent(
-            new CommentCreatedEvent(comment.getId(), articleId, userId, repliedUserId, comment.getContent()));
+                new CommentCreatedEvent(comment.getId(), articleId, userId, repliedUserId, comment.getContent()));
         return comment.getId();
     }
 
@@ -145,7 +155,10 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentStatsVO getCommentStats(CommentAdminPageParam req) {
         CommentStatsDTO dto = commentDAO.countStats(req);
-        return new CommentStatsVO().setTotal(dto.getTotal()).setVisible(dto.getVisible()).setHidden(dto.getHidden());
+        return new CommentStatsVO()
+                .setTotal(dto.getTotal())
+                .setVisible(dto.getVisible())
+                .setHidden(dto.getHidden());
     }
 
     @Override
@@ -157,16 +170,18 @@ public class CommentServiceImpl implements CommentService {
         }
 
         Map<Long, CommentUserVO> userMap =
-            loadUserMap(comments.stream().map(CommentDO::getUserId).collect(Collectors.toSet()));
-        Map<Long, String> titleMap =
-            articlePort.getArticleTitles(comments.stream().map(CommentDO::getArticleId).collect(Collectors.toSet()));
+                loadUserMap(comments.stream().map(CommentDO::getUserId).collect(Collectors.toSet()));
+        Map<Long, String> titleMap = articlePort.getArticleTitles(
+                comments.stream().map(CommentDO::getArticleId).collect(Collectors.toSet()));
 
-        List<CommentAdminVO> content = comments.stream().map(comment -> {
-            CommentAdminVO vo = commentConverter.toAdminVO(comment);
-            vo.setUser(userMap.get(comment.getUserId()));
-            vo.setArticleTitle(titleMap.get(comment.getArticleId()));
-            return vo;
-        }).toList();
+        List<CommentAdminVO> content = comments.stream()
+                .map(comment -> {
+                    CommentAdminVO vo = commentConverter.toAdminVO(comment);
+                    vo.setUser(userMap.get(comment.getUserId()));
+                    vo.setArticleTitle(titleMap.get(comment.getArticleId()));
+                    return vo;
+                })
+                .toList();
         return PageVO.of(result, content);
     }
 
@@ -203,8 +218,9 @@ public class CommentServiceImpl implements CommentService {
         }
 
         // 隐藏态评论不计入 comment_count，删除它们无需调整计数，故与正常态分开处理
-        groupIdsByArticle(comments, CommentStatusEnum.HIDDEN).values()
-            .forEach(ids -> commentDAO.delete(ids, CommentStatusEnum.HIDDEN));
+        groupIdsByArticle(comments, CommentStatusEnum.HIDDEN)
+                .values()
+                .forEach(ids -> commentDAO.delete(ids, CommentStatusEnum.HIDDEN));
 
         groupIdsByArticle(comments, CommentStatusEnum.NORMAL).forEach((articleId, ids) -> {
             int deleted = commentDAO.delete(ids, CommentStatusEnum.NORMAL);
@@ -219,13 +235,15 @@ public class CommentServiceImpl implements CommentService {
      * 按文章分组指定状态的评论 ID，使计数更新按文章聚合成一次，避免逐条更新
      */
     private Map<Long, List<Long>> groupIdsByArticle(List<CommentDO> comments, CommentStatusEnum status) {
-        return comments.stream().filter(comment -> status.equals(comment.getStatus())).collect(
-            Collectors.groupingBy(CommentDO::getArticleId, Collectors.mapping(CommentDO::getId, Collectors.toList())));
+        return comments.stream()
+                .filter(comment -> status.equals(comment.getStatus()))
+                .collect(Collectors.groupingBy(
+                        CommentDO::getArticleId, Collectors.mapping(CommentDO::getId, Collectors.toList())));
     }
 
     private boolean isVisible(CommentDO comment) {
         return DeleteStatusEnum.NOT_DELETED.equals(comment.getDeleted())
-            && CommentStatusEnum.NORMAL.equals(comment.getStatus());
+                && CommentStatusEnum.NORMAL.equals(comment.getStatus());
     }
 
     /**
@@ -239,18 +257,18 @@ public class CommentServiceImpl implements CommentService {
 
         CommentProperties.RateLimit rateLimit = commentProperties.getRateLimit();
         // 先查间隔再查窗口：间隔不过就短路返回，避免为一个必然被拒的请求白白消耗窗口配额
-        ensureAcquired(rateLimiter.tryAcquire(RedisKeyConstants.getCommentIntervalKey(userId), INTERVAL_QUOTA,
-            rateLimit.getMinInterval()));
-        ensureAcquired(rateLimiter.tryAcquire(RedisKeyConstants.getCommentHourlyKey(userId),
-            rateLimit.getMaxPerWindow(), rateLimit.getWindow()));
+        ensureAcquired(rateLimiter.tryAcquire(
+                RedisKeyConstants.getCommentIntervalKey(userId), INTERVAL_QUOTA, rateLimit.getMinInterval()));
+        ensureAcquired(rateLimiter.tryAcquire(
+                RedisKeyConstants.getCommentHourlyKey(userId), rateLimit.getMaxPerWindow(), rateLimit.getWindow()));
     }
 
     private void ensureAcquired(RateLimiter.Result result) {
         if (result.allowed()) {
             return;
         }
-        throw new BusinessException(ResultCode.COMMENT_TOO_FREQUENT.getCode(),
-            "评论过于频繁，请 " + result.retryAfterSeconds() + " 秒后再试");
+        throw new BusinessException(
+                ResultCode.COMMENT_TOO_FREQUENT.getCode(), "评论过于频繁，请 " + result.retryAfterSeconds() + " 秒后再试");
     }
 
     private Map<Long, CommentUserVO> loadUsers(List<CommentDO> roots, Map<Long, List<CommentDO>> repliesByRoot) {
@@ -270,7 +288,7 @@ public class CommentServiceImpl implements CommentService {
             return Map.of();
         }
         return userPort.getUserBatchByIds(List.copyOf(userIds)).stream()
-            .collect(Collectors.toMap(UserVO::getUserId, commentConverter::toCommentUser, (a, b) -> a));
+                .collect(Collectors.toMap(UserVO::getUserId, commentConverter::toCommentUser, (a, b) -> a));
     }
 
     private CommentVO buildRootVO(CommentDO root, List<CommentDO> replies, Map<Long, CommentUserVO> userMap) {
@@ -282,7 +300,8 @@ public class CommentServiceImpl implements CommentService {
         } else {
             vo.setContent(null);
         }
-        vo.setReplies(replies.stream().map(reply -> buildReplyVO(reply, userMap)).toList());
+        vo.setReplies(
+                replies.stream().map(reply -> buildReplyVO(reply, userMap)).toList());
         vo.setReplyCount(replies.size());
         return vo;
     }

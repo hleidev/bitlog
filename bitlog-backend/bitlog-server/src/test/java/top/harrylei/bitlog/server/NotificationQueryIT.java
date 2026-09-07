@@ -1,6 +1,16 @@
 package top.harrylei.bitlog.server;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.when;
+
 import com.baomidou.mybatisplus.test.autoconfigure.MybatisPlusTest;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,17 +40,6 @@ import top.harrylei.bitlog.notification.service.impl.NotificationServiceImpl;
 import top.harrylei.bitlog.user.model.vo.UserVO;
 import top.harrylei.bitlog.user.port.UserPort;
 
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.when;
-
 /**
  * 通知查询与已读标记集成测试
  * <p>
@@ -52,8 +51,8 @@ import static org.mockito.Mockito.when;
  */
 @Testcontainers
 @MybatisPlusTest
-@Import({MybatisPlusConfig.class, NotificationDAO.class, NotificationConverterImpl.class,
-    NotificationServiceImpl.class})
+@Import({MybatisPlusConfig.class, NotificationDAO.class, NotificationConverterImpl.class, NotificationServiceImpl.class
+})
 @ImportAutoConfiguration(FlywayAutoConfiguration.class)
 class NotificationQueryIT {
 
@@ -64,7 +63,7 @@ class NotificationQueryIT {
     @Container
     @SuppressWarnings("resource")
     static final PostgreSQLContainer<?> POSTGRES =
-        new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("bitlog");
+            new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("bitlog");
 
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
@@ -73,8 +72,9 @@ class NotificationQueryIT {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.flyway.enabled", () -> true);
         registry.add("spring.flyway.locations", () -> "classpath:db/migration");
-        registry.add("mybatis-plus.configuration.default-enum-type-handler",
-            () -> "com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler");
+        registry.add(
+                "mybatis-plus.configuration.default-enum-type-handler",
+                () -> "com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler");
         registry.add("mybatis-plus.mapper-locations", () -> "classpath*:mapper/*.xml");
     }
 
@@ -100,18 +100,25 @@ class NotificationQueryIT {
     }
 
     private void insertUser(long id, String name) {
-        jdbc.update("INSERT INTO user_account (id, username, password, email, status, user_role, deleted) "
-            + "VALUES (?, ?, 'x', ?, 1, 0, 0) ON CONFLICT (id) DO NOTHING", id, name, name + "@test.local");
+        jdbc.update(
+                "INSERT INTO user_account (id, username, password, email, status, user_role, deleted) "
+                        + "VALUES (?, ?, 'x', ?, 1, 0, 0) ON CONFLICT (id) DO NOTHING",
+                id,
+                name,
+                name + "@test.local");
     }
 
     /** uk_notification_dedupe 以 (recipient_id, type, target_id) 去重，每条通知取不同 targetId 以免相互冲突 */
     private final AtomicLong nextTargetId = new AtomicLong(1);
 
     private Long insertNotification(long recipientId, Long actorId, boolean read) {
-        NotificationDO notification =
-            new NotificationDO().setRecipientId(recipientId).setType(NotificationTypeEnum.COMMENT_REPLY)
-                .setActorId(actorId).setTargetType(NotificationTargetTypeEnum.COMMENT)
-                .setTargetId(nextTargetId.getAndIncrement()).setPayload(Map.of());
+        NotificationDO notification = new NotificationDO()
+                .setRecipientId(recipientId)
+                .setType(NotificationTypeEnum.COMMENT_REPLY)
+                .setActorId(actorId)
+                .setTargetType(NotificationTargetTypeEnum.COMMENT)
+                .setTargetId(nextTargetId.getAndIncrement())
+                .setPayload(Map.of());
         notificationDAO.save(notification);
         if (read) {
             jdbc.update("UPDATE notification SET read_time = now() WHERE id = ?", notification.getId());
@@ -179,9 +186,10 @@ class NotificationQueryIT {
     void markRead_othersNotification_throwsNotExistsAndStaysUnread() {
         Long othersId = insertNotification(USER_B, ACTOR, false);
 
-        assertThatThrownBy(() -> notificationService.markRead(USER_A, othersId)).isInstanceOf(BusinessException.class)
-            .extracting(ex -> ((BusinessException)ex).getCode())
-            .isEqualTo(ResultCode.NOTIFICATION_NOT_EXISTS.getCode());
+        assertThatThrownBy(() -> notificationService.markRead(USER_A, othersId))
+                .isInstanceOf(BusinessException.class)
+                .extracting(ex -> ((BusinessException) ex).getCode())
+                .isEqualTo(ResultCode.NOTIFICATION_NOT_EXISTS.getCode());
 
         // 越权防护的关键断言：SQL 未命中就不该有任何行被改动，重新查库确认 read_time 仍是 null
         NotificationDO stillUnread = notificationDAO.getById(othersId);

@@ -1,13 +1,12 @@
 package top.harrylei.bitlog.notification.model.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.OffsetDateTime;
+import java.util.Map;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import top.harrylei.bitlog.notification.model.enums.NotificationTargetTypeEnum;
 import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
-
-import java.time.OffsetDateTime;
-import java.util.Map;
 
 /**
  * 通知视图对象

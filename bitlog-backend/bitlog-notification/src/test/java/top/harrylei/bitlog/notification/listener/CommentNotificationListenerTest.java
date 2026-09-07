@@ -1,5 +1,11 @@
 package top.harrylei.bitlog.notification.listener;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,13 +17,6 @@ import top.harrylei.bitlog.article.port.ArticlePort;
 import top.harrylei.bitlog.comment.event.CommentCreatedEvent;
 import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
 import top.harrylei.bitlog.notification.port.NotificationPort;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * CommentNotificationListener 单元测试
@@ -51,7 +50,7 @@ class CommentNotificationListenerTest {
 
         ArgumentCaptor<List<NotificationCreateDTO>> captor = ArgumentCaptor.forClass(List.class);
         verify(notificationPort).dispatch(captor.capture());
-        return (String)captor.getValue().get(0).payload().get("commentSummary");
+        return (String) captor.getValue().get(0).payload().get("commentSummary");
     }
 
     @Test
@@ -71,7 +70,8 @@ class CommentNotificationListenerTest {
 
         String summary = dispatchAndCaptureSummary(content);
 
-        assertThat(Character.isHighSurrogate(summary.charAt(summary.length() - 1))).isFalse();
+        assertThat(Character.isHighSurrogate(summary.charAt(summary.length() - 1)))
+                .isFalse();
         assertThat(content.startsWith(summary)).isTrue();
     }
 

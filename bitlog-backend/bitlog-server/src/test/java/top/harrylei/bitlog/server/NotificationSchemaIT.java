@@ -1,6 +1,11 @@
 package top.harrylei.bitlog.server;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.baomidou.mybatisplus.test.autoconfigure.MybatisPlusTest;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,12 +25,6 @@ import top.harrylei.bitlog.notification.model.enums.NotificationTargetTypeEnum;
 import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
 import top.harrylei.bitlog.notification.repository.dao.NotificationDAO;
 import top.harrylei.bitlog.notification.repository.entity.NotificationDO;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * 通知表结构与约束集成测试
@@ -48,7 +47,7 @@ class NotificationSchemaIT {
     @Container
     @SuppressWarnings("resource")
     static final PostgreSQLContainer<?> POSTGRES =
-        new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("bitlog");
+            new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("bitlog");
 
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
@@ -57,8 +56,9 @@ class NotificationSchemaIT {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.flyway.enabled", () -> true);
         registry.add("spring.flyway.locations", () -> "classpath:db/migration");
-        registry.add("mybatis-plus.configuration.default-enum-type-handler",
-            () -> "com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler");
+        registry.add(
+                "mybatis-plus.configuration.default-enum-type-handler",
+                () -> "com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler");
         registry.add("mybatis-plus.mapper-locations", () -> "classpath*:mapper/*.xml");
     }
 
@@ -82,8 +82,12 @@ class NotificationSchemaIT {
     }
 
     private NotificationDO newNotification(Long targetId) {
-        return new NotificationDO().setRecipientId(RECIPIENT).setType(NotificationTypeEnum.COMMENT_REPLY)
-            .setActorId(ACTOR).setTargetType(NotificationTargetTypeEnum.COMMENT).setTargetId(targetId);
+        return new NotificationDO()
+                .setRecipientId(RECIPIENT)
+                .setType(NotificationTypeEnum.COMMENT_REPLY)
+                .setActorId(ACTOR)
+                .setTargetType(NotificationTargetTypeEnum.COMMENT)
+                .setTargetId(targetId);
     }
 
     @Test
@@ -127,7 +131,10 @@ class NotificationSchemaIT {
         notificationDAO.save(newNotification(null).setPayload(Map.of()));
         notificationDAO.save(newNotification(null).setPayload(Map.of()));
 
-        List<NotificationDO> all = notificationDAO.lambdaQuery().eq(NotificationDO::getRecipientId, RECIPIENT).list();
+        List<NotificationDO> all = notificationDAO
+                .lambdaQuery()
+                .eq(NotificationDO::getRecipientId, RECIPIENT)
+                .list();
         assertThat(all).hasSize(2);
     }
 }

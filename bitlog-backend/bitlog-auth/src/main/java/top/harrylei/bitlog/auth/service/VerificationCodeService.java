@@ -1,5 +1,9 @@
 package top.harrylei.bitlog.auth.service;
 
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -7,11 +11,6 @@ import top.harrylei.bitlog.common.constants.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.util.RateLimiter;
-
-import java.security.SecureRandom;
-import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 邮箱验证码的签发、校验与发信限流
@@ -56,12 +55,17 @@ public class VerificationCodeService {
      */
     public void issueAndSend(VerifyCodePurpose purpose, String email) {
         rateLimiter.acquireOrThrow(RedisKeyConstants.getMailCooldownKey(purpose.getKey(), email), 1, COOLDOWN);
-        rateLimiter.acquireOrThrow(RedisKeyConstants.getMailDailyKey(purpose.getKey(), email), purpose.getDailyMax(),
-            DAILY_WINDOW);
+        rateLimiter.acquireOrThrow(
+                RedisKeyConstants.getMailDailyKey(purpose.getKey(), email), purpose.getDailyMax(), DAILY_WINDOW);
 
         String code = String.valueOf(SECURE_RANDOM.nextInt(CODE_ORIGIN, CODE_BOUND));
-        redisTemplate.opsForValue().set(RedisKeyConstants.getVerifyCodeKey(purpose.getKey(), email), code,
-            CODE_TTL.toSeconds(), TimeUnit.SECONDS);
+        redisTemplate
+                .opsForValue()
+                .set(
+                        RedisKeyConstants.getVerifyCodeKey(purpose.getKey(), email),
+                        code,
+                        CODE_TTL.toSeconds(),
+                        TimeUnit.SECONDS);
 
         verificationMailService.sendVerificationCode(email, purpose.getAction(), code, CODE_TTL);
     }

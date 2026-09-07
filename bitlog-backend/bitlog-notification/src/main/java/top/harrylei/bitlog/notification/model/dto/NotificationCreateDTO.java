@@ -1,9 +1,8 @@
 package top.harrylei.bitlog.notification.model.dto;
 
+import java.util.Map;
 import top.harrylei.bitlog.notification.model.enums.NotificationTargetTypeEnum;
 import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
-
-import java.util.Map;
 
 /**
  * 一条候选通知，由业务模块在事件发生时构造，交给 NotificationPort#dispatch 批量派发
@@ -17,6 +16,10 @@ import java.util.Map;
  * @author Harry
  * @since 2026-09-06
  */
-public record NotificationCreateDTO(Long recipientId, NotificationTypeEnum type, Long actorId,
-    NotificationTargetTypeEnum targetType, Long targetId, Map<String, Object> payload) {
-}
+public record NotificationCreateDTO(
+        Long recipientId,
+        NotificationTypeEnum type,
+        Long actorId,
+        NotificationTargetTypeEnum targetType,
+        Long targetId,
+        Map<String, Object> payload) {}

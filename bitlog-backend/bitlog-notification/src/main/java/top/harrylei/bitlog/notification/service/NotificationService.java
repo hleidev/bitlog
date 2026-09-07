@@ -1,11 +1,10 @@
 package top.harrylei.bitlog.notification.service;
 
+import java.util.List;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
 import top.harrylei.bitlog.notification.model.query.NotificationPageParam;
 import top.harrylei.bitlog.notification.model.vo.NotificationVO;
-
-import java.util.List;
 
 /**
  * 通知模块内部服务

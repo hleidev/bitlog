@@ -1,6 +1,11 @@
 package top.harrylei.bitlog.server;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
 import com.baomidou.mybatisplus.test.autoconfigure.MybatisPlusTest;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,21 +22,15 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import top.harrylei.bitlog.common.config.MybatisPlusConfig;
 import top.harrylei.bitlog.notification.converter.NotificationConverterImpl;
+import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
 import top.harrylei.bitlog.notification.model.enums.NotificationTargetTypeEnum;
 import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
-import top.harrylei.bitlog.notification.model.dto.NotificationCreateDTO;
 import top.harrylei.bitlog.notification.port.NotificationPort;
 import top.harrylei.bitlog.notification.port.impl.NotificationPortImpl;
 import top.harrylei.bitlog.notification.repository.dao.NotificationDAO;
 import top.harrylei.bitlog.notification.repository.entity.NotificationDO;
 import top.harrylei.bitlog.notification.service.impl.NotificationServiceImpl;
 import top.harrylei.bitlog.user.port.UserPort;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
  * 通知派发幂等性集成测试
@@ -45,8 +44,13 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  */
 @Testcontainers
 @MybatisPlusTest
-@Import({MybatisPlusConfig.class, NotificationDAO.class, NotificationConverterImpl.class, NotificationServiceImpl.class,
-    NotificationPortImpl.class})
+@Import({
+    MybatisPlusConfig.class,
+    NotificationDAO.class,
+    NotificationConverterImpl.class,
+    NotificationServiceImpl.class,
+    NotificationPortImpl.class
+})
 @ImportAutoConfiguration(FlywayAutoConfiguration.class)
 class NotificationDispatchIT {
 
@@ -60,7 +64,7 @@ class NotificationDispatchIT {
     @Container
     @SuppressWarnings("resource")
     static final PostgreSQLContainer<?> POSTGRES =
-        new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("bitlog");
+            new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("bitlog");
 
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
@@ -69,8 +73,9 @@ class NotificationDispatchIT {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.flyway.enabled", () -> true);
         registry.add("spring.flyway.locations", () -> "classpath:db/migration");
-        registry.add("mybatis-plus.configuration.default-enum-type-handler",
-            () -> "com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler");
+        registry.add(
+                "mybatis-plus.configuration.default-enum-type-handler",
+                () -> "com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler");
         registry.add("mybatis-plus.mapper-locations", () -> "classpath*:mapper/*.xml");
     }
 
@@ -97,8 +102,13 @@ class NotificationDispatchIT {
     }
 
     private NotificationCreateDTO newCommand(Long targetId) {
-        return new NotificationCreateDTO(RECIPIENT, NotificationTypeEnum.COMMENT_REPLY, ACTOR,
-            NotificationTargetTypeEnum.COMMENT, targetId, Map.of());
+        return new NotificationCreateDTO(
+                RECIPIENT,
+                NotificationTypeEnum.COMMENT_REPLY,
+                ACTOR,
+                NotificationTargetTypeEnum.COMMENT,
+                targetId,
+                Map.of());
     }
 
     @Test
@@ -110,7 +120,10 @@ class NotificationDispatchIT {
 
         assertThatCode(() -> notificationPort.dispatch(List.of(command))).doesNotThrowAnyException();
 
-        List<NotificationDO> all = notificationDAO.lambdaQuery().eq(NotificationDO::getRecipientId, RECIPIENT).list();
+        List<NotificationDO> all = notificationDAO
+                .lambdaQuery()
+                .eq(NotificationDO::getRecipientId, RECIPIENT)
+                .list();
         assertThat(all).hasSize(1);
     }
 
@@ -125,7 +138,10 @@ class NotificationDispatchIT {
         NotificationCreateDTO fresh = newCommand(3L);
         notificationPort.dispatch(List.of(fresh));
 
-        List<NotificationDO> all = notificationDAO.lambdaQuery().eq(NotificationDO::getRecipientId, RECIPIENT).list();
+        List<NotificationDO> all = notificationDAO
+                .lambdaQuery()
+                .eq(NotificationDO::getRecipientId, RECIPIENT)
+                .list();
         assertThat(all).extracting(NotificationDO::getTargetId).containsExactlyInAnyOrder(2L, 3L);
     }
 }

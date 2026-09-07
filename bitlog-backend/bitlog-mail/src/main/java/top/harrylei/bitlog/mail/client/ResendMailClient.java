@@ -1,5 +1,6 @@
 package top.harrylei.bitlog.mail.client;
 
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -12,8 +13,6 @@ import top.harrylei.bitlog.common.util.MaskUtil;
 import top.harrylei.bitlog.mail.config.MailProperties;
 import top.harrylei.bitlog.mail.port.MailDeliveryException;
 import top.harrylei.bitlog.mail.port.MailPort;
-
-import java.util.Map;
 
 /**
  * 基于 Resend HTTP API 的邮件发送实现
@@ -50,14 +49,27 @@ public class ResendMailClient implements MailPort {
             return;
         }
 
-        Map<String, Object> body =
-            Map.of("from", "%s <%s>".formatted(siteProperties.getName(), mailProperties.getFrom()), "to",
-                new String[] {to}, "subject", subject, "html", html, "text", text);
+        Map<String, Object> body = Map.of(
+                "from",
+                "%s <%s>".formatted(siteProperties.getName(), mailProperties.getFrom()),
+                "to",
+                new String[] {to},
+                "subject",
+                subject,
+                "html",
+                html,
+                "text",
+                text);
 
         try {
-            restClient.post().uri(mailProperties.getApiUrl())
-                .header("Authorization", "Bearer " + mailProperties.getApiKey()).contentType(MediaType.APPLICATION_JSON)
-                .body(body).retrieve().toBodilessEntity();
+            restClient
+                    .post()
+                    .uri(mailProperties.getApiUrl())
+                    .header("Authorization", "Bearer " + mailProperties.getApiKey())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .toBodilessEntity();
             log.info("邮件发送成功 to={} type={}", MaskUtil.email(to), logLabel);
         } catch (Exception e) {
             throw new MailDeliveryException("邮件发送失败 type=" + logLabel, e);

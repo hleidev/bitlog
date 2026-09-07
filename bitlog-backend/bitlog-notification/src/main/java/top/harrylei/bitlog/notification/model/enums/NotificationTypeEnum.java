@@ -3,13 +3,12 @@ package top.harrylei.bitlog.notification.model.enums;
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * 通知类型枚举
@@ -20,12 +19,15 @@ import java.util.stream.Collectors;
 @Getter
 @AllArgsConstructor
 public enum NotificationTypeEnum {
-
-    COMMENT_REPLY(1, "有人回复我的评论", 50), ARTICLE_COMMENT(2, "我的文章有新评论", 20), LINK_APPLIED(3, "新友链申请", 30),
-    LINK_REVIEWED(4, "友链审核结果", 40), SYSTEM(5, "系统通知", 100);
+    COMMENT_REPLY(1, "有人回复我的评论", 50),
+    ARTICLE_COMMENT(2, "我的文章有新评论", 20),
+    LINK_APPLIED(3, "新友链申请", 30),
+    LINK_REVIEWED(4, "友链审核结果", 40),
+    SYSTEM(5, "系统通知", 100);
 
     @EnumValue
     private final Integer code;
+
     private final String label;
 
     /**
@@ -34,7 +36,7 @@ public enum NotificationTypeEnum {
     private final int priority;
 
     private static final Map<Integer, NotificationTypeEnum> CODE_MAP =
-        Arrays.stream(values()).collect(Collectors.toMap(NotificationTypeEnum::getCode, Function.identity()));
+            Arrays.stream(values()).collect(Collectors.toMap(NotificationTypeEnum::getCode, Function.identity()));
 
     @JsonValue
     public Integer getCode() {

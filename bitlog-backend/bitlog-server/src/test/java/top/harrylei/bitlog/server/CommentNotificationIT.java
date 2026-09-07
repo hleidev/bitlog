@@ -1,6 +1,15 @@
 package top.harrylei.bitlog.server;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+
 import com.baomidou.mybatisplus.test.autoconfigure.MybatisPlusTest;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,16 +50,6 @@ import top.harrylei.bitlog.notification.repository.entity.NotificationDO;
 import top.harrylei.bitlog.notification.service.impl.NotificationServiceImpl;
 import top.harrylei.bitlog.user.port.UserPort;
 
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.when;
-
 /**
  * 发评论到通知派发的收件人推导集成测试
  * <p>
@@ -67,10 +66,22 @@ import static org.mockito.Mockito.when;
  */
 @Testcontainers
 @MybatisPlusTest
-@Import({MybatisPlusConfig.class, ArticleDAO.class, ArticleVersionDAO.class, ArticleStatisticsDAO.class,
-    ArticlePortImpl.class, CommentDAO.class, CommentConverterImpl.class, CommentConfiguration.class,
-    CommentServiceImpl.class, NotificationDAO.class, NotificationConverterImpl.class, NotificationServiceImpl.class,
-    NotificationPortImpl.class, CommentNotificationListener.class})
+@Import({
+    MybatisPlusConfig.class,
+    ArticleDAO.class,
+    ArticleVersionDAO.class,
+    ArticleStatisticsDAO.class,
+    ArticlePortImpl.class,
+    CommentDAO.class,
+    CommentConverterImpl.class,
+    CommentConfiguration.class,
+    CommentServiceImpl.class,
+    NotificationDAO.class,
+    NotificationConverterImpl.class,
+    NotificationServiceImpl.class,
+    NotificationPortImpl.class,
+    CommentNotificationListener.class
+})
 @ImportAutoConfiguration(FlywayAutoConfiguration.class)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class CommentNotificationIT {
@@ -82,7 +93,7 @@ class CommentNotificationIT {
     @Container
     @SuppressWarnings("resource")
     static final PostgreSQLContainer<?> POSTGRES =
-        new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("bitlog");
+            new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("bitlog");
 
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
@@ -91,8 +102,9 @@ class CommentNotificationIT {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.flyway.enabled", () -> true);
         registry.add("spring.flyway.locations", () -> "classpath:db/migration");
-        registry.add("mybatis-plus.configuration.default-enum-type-handler",
-            () -> "com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler");
+        registry.add(
+                "mybatis-plus.configuration.default-enum-type-handler",
+                () -> "com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler");
         registry.add("mybatis-plus.mapper-locations", () -> "classpath*:mapper/*.xml");
     }
 
@@ -141,20 +153,30 @@ class CommentNotificationIT {
     }
 
     private void insertUser(long id, String name) {
-        jdbc.update("INSERT INTO user_account (id, username, password, email, status, user_role, deleted) "
-            + "VALUES (?, ?, 'x', ?, 1, 0, 0)", id, name, name + "@example.com");
+        jdbc.update(
+                "INSERT INTO user_account (id, username, password, email, status, user_role, deleted) "
+                        + "VALUES (?, ?, 'x', ?, 1, 0, 0)",
+                id,
+                name,
+                name + "@example.com");
     }
 
     private Long insertPublishedArticle(long authorId, String title) {
-        Long articleId =
-            jdbc.queryForObject("INSERT INTO article (user_id, summary, deleted) VALUES (?, '', 0) " + "RETURNING id",
-                Long.class, authorId);
+        Long articleId = jdbc.queryForObject(
+                "INSERT INTO article (user_id, summary, deleted) VALUES (?, '', 0) " + "RETURNING id",
+                Long.class,
+                authorId);
         Long versionId = jdbc.queryForObject(
-            "INSERT INTO article_version (article_id, version, title, content) VALUES (?, 1, ?, 'content') "
-                + "RETURNING id",
-            Long.class, articleId, title);
-        jdbc.update("UPDATE article SET published_version_id = ?, latest_version_id = ? WHERE id = ?", versionId,
-            versionId, articleId);
+                "INSERT INTO article_version (article_id, version, title, content) VALUES (?, 1, ?, 'content') "
+                        + "RETURNING id",
+                Long.class,
+                articleId,
+                title);
+        jdbc.update(
+                "UPDATE article SET published_version_id = ?, latest_version_id = ? WHERE id = ?",
+                versionId,
+                versionId,
+                articleId);
         return articleId;
     }
 
@@ -166,8 +188,11 @@ class CommentNotificationIT {
     }
 
     private List<NotificationDO> findByRecipientAndType(long recipientId, NotificationTypeEnum type) {
-        return notificationDAO.lambdaQuery().eq(NotificationDO::getRecipientId, recipientId)
-            .eq(NotificationDO::getType, type).list();
+        return notificationDAO
+                .lambdaQuery()
+                .eq(NotificationDO::getRecipientId, recipientId)
+                .eq(NotificationDO::getType, type)
+                .list();
     }
 
     @Test
@@ -201,9 +226,12 @@ class CommentNotificationIT {
         Long rootId = commentService.saveComment(USER_A, articleId1, param(null, "root by A"));
         Long selfReplyId = commentService.saveComment(USER_A, articleId1, param(rootId, "A replies self"));
 
-        boolean exists = notificationDAO.lambdaQuery().eq(NotificationDO::getRecipientId, USER_A)
-            .eq(NotificationDO::getType, NotificationTypeEnum.COMMENT_REPLY)
-            .eq(NotificationDO::getTargetId, selfReplyId).exists();
+        boolean exists = notificationDAO
+                .lambdaQuery()
+                .eq(NotificationDO::getRecipientId, USER_A)
+                .eq(NotificationDO::getType, NotificationTypeEnum.COMMENT_REPLY)
+                .eq(NotificationDO::getTargetId, selfReplyId)
+                .exists();
         assertThat(exists).isFalse();
     }
 
@@ -223,9 +251,12 @@ class CommentNotificationIT {
     void saveComment_authorCommentsOwnArticle_noArticleCommentProduced() {
         Long commentId = commentService.saveComment(USER_A, articleId2, param(null, "A comments own article"));
 
-        boolean exists = notificationDAO.lambdaQuery().eq(NotificationDO::getRecipientId, USER_A)
-            .eq(NotificationDO::getType, NotificationTypeEnum.ARTICLE_COMMENT)
-            .eq(NotificationDO::getTargetId, commentId).exists();
+        boolean exists = notificationDAO
+                .lambdaQuery()
+                .eq(NotificationDO::getRecipientId, USER_A)
+                .eq(NotificationDO::getType, NotificationTypeEnum.ARTICLE_COMMENT)
+                .eq(NotificationDO::getTargetId, commentId)
+                .exists();
         assertThat(exists).isFalse();
     }
 
@@ -235,10 +266,13 @@ class CommentNotificationIT {
         doThrow(new IllegalStateException("通知派发失败")).when(notificationPort).dispatch(anyList());
         try {
             assertThatThrownBy(() -> commentService.saveComment(USER_B, articleId1, param(null, "B comments")))
-                .isInstanceOf(IllegalStateException.class);
+                    .isInstanceOf(IllegalStateException.class);
 
-            Long count = jdbc.queryForObject("SELECT COUNT(*) FROM comment WHERE article_id = ? AND user_id = ?",
-                Long.class, articleId1, USER_B);
+            Long count = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM comment WHERE article_id = ? AND user_id = ?",
+                    Long.class,
+                    articleId1,
+                    USER_B);
             assertThat(count).as("评论写入应随监听器异常一并回滚").isZero();
         } finally {
             Mockito.reset(notificationPort);

@@ -11,5 +11,4 @@ package top.harrylei.bitlog.comment.event;
  * @author Harry
  * @since 2026-09-06
  */
-public record CommentCreatedEvent(Long commentId, Long articleId, Long authorId, Long repliedUserId, String content) {
-}
+public record CommentCreatedEvent(Long commentId, Long articleId, Long authorId, Long repliedUserId, String content) {}

@@ -1,6 +1,12 @@
 package top.harrylei.bitlog.notification.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,14 +22,6 @@ import top.harrylei.bitlog.notification.repository.entity.NotificationDO;
 import top.harrylei.bitlog.notification.service.NotificationService;
 import top.harrylei.bitlog.user.model.vo.UserVO;
 import top.harrylei.bitlog.user.port.UserPort;
-
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * 通知模块内部服务实现
@@ -52,8 +50,11 @@ public class NotificationServiceImpl implements NotificationService {
                 // 自我抑制：自己的动作不该通知自己
                 continue;
             }
-            deduped.merge(candidate.recipientId(), candidate,
-                (kept, incoming) -> incoming.type().getPriority() > kept.type().getPriority() ? incoming : kept);
+            deduped.merge(
+                    candidate.recipientId(),
+                    candidate,
+                    (kept, incoming) ->
+                            incoming.type().getPriority() > kept.type().getPriority() ? incoming : kept);
         }
 
         for (NotificationCreateDTO candidate : deduped.values()) {
@@ -70,13 +71,15 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         Map<Long, NotificationActorVO> actorMap = loadActorMap(records);
-        List<NotificationVO> content = records.stream().map(notification -> {
-            NotificationVO vo = notificationConverter.toVO(notification);
-            if (notification.getActorId() != null) {
-                vo.setActor(actorMap.get(notification.getActorId()));
-            }
-            return vo;
-        }).toList();
+        List<NotificationVO> content = records.stream()
+                .map(notification -> {
+                    NotificationVO vo = notificationConverter.toVO(notification);
+                    if (notification.getActorId() != null) {
+                        vo.setActor(actorMap.get(notification.getActorId()));
+                    }
+                    return vo;
+                })
+                .toList();
         return PageVO.of(page, content);
     }
 
@@ -100,18 +103,24 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private Map<Long, NotificationActorVO> loadActorMap(List<NotificationDO> notifications) {
-        Set<Long> actorIds =
-            notifications.stream().map(NotificationDO::getActorId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> actorIds = notifications.stream()
+                .map(NotificationDO::getActorId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
         if (actorIds.isEmpty()) {
             return Map.of();
         }
         return userPort.getUserBatchByIds(List.copyOf(actorIds)).stream()
-            .collect(Collectors.toMap(UserVO::getUserId, notificationConverter::toActorVO, (a, b) -> a));
+                .collect(Collectors.toMap(UserVO::getUserId, notificationConverter::toActorVO, (a, b) -> a));
     }
 
     private NotificationDO toDO(NotificationCreateDTO candidate) {
-        return new NotificationDO().setRecipientId(candidate.recipientId()).setType(candidate.type())
-            .setActorId(candidate.actorId()).setTargetType(candidate.targetType()).setTargetId(candidate.targetId())
-            .setPayload(candidate.payload() != null ? candidate.payload() : Map.of());
+        return new NotificationDO()
+                .setRecipientId(candidate.recipientId())
+                .setType(candidate.type())
+                .setActorId(candidate.actorId())
+                .setTargetType(candidate.targetType())
+                .setTargetId(candidate.targetId())
+                .setPayload(candidate.payload() != null ? candidate.payload() : Map.of());
     }
 }

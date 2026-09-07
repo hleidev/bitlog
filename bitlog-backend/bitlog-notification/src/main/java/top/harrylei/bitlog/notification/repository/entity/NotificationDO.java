@@ -2,6 +2,9 @@ package top.harrylei.bitlog.notification.repository.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.io.Serial;
+import java.time.OffsetDateTime;
+import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -10,10 +13,6 @@ import top.harrylei.bitlog.common.handler.JsonbTypeHandler;
 import top.harrylei.bitlog.common.model.BaseDO;
 import top.harrylei.bitlog.notification.model.enums.NotificationTargetTypeEnum;
 import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
-
-import java.io.Serial;
-import java.time.OffsetDateTime;
-import java.util.Map;
 
 /**
  * 通知实体

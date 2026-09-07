@@ -1,5 +1,6 @@
 package top.harrylei.bitlog.auth.service.impl;
 
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -10,8 +11,6 @@ import top.harrylei.bitlog.common.config.SiteProperties;
 import top.harrylei.bitlog.common.util.MaskUtil;
 import top.harrylei.bitlog.mail.port.MailDeliveryException;
 import top.harrylei.bitlog.mail.port.MailPort;
-
-import java.time.Duration;
 
 /**
  * 基于 {@link MailPort} 组装并发送验证码邮件
@@ -36,8 +35,12 @@ public class VerificationMailServiceImpl implements VerificationMailService {
         String subject = "%s 是你的 %s 验证码".formatted(code, brand);
 
         try {
-            mailPort.send(to, subject, MailTemplates.verificationCodeHtml(brand, siteUrl, action, code, ttl),
-                MailTemplates.verificationCodeText(brand, siteUrl, action, code, ttl), "验证码邮件-" + action);
+            mailPort.send(
+                    to,
+                    subject,
+                    MailTemplates.verificationCodeHtml(brand, siteUrl, action, code, ttl),
+                    MailTemplates.verificationCodeText(brand, siteUrl, action, code, ttl),
+                    "验证码邮件-" + action);
         } catch (MailDeliveryException e) {
             log.error("验证码邮件发送失败 to={} action={}", MaskUtil.email(to), action, e);
         }
