@@ -28,6 +28,14 @@ public interface ArticlePort {
     Map<Long, String> getArticleTitles(Collection<Long> articleIds);
 
     /**
+     * 查询文章作者
+     *
+     * @param articleId 文章 ID
+     * @return 作者用户 ID，文章不存在或已删除时返回 null
+     */
+    Long getAuthorId(Long articleId);
+
+    /**
      * 增加文章评论数
      *
      * @param articleId 文章 ID

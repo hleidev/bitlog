@@ -1,21 +1,20 @@
 package top.harrylei.bitlog.user.port.impl;
 
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import top.harrylei.bitlog.user.model.vo.UserVO;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.file.util.FileUrlHelper;
 import top.harrylei.bitlog.user.converter.UserConverter;
+import top.harrylei.bitlog.user.model.vo.UserVO;
 import top.harrylei.bitlog.user.port.UserPort;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
 import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
-
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * 用户模块对外契约实现
@@ -36,6 +35,11 @@ public class UserPortImpl implements UserPort {
     private final FileUrlHelper fileUrlHelper;
 
     @Override
+    public List<Long> listAdminIds() {
+        return userDAO.listAdminIds();
+    }
+
+    @Override
     public List<UserVO> getUserBatchByIds(List<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) {
             return List.of();
@@ -49,7 +53,9 @@ public class UserPortImpl implements UserPort {
         List<UserDO> userList = userDAO.listByUserIdsIncludingDeleted(accountIds);
         Map<Long, UserDO> userMap = userList.stream().collect(Collectors.toMap(UserDO::getId, Function.identity()));
 
-        return userInfoList.stream().map(info -> buildUserVO(info, userMap.get(info.getUserId()))).toList();
+        return userInfoList.stream()
+                .map(info -> buildUserVO(info, userMap.get(info.getUserId())))
+                .toList();
     }
 
     /** 注销账号的 deleted=1，唯有展示路径需要读到该行，故在此替换成占位身份 */

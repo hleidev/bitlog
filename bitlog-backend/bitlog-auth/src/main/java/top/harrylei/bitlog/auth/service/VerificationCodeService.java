@@ -1,18 +1,16 @@
 package top.harrylei.bitlog.auth.service;
 
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import top.harrylei.bitlog.common.constants.RedisKeyConstants;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.enums.ResultCode;
-import top.harrylei.bitlog.auth.mail.MailService;
 import top.harrylei.bitlog.common.util.RateLimiter;
-
-import java.security.SecureRandom;
-import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 邮箱验证码的签发、校验与发信限流
@@ -37,7 +35,7 @@ public class VerificationCodeService {
 
     private final StringRedisTemplate redisTemplate;
     private final RateLimiter rateLimiter;
-    private final MailService mailService;
+    private final VerificationMailService verificationMailService;
 
     /**
      * IP 维度发信限流。与邮箱无关，须在任何邮箱存在性判断之前调用， 否则「邮箱已注册」这类提前返回的分支将不受限流保护，可被用于无限枚举探测。
@@ -57,14 +55,19 @@ public class VerificationCodeService {
      */
     public void issueAndSend(VerifyCodePurpose purpose, String email) {
         rateLimiter.acquireOrThrow(RedisKeyConstants.getMailCooldownKey(purpose.getKey(), email), 1, COOLDOWN);
-        rateLimiter.acquireOrThrow(RedisKeyConstants.getMailDailyKey(purpose.getKey(), email), purpose.getDailyMax(),
-            DAILY_WINDOW);
+        rateLimiter.acquireOrThrow(
+                RedisKeyConstants.getMailDailyKey(purpose.getKey(), email), purpose.getDailyMax(), DAILY_WINDOW);
 
         String code = String.valueOf(SECURE_RANDOM.nextInt(CODE_ORIGIN, CODE_BOUND));
-        redisTemplate.opsForValue().set(RedisKeyConstants.getVerifyCodeKey(purpose.getKey(), email), code,
-            CODE_TTL.toSeconds(), TimeUnit.SECONDS);
+        redisTemplate
+                .opsForValue()
+                .set(
+                        RedisKeyConstants.getVerifyCodeKey(purpose.getKey(), email),
+                        code,
+                        CODE_TTL.toSeconds(),
+                        TimeUnit.SECONDS);
 
-        mailService.sendVerificationCode(email, purpose.getAction(), code, CODE_TTL);
+        verificationMailService.sendVerificationCode(email, purpose.getAction(), code, CODE_TTL);
     }
 
     /**

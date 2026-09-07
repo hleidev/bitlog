@@ -60,10 +60,11 @@ mail:
   api-url: https://api.resend.com/emails
   api-key: ${MAIL_API_KEY}
   from: noreply@mail.harrylei.top
-  from-name: BitLog
-  site-url: bitlog.harrylei.top
 
 bitlog:
+  site:
+    name: BitLog
+    url: https://bitlog.harrylei.top
   comment:
     rate-limit:
       min-interval: 15s

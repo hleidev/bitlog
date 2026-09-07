@@ -18,6 +18,8 @@ jobs:
         working-directory: bitlog-backend
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           java-version: "21"
