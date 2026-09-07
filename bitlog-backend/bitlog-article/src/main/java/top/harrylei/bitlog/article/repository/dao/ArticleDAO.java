@@ -34,6 +34,17 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
                 .one();
     }
 
+    /** 判断指定文章是否未删除且已发布 */
+    public boolean existsPublishedById(Long articleId) {
+        if (articleId == null) {
+            return false;
+        }
+        return exists(Wrappers.lambdaQuery(ArticleDO.class)
+                .eq(ArticleDO::getId, articleId)
+                .isNotNull(ArticleDO::getPublishedVersionId)
+                .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED));
+    }
+
     /** 查询未删除文章的作者 */
     public Long getAuthorId(Long articleId) {
         if (articleId == null) {

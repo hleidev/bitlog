@@ -29,11 +29,7 @@ public class ArticlePortImpl implements ArticlePort {
 
     @Override
     public boolean isPublished(Long articleId) {
-        if (articleId == null) {
-            return false;
-        }
-        ArticleDO article = articleDAO.getByIdAndNotDeleted(articleId);
-        return article != null && article.getPublishedVersionId() != null;
+        return articleDAO.existsPublishedById(articleId);
     }
 
     @Override
