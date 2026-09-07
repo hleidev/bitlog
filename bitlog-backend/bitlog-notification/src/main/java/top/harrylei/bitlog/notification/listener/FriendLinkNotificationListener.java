@@ -83,7 +83,7 @@ public class FriendLinkNotificationListener {
                 NotificationTargetTypeEnum.FRIEND_LINK,
                 event.linkId(),
                 payload,
-            null);
+                null);
         notificationPort.dispatch(List.of(candidate));
     }
 }
