@@ -1,5 +1,8 @@
 package top.harrylei.bitlog.notification.listener;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -10,10 +13,6 @@ import top.harrylei.bitlog.notification.model.enums.NotificationTargetTypeEnum;
 import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
 import top.harrylei.bitlog.notification.port.NotificationPort;
 import top.harrylei.bitlog.user.port.UserPort;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 友链申请与审核完成后按规则派发通知
