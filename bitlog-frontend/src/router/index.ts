@@ -14,6 +14,11 @@ export const routes: RouteRecordRaw[] = [
       { path: 'article/:id(\\d+)', component: () => import('@/views/ArticleDetailView.vue') },
       { path: 'friends', component: () => import('@/views/FriendsView.vue') },
       {
+        path: 'notifications',
+        component: () => import('@/views/NotificationsView.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         // 放在公共布局内：授权失败时用户会停在这一页，裸页面既没有站点标识也无处可去。
         // 同时必须被预渲染成静态页，Google 回调是整页跳转，静态托管下缺这份 HTML 会 404
         path: 'auth/callback',

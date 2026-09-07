@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useHeaderScroll } from '@/composables/useHeaderScroll'
 import { useTheme } from '@/composables/useTheme'
 import { useModalStore } from '@/stores/useModalStore'
+import { useNotificationStore } from '@/stores/useNotificationStore'
 import { useUserStore } from '@/stores/useUserStore'
 import UserDropdown from '@/components/common/UserDropdown.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
@@ -12,9 +13,11 @@ import ThemeToggle from '@/components/common/ThemeToggle.vue'
 const { isScrolled } = useHeaderScroll()
 const { isDark, setTheme } = useTheme()
 const modalStore = useModalStore()
+const notificationStore = useNotificationStore()
 const userStore = useUserStore()
 const router = useRouter()
 const { userInfo, isLoggedIn, sessionInitialized } = storeToRefs(userStore)
+const { unreadCount } = storeToRefs(notificationStore)
 
 const mobileMenuOpen = ref(false)
 const dropdownOpen = ref(false)
@@ -44,6 +47,28 @@ const handleMobileLogin = () => {
   modalStore.open('login')
   mobileMenuOpen.value = false
 }
+
+let stopLoginWatch: (() => void) | undefined
+
+onMounted(() => {
+  stopLoginWatch = watch(
+    isLoggedIn,
+    (loggedIn) => {
+      if (loggedIn) {
+        notificationStore.startPolling()
+        return
+      }
+      notificationStore.stopPolling()
+      void notificationStore.refreshUnread()
+    },
+    { immediate: true },
+  )
+})
+
+onUnmounted(() => {
+  stopLoginWatch?.()
+  notificationStore.stopPolling()
+})
 </script>
 
 <template>
@@ -128,7 +153,10 @@ const handleMobileLogin = () => {
               @mouseenter="dropdownOpen = true"
               @mouseleave="dropdownOpen = false"
             >
-              <button class="header__avatar-btn" aria-label="用户菜单">
+              <button
+                class="header__avatar-btn"
+                :aria-label="unreadCount > 0 ? '用户菜单，有未读通知' : '用户菜单'"
+              >
                 <img
                   v-if="userInfo?.avatar"
                   :src="userInfo.avatar"
@@ -138,6 +166,7 @@ const handleMobileLogin = () => {
                 <span v-else class="header__avatar header__avatar--placeholder">
                   {{ userInfo?.username?.[0]?.toUpperCase() ?? '?' }}
                 </span>
+                <span v-if="unreadCount > 0" class="header__unread-dot" aria-hidden="true"></span>
               </button>
               <Transition name="dropdown">
                 <UserDropdown v-if="dropdownOpen" show-admin-links class="header__dropdown" />
@@ -469,11 +498,23 @@ const handleMobileLogin = () => {
 }
 
 .header__avatar-btn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   transition: opacity var(--transition-base);
+}
+
+.header__unread-dot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-bg);
 }
 
 .header__avatar-btn:hover {

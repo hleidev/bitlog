@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useConfirm } from '@/composables/useConfirm'
+import { useNotificationStore } from '@/stores/useNotificationStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { storeToRefs } from 'pinia'
 
@@ -14,11 +15,14 @@ const emit = defineEmits<{ close: [] }>()
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const notificationStore = useNotificationStore()
 const { userInfo, isAdmin } = storeToRefs(userStore)
+const { unreadCount } = storeToRefs(notificationStore)
 const confirm = useConfirm()
 
 const displayName = computed(() => userInfo.value?.username ?? '')
 const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase() || '?')
+const unreadLabel = computed(() => (unreadCount.value > 99 ? '99+' : String(unreadCount.value)))
 
 function close() {
   emit('close')
@@ -91,6 +95,15 @@ async function handleLogout() {
       </RouterLink>
       <div class="ud-divider" />
     </template>
+
+    <RouterLink to="/notifications" class="ud-item" @click="close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+      <span>通知</span>
+      <span v-if="unreadCount > 0" class="ud-unread">{{ unreadLabel }}</span>
+    </RouterLink>
 
     <!-- 个人资料 -->
     <RouterLink to="/admin/profile" class="ud-item" @click="close">
@@ -210,6 +223,13 @@ async function handleLogout() {
 
 .ud-item:hover svg {
   color: var(--color-text-muted);
+}
+
+.ud-unread {
+  margin-left: auto;
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .ud-item--danger:hover {

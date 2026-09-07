@@ -4,6 +4,7 @@ import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import { routes } from '@/router'
 import { scrollBehavior } from '@/router/scrollBehavior'
+import { useModalStore } from '@/stores/useModalStore'
 import { useUserStore } from '@/stores/useUserStore'
 import App from './App.vue'
 import '@/assets/styles/global.css'
@@ -37,7 +38,8 @@ export const createApp = ViteSSG(App, { routes, scrollBehavior }, ({ app, router
 
       // 公开页不能在这里 await:vite-ssg 要 router.isReady() 之后才 mount,
       // 等会话会把整个 hydration 卡在刷新令牌的往返上,首屏因此晚一拍整页重绘。
-      if (!to.path.startsWith('/admin')) return
+      // 声明了 requiresAuth 的公开页除外，它必须先知道会话状态
+      if (!to.path.startsWith('/admin') && !to.meta.requiresAuth) return
 
       const userStore = useUserStore()
       await userStore.waitForSession()
@@ -48,7 +50,9 @@ export const createApp = ViteSSG(App, { routes, scrollBehavior }, ({ app, router
       }
 
       if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-        return '/admin/login'
+        if (to.path.startsWith('/admin')) return '/admin/login'
+        useModalStore().open('login')
+        return '/'
       }
 
       if (to.meta.requiresAdmin && !userStore.isAdmin) {
