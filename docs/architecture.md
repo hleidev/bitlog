@@ -50,6 +50,8 @@ graph TD
     user --> file
     notification --> comment
     notification --> article
+    notification --> user
+    notification --> link
 
     common[bitlog-common<br/>所有模块都依赖它]
 ```

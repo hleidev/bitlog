@@ -1,46 +1,47 @@
 package top.harrylei.bitlog.link.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-import top.harrylei.bitlog.link.model.enums.FriendLinkStatusEnum;
-import top.harrylei.bitlog.link.model.query.FriendLinkPageParam;
-import top.harrylei.bitlog.link.model.req.FriendLinkAuditParam;
-import top.harrylei.bitlog.link.model.req.FriendLinkSaveParam;
-import top.harrylei.bitlog.link.model.dto.FriendLinkStatsDTO;
-import top.harrylei.bitlog.link.model.vo.FriendLinkAdminVO;
-import top.harrylei.bitlog.link.model.vo.FriendLinkStatsVO;
-import top.harrylei.bitlog.link.model.vo.FriendLinkVO;
-import top.harrylei.bitlog.link.model.vo.MyFriendLinkVO;
-import top.harrylei.bitlog.common.constants.RedisKeyConstants;
-import top.harrylei.bitlog.common.enums.ResultCode;
-import top.harrylei.bitlog.common.exception.BusinessException;
-import top.harrylei.bitlog.user.model.vo.UserVO;
-import top.harrylei.bitlog.common.model.PageVO;
-import top.harrylei.bitlog.common.context.ReqInfoContext;
-import top.harrylei.bitlog.common.util.RateLimiter;
-import top.harrylei.bitlog.file.service.FileService;
-import top.harrylei.bitlog.file.util.FileUrlHelper;
-import top.harrylei.bitlog.link.event.FriendLinkApprovedEvent;
-import top.harrylei.bitlog.user.port.UserPort;
-import top.harrylei.bitlog.link.config.FriendLinkProperties;
-import top.harrylei.bitlog.link.converter.FriendLinkConverter;
-import top.harrylei.bitlog.link.repository.dao.FriendLinkDAO;
-import top.harrylei.bitlog.link.repository.entity.FriendLinkDO;
-import top.harrylei.bitlog.link.service.FriendLinkService;
-import top.harrylei.bitlog.link.support.SiteUrlNormalizer;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.StringUtils;
+import top.harrylei.bitlog.common.constants.RedisKeyConstants;
+import top.harrylei.bitlog.common.context.ReqInfoContext;
+import top.harrylei.bitlog.common.enums.ResultCode;
+import top.harrylei.bitlog.common.exception.BusinessException;
+import top.harrylei.bitlog.common.model.PageVO;
+import top.harrylei.bitlog.common.util.RateLimiter;
+import top.harrylei.bitlog.file.service.FileService;
+import top.harrylei.bitlog.file.util.FileUrlHelper;
+import top.harrylei.bitlog.link.config.FriendLinkProperties;
+import top.harrylei.bitlog.link.converter.FriendLinkConverter;
+import top.harrylei.bitlog.link.event.FriendLinkAppliedEvent;
+import top.harrylei.bitlog.link.event.FriendLinkApprovedEvent;
+import top.harrylei.bitlog.link.event.FriendLinkReviewedEvent;
+import top.harrylei.bitlog.link.model.dto.FriendLinkStatsDTO;
+import top.harrylei.bitlog.link.model.enums.FriendLinkStatusEnum;
+import top.harrylei.bitlog.link.model.query.FriendLinkPageParam;
+import top.harrylei.bitlog.link.model.req.FriendLinkAuditParam;
+import top.harrylei.bitlog.link.model.req.FriendLinkSaveParam;
+import top.harrylei.bitlog.link.model.vo.FriendLinkAdminVO;
+import top.harrylei.bitlog.link.model.vo.FriendLinkStatsVO;
+import top.harrylei.bitlog.link.model.vo.FriendLinkVO;
+import top.harrylei.bitlog.link.model.vo.MyFriendLinkVO;
+import top.harrylei.bitlog.link.repository.dao.FriendLinkDAO;
+import top.harrylei.bitlog.link.repository.entity.FriendLinkDO;
+import top.harrylei.bitlog.link.service.FriendLinkService;
+import top.harrylei.bitlog.link.support.SiteUrlNormalizer;
+import top.harrylei.bitlog.user.model.vo.UserVO;
+import top.harrylei.bitlog.user.port.UserPort;
 
 /**
  * 友链服务实现
@@ -93,6 +94,8 @@ public class FriendLinkServiceImpl implements FriendLinkService {
         friendLink.setUrl(url).setUserId(userId).setStatus(FriendLinkStatusEnum.PENDING);
         friendLinkDAO.save(friendLink);
 
+        eventPublisher.publishEvent(new FriendLinkAppliedEvent(
+                friendLink.getId(), userId, friendLink.getName(), url, friendLink.getApplyMessage()));
         log.info("提交友链申请 userId={} linkId={} url={}", userId, friendLink.getId(), url);
         return friendLink.getId();
     }
@@ -128,8 +131,12 @@ public class FriendLinkServiceImpl implements FriendLinkService {
         }
         onAvatarChanged(friendLink, oldAvatar);
 
-        log.info("修改友链 userId={} linkId={} urlChanged={} status={}", userId, friendLink.getId(), urlChanged,
-            friendLink.getStatus());
+        log.info(
+                "修改友链 userId={} linkId={} urlChanged={} status={}",
+                userId,
+                friendLink.getId(),
+                urlChanged,
+                friendLink.getStatus());
     }
 
     @Override
@@ -150,8 +157,11 @@ public class FriendLinkServiceImpl implements FriendLinkService {
     @Override
     public FriendLinkStatsVO getFriendLinkStats(FriendLinkPageParam param) {
         FriendLinkStatsDTO dto = friendLinkDAO.countStats(param);
-        return new FriendLinkStatsVO().setTotal(dto.getTotal()).setPending(dto.getPending())
-            .setApproved(dto.getApproved()).setRejected(dto.getRejected());
+        return new FriendLinkStatsVO()
+                .setTotal(dto.getTotal())
+                .setPending(dto.getPending())
+                .setApproved(dto.getApproved())
+                .setRejected(dto.getRejected());
     }
 
     @Override
@@ -163,12 +173,14 @@ public class FriendLinkServiceImpl implements FriendLinkService {
         }
 
         Map<Long, UserVO> applicants = loadApplicants(links);
-        List<FriendLinkAdminVO> content = links.stream().map(link -> {
-            FriendLinkAdminVO vo = friendLinkConverter.toAdminVO(link);
-            vo.setApplicant(link.getUserId() == null ? null : applicants.get(link.getUserId()));
-            vo.setAvatar(resolveAvatar(vo.getAvatar()));
-            return vo;
-        }).toList();
+        List<FriendLinkAdminVO> content = links.stream()
+                .map(link -> {
+                    FriendLinkAdminVO vo = friendLinkConverter.toAdminVO(link);
+                    vo.setApplicant(link.getUserId() == null ? null : applicants.get(link.getUserId()));
+                    vo.setAvatar(resolveAvatar(vo.getAvatar()));
+                    return vo;
+                })
+                .toList();
         return PageVO.of(result, content);
     }
 
@@ -232,6 +244,10 @@ public class FriendLinkServiceImpl implements FriendLinkService {
             ResultCode.LINK_NOT_EXISTS.throwException();
         }
 
+        ReqInfoContext.ReqInfo reqInfo = ReqInfoContext.getContext();
+        Long operatorId = reqInfo != null ? reqInfo.getUserId() : null;
+        eventPublisher.publishEvent(new FriendLinkReviewedEvent(
+                id, friendLink.getUserId(), operatorId, target, friendLink.getName(), reason));
         if (target == FriendLinkStatusEnum.APPROVED) {
             publishApproved(id, friendLink.getAvatar());
         }
@@ -326,12 +342,16 @@ public class FriendLinkServiceImpl implements FriendLinkService {
      * 批量取申请人，跨域走 UserPort，不直接注入用户域的服务
      */
     private Map<Long, UserVO> loadApplicants(List<FriendLinkDO> links) {
-        List<Long> userIds = links.stream().map(FriendLinkDO::getUserId).filter(Objects::nonNull).distinct().toList();
+        List<Long> userIds = links.stream()
+                .map(FriendLinkDO::getUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
         if (userIds.isEmpty()) {
             return Map.of();
         }
         return userPort.getUserBatchByIds(userIds).stream()
-            .collect(Collectors.toMap(UserVO::getUserId, Function.identity()));
+                .collect(Collectors.toMap(UserVO::getUserId, Function.identity()));
     }
 
     /**
@@ -349,8 +369,10 @@ public class FriendLinkServiceImpl implements FriendLinkService {
      * 选填字段统一：空白归一成 null，别在库里存空串
      */
     private void applyOptionalFields(FriendLinkDO friendLink, FriendLinkSaveParam param) {
-        friendLink.setAvatar(normalizeAvatar(param.getAvatar())).setDescription(trimToNull(param.getDescription()))
-            .setApplyMessage(trimToNull(param.getApplyMessage()));
+        friendLink
+                .setAvatar(normalizeAvatar(param.getAvatar()))
+                .setDescription(trimToNull(param.getDescription()))
+                .setApplyMessage(trimToNull(param.getApplyMessage()));
     }
 
     private String trimToNull(String value) {
@@ -377,11 +399,11 @@ public class FriendLinkServiceImpl implements FriendLinkService {
 
     private void checkRateLimit(Long userId) {
         FriendLinkProperties.RateLimit rateLimit = friendLinkProperties.getRateLimit();
-        RateLimiter.Result result = rateLimiter.tryAcquire(RedisKeyConstants.getLinkWriteKey(userId),
-            rateLimit.getMaxPerWindow(), rateLimit.getWindow());
+        RateLimiter.Result result = rateLimiter.tryAcquire(
+                RedisKeyConstants.getLinkWriteKey(userId), rateLimit.getMaxPerWindow(), rateLimit.getWindow());
         if (!result.allowed()) {
-            throw new BusinessException(ResultCode.LINK_TOO_FREQUENT.getCode(),
-                "操作过于频繁，请 " + result.retryAfterSeconds() + " 秒后再试");
+            throw new BusinessException(
+                    ResultCode.LINK_TOO_FREQUENT.getCode(), "操作过于频繁，请 " + result.retryAfterSeconds() + " 秒后再试");
         }
     }
 }
