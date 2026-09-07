@@ -147,7 +147,8 @@ async function handleNotification(display: DisplayNotification): Promise<void> {
       await notificationStore.markRead(display.item.id)
       display.item.readTime = new Date().toISOString()
     } catch {
-      operationError.value = '标记已读失败，请稍后重试'
+      // 待会就要跳走的通知没必要提示，组件卸载后用户也看不到，未读数由轮询纠回
+      if (!display.target) operationError.value = '标记已读失败，请稍后重试'
     }
   }
   if (display.target) await router.push(display.target)
