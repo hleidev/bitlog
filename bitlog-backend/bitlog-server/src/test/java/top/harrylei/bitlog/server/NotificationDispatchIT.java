@@ -108,7 +108,8 @@ class NotificationDispatchIT {
                 ACTOR,
                 NotificationTargetTypeEnum.COMMENT,
                 targetId,
-                Map.of());
+                Map.of(),
+                "comment:" + targetId);
     }
 
     @Test

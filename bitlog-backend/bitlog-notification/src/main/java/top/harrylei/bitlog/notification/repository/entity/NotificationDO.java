@@ -55,6 +55,11 @@ public class NotificationDO extends BaseDO {
     private Long targetId;
 
     /**
+     * 幂等键，NULL 表示不参与去重
+     */
+    private String dedupeKey;
+
+    /**
      * 渲染所需的快照
      */
     // 异构 JSON 快照，值类型无法在类型系统上证明可序列化；DO 不走 Java 序列化，故压制 S1948

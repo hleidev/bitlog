@@ -84,4 +84,20 @@ class CommentNotificationListenerTest {
 
         assertThat(summary).hasSize(80);
     }
+
+    @Test
+    @DisplayName("onCommentCreated_生成两个候选通知_共用评论幂等键")
+    void onCommentCreated_twoCandidates_shareCommentDedupeKey() {
+        Long commentId = 100L;
+        CommentCreatedEvent event = new CommentCreatedEvent(commentId, ARTICLE_ID, 2L, 8L, "评论");
+
+        listener.onCommentCreated(event);
+
+        ArgumentCaptor<List<NotificationCreateDTO>> captor = ArgumentCaptor.forClass(List.class);
+        verify(notificationPort).dispatch(captor.capture());
+        assertThat(captor.getValue())
+                .hasSize(2)
+                .extracting(NotificationCreateDTO::dedupeKey)
+                .containsOnly("comment:" + commentId);
+    }
 }

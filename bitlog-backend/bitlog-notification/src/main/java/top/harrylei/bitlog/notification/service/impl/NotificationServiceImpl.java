@@ -121,6 +121,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .setActorId(candidate.actorId())
                 .setTargetType(candidate.targetType())
                 .setTargetId(candidate.targetId())
+                .setDedupeKey(candidate.dedupeKey())
                 .setPayload(candidate.payload() != null ? candidate.payload() : Map.of());
     }
 }

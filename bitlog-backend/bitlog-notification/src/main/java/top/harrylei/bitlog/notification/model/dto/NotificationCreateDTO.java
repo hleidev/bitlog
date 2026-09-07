@@ -13,6 +13,7 @@ import top.harrylei.bitlog.notification.model.enums.NotificationTypeEnum;
  * @param targetType 目标对象类型
  * @param targetId 目标对象 ID，随 targetType 指向不同的表
  * @param payload 渲染所需的快照
+ * @param dedupeKey 幂等键，NULL 表示不参与去重
  * @author Harry
  * @since 2026-09-06
  */
@@ -22,4 +23,5 @@ public record NotificationCreateDTO(
         Long actorId,
         NotificationTargetTypeEnum targetType,
         Long targetId,
-        Map<String, Object> payload) {}
+        Map<String, Object> payload,
+        String dedupeKey) {}

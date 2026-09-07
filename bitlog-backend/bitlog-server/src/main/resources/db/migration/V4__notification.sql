@@ -11,6 +11,7 @@ CREATE TABLE notification
     actor_id       bigint,
     target_type    smallint    NOT NULL,
     target_id      bigint,
+    dedupe_key     varchar(64),
     payload        jsonb       NOT NULL DEFAULT '{}',
     read_time      timestamptz,
     deleted        smallint    NOT NULL DEFAULT 0,
@@ -30,6 +31,7 @@ COMMENT ON COLUMN notification.type IS '通知类型：1-评论被回复，2-文
 COMMENT ON COLUMN notification.actor_id IS '触发者，关联 user_account.id；系统通知为 NULL';
 COMMENT ON COLUMN notification.target_type IS '目标对象类型：0-无，1-评论，2-文章，3-友链';
 COMMENT ON COLUMN notification.target_id IS '目标对象 ID，随 target_type 指向不同的表；多态引用，不建外键，容错靠 payload 快照';
+COMMENT ON COLUMN notification.dedupe_key IS '幂等键，由事件生产方给出；同一收件人同一键只存一条，NULL 表示不参与去重';
 COMMENT ON COLUMN notification.payload IS '渲染所需的快照，避免联表查询已变化或已删除的源数据';
 COMMENT ON COLUMN notification.read_time IS '已读时刻，NULL 即未读';
 COMMENT ON COLUMN notification.deleted IS '删除标记：0-正常，1-已删除';
@@ -40,8 +42,8 @@ CREATE INDEX idx_notification_recipient ON notification (recipient_id, id DESC) 
 -- 未读计数：按收件人取未读且未删除的通知
 CREATE INDEX idx_notification_unread ON notification (recipient_id) WHERE read_time IS NULL AND deleted = 0;
 
--- 同一事件不会给同一个人投递两条；target_id 为 NULL 时（如系统通知）不受该约束限制
-CREATE UNIQUE INDEX uk_notification_dedupe ON notification (recipient_id, type, target_id) WHERE target_id IS NOT NULL;
+-- 幂等键由事件生产方给出，同一收件人同一键只投递一条；NULL 表示该通知不参与去重
+CREATE UNIQUE INDEX uk_notification_dedupe ON notification (recipient_id, dedupe_key) WHERE dedupe_key IS NOT NULL;
 
 CREATE TRIGGER trg_notification_touch
     BEFORE UPDATE ON notification

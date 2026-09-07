@@ -108,7 +108,7 @@ class NotificationQueryIT {
                 name + "@test.local");
     }
 
-    /** uk_notification_dedupe 以 (recipient_id, type, target_id) 去重，每条通知取不同 targetId 以免相互冲突 */
+    /** 查询测试通知不参与去重，每条通知使用不同 targetId 便于区分 */
     private final AtomicLong nextTargetId = new AtomicLong(1);
 
     private Long insertNotification(long recipientId, Long actorId, boolean read) {

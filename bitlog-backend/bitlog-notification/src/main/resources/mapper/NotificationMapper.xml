@@ -4,8 +4,8 @@
 
     <!-- ON CONFLICT DO NOTHING：约束冲突不抛异常，避免把调用方（如发评论）的事务标记为 aborted -->
     <insert id="insertIgnoreDuplicate" parameterType="top.harrylei.bitlog.notification.repository.entity.NotificationDO">
-        INSERT INTO notification (recipient_id, type, actor_id, target_type, target_id, payload)
-        VALUES (#{recipientId}, #{type}, #{actorId}, #{targetType}, #{targetId},
+        INSERT INTO notification (recipient_id, type, actor_id, target_type, target_id, dedupe_key, payload)
+        VALUES (#{recipientId}, #{type}, #{actorId}, #{targetType}, #{targetId}, #{dedupeKey},
                 #{payload, typeHandler=top.harrylei.bitlog.common.handler.JsonbTypeHandler})
         ON CONFLICT DO NOTHING
     </insert>

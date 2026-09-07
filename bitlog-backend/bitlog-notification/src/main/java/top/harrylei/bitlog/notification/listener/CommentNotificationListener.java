@@ -25,6 +25,7 @@ import top.harrylei.bitlog.notification.port.NotificationPort;
 public class CommentNotificationListener {
 
     private static final int SUMMARY_MAX_LENGTH = 80;
+    private static final String DEDUPE_KEY_PREFIX = "comment:";
 
     private final NotificationPort notificationPort;
     private final ArticlePort articlePort;
@@ -37,6 +38,7 @@ public class CommentNotificationListener {
     @EventListener
     public void onCommentCreated(CommentCreatedEvent event) {
         Map<String, Object> payload = buildPayload(event);
+        String dedupeKey = DEDUPE_KEY_PREFIX + event.commentId();
         List<NotificationCreateDTO> candidates = new ArrayList<>();
 
         if (event.repliedUserId() != null) {
@@ -46,7 +48,8 @@ public class CommentNotificationListener {
                     event.authorId(),
                     NotificationTargetTypeEnum.COMMENT,
                     event.commentId(),
-                    payload));
+                    payload,
+                    dedupeKey));
         }
 
         Long articleAuthorId = articlePort.getAuthorId(event.articleId());
@@ -57,7 +60,8 @@ public class CommentNotificationListener {
                     event.authorId(),
                     NotificationTargetTypeEnum.COMMENT,
                     event.commentId(),
-                    payload));
+                    payload,
+                    dedupeKey));
         }
 
         if (!candidates.isEmpty()) {

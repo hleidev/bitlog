@@ -55,7 +55,13 @@ class NotificationServiceImplTest {
 
     private NotificationCreateDTO command(Long recipientId, NotificationTypeEnum type, Long actorId, Long targetId) {
         return new NotificationCreateDTO(
-                recipientId, type, actorId, NotificationTargetTypeEnum.COMMENT, targetId, Map.of());
+                recipientId,
+                type,
+                actorId,
+                NotificationTargetTypeEnum.COMMENT,
+                targetId,
+                Map.of(),
+                "comment:" + targetId);
     }
 
     @Test
@@ -80,6 +86,7 @@ class NotificationServiceImplTest {
         ArgumentCaptor<NotificationDO> captor = ArgumentCaptor.forClass(NotificationDO.class);
         verify(notificationMapper, times(1)).insertIgnoreDuplicate(captor.capture());
         assertThat(captor.getValue().getType()).isEqualTo(NotificationTypeEnum.COMMENT_REPLY);
+        assertThat(captor.getValue().getDedupeKey()).isEqualTo("comment:100");
     }
 
     @Test

@@ -116,20 +116,20 @@ class NotificationSchemaIT {
     }
 
     @Test
-    @DisplayName("save_同一收件人同类型同目标_第二条违反唯一约束")
-    void save_duplicateRecipientTypeTarget_violatesUniqueConstraint() {
-        Long targetId = 3L;
-        notificationDAO.save(newNotification(targetId).setPayload(Map.of()));
+    @DisplayName("save_同一收件人同幂等键_第二条违反唯一约束")
+    void save_duplicateRecipientDedupeKey_violatesUniqueConstraint() {
+        String dedupeKey = "comment:3";
+        notificationDAO.save(newNotification(3L).setDedupeKey(dedupeKey).setPayload(Map.of()));
 
-        NotificationDO duplicate = newNotification(targetId).setPayload(Map.of());
+        NotificationDO duplicate = newNotification(4L).setDedupeKey(dedupeKey).setPayload(Map.of());
         assertThatThrownBy(() -> notificationDAO.save(duplicate)).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
-    @DisplayName("save_targetId为NULL_不受去重唯一约束限制_可插入多条")
-    void save_nullTargetId_notConstrainedByDedupeIndex() {
-        notificationDAO.save(newNotification(null).setPayload(Map.of()));
-        notificationDAO.save(newNotification(null).setPayload(Map.of()));
+    @DisplayName("save_同一收件人同类型同目标且dedupeKey为NULL_可插入两次")
+    void save_sameTargetWithNullDedupeKey_insertsTwice() {
+        notificationDAO.save(newNotification(5L).setDedupeKey(null).setPayload(Map.of()));
+        notificationDAO.save(newNotification(5L).setDedupeKey(null).setPayload(Map.of()));
 
         List<NotificationDO> all = notificationDAO
                 .lambdaQuery()
