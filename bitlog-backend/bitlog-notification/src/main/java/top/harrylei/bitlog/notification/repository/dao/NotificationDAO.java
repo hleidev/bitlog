@@ -1,5 +1,6 @@
 package top.harrylei.bitlog.notification.repository.dao;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -74,5 +75,34 @@ public class NotificationDAO extends ServiceImpl<NotificationMapper, Notificatio
                 .isNull(NotificationDO::getReadTime)
                 .setSql("read_time = now()");
         return getBaseMapper().update(null, wrapper);
+    }
+
+    /**
+     * 将某收件人名下全部通知标记为已删除
+     *
+     * @param recipientId 收件人 ID
+     * @return 受影响行数
+     */
+    public int markAllDeleted(Long recipientId) {
+        LambdaUpdateWrapper<NotificationDO> wrapper = Wrappers.<NotificationDO>lambdaUpdate()
+                .eq(NotificationDO::getRecipientId, recipientId)
+                .eq(NotificationDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .set(NotificationDO::getDeleted, DeleteStatusEnum.DELETED);
+        return getBaseMapper().update(null, wrapper);
+    }
+
+    /**
+     * 物理删除保留期外的通知
+     *
+     * @param retentionDays 保留天数
+     * @return 受影响行数
+     */
+    public int removeExpired(int retentionDays) {
+        LambdaQueryWrapper<NotificationDO> wrapper = Wrappers.<NotificationDO>lambdaQuery()
+                .apply("create_time < now() - make_interval(days => {0})", retentionDays)
+                .and(w -> w.isNotNull(NotificationDO::getReadTime)
+                        .or()
+                        .eq(NotificationDO::getDeleted, DeleteStatusEnum.DELETED));
+        return getBaseMapper().delete(wrapper);
     }
 }
