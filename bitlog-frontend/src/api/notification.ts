@@ -29,7 +29,9 @@ export interface NotificationVO {
   createTime: string
 }
 
-export type NotificationPageParams = BasePageParams
+export interface NotificationPageParams extends BasePageParams {
+  unreadOnly?: boolean
+}
 
 export function getNotificationPage(
   params?: NotificationPageParams,
@@ -45,6 +47,8 @@ export function markNotificationRead(id: number): Promise<void> {
   return request.patch<never, void>(`/v1/notifications/${id}/read`)
 }
 
-export function markAllNotificationsRead(): Promise<void> {
-  return request.patch<never, void>('/v1/notifications/read-all')
+export function markAllNotificationsRead(lastNotificationId?: number): Promise<void> {
+  return request.patch<never, void>('/v1/notifications/read-all', undefined, {
+    params: { lastNotificationId },
+  })
 }

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import {
   getNotificationPage,
+  markAllNotificationsRead,
   NOTIFICATION_TYPE,
   type NotificationActorVO,
   type NotificationVO,
@@ -27,12 +28,18 @@ const loadError = ref(false)
 const initialLoading = ref(true)
 const markingAll = ref(false)
 const operationError = ref('')
+const readAllBoundaryId = ref<number>()
 
 const query = useListQuery({
-  filters: {},
+  filters: { unreadOnly: 0 as 0 | 1 },
+  toParams: (filters) => ({ unreadOnly: filters.unreadOnly ? true : undefined }),
   fetch: async (params) => {
     loadError.value = false
     return getNotificationPage(params)
+  },
+  syncUrl: true,
+  sanitize: (filters) => {
+    if (filters.unreadOnly !== 1) filters.unreadOnly = 0
   },
   immediate: false,
   onError: () => {
@@ -41,9 +48,13 @@ const query = useListQuery({
 })
 
 const notifications = query.items
-const { loading, pageNum, totalPages, hasPrevious, hasNext } = query
+const { filters, loading, pageNum, totalPages, hasPrevious, hasNext } = query
 const visiblePages = query.pageNumbers
 const pageLoading = computed(() => initialLoading.value || loading.value)
+
+watch(notifications, (items) => {
+  if (pageNum.value === 1) readAllBoundaryId.value = items[0]?.id
+})
 
 function payloadString(payload: Record<string, unknown>, key: string): string | null {
   const value = payload[key]
@@ -155,21 +166,34 @@ async function handleNotification(display: DisplayNotification): Promise<void> {
 }
 
 async function handleMarkAllRead(): Promise<void> {
-  if (unreadCount.value === 0 || markingAll.value) return
+  if (unreadCount.value === 0 || notifications.value.length === 0 || markingAll.value) return
   markingAll.value = true
   operationError.value = ''
   try {
-    await notificationStore.markAllRead()
-    const readTime = new Date().toISOString()
-    notifications.value = notifications.value.map((item) => ({
-      ...item,
-      readTime: item.readTime ?? readTime,
-    }))
+    await markAllNotificationsRead(readAllBoundaryId.value)
+    if (filters.unreadOnly) {
+      await query.load()
+    } else {
+      const readTime = new Date().toISOString()
+      notifications.value = notifications.value.map((item) => ({
+        ...item,
+        readTime: item.readTime ?? readTime,
+      }))
+    }
+    void notificationStore.refreshUnread().catch(() => undefined)
   } catch {
     operationError.value = '全部标记已读失败，请稍后重试'
   } finally {
     markingAll.value = false
   }
+}
+
+function selectFilter(unreadOnly: 0 | 1): void {
+  if (filters.unreadOnly !== unreadOnly) filters.unreadOnly = unreadOnly
+}
+
+function retryLoad(): void {
+  void query.load()
 }
 
 function changePage(page: number): void {
@@ -195,29 +219,56 @@ onMounted(async () => {
         <button
           class="mark-all"
           type="button"
-          :disabled="unreadCount === 0 || markingAll"
+          :disabled="unreadCount === 0 || notifications.length === 0 || markingAll"
           @click="handleMarkAllRead"
         >
-          全部已读
+          全部标为已读
         </button>
       </header>
+
+      <div class="notification-filters" aria-label="通知筛选">
+        <button
+          class="notification-filter"
+          :class="{ 'notification-filter--active': filters.unreadOnly === 0 }"
+          type="button"
+          :aria-pressed="filters.unreadOnly === 0"
+          @click="selectFilter(0)"
+        >
+          全部
+        </button>
+        <button
+          class="notification-filter"
+          :class="{ 'notification-filter--active': filters.unreadOnly === 1 }"
+          type="button"
+          :aria-pressed="filters.unreadOnly === 1"
+          @click="selectFilter(1)"
+        >
+          未读
+        </button>
+      </div>
 
       <p v-if="operationError" class="operation-error" role="status">{{ operationError }}</p>
 
       <p v-if="pageLoading && notifications.length === 0" class="notification-state page-state">
         加载中…
       </p>
-      <p v-else-if="loadError" class="notification-state page-state">加载失败，请刷新重试。</p>
-      <p v-else-if="notifications.length === 0" class="notification-state page-state">暂无通知。</p>
+      <p v-else-if="loadError" class="notification-state page-state">
+        加载失败，<button class="retry-button" type="button" @click="retryLoad">重试</button>
+      </p>
+      <p v-else-if="notifications.length === 0" class="notification-state page-state">
+        {{ filters.unreadOnly ? '没有未读通知。' : '暂无通知。' }}
+      </p>
 
       <div v-else :class="['notification-content', { 'notification-content--loading': loading }]">
         <div class="notification-list">
-          <button
+          <component
+            :is="display.target ? 'button' : 'div'"
             v-for="display in displayNotifications"
             :key="display.item.id"
+            :type="display.target ? 'button' : undefined"
             class="notification-row"
-            type="button"
-            @click="handleNotification(display)"
+            :class="{ 'notification-row--static': !display.target }"
+            @click="display.target && handleNotification(display)"
           >
             <span class="unread-slot" aria-hidden="true">
               <span v-if="!display.item.readTime" class="unread-dot"></span>
@@ -240,14 +291,30 @@ onMounted(async () => {
             </span>
 
             <span class="notification-copy">
+              <span v-if="!display.item.readTime" class="sr-only">未读</span>
               <span class="notification-message">{{ display.message }}</span>
               <span v-if="display.detail" class="notification-detail">{{ display.detail }}</span>
             </span>
 
-            <time class="notification-time" :datetime="display.item.createTime">
-              {{ display.time }}
-            </time>
-          </button>
+            <template v-if="display.target">
+              <time class="notification-time" :datetime="display.item.createTime">
+                {{ display.time }}
+              </time>
+            </template>
+            <span v-else class="notification-actions">
+              <time class="notification-time" :datetime="display.item.createTime">
+                {{ display.time }}
+              </time>
+              <button
+                v-if="!display.item.readTime"
+                class="mark-read"
+                type="button"
+                @click.stop="handleNotification(display)"
+              >
+                标为已读
+              </button>
+            </span>
+          </component>
         </div>
 
         <div v-if="totalPages > 1" class="pagination">
@@ -301,6 +368,34 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 40px;
+}
+
+.notification-filters {
+  display: flex;
+  gap: 20px;
+  margin: -20px 0 28px;
+}
+
+.notification-filter,
+.retry-button,
+.mark-read {
+  padding: 0;
+  color: var(--color-text-secondary);
+  font: inherit;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.notification-filter {
+  font-size: 13px;
+}
+
+.notification-filter--active,
+.notification-filter:hover,
+.retry-button:hover,
+.mark-read:hover {
+  color: var(--color-accent);
 }
 
 .page-title {
@@ -380,6 +475,14 @@ onMounted(async () => {
   background: var(--color-bg-hover);
 }
 
+.notification-row--static {
+  cursor: default;
+}
+
+.notification-row--static:hover {
+  background: transparent;
+}
+
 .unread-slot {
   display: grid;
   width: 8px;
@@ -442,6 +545,18 @@ onMounted(async () => {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+}
+
+.notification-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mark-read {
+  color: var(--color-accent);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .notification-time {
@@ -522,7 +637,8 @@ onMounted(async () => {
     padding-right: 8px;
   }
 
-  .notification-time {
+  .notification-row > .notification-time,
+  .notification-row > .notification-actions {
     grid-column: 3;
     justify-self: start;
   }
