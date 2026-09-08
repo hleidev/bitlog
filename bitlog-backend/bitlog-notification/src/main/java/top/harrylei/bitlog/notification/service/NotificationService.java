@@ -47,9 +47,10 @@ public interface NotificationService {
     void markRead(Long userId, Long notificationId);
 
     /**
-     * 标记我的全部通知为已读
+     * 标记我截至指定通知 ID（含边界）的未读通知为已读，传 null 时为全部
      *
      * @param userId 当前用户 ID
+     * @param lastNotificationId 最后一条已展示的通知 ID
      */
-    void markAllRead(Long userId);
+    void markAllRead(Long userId, Long lastNotificationId);
 }

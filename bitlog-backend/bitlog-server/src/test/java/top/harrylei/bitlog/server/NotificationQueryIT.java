@@ -254,9 +254,30 @@ class NotificationQueryIT {
         insertNotification(USER_A, ACTOR, false);
         insertNotification(USER_B, ACTOR, false);
 
-        notificationService.markAllRead(USER_A);
+        notificationService.markAllRead(USER_A, null);
 
         assertThat(notificationService.countUnread(USER_A)).isZero();
+        assertThat(notificationService.countUnread(USER_B)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("markAllRead_传入截止边界_含边界及更早已读且更新后通知保持未读")
+    void markAllRead_withBoundary_marksBoundaryAndEarlierWhileLaterStayUnread() {
+        Long oldestId = insertNotification(USER_A, ACTOR, false);
+        Long othersId = insertNotification(USER_B, ACTOR, false);
+        Long deletedId = insertNotification(USER_A, ACTOR, false);
+        jdbc.update("UPDATE notification SET deleted = 1 WHERE id = ?", deletedId);
+        Long boundaryId = insertNotification(USER_A, ACTOR, false);
+        Long newestId = insertNotification(USER_A, ACTOR, false);
+
+        notificationService.markAllRead(USER_A, boundaryId);
+
+        assertThat(notificationDAO.getById(oldestId).getReadTime()).isNotNull();
+        assertThat(notificationDAO.getById(boundaryId).getReadTime()).isNotNull();
+        assertThat(notificationDAO.getById(newestId).getReadTime()).isNull();
+        assertThat(notificationDAO.getById(othersId).getReadTime()).isNull();
+        assertThat(notificationDAO.getById(deletedId).getReadTime()).isNotNull();
+        assertThat(notificationService.countUnread(USER_A)).isEqualTo(1);
         assertThat(notificationService.countUnread(USER_B)).isEqualTo(1);
     }
 

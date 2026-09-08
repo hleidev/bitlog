@@ -66,15 +66,17 @@ public class NotificationDAO extends ServiceImpl<NotificationMapper, Notificatio
     }
 
     /**
-     * 将某收件人名下全部未读通知标记为已读
+     * 将某收件人截至指定通知 ID（含边界）的未读通知标记为已读，传 null 时为全部
      *
      * @param recipientId 收件人 ID
+     * @param lastNotificationId 最后一条已展示的通知 ID
      * @return 受影响行数
      */
-    public int markAllRead(Long recipientId) {
+    public int markAllRead(Long recipientId, Long lastNotificationId) {
         LambdaUpdateWrapper<NotificationDO> wrapper = Wrappers.<NotificationDO>lambdaUpdate()
                 .eq(NotificationDO::getRecipientId, recipientId)
                 .isNull(NotificationDO::getReadTime)
+                .le(lastNotificationId != null, NotificationDO::getId, lastNotificationId)
                 .setSql("read_time = now()");
         return getBaseMapper().update(null, wrapper);
     }

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.model.PageVO;
@@ -58,8 +59,8 @@ public class NotificationController {
     @RequiresLogin
     @Operation(summary = "标记我的全部通知为已读")
     @PatchMapping("/read-all")
-    public Result<Void> markAllRead() {
-        notificationService.markAllRead(ReqInfoContext.getContext().getUserId());
+    public Result<Void> markAllRead(@RequestParam(required = false) Long lastNotificationId) {
+        notificationService.markAllRead(ReqInfoContext.getContext().getUserId(), lastNotificationId);
         return Result.success();
     }
 }

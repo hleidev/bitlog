@@ -98,8 +98,8 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void markAllRead(Long userId) {
-        notificationDAO.markAllRead(userId);
+    public void markAllRead(Long userId, Long lastNotificationId) {
+        notificationDAO.markAllRead(userId, lastNotificationId);
     }
 
     private Map<Long, NotificationActorVO> loadActorMap(List<NotificationDO> notifications) {
