@@ -17,9 +17,12 @@ export const formatYearMonth = (iso: string | null | undefined): string => {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-export const formatRelativeTime = (iso: string | null | undefined): string => {
+export const formatRelativeTime = (
+  iso: string | null | undefined,
+  now: number = Date.now(),
+): string => {
   if (!iso) return ''
-  const elapsed = Math.max(0, Date.now() - new Date(iso).getTime())
+  const elapsed = Math.max(0, now - new Date(iso).getTime())
   const minutes = Math.floor(elapsed / 60_000)
   if (minutes < 1) return '刚刚'
   if (minutes < 60) return `${minutes} 分钟前`

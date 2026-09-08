@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import {
   getNotificationPage,
-  markAllNotificationsRead,
   NOTIFICATION_TYPE,
   type NotificationActorVO,
   type NotificationVO,
@@ -23,12 +22,18 @@ interface DisplayNotification {
 
 const router = useRouter()
 const notificationStore = useNotificationStore()
-const { unreadCount } = storeToRefs(notificationStore)
+const { unreadCount, unreadIncreaseVersion } = storeToRefs(notificationStore)
 const loadError = ref(false)
 const initialLoading = ref(true)
 const markingAll = ref(false)
 const operationError = ref('')
+const readErrors = ref<Record<number, string>>({})
 const readAllBoundaryId = ref<number>()
+const hasNewNotifications = ref(false)
+const currentTime = ref(Date.now())
+let minuteTimer: ReturnType<typeof setInterval> | null = null
+let pageActive = false
+let readRollbackEpoch = 0
 
 const query = useListQuery({
   filters: { unreadOnly: 0 as 0 | 1 },
@@ -54,6 +59,16 @@ const pageLoading = computed(() => initialLoading.value || loading.value)
 
 watch(notifications, (items) => {
   if (pageNum.value === 1) readAllBoundaryId.value = items[0]?.id
+  readErrors.value = Object.fromEntries(
+    Object.entries(readErrors.value).filter(([id]) => {
+      const item = items.find((notification) => notification.id === Number(id))
+      return item && !item.readTime
+    }),
+  )
+})
+
+watch(unreadIncreaseVersion, () => {
+  if (!initialLoading.value) hasNewNotifications.value = true
 })
 
 function payloadString(payload: Record<string, unknown>, key: string): string | null {
@@ -96,7 +111,7 @@ function buildDisplay(item: NotificationVO): DisplayNotification {
         message: `${actor} 回复了你的评论`,
         detail: commentSummary,
         target: articleTarget(item.payload),
-        time: formatRelativeTime(item.createTime),
+        time: formatRelativeTime(item.createTime, currentTime.value),
       }
     case NOTIFICATION_TYPE.ARTICLE_COMMENT:
       return {
@@ -104,7 +119,7 @@ function buildDisplay(item: NotificationVO): DisplayNotification {
         message: `${actor} 评论了你的文章《${articleTitle}》`,
         detail: commentSummary,
         target: articleTarget(item.payload),
-        time: formatRelativeTime(item.createTime),
+        time: formatRelativeTime(item.createTime, currentTime.value),
       }
     case NOTIFICATION_TYPE.LINK_APPLIED:
       return {
@@ -112,7 +127,7 @@ function buildDisplay(item: NotificationVO): DisplayNotification {
         message: `${actor} 申请了友链「${linkName}」`,
         detail: payloadString(item.payload, 'applyMessage') ?? '未填写申请留言',
         target: '/admin/links',
-        time: formatRelativeTime(item.createTime),
+        time: formatRelativeTime(item.createTime, currentTime.value),
       }
     case NOTIFICATION_TYPE.LINK_REVIEWED: {
       const approved = payloadNumber(item.payload, 'status') === 1
@@ -123,7 +138,7 @@ function buildDisplay(item: NotificationVO): DisplayNotification {
           payloadString(item.payload, 'rejectReason') ??
           (approved ? '审核结果已更新' : '未提供拒绝理由'),
         target: '/friends',
-        time: formatRelativeTime(item.createTime),
+        time: formatRelativeTime(item.createTime, currentTime.value),
       }
     }
     case NOTIFICATION_TYPE.SYSTEM:
@@ -132,7 +147,7 @@ function buildDisplay(item: NotificationVO): DisplayNotification {
         message: systemMessage(item.payload),
         detail: '',
         target: null,
-        time: formatRelativeTime(item.createTime),
+        time: formatRelativeTime(item.createTime, currentTime.value),
       }
     default:
       return {
@@ -140,7 +155,7 @@ function buildDisplay(item: NotificationVO): DisplayNotification {
         message: '你有一条新通知',
         detail: '',
         target: null,
-        time: formatRelativeTime(item.createTime),
+        time: formatRelativeTime(item.createTime, currentTime.value),
       }
   }
 }
@@ -151,18 +166,41 @@ function avatarLetter(actor: NotificationActorVO | null): string {
   return actor?.username.trim().charAt(0).toUpperCase() || '系'
 }
 
+function navigateToTarget(id: number, target: string): void {
+  void router.push(target).catch(() => {
+    if (!pageActive) return
+    readErrors.value = { ...readErrors.value, [id]: '跳转失败，请稍后重试' }
+  })
+}
+
 async function handleNotification(display: DisplayNotification): Promise<void> {
   operationError.value = ''
-  if (!display.item.readTime) {
-    try {
-      await notificationStore.markRead(display.item.id)
-      display.item.readTime = new Date().toISOString()
-    } catch {
-      // 待会就要跳走的通知没必要提示，组件卸载后用户也看不到，未读数由轮询纠回
-      if (!display.target) operationError.value = '标记已读失败，请稍后重试'
-    }
+  const id = display.item.id
+  const nextReadErrors = { ...readErrors.value }
+  delete nextReadErrors[id]
+  readErrors.value = nextReadErrors
+
+  if (display.item.readTime) {
+    if (display.target) navigateToTarget(id, display.target)
+    return
   }
-  if (display.target) await router.push(display.target)
+
+  const rollbackEpoch = readRollbackEpoch
+  const optimisticReadTime = new Date().toISOString()
+  display.item.readTime = optimisticReadTime
+  const markRequest = notificationStore.markRead(id)
+  if (display.target) navigateToTarget(id, display.target)
+
+  try {
+    await markRequest
+  } catch {
+    if (!pageActive) return
+    if (rollbackEpoch !== readRollbackEpoch) return
+    const item = notifications.value.find((notification) => notification.id === id)
+    if (item?.readTime !== optimisticReadTime) return
+    item.readTime = null
+    readErrors.value = { ...readErrors.value, [id]: '标记已读失败，请稍后重试' }
+  }
 }
 
 async function handleMarkAllRead(): Promise<void> {
@@ -170,7 +208,8 @@ async function handleMarkAllRead(): Promise<void> {
   markingAll.value = true
   operationError.value = ''
   try {
-    await markAllNotificationsRead(readAllBoundaryId.value)
+    await notificationStore.markAllRead(readAllBoundaryId.value)
+    readRollbackEpoch += 1
     if (filters.unreadOnly) {
       await query.load()
     } else {
@@ -180,12 +219,22 @@ async function handleMarkAllRead(): Promise<void> {
         readTime: item.readTime ?? readTime,
       }))
     }
-    void notificationStore.refreshUnread().catch(() => undefined)
+    readErrors.value = {}
   } catch {
     operationError.value = '全部标记已读失败，请稍后重试'
   } finally {
     markingAll.value = false
   }
+}
+
+function loadNewNotifications(): void {
+  hasNewNotifications.value = false
+  if (pageNum.value === 1) {
+    void query.load()
+  } else {
+    query.goPage(1)
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function selectFilter(unreadOnly: 0 | 1): void {
@@ -205,9 +254,18 @@ function changePage(page: number): void {
 }
 
 onMounted(async () => {
+  pageActive = true
+  minuteTimer = setInterval(() => {
+    currentTime.value = Date.now()
+  }, 60_000)
   query.start()
   await query.load()
   initialLoading.value = false
+})
+
+onUnmounted(() => {
+  pageActive = false
+  if (minuteTimer) clearInterval(minuteTimer)
 })
 </script>
 
@@ -248,6 +306,15 @@ onMounted(async () => {
       </div>
 
       <p v-if="operationError" class="operation-error" role="status">{{ operationError }}</p>
+
+      <button
+        v-if="hasNewNotifications"
+        class="new-notification-hint"
+        type="button"
+        @click="loadNewNotifications"
+      >
+        有新通知，刷新查看
+      </button>
 
       <p v-if="pageLoading && notifications.length === 0" class="notification-state page-state">
         加载中…
@@ -294,6 +361,9 @@ onMounted(async () => {
               <span v-if="!display.item.readTime" class="sr-only">未读</span>
               <span class="notification-message">{{ display.message }}</span>
               <span v-if="display.detail" class="notification-detail">{{ display.detail }}</span>
+              <span v-if="readErrors[display.item.id]" class="notification-row-error" role="status">
+                {{ readErrors[display.item.id] }}
+              </span>
             </span>
 
             <template v-if="display.target">
@@ -433,6 +503,22 @@ onMounted(async () => {
   text-align: right;
 }
 
+.new-notification-hint {
+  display: block;
+  margin: -20px 0 24px auto;
+  padding: 0;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 12.5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.new-notification-hint:hover {
+  color: var(--color-accent-dark);
+}
+
 .notification-state {
   margin: 0;
   padding: 80px 0;
@@ -545,6 +631,11 @@ onMounted(async () => {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+}
+
+.notification-row-error {
+  color: var(--color-danger-on-soft);
+  font-size: 12px;
 }
 
 .notification-actions {
