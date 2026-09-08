@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import { ref, nextTick } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useHeaderScroll } from '@/composables/useHeaderScroll'
@@ -47,28 +47,6 @@ const handleMobileLogin = () => {
   modalStore.open('login')
   mobileMenuOpen.value = false
 }
-
-let stopLoginWatch: (() => void) | undefined
-
-onMounted(() => {
-  stopLoginWatch = watch(
-    isLoggedIn,
-    (loggedIn) => {
-      if (loggedIn) {
-        notificationStore.startPolling()
-        return
-      }
-      notificationStore.stopPolling()
-      void notificationStore.refreshUnread()
-    },
-    { immediate: true },
-  )
-})
-
-onUnmounted(() => {
-  stopLoginWatch?.()
-  notificationStore.stopPolling()
-})
 </script>
 
 <template>
