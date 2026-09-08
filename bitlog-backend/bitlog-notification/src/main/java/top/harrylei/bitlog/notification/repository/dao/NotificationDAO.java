@@ -24,13 +24,15 @@ public class NotificationDAO extends ServiceImpl<NotificationMapper, Notificatio
      * 分页查询某收件人的通知
      *
      * @param recipientId 收件人 ID
+     * @param unreadOnly 是否只看未读通知
      * @param page 分页参数，排序由 BasePage 提供
      * @return 通知分页结果
      */
-    public IPage<NotificationDO> pageByRecipient(Long recipientId, Page<NotificationDO> page) {
+    public IPage<NotificationDO> pageByRecipient(Long recipientId, Boolean unreadOnly, Page<NotificationDO> page) {
         return lambdaQuery()
                 .eq(NotificationDO::getRecipientId, recipientId)
                 .eq(NotificationDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .isNull(Boolean.TRUE.equals(unreadOnly), NotificationDO::getReadTime)
                 .page(page);
     }
 

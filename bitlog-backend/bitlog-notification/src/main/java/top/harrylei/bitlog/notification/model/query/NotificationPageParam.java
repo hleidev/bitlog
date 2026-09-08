@@ -20,6 +20,9 @@ import top.harrylei.bitlog.notification.model.enums.NotificationSortEnum;
 @Schema(description = "我的通知列表查询参数")
 public class NotificationPageParam extends BasePage {
 
+    @Schema(description = "是否只看未读通知")
+    private Boolean unreadOnly;
+
     @Override
     protected SortField resolveSortField() {
         return NotificationSortEnum.CREATE_TIME;

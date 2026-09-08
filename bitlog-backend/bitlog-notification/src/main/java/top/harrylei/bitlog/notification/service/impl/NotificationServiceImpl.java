@@ -64,7 +64,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public PageVO<NotificationVO> pageNotifications(Long userId, NotificationPageParam query) {
-        IPage<NotificationDO> page = notificationDAO.pageByRecipient(userId, query.toPage());
+        IPage<NotificationDO> page = notificationDAO.pageByRecipient(userId, query.getUnreadOnly(), query.toPage());
         List<NotificationDO> records = page.getRecords();
         if (records.isEmpty()) {
             return PageVO.of(page, List.of());

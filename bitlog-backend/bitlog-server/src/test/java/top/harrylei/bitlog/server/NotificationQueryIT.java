@@ -144,6 +144,56 @@ class NotificationQueryIT {
     }
 
     @Test
+    @DisplayName("pageNotifications_只看未读通知_返回匹配的当前用户未删除通知")
+    void pageNotifications_unreadOnly_returnsMatchingCurrentUsersActiveNotifications() {
+        Long unreadOldestId = insertNotification(USER_A, ACTOR, false);
+        Long unreadNewestId = insertNotification(USER_A, ACTOR, false);
+        insertNotification(USER_A, ACTOR, true);
+        Long readMiddleId = insertNotification(USER_A, ACTOR, true);
+        Long readNewestId = insertNotification(USER_A, ACTOR, true);
+        Long deletedId = insertNotification(USER_A, ACTOR, false);
+        jdbc.update("UPDATE notification SET deleted = 1 WHERE id = ?", deletedId);
+        Long othersUnreadId = insertNotification(USER_B, ACTOR, false);
+        Long othersReadId = insertNotification(USER_B, ACTOR, true);
+
+        NotificationPageParam defaultParam = pageParam();
+        defaultParam.setPageSize(2);
+        NotificationPageParam allParam = pageParam().setUnreadOnly(false);
+        allParam.setPageSize(2);
+        NotificationPageParam unreadParam = pageParam().setUnreadOnly(true);
+        unreadParam.setPageSize(2);
+
+        PageVO<NotificationVO> defaultPage = notificationService.pageNotifications(USER_A, defaultParam);
+        PageVO<NotificationVO> all = notificationService.pageNotifications(USER_A, allParam);
+        PageVO<NotificationVO> unread = notificationService.pageNotifications(USER_A, unreadParam);
+
+        assertThat(defaultPage.getTotalElements()).isEqualTo(5);
+        assertThat(defaultPage.getTotalPages()).isEqualTo(3);
+        assertThat(defaultPage.getContent())
+                .extracting(NotificationVO::getId)
+                .containsExactly(readNewestId, readMiddleId);
+        assertThat(defaultPage.getContent())
+                .extracting(NotificationVO::getId)
+                .doesNotContain(deletedId, othersUnreadId, othersReadId);
+
+        assertThat(all.getTotalElements()).isEqualTo(5);
+        assertThat(all.getTotalPages()).isEqualTo(3);
+        assertThat(all.getContent()).extracting(NotificationVO::getId).containsExactly(readNewestId, readMiddleId);
+        assertThat(all.getContent())
+                .extracting(NotificationVO::getId)
+                .doesNotContain(deletedId, othersUnreadId, othersReadId);
+
+        assertThat(unread.getTotalElements()).isEqualTo(2);
+        assertThat(unread.getTotalPages()).isOne();
+        assertThat(unread.getContent())
+                .extracting(NotificationVO::getId)
+                .containsExactly(unreadNewestId, unreadOldestId);
+        assertThat(unread.getContent())
+                .extracting(NotificationVO::getId)
+                .doesNotContain(deletedId, othersUnreadId, othersReadId);
+    }
+
+    @Test
     @DisplayName("countUnread_混有他人未读_只统计当前用户的未读")
     void countUnread_mixedWithOthers_onlyCountsCurrentUsersUnread() {
         insertNotification(USER_A, ACTOR, false);
