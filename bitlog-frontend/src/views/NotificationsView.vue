@@ -81,9 +81,12 @@ function payloadNumber(payload: Record<string, unknown>, key: string): number | 
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
-function articleTarget(payload: Record<string, unknown>): string | null {
+function articleTarget(payload: Record<string, unknown>, commentId?: number | null): string | null {
   const articleId = payloadNumber(payload, 'articleId')
-  return articleId === null ? null : `/article/${articleId}`
+  if (articleId === null) return null
+  return commentId === null || commentId === undefined
+    ? `/article/${articleId}`
+    : `/article/${articleId}?comment=${commentId}`
 }
 
 function systemMessage(payload: Record<string, unknown>): string {
@@ -110,7 +113,7 @@ function buildDisplay(item: NotificationVO): DisplayNotification {
         item,
         message: `${actor} 回复了你的评论`,
         detail: commentSummary,
-        target: articleTarget(item.payload),
+        target: articleTarget(item.payload, item.targetId),
         time: formatRelativeTime(item.createTime, currentTime.value),
       }
     case NOTIFICATION_TYPE.ARTICLE_COMMENT:
@@ -118,7 +121,7 @@ function buildDisplay(item: NotificationVO): DisplayNotification {
         item,
         message: `${actor} 评论了你的文章《${articleTitle}》`,
         detail: commentSummary,
-        target: articleTarget(item.payload),
+        target: articleTarget(item.payload, item.targetId),
         time: formatRelativeTime(item.createTime, currentTime.value),
       }
     case NOTIFICATION_TYPE.LINK_APPLIED:
