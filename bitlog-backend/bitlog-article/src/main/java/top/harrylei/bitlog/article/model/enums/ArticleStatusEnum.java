@@ -3,13 +3,13 @@ package top.harrylei.bitlog.article.model.enums;
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import top.harrylei.bitlog.common.enums.CodedEnum;
 
 /**
  * 文章状态枚举
@@ -19,16 +19,17 @@ import java.util.stream.Collectors;
  */
 @Getter
 @AllArgsConstructor
-public enum ArticleStatusEnum {
-
-    DRAFT(0, "草稿"), PUBLISHED(1, "已发布");
+public enum ArticleStatusEnum implements CodedEnum {
+    DRAFT(0, "草稿"),
+    PUBLISHED(1, "已发布");
 
     @EnumValue
     private final Integer code;
+
     private final String label;
 
-    private static final Map<Integer, ArticleStatusEnum> CODE_MAP = Arrays.stream(values())
-            .collect(Collectors.toMap(ArticleStatusEnum::getCode, Function.identity()));
+    private static final Map<Integer, ArticleStatusEnum> CODE_MAP =
+            Arrays.stream(values()).collect(Collectors.toMap(ArticleStatusEnum::getCode, Function.identity()));
 
     @JsonValue
     public Integer getCode() {

@@ -3,13 +3,13 @@ package top.harrylei.bitlog.link.model.enums;
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import top.harrylei.bitlog.common.enums.CodedEnum;
 
 /**
  * 友链状态枚举
@@ -19,16 +19,18 @@ import java.util.stream.Collectors;
  */
 @Getter
 @AllArgsConstructor
-public enum FriendLinkStatusEnum {
-
-    PENDING(0, "待审核"), APPROVED(1, "已通过"), REJECTED(2, "已拒绝");
+public enum FriendLinkStatusEnum implements CodedEnum {
+    PENDING(0, "待审核"),
+    APPROVED(1, "已通过"),
+    REJECTED(2, "已拒绝");
 
     @EnumValue
     private final Integer code;
+
     private final String label;
 
     private static final Map<Integer, FriendLinkStatusEnum> CODE_MAP =
-        Arrays.stream(values()).collect(Collectors.toMap(FriendLinkStatusEnum::getCode, Function.identity()));
+            Arrays.stream(values()).collect(Collectors.toMap(FriendLinkStatusEnum::getCode, Function.identity()));
 
     @JsonValue
     public Integer getCode() {
