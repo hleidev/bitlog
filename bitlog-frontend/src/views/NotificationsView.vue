@@ -34,6 +34,7 @@ const currentTime = ref(Date.now())
 let minuteTimer: ReturnType<typeof setInterval> | null = null
 let pageActive = false
 let readRollbackEpoch = 0
+let unreadIncreasedDuringInitialLoad = false
 
 const query = useListQuery({
   filters: { unreadOnly: 0 as 0 | 1 },
@@ -68,7 +69,11 @@ watch(notifications, (items) => {
 })
 
 watch(unreadIncreaseVersion, () => {
-  if (!initialLoading.value) hasNewNotifications.value = true
+  if (initialLoading.value) {
+    unreadIncreasedDuringInitialLoad = true
+    return
+  }
+  hasNewNotifications.value = true
 })
 
 function payloadString(payload: Record<string, unknown>, key: string): string | null {
@@ -196,6 +201,7 @@ async function handleNotification(display: DisplayNotification): Promise<void> {
 
   try {
     await markRequest
+    if (pageActive && filters.unreadOnly) await query.load()
   } catch {
     if (!pageActive) return
     if (rollbackEpoch !== readRollbackEpoch) return
@@ -263,7 +269,9 @@ onMounted(async () => {
   }, 60_000)
   query.start()
   await query.load()
+  if (!pageActive) return
   initialLoading.value = false
+  if (unreadIncreasedDuringInitialLoad) hasNewNotifications.value = true
 })
 
 onUnmounted(() => {
