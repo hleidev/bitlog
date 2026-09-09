@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import { storeToRefs } from 'pinia'
+import { useDropdown } from '@/composables/useDropdown'
+import { useNotificationStore } from '@/stores/useNotificationStore'
 import UserDropdown from '@/components/common/UserDropdown.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
@@ -11,9 +13,16 @@ const emit = defineEmits<{ toggle: [] }>()
 
 const route = useRoute()
 const userStore = useUserStore()
+const notificationStore = useNotificationStore()
 const { userInfo } = storeToRefs(userStore)
-
-const menuOpen = ref(false)
+const { unreadCount } = storeToRefs(notificationStore)
+const {
+  isOpen: menuOpen,
+  containerRef: menuRef,
+  triggerRef: menuTriggerRef,
+  close: closeMenu,
+  toggle: toggleMenu,
+} = useDropdown(route)
 
 const pageTitle = computed(() => route.meta.title ?? '')
 const parentTitle = computed(() => route.meta.parent ?? '')
@@ -50,8 +59,14 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 
     <div class="header-right">
       <ThemeToggle />
-      <div class="user-menu" @mouseenter="menuOpen = true" @mouseleave="menuOpen = false">
-        <button class="user-trigger">
+      <div ref="menuRef" class="user-menu">
+        <button
+          ref="menuTriggerRef"
+          class="user-trigger"
+          aria-haspopup="menu"
+          :aria-expanded="menuOpen"
+          @click="toggleMenu"
+        >
           <img
             v-if="userInfo?.avatar"
             :src="userInfo.avatar"
@@ -59,10 +74,11 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
             :alt="displayName"
           />
           <span v-else class="trigger-avatar trigger-avatar--placeholder">{{ avatarLetter }}</span>
+          <span v-if="unreadCount > 0" class="trigger-unread-dot" aria-hidden="true"></span>
         </button>
 
         <Transition name="dropdown">
-          <UserDropdown v-if="menuOpen" class="admin-user-dropdown" />
+          <UserDropdown v-if="menuOpen" class="admin-user-dropdown" @close="closeMenu" />
         </Transition>
       </div>
     </div>
@@ -155,6 +171,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 }
 
 .user-trigger {
+  position: relative;
   display: flex;
   align-items: center;
   padding: 4px;
@@ -188,6 +205,17 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
   color: var(--admin-text-on-accent);
   font-size: 12px;
   font-weight: 600;
+}
+
+.trigger-unread-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--admin-header-bg);
 }
 
 .admin-user-dropdown {

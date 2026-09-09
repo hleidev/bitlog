@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import {
   getCommentPage,
@@ -13,9 +13,10 @@ import { useModalStore } from '@/stores/useModalStore'
 import { useConfirm } from '@/composables/useConfirm'
 import { ApiError } from '@/utils/request'
 
-const props = defineProps<{ articleId: number }>()
+const props = defineProps<{ articleId: number; targetCommentId?: number }>()
 
 const PAGE_SIZE = 10
+const LOCATE_PAGE_SIZE = 100
 const MAX_LENGTH = 1000
 
 const userStore = useUserStore()
@@ -26,6 +27,7 @@ const confirm = useConfirm()
 const list = ref<CommentVO[]>([])
 const total = ref(0)
 const pageNum = ref(1)
+const pageSize = ref(PAGE_SIZE)
 const hasNext = ref(false)
 const loading = ref(true)
 const loadingMore = ref(false)
@@ -36,6 +38,10 @@ const replyDraft = ref('')
 const replyingTo = ref<number | null>(null)
 const submitting = ref(false)
 const feedback = ref('')
+const locationFeedback = ref('')
+const highlightedCommentId = ref<number | null>(null)
+let locationAttempted = false
+let highlightTimer: ReturnType<typeof setTimeout> | null = null
 
 const currentUserId = computed(() => userInfo.value?.userId ?? null)
 const remaining = computed(() => MAX_LENGTH - draft.value.length)
@@ -54,26 +60,116 @@ function isOwn(user: CommentUserVO | null) {
   return !!user && !!currentUserId.value && user.userId === currentUserId.value
 }
 
+let loadSeq = 0
 async function load(page = 1, append = false) {
+  const seq = ++loadSeq
+  const requestPageSize = append
+    ? pageSize.value
+    : props.targetCommentId
+      ? LOCATE_PAGE_SIZE
+      : PAGE_SIZE
   if (append) loadingMore.value = true
   else loading.value = true
+  let loaded = false
   try {
-    const res = await getCommentPage(props.articleId, { pageNum: page, pageSize: PAGE_SIZE })
+    const res = await getCommentPage(props.articleId, {
+      pageNum: page,
+      pageSize: requestPageSize,
+    })
+    if (seq !== loadSeq) return
     list.value = append ? [...list.value, ...res.content] : res.content
     total.value = res.totalElements
     hasNext.value = res.hasNext
     pageNum.value = page
+    if (!append) pageSize.value = requestPageSize
     failed.value = false
+    loaded = true
   } catch {
+    if (seq !== loadSeq) return
     if (!append) failed.value = true
   } finally {
-    loading.value = false
-    loadingMore.value = false
+    if (seq === loadSeq) {
+      loading.value = false
+      loadingMore.value = false
+    }
   }
+  if (loaded && seq === loadSeq) await syncTargetLocation(false, seq)
+}
+
+function resetLocation() {
+  locationAttempted = false
+  locationFeedback.value = ''
+  highlightedCommentId.value = null
+  if (highlightTimer) {
+    clearTimeout(highlightTimer)
+    highlightTimer = null
+  }
+}
+
+function hasComment(commentId: number) {
+  return list.value.some(
+    (root) => root.id === commentId || root.replies.some((reply) => reply.id === commentId),
+  )
+}
+
+async function syncTargetLocation(reloadIfMissing = false, loadSequence?: number) {
+  if (loadSequence !== undefined && loadSequence !== loadSeq) return
+  const commentId = props.targetCommentId
+  if (!commentId || locationAttempted) return
+
+  if (!hasComment(commentId) && reloadIfMissing) {
+    await load(1)
+    return
+  }
+
+  await locateComment(commentId, loadSequence)
+}
+
+async function locateComment(commentId: number, loadSequence?: number) {
+  if (!hasComment(commentId)) {
+    locationFeedback.value = '未在最新 100 条根评论中找到该评论，它可能已删除、不可见或较早。'
+    return
+  }
+
+  await nextTick()
+  if (loadSequence !== undefined && loadSequence !== loadSeq) return
+  if (props.targetCommentId !== commentId) return
+  const target = document.getElementById(`comment-${commentId}`)
+  if (!target) {
+    locationAttempted = false
+    locationFeedback.value = '该评论暂时无法定位，请稍后重试。'
+    return
+  }
+
+  locationAttempted = true
+  locationFeedback.value = ''
+  highlightedCommentId.value = commentId
+  if (highlightTimer) clearTimeout(highlightTimer)
+  highlightTimer = setTimeout(() => {
+    highlightedCommentId.value = null
+    highlightTimer = null
+  }, 3000)
+  const headerHeight = document.querySelector<HTMLElement>('.header')?.offsetHeight ?? 0
+  window.scrollTo({
+    top: Math.max(0, window.scrollY + target.getBoundingClientRect().top - headerHeight - 16),
+    behavior: 'smooth',
+  })
 }
 
 // 仅在客户端取数：评论不参与 SSG 预渲染，静态产物里始终是骨架
 onMounted(() => load())
+
+watch(
+  () => props.targetCommentId,
+  () => {
+    resetLocation()
+    void syncTargetLocation(true)
+  },
+)
+
+onUnmounted(() => {
+  if (highlightTimer) clearTimeout(highlightTimer)
+})
 
 function requireLogin() {
   modalStore.open('login')
@@ -155,6 +251,7 @@ async function remove(commentId: number) {
     </div>
 
     <p v-if="feedback" class="feedback">{{ feedback }}</p>
+    <p v-if="locationFeedback" class="state-text">{{ locationFeedback }}</p>
 
     <!-- 骨架 -->
     <div v-if="loading" class="sk-list" aria-hidden="true">
@@ -172,7 +269,13 @@ async function remove(commentId: number) {
 
     <!-- 列表 -->
     <ul v-else class="comment-list">
-      <li v-for="root in list" :key="root.id" class="comment-item">
+      <li
+        v-for="root in list"
+        :id="`comment-${root.id}`"
+        :key="root.id"
+        class="comment-item"
+        :class="{ 'is-located': highlightedCommentId === root.id }"
+      >
         <div class="comment" :class="{ 'is-removed': root.removed }">
           <template v-if="root.removed">
             <span class="tombstone-avatar" aria-hidden="true">—</span>
@@ -216,7 +319,13 @@ async function remove(commentId: number) {
 
         <!-- 楼中楼 -->
         <ul v-if="root.replies.length" class="reply-list">
-          <li v-for="reply in root.replies" :key="reply.id" class="reply">
+          <li
+            v-for="reply in root.replies"
+            :id="`comment-${reply.id}`"
+            :key="reply.id"
+            class="reply"
+            :class="{ 'is-located': highlightedCommentId === reply.id }"
+          >
             <img
               v-if="reply.user?.avatar"
               :src="reply.user.avatar"
@@ -427,6 +536,11 @@ async function remove(commentId: number) {
 .comment-item:first-child {
   border-top: none;
   padding-top: 0;
+}
+
+.comment-item.is-located,
+.reply.is-located {
+  background: var(--color-bg-hover);
 }
 
 .comment,

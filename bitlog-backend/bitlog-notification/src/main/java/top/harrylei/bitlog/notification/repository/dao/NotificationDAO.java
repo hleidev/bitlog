@@ -24,13 +24,15 @@ public class NotificationDAO extends ServiceImpl<NotificationMapper, Notificatio
      * 分页查询某收件人的通知
      *
      * @param recipientId 收件人 ID
+     * @param unreadOnly 是否只看未读通知
      * @param page 分页参数，排序由 BasePage 提供
      * @return 通知分页结果
      */
-    public IPage<NotificationDO> pageByRecipient(Long recipientId, Page<NotificationDO> page) {
+    public IPage<NotificationDO> pageByRecipient(Long recipientId, Boolean unreadOnly, Page<NotificationDO> page) {
         return lambdaQuery()
                 .eq(NotificationDO::getRecipientId, recipientId)
                 .eq(NotificationDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .isNull(Boolean.TRUE.equals(unreadOnly), NotificationDO::getReadTime)
                 .page(page);
     }
 
@@ -64,15 +66,17 @@ public class NotificationDAO extends ServiceImpl<NotificationMapper, Notificatio
     }
 
     /**
-     * 将某收件人名下全部未读通知标记为已读
+     * 将某收件人截至指定通知 ID（含边界）的未读通知标记为已读，传 null 时为全部
      *
      * @param recipientId 收件人 ID
+     * @param lastNotificationId 最后一条已展示的通知 ID
      * @return 受影响行数
      */
-    public int markAllRead(Long recipientId) {
+    public int markAllRead(Long recipientId, Long lastNotificationId) {
         LambdaUpdateWrapper<NotificationDO> wrapper = Wrappers.<NotificationDO>lambdaUpdate()
                 .eq(NotificationDO::getRecipientId, recipientId)
                 .isNull(NotificationDO::getReadTime)
+                .le(lastNotificationId != null, NotificationDO::getId, lastNotificationId)
                 .setSql("read_time = now()");
         return getBaseMapper().update(null, wrapper);
     }

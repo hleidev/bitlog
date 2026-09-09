@@ -64,7 +64,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public PageVO<NotificationVO> pageNotifications(Long userId, NotificationPageParam query) {
-        IPage<NotificationDO> page = notificationDAO.pageByRecipient(userId, query.toPage());
+        IPage<NotificationDO> page = notificationDAO.pageByRecipient(userId, query.getUnreadOnly(), query.toPage());
         List<NotificationDO> records = page.getRecords();
         if (records.isEmpty()) {
             return PageVO.of(page, List.of());
@@ -98,8 +98,8 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void markAllRead(Long userId) {
-        notificationDAO.markAllRead(userId);
+    public void markAllRead(Long userId, Long lastNotificationId) {
+        notificationDAO.markAllRead(userId, lastNotificationId);
     }
 
     private Map<Long, NotificationActorVO> loadActorMap(List<NotificationDO> notifications) {

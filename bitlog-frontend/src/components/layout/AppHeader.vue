@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { computed, ref, nextTick } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import { useDropdown } from '@/composables/useDropdown'
 import { useHeaderScroll } from '@/composables/useHeaderScroll'
 import { useTheme } from '@/composables/useTheme'
 import { useModalStore } from '@/stores/useModalStore'
@@ -15,15 +16,25 @@ const { isDark, setTheme } = useTheme()
 const modalStore = useModalStore()
 const notificationStore = useNotificationStore()
 const userStore = useUserStore()
+const route = useRoute()
 const router = useRouter()
 const { userInfo, isLoggedIn, sessionInitialized } = storeToRefs(userStore)
 const { unreadCount } = storeToRefs(notificationStore)
 
 const mobileMenuOpen = ref(false)
-const dropdownOpen = ref(false)
 const searchOpen = ref(false)
 const searchKeyword = ref('')
 const searchInputRef = ref<HTMLInputElement | null>(null)
+const {
+  isOpen: dropdownOpen,
+  containerRef: dropdownRef,
+  triggerRef: dropdownTriggerRef,
+  close: closeDropdown,
+  toggle: toggleDropdown,
+} = useDropdown(route)
+const mobileUnreadLabel = computed(() =>
+  unreadCount.value > 99 ? '99+' : String(unreadCount.value),
+)
 
 const openSearch = async () => {
   searchOpen.value = true
@@ -47,28 +58,6 @@ const handleMobileLogin = () => {
   modalStore.open('login')
   mobileMenuOpen.value = false
 }
-
-let stopLoginWatch: (() => void) | undefined
-
-onMounted(() => {
-  stopLoginWatch = watch(
-    isLoggedIn,
-    (loggedIn) => {
-      if (loggedIn) {
-        notificationStore.startPolling()
-        return
-      }
-      notificationStore.stopPolling()
-      void notificationStore.refreshUnread()
-    },
-    { immediate: true },
-  )
-})
-
-onUnmounted(() => {
-  stopLoginWatch?.()
-  notificationStore.stopPolling()
-})
 </script>
 
 <template>
@@ -147,15 +136,14 @@ onUnmounted(() => {
             >
               登录
             </button>
-            <div
-              v-else
-              class="header__user"
-              @mouseenter="dropdownOpen = true"
-              @mouseleave="dropdownOpen = false"
-            >
+            <div v-else ref="dropdownRef" class="header__user">
               <button
+                ref="dropdownTriggerRef"
                 class="header__avatar-btn"
                 :aria-label="unreadCount > 0 ? '用户菜单，有未读通知' : '用户菜单'"
+                aria-haspopup="menu"
+                :aria-expanded="dropdownOpen"
+                @click="toggleDropdown"
               >
                 <img
                   v-if="userInfo?.avatar"
@@ -169,7 +157,12 @@ onUnmounted(() => {
                 <span v-if="unreadCount > 0" class="header__unread-dot" aria-hidden="true"></span>
               </button>
               <Transition name="dropdown">
-                <UserDropdown v-if="dropdownOpen" show-admin-links class="header__dropdown" />
+                <UserDropdown
+                  v-if="dropdownOpen"
+                  show-admin-links
+                  class="header__dropdown"
+                  @close="closeDropdown"
+                />
               </Transition>
             </div>
           </div>
@@ -197,6 +190,22 @@ onUnmounted(() => {
         >
         <RouterLink to="/friends" class="mobile-drawer__link" @click="mobileMenuOpen = false"
           >友链</RouterLink
+        >
+        <RouterLink
+          v-if="isLoggedIn"
+          to="/notifications"
+          class="mobile-drawer__link"
+          @click="mobileMenuOpen = false"
+        >
+          通知
+          <span v-if="unreadCount > 0" class="mobile-drawer__unread">{{ mobileUnreadLabel }}</span>
+        </RouterLink>
+        <RouterLink
+          v-if="isLoggedIn"
+          to="/admin/profile"
+          class="mobile-drawer__link"
+          @click="mobileMenuOpen = false"
+          >个人资料</RouterLink
         >
         <div class="mobile-theme-row">
           <button
@@ -624,6 +633,18 @@ onUnmounted(() => {
 
 .mobile-drawer__link:hover {
   color: var(--color-accent);
+}
+
+.mobile-drawer__unread {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
 }
 
 .mobile-drawer__actions {

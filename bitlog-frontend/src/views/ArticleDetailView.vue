@@ -17,6 +17,13 @@ import RelatedArticles from '@/components/RelatedArticles.vue'
 const router = useRouter()
 const route = useRoute()
 
+const targetCommentId = computed(() => {
+  const comment = route.query.comment
+  if (typeof comment !== 'string' || !/^[1-9]\d*$/.test(comment)) return undefined
+  const id = Number(comment)
+  return Number.isSafeInteger(id) ? id : undefined
+})
+
 const { isAdmin, userInfo } = storeToRefs(useUserStore())
 
 const article = ref<ArticleDetailVO | null>(null)
@@ -269,7 +276,7 @@ onUnmounted(() => {
             <span class="section-label">评论</span>
             <div class="section-rule"></div>
           </div>
-          <CommentSection :article-id="article.id" />
+          <CommentSection :article-id="article.id" :target-comment-id="targetCommentId" />
         </div>
       </article>
     </div>
