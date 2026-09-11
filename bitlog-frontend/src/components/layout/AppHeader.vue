@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, nextTick } from 'vue'
+import { computed, ref, nextTick, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useDropdown } from '@/composables/useDropdown'
-import { useHeaderScroll } from '@/composables/useHeaderScroll'
 import { useTheme } from '@/composables/useTheme'
 import { useModalStore } from '@/stores/useModalStore'
 import { useNotificationStore } from '@/stores/useNotificationStore'
@@ -11,7 +10,6 @@ import { useUserStore } from '@/stores/useUserStore'
 import UserDropdown from '@/components/common/UserDropdown.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
-const { isScrolled } = useHeaderScroll()
 const { isDark, setTheme } = useTheme()
 const modalStore = useModalStore()
 const notificationStore = useNotificationStore()
@@ -20,11 +18,34 @@ const route = useRoute()
 const router = useRouter()
 const { userInfo, isLoggedIn, sessionInitialized } = storeToRefs(userStore)
 const { unreadCount } = storeToRefs(notificationStore)
+const avatarFailed = ref(false)
+watch(
+  () => userInfo.value?.avatar,
+  () => {
+    avatarFailed.value = false
+  },
+)
 
 const mobileMenuOpen = ref(false)
+const menuTriggerRef = ref<HTMLButtonElement | null>(null)
+
+function closeMobileMenu() {
+  if (!mobileMenuOpen.value) return
+  mobileMenuOpen.value = false
+  menuTriggerRef.value?.focus({ preventScroll: true })
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    mobileMenuOpen.value = false
+    closeSearch()
+  },
+)
 const searchOpen = ref(false)
 const searchKeyword = ref('')
 const searchInputRef = ref<HTMLInputElement | null>(null)
+const searchTriggerRef = ref<HTMLButtonElement | null>(null)
 const {
   isOpen: dropdownOpen,
   containerRef: dropdownRef,
@@ -37,6 +58,8 @@ const mobileUnreadLabel = computed(() =>
 )
 
 const openSearch = async () => {
+  mobileMenuOpen.value = false
+  closeDropdown()
   searchOpen.value = true
   await nextTick()
   searchInputRef.value?.focus()
@@ -47,6 +70,17 @@ const closeSearch = () => {
   searchKeyword.value = ''
 }
 
+const dismissSearch = async () => {
+  closeSearch()
+  await nextTick()
+  searchTriggerRef.value?.focus({ preventScroll: true })
+}
+
+const handleEscape = () => {
+  if (searchOpen.value) void dismissSearch()
+  else closeMobileMenu()
+}
+
 const doSearch = () => {
   const kw = searchKeyword.value.trim()
   if (!kw) return
@@ -54,14 +88,19 @@ const doSearch = () => {
   closeSearch()
 }
 
-const handleMobileLogin = () => {
+const handleMobileLogin = async () => {
+  closeMobileMenu()
+  await nextTick()
   modalStore.open('login')
-  mobileMenuOpen.value = false
 }
 </script>
 
 <template>
-  <header class="header" :class="{ 'header--scrolled': isScrolled, 'header--search': searchOpen }">
+  <header
+    class="header header--scrolled"
+    :class="{ 'header--search': searchOpen }"
+    @keydown.esc="handleEscape"
+  >
     <div class="header__inner">
       <!-- Search mode -->
       <div v-if="searchOpen" class="header__search-mode">
@@ -80,11 +119,11 @@ const handleMobileLogin = () => {
           ref="searchInputRef"
           v-model="searchKeyword"
           class="header__search-input"
-          placeholder="搜索文章..."
+          placeholder="搜索文章…"
+          aria-label="搜索文章"
           @keyup.enter="doSearch"
-          @keyup.escape="closeSearch"
         />
-        <button class="header__search-close" aria-label="关闭搜索" @click="closeSearch">
+        <button class="header__search-close" aria-label="关闭搜索" @click="dismissSearch">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
@@ -95,18 +134,25 @@ const handleMobileLogin = () => {
       <!-- Normal mode -->
       <template v-else>
         <RouterLink to="/" class="header__logo">
-          <img src="@/assets/images/logo.png" class="header__logo-icon" alt="Bitlog Logo" />
-          <span class="header__logo-text">BitLog</span>
+          <span class="header__logo-icon" aria-hidden="true">b.</span>
+          <span class="header__logo-text"
+            >BitLog<span class="header__logo-caption">随写随记</span></span
+          >
         </RouterLink>
 
-        <nav class="header__nav">
+        <nav class="header__nav" aria-label="主导航">
           <RouterLink to="/" class="header__nav-link">首页</RouterLink>
           <RouterLink to="/articles" class="header__nav-link">文章</RouterLink>
           <RouterLink to="/friends" class="header__nav-link">友链</RouterLink>
         </nav>
 
         <div class="header__actions">
-          <button class="header__search-btn" aria-label="搜索" @click="openSearch">
+          <button
+            ref="searchTriggerRef"
+            class="header__search-btn"
+            aria-label="搜索"
+            @click="openSearch"
+          >
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -143,13 +189,15 @@ const handleMobileLogin = () => {
                 :aria-label="unreadCount > 0 ? '用户菜单，有未读通知' : '用户菜单'"
                 aria-haspopup="menu"
                 :aria-expanded="dropdownOpen"
+                :aria-controls="dropdownOpen ? 'site-account-menu' : undefined"
                 @click="toggleDropdown"
               >
                 <img
-                  v-if="userInfo?.avatar"
+                  v-if="userInfo?.avatar && !avatarFailed"
                   :src="userInfo.avatar"
                   class="header__avatar"
                   :alt="userInfo?.username"
+                  @error="avatarFailed = true"
                 />
                 <span v-else class="header__avatar header__avatar--placeholder">
                   {{ userInfo?.username?.[0]?.toUpperCase() ?? '?' }}
@@ -159,6 +207,7 @@ const handleMobileLogin = () => {
               <Transition name="dropdown">
                 <UserDropdown
                   v-if="dropdownOpen"
+                  id="site-account-menu"
                   show-admin-links
                   class="header__dropdown"
                   @close="closeDropdown"
@@ -170,8 +219,11 @@ const handleMobileLogin = () => {
 
         <!-- Mobile hamburger -->
         <button
+          ref="menuTriggerRef"
           class="header__hamburger"
           aria-label="菜单"
+          aria-controls="mobile-navigation"
+          :aria-expanded="mobileMenuOpen"
           @click="mobileMenuOpen = !mobileMenuOpen"
         >
           <span></span><span></span><span></span>
@@ -180,7 +232,12 @@ const handleMobileLogin = () => {
     </div>
 
     <!-- Mobile drawer -->
-    <div class="mobile-drawer" :class="{ 'mobile-drawer--open': mobileMenuOpen }">
+    <div
+      id="mobile-navigation"
+      class="mobile-drawer"
+      :class="{ 'mobile-drawer--open': mobileMenuOpen }"
+      :inert="!mobileMenuOpen"
+    >
       <nav class="mobile-drawer__nav">
         <RouterLink to="/" class="mobile-drawer__link" @click="mobileMenuOpen = false"
           >首页</RouterLink
@@ -237,500 +294,349 @@ const handleMobileLogin = () => {
         <button v-if="!isLoggedIn" class="mobile-login-btn" @click="handleMobileLogin">登录</button>
       </div>
     </div>
-    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="closeMobileMenu"></div>
   </header>
 </template>
 
 <style scoped>
 .header {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: var(--scrollbar-width, 0px);
+  inset: 0 var(--scrollbar-width, 0px) auto 0;
   height: var(--spacing-header-height);
   z-index: 1000;
-  transition:
-    background var(--transition-header),
-    border-color var(--transition-header);
-  border-bottom: 1px solid transparent;
+  background: rgba(var(--color-bg-rgb), 0.96);
+  border-bottom: 1px solid var(--color-border);
+  backdrop-filter: blur(16px);
 }
-
-.header--scrolled {
-  background: rgba(var(--color-bg-rgb), 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom-color: var(--color-border);
-}
-
 .header__inner {
   height: 100%;
   max-width: var(--spacing-container);
   margin: 0 auto;
   display: flex;
   align-items: center;
-  position: relative;
-  padding: 0 48px;
+  gap: 32px;
+  padding: 0 var(--spacing-page-padding);
 }
-
 .header__logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 12px;
+  flex: none;
 }
-
 .header__logo-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
-  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: var(--journal-blue);
+  color: white;
+  font: italic 30px/1 var(--font-editorial);
+  padding: 0 5px 5px 0;
 }
-
 .header__logo-text {
-  font-family: var(--font-serif);
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--color-text-on-dark);
-  transition: color var(--transition-header);
+  font: 600 23px/1 var(--font-editorial);
+  letter-spacing: -0.04em;
+  display: flex;
+  align-items: center;
+  gap: 18px;
 }
-
-.header--scrolled .header__logo-text {
-  color: var(--color-text-primary);
+.header__logo-caption {
+  font: 12px var(--font-sans);
+  letter-spacing: 0.14em;
+  color: var(--color-text-muted);
+  padding-left: 18px;
+  border-left: 1px solid var(--color-border-strong);
 }
-
 .header__nav {
   display: flex;
   align-items: center;
-  gap: 36px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  gap: 32px;
+  margin-left: auto;
+  height: 100%;
 }
-
 .header__nav-link {
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  color: rgba(var(--color-on-dark-rgb), 0.7);
-  padding-bottom: 1px;
-  background-image: linear-gradient(var(--color-accent), var(--color-accent));
-  background-repeat: no-repeat;
-  background-size: 0% 1px;
-  background-position: left bottom;
-  transition:
-    color var(--transition-header),
-    background-size var(--transition-sweep);
-}
-
-.header--scrolled .header__nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  font-size: 14px;
   color: var(--color-text-secondary);
 }
-
-.header__nav-link:hover {
-  background-size: 100% 1px;
+.header__nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transition: transform 0.2s;
 }
-
+.header__nav-link:hover,
 .header__nav-link.router-link-exact-active {
-  color: var(--color-text-on-dark);
-  background-size: 100% 1px;
+  color: var(--color-accent);
 }
-
-.header--scrolled .header__nav-link.router-link-exact-active {
-  color: var(--color-text-primary);
+.header__nav-link.router-link-exact-active::after {
+  transform: scaleX(1);
 }
-
 .header__actions {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-left: auto;
+  gap: 14px;
+  padding-left: 24px;
+  border-left: 1px solid var(--color-border);
 }
-
-.header__search-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  color: rgba(var(--color-on-dark-rgb), 0.7);
-  transition:
-    color var(--transition-header),
-    opacity var(--transition-base);
-  flex-shrink: 0;
-}
-
-.header__search-btn svg {
-  width: 17px;
-  height: 17px;
-}
-
-.header__search-btn:hover {
-  opacity: 0.65;
-}
-
-.header--scrolled .header__search-btn {
+.header__search-btn,
+.header__search-close {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
   color: var(--color-text-secondary);
+  flex: none;
 }
-
-/* Search mode */
-.header--search {
-  background: rgba(var(--color-bg-rgb), 0.96) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom-color: var(--color-border) !important;
+.header__search-btn svg,
+.header__search-close svg {
+  width: 18px;
+  height: 18px;
 }
-
+.header__search-btn:hover,
+.header__search-close:hover {
+  color: var(--color-accent);
+  background: var(--color-bg-hover);
+}
 .header__search-mode {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 20px;
   width: 100%;
-  max-width: 640px;
-  margin: 0 auto;
 }
-
-.header__search-mode svg {
-  width: 17px;
-  height: 17px;
-  flex-shrink: 0;
-  color: var(--color-text-muted);
+.header__search-mode > svg {
+  width: 20px;
+  height: 20px;
+  color: var(--color-accent);
+  flex: none;
 }
-
 .header__search-input {
-  flex: 1;
   background: transparent;
   border: none;
-  outline: none;
-  font-size: 15px;
+  flex: 1;
+  min-width: 0;
   color: var(--color-text-primary);
-  font-family: var(--font-sans);
+  font: 16px var(--font-sans);
 }
-
 .header__search-input::placeholder {
-  color: var(--color-text-faint);
-}
-
-.header__search-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
   color: var(--color-text-muted);
-  flex-shrink: 0;
-  transition: color var(--transition-base);
 }
-
-.header__search-close:hover {
+.header__login-btn {
+  border: 1px solid var(--color-border-strong);
+  padding: 6px 16px;
+  min-height: 36px;
+  font-size: 13px;
   color: var(--color-text-primary);
 }
-
-.header__search-close svg {
-  width: 15px;
-  height: 15px;
+.header__login-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
-
-.header__login-btn {
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  flex-shrink: 0;
-  padding: 5px 14px;
-  border-radius: 4px;
-  border: 1px solid rgba(var(--color-on-dark-rgb), 0.35);
-  background: transparent;
-  color: rgba(var(--color-on-dark-rgb), 0.85);
-  transition: all var(--transition-base);
-  font-family: var(--font-sans);
-  cursor: pointer;
-}
-
 .header__auth-slot {
   min-width: 60px;
   display: flex;
-  align-items: center;
   justify-content: flex-end;
 }
-
-/* 上次登录过：直接按头像尺寸留位，登录后头像左侧不会多出空当 */
-[data-session='restoring'] .header__auth-slot {
-  min-width: 0;
-}
-
 .header__auth-placeholder {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(var(--color-on-dark-rgb), 0.14);
-  animation:
-    auth-placeholder-in 160ms ease-out 200ms both,
-    auth-placeholder-pulse 1.4s ease-in-out 360ms infinite;
-}
-
-.header--scrolled .header__auth-placeholder {
   background: var(--color-bg-hover);
 }
-
-@keyframes auth-placeholder-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes auth-placeholder-pulse {
-  50% {
-    opacity: 0.55;
-  }
-}
-
-.header__login-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.header--scrolled .header__login-btn {
-  border-color: var(--color-border);
-  color: var(--color-text-secondary);
-}
-
-.header--scrolled .header__login-btn:hover {
-  background: var(--color-bg-hover);
-  border-color: var(--color-text-muted);
-  color: var(--color-text-primary);
-}
-
-.header__user {
-  position: relative;
-}
-
+.header__user,
 .header__avatar-btn {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: opacity var(--transition-base);
 }
-
+.header__avatar-btn {
+  display: block;
+  padding: 4px;
+  border-radius: 50%;
+}
+.header__avatar-btn:hover,
+.header__avatar-btn[aria-expanded='true'] {
+  background: var(--color-bg-hover);
+}
+.header__avatar-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.header__avatar {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.header__avatar--placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-size: 14px;
+}
 .header__unread-dot {
   position: absolute;
   top: -1px;
   right: -1px;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--color-accent);
   box-shadow: 0 0 0 2px var(--color-bg);
 }
-
-.header__avatar-btn:hover {
-  opacity: 0.85;
-}
-
-.header__avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
-}
-
-.header__avatar--placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .header__dropdown {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 16px);
   right: 0;
   z-index: 1001;
 }
-
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
-
-/* Hamburger */
 .header__hamburger {
   display: none;
+  width: 40px;
+  height: 40px;
+  padding: 9px;
   flex-direction: column;
   justify-content: center;
   gap: 5px;
-  width: 36px;
-  height: 36px;
-  margin-left: auto;
-  padding: 4px;
 }
-
 .header__hamburger span {
   display: block;
   width: 22px;
   height: 1.5px;
-  background: rgba(var(--color-on-dark-rgb), 0.85);
-  transition: all 0.3s ease;
-  transform-origin: center;
-}
-
-.header--scrolled .header__hamburger span {
   background: var(--color-text-primary);
+  transition: transform 0.2s;
 }
-
-/* Mobile Drawer */
+.header__hamburger[aria-expanded='true'] span:first-child {
+  transform: translateY(6.5px) rotate(45deg);
+}
+.header__hamburger[aria-expanded='true'] span:nth-child(2) {
+  opacity: 0;
+}
+.header__hamburger[aria-expanded='true'] span:last-child {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
 .mobile-drawer {
   position: fixed;
-  top: 0;
+  top: var(--spacing-header-height);
   right: 0;
-  width: 260px;
-  height: 100vh;
-  background: var(--color-bg-card);
-  border-left: 1px solid var(--color-border);
-  padding: 80px 24px 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  width: min(360px, 100vw);
+  max-height: calc(100dvh - var(--spacing-header-height));
+  overflow-y: auto;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-top: none;
+  padding: 24px;
+  z-index: 1001;
+  visibility: hidden;
   transform: translateX(100%);
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 999;
+  transition:
+    transform 0.25s,
+    visibility 0.25s;
 }
-
 .mobile-drawer--open {
-  transform: translateX(0);
+  visibility: visible;
+  transform: none;
 }
-
 .mobile-drawer__nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
-
 .mobile-drawer__link {
-  font-size: 16px;
-  color: var(--color-text-primary);
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
-  transition: color var(--transition-base);
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 18px;
 }
-
-.mobile-drawer__link:hover {
+.mobile-drawer__link.router-link-exact-active {
   color: var(--color-accent);
 }
-
 .mobile-drawer__unread {
-  margin-left: auto;
-  min-width: 20px;
-  padding: 1px 6px;
-  border-radius: 10px;
+  padding: 2px 8px;
   background: var(--color-accent);
   color: var(--color-text-on-accent);
-  font-size: 11px;
-  line-height: 16px;
-  text-align: center;
+  font-size: 12px;
+  border-radius: 20px;
 }
-
-.mobile-drawer__actions {
-  margin-top: auto;
-}
-
-.mobile-login-btn {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  border-radius: 4px;
-  border: 1px solid var(--color-border);
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  text-align: center;
-  background: transparent;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  transition: all var(--transition-base);
-}
-
-.mobile-login-btn:hover {
-  background: var(--color-bg-hover);
-  border-color: var(--color-text-muted);
-  color: var(--color-text-primary);
-}
-
-/* ── Mobile theme options ── */
-.mobile-theme-row {
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid var(--color-border);
-}
-
 .mobile-theme-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  font-size: 15px;
-  font-family: var(--font-sans);
-  color: var(--color-text-muted);
-  background: transparent;
-  cursor: pointer;
-  text-align: left;
-  transition: color var(--transition-base);
+  gap: 12px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  padding: 18px 0;
 }
-
 .mobile-theme-btn svg {
-  width: 17px;
-  height: 17px;
-  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
 }
-
-.mobile-theme-btn:hover {
-  color: var(--color-text-primary);
+.mobile-login-btn {
+  width: 100%;
+  background: var(--color-text-primary);
+  color: var(--color-bg);
+  padding: 12px;
+  font-size: 14px;
 }
-.mobile-theme-btn--active {
-  color: var(--color-accent);
-}
-
-/* 同上：.mobile-theme-btn:hover(0,2,0) 特异性更高，不覆盖会让选中项失去高亮 */
-.mobile-theme-btn--active:hover {
-  color: var(--color-accent-dark);
-}
-
 .mobile-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 998;
+  inset: var(--spacing-header-height) 0 0;
+  height: 100dvh;
+  background: rgb(0 0 0 / 24%);
+  z-index: 1000;
 }
-
-@media (max-width: 768px) {
-  .header {
-    height: 56px;
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+@media (max-width: 960px) {
+  .header__logo-caption {
+    display: none;
   }
   .header__inner {
-    padding: 0 20px;
+    gap: 24px;
+  }
+}
+@media (max-width: 768px) {
+  .header__inner {
+    gap: 8px;
   }
   .header__nav,
-  .header__actions {
+  .header__auth-slot {
     display: none;
+  }
+  .header__actions {
+    margin-left: auto;
+    border: none;
+    padding: 0;
+    gap: 4px;
   }
   .header__hamburger {
     display: flex;
+    flex: none;
+  }
+  .header__logo-text {
+    font-size: 22px;
+  }
+}
+@media (min-width: 769px) {
+  .mobile-drawer,
+  .mobile-overlay {
+    display: none;
   }
 }
 </style>

@@ -9,7 +9,7 @@ export const routes: RouteRecordRaw[] = [
     path: '/',
     component: () => import('@/layouts/PublicLayout.vue'),
     children: [
-      { path: '', component: () => import('@/views/HomeView.vue'), meta: { darkTop: true } },
+      { path: '', component: () => import('@/views/HomeView.vue') },
       { path: 'articles', component: () => import('@/views/ArticleListView.vue') },
       { path: 'article/:id(\\d+)', component: () => import('@/views/ArticleDetailView.vue') },
       { path: 'friends', component: () => import('@/views/FriendsView.vue') },
@@ -45,12 +45,12 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'dashboard',
         component: () => import('@/admin/views/DashboardView.vue'),
-        meta: { title: '仪表盘' },
+        meta: { title: '工作台' },
       },
       {
         path: 'articles',
         component: () => import('@/admin/views/ArticlesView.vue'),
-        meta: { title: '文章管理', parent: '文章', requiresAdmin: true },
+        meta: { title: '文章', requiresAdmin: true },
       },
       {
         path: 'write',
@@ -65,12 +65,12 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'categories',
         component: () => import('@/admin/views/CategoriesView.vue'),
-        meta: { title: '分类管理', parent: '文章', requiresAdmin: true },
+        meta: { title: '分类', parent: '文章', requiresAdmin: true },
       },
       {
         path: 'tags',
         component: () => import('@/admin/views/TagsView.vue'),
-        meta: { title: '标签管理', parent: '文章', requiresAdmin: true },
+        meta: { title: '标签', parent: '文章', requiresAdmin: true },
       },
       {
         path: 'comments',
@@ -85,7 +85,7 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'users',
         component: () => import('@/admin/views/UsersView.vue'),
-        meta: { title: '用户管理', parent: '用户', requiresAdmin: true },
+        meta: { title: '用户', requiresAdmin: true },
       },
       {
         path: 'users/add',
@@ -95,7 +95,7 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'profile',
         component: () => import('@/admin/views/ProfileView.vue'),
-        meta: { title: '个人资料', parent: '用户' },
+        meta: { title: '个人资料' },
       },
       {
         path: ':pathMatch(.*)*',

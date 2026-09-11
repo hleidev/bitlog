@@ -69,9 +69,11 @@ export const createApp = ViteSSG(App, { routes, scrollBehavior }, ({ app, router
 const API_BASE = 'https://api.harrylei.top/api'
 
 export async function includedRoutes(paths: string[]) {
-  const staticPaths = paths.filter(
-    (p) => !p.startsWith('/admin') && !p.includes(':') && !p.includes('*'),
-  )
+  // 根布局的子路由可能被展开为相对路径。SSG 会导航两次，auth/callback
+  // 第二次会相对当前目录变成 /auth/auth/callback，必须先统一为绝对路径。
+  const staticPaths = paths
+    .map((path) => (path.startsWith('/') ? path : `/${path}`))
+    .filter((path) => !path.startsWith('/admin') && !path.includes(':') && !path.includes('*'))
 
   const articlePaths: string[] = []
   try {
@@ -91,5 +93,5 @@ export async function includedRoutes(paths: string[]) {
     console.warn('[ssg] prerendering static pages only')
   }
 
-  return [...staticPaths, ...articlePaths]
+  return [...new Set([...staticPaths, ...articlePaths])]
 }

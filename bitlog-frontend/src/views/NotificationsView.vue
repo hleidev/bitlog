@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { useHead } from '@unhead/vue'
 import {
   getNotificationPage,
   NOTIFICATION_TYPE,
@@ -11,6 +12,8 @@ import {
 import { useListQuery } from '@/composables/useListQuery'
 import { useNotificationStore } from '@/stores/useNotificationStore'
 import { formatRelativeTime } from '@/utils/format'
+
+useHead({ title: '通知 | BitLog', meta: [{ name: 'robots', content: 'noindex' }] })
 
 interface DisplayNotification {
   item: NotificationVO
@@ -236,6 +239,11 @@ async function handleMarkAllRead(): Promise<void> {
   }
 }
 
+function scrollToTop(): void {
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' })
+}
+
 function loadNewNotifications(): void {
   hasNewNotifications.value = false
   if (pageNum.value === 1) {
@@ -243,7 +251,7 @@ function loadNewNotifications(): void {
   } else {
     query.goPage(1)
   }
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  scrollToTop()
 }
 
 function selectFilter(unreadOnly: 0 | 1): void {
@@ -259,7 +267,7 @@ function changePage(page: number): void {
   if (page < pageNum.value && !hasPrevious.value) return
   if (page > pageNum.value && !hasNext.value) return
   query.goPage(page)
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  scrollToTop()
 }
 
 onMounted(async () => {
@@ -283,8 +291,11 @@ onUnmounted(() => {
 <template>
   <div class="notifications-page page-state">
     <main class="notifications-main">
-      <header class="page-head">
-        <h1 class="page-title">通知</h1>
+      <header class="journal-page-head">
+        <div>
+          <span class="journal-kicker">THE INBOX</span>
+          <h1>通知<span class="inbox-dot">.</span></h1>
+        </div>
         <button
           class="mark-all"
           type="button"
@@ -438,23 +449,20 @@ onUnmounted(() => {
 
 <style scoped>
 .notifications-main {
-  max-width: var(--spacing-prose);
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 72px var(--spacing-page-padding) 120px;
+  padding: var(--spacing-header-height) var(--spacing-page-padding) 100px;
 }
 
-.page-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 40px;
+.inbox-dot {
+  color: var(--color-accent);
 }
 
 .notification-filters {
   display: flex;
   gap: 20px;
-  margin: -20px 0 28px;
+  margin: 0 0 24px;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .notification-filter,
@@ -469,7 +477,14 @@ onUnmounted(() => {
 }
 
 .notification-filter {
-  font-size: 13px;
+  min-height: 48px;
+  padding: 8px 16px;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+}
+
+.notification-filter--active {
+  border-bottom-color: var(--color-accent);
 }
 
 .notification-filter--active,
@@ -477,14 +492,6 @@ onUnmounted(() => {
 .retry-button:hover,
 .mark-read:hover {
   color: var(--color-accent);
-}
-
-.page-title {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: 32px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
 }
 
 .mark-all {
@@ -503,14 +510,14 @@ onUnmounted(() => {
 }
 
 .mark-all:disabled {
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   cursor: not-allowed;
 }
 
 .operation-error {
   margin: -20px 0 24px;
   color: var(--color-danger-on-soft);
-  font-size: 12.5px;
+  font-size: 14px;
   text-align: right;
 }
 
@@ -557,7 +564,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 14px;
   width: 100%;
-  padding: 18px 12px 18px 0;
+  padding: 24px 12px 24px 0;
   color: var(--color-text-primary);
   font-family: var(--font-sans);
   text-align: left;
@@ -630,7 +637,7 @@ onUnmounted(() => {
   font-weight: 500;
   line-height: 1.5;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .notification-detail {
@@ -662,8 +669,8 @@ onUnmounted(() => {
 }
 
 .notification-time {
-  color: var(--color-text-faint);
-  font-size: 11.5px;
+  color: var(--color-text-muted);
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -720,17 +727,13 @@ onUnmounted(() => {
 
 .page-ellipsis {
   padding: 0 4px;
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   user-select: none;
 }
 
 @media (max-width: 768px) {
   .notifications-main {
-    padding: 48px 20px 80px;
-  }
-
-  .page-head {
-    margin-bottom: 32px;
+    padding: var(--spacing-header-height) var(--spacing-page-padding) 64px;
   }
 
   .notification-row {

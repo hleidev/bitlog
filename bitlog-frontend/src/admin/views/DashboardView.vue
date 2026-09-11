@@ -1,497 +1,627 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { RouterLink, type RouteLocationRaw } from 'vue-router'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/useUserStore'
-import { useToast } from '@/admin/composables/useToast'
 import {
   getMyArticles,
   getMyArticleStats,
   type ArticleCounts,
   type ArticleVO,
 } from '@/api/admin/article'
-import { getCommentStats } from '@/api/admin/comment'
+import { getAdminLinkStats, type FriendLinkStats } from '@/api/admin/link'
+import { getAdminCommentPage, type CommentAdmin } from '@/api/admin/comment'
+import { articleStateLabel, hasUnpublishedChanges } from '@/admin/utils/articleState'
 import { formatDate } from '@/utils/format'
-import AdminEmptyState from '@/admin/components/AdminEmptyState.vue'
+import AdminIcon from '@/admin/components/AdminIcon.vue'
 
-const RECENT_LIMIT = 5
+const { isAdmin, userInfo } = storeToRefs(useUserStore())
+const loading = ref(false)
+const recent = ref<ArticleVO[] | null>(null)
+const drafts = ref<ArticleVO[] | null>(null)
+const counts = ref<ArticleCounts | null>(null)
+const links = ref<FriendLinkStats | null>(null)
+const comments = ref<CommentAdmin[] | null>(null)
+const today = new Intl.DateTimeFormat('zh-CN', {
+  month: 'long',
+  day: 'numeric',
+  weekday: 'long',
+}).format(new Date())
+const hasError = computed(
+  () =>
+    !loading.value &&
+    [recent.value, drafts.value, counts.value, links.value, comments.value].some((v) => v === null),
+)
+const stats = computed(() => [
+  { label: '全部文章', value: counts.value?.total, tab: 'all' },
+  { label: '已发布', value: counts.value?.published, tab: 'published' },
+  { label: '未发布', value: counts.value?.draft, tab: 'draft' },
+])
+let requestId = 0
 
-const ICON_ALL =
-  'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z'
-const ICON_PUBLISHED =
-  'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'
-const ICON_DRAFT =
-  'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'
-const ICON_COMMENT =
-  'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z'
-
-const toast = useToast()
-const { isAdmin } = storeToRefs(useUserStore())
-
-const loading = ref(true)
-// 取数失败必须和「确实没有文章」区分开：统计卡是以事实姿态呈现的数字，
-// 失败时若沿用初始值就会显示三个 0，等于安静地谎报「你一篇文章都没有」。
-const loadFailed = ref(false)
-const counts = ref<ArticleCounts>({ total: 0, published: 0, draft: 0 })
-const recent = ref<ArticleVO[]>([])
-
-// 评论总数走独立请求（接口仅管理员可用），失败与文章统计分开标记，避免互相污染
-const commentTotal = ref(0)
-const commentLoading = ref(true)
-const commentFailed = ref(false)
-
-// 统计与列表分属两个接口：/article/my 只返回标准 PageResult，计数走 /article/my/stats。
-// 两者无依赖，并发发出。排序下推到后端：只拿回 RECENT_LIMIT 条，前端重排无效。
-onMounted(async () => {
-  // 文章与评论接口均仅管理员可用，非管理员直接跳过取数
+async function loadDashboard() {
+  const id = ++requestId
+  recent.value = null
+  drafts.value = null
+  counts.value = null
+  links.value = null
+  comments.value = null
   if (!isAdmin.value) {
     loading.value = false
-    commentLoading.value = false
     return
   }
-
-  try {
-    const [articleStats, page] = await Promise.all([
-      getMyArticleStats(),
-      getMyArticles({ pageNum: 1, pageSize: RECENT_LIMIT, sortField: 'DISPLAY_TIME' }),
-    ])
-    counts.value = articleStats
-    recent.value = page.content
-  } catch {
-    loadFailed.value = true
-    toast.error('加载仪表盘数据失败')
-  } finally {
-    loading.value = false
-  }
-
-  try {
-    commentTotal.value = (await getCommentStats()).total
-  } catch {
-    commentFailed.value = true
-  } finally {
-    commentLoading.value = false
-  }
+  loading.value = true
+  // 每区独立取数，一项失败不把其他区域伪装为空数据。
+  const results = await Promise.allSettled([
+    getMyArticles({ pageNum: 1, pageSize: 8, sortField: 'UPDATE_TIME' }),
+    getMyArticles({ pageNum: 1, pageSize: 3, status: 'DRAFT', sortField: 'UPDATE_TIME' }),
+    getMyArticleStats(),
+    getAdminLinkStats(),
+    getAdminCommentPage({ pageNum: 1, pageSize: 3 }),
+  ])
+  if (id !== requestId) return
+  const [recentResult, draftResult, countResult, linkResult, commentResult] = results
+  if (recentResult.status === 'fulfilled') recent.value = recentResult.value.content
+  if (draftResult.status === 'fulfilled') drafts.value = draftResult.value.content
+  if (countResult.status === 'fulfilled') counts.value = countResult.value
+  if (linkResult.status === 'fulfilled') links.value = linkResult.value
+  if (commentResult.status === 'fulfilled') comments.value = commentResult.value.content
+  loading.value = false
+}
+watch([isAdmin, () => userInfo.value?.userId], loadDashboard, { immediate: true })
+onBeforeUnmount(() => {
+  requestId++
 })
-
-// 计数即入口：每张卡跳到对应的管理页
-const articlePending = computed(() => loading.value || loadFailed.value)
-
-const stats = computed(() => {
-  const articleTo = (tab: string): RouteLocationRaw => ({ path: '/admin/articles', query: { tab } })
-  const items = [
-    {
-      label: '全部文章',
-      value: counts.value.total,
-      unit: '篇',
-      to: articleTo('all'),
-      pending: articlePending.value,
-      icon: ICON_ALL,
-    },
-    {
-      label: '已发布',
-      value: counts.value.published,
-      unit: '篇',
-      to: articleTo('published'),
-      pending: articlePending.value,
-      icon: ICON_PUBLISHED,
-    },
-    {
-      label: '草稿',
-      value: counts.value.draft,
-      unit: '篇',
-      to: articleTo('draft'),
-      pending: articlePending.value,
-      icon: ICON_DRAFT,
-    },
-  ]
-  if (isAdmin.value) {
-    items.push({
-      label: '评论',
-      value: commentTotal.value,
-      unit: '条',
-      to: { path: '/admin/comments', query: {} },
-      pending: commentLoading.value || commentFailed.value,
-      icon: ICON_COMMENT,
-    })
-  }
-  return items
-})
-
-// 文章管理相关路由都带 requiresAdmin，普通用户点了会被守卫拦下,所以非管理员不给链接
-const linkTag = computed(() => (isAdmin.value ? RouterLink : 'div'))
-
-// 与 ArticlesView 保持一致的状态推导：后端 status 只有 DRAFT / PUBLISHED 二值，
-// 「纯草稿」和「已发布但有新草稿」都要靠版本 ID 判定。
-function isPureDraft(row: ArticleVO): boolean {
-  return row.publishedVersionId === null
-}
-function hasDraftAbovePublish(row: ArticleVO): boolean {
-  return row.publishedVersionId !== null && row.latestVersionId !== row.publishedVersionId
-}
-
-// 文章下架后 publish_time 不会清空（建表注释即「首次发布时间」），纯草稿沿用它
-// 会显示一个当前并未生效的发布日期，所以这种情况回落到创建时间。
-function displayDate(row: ArticleVO): string {
-  return formatDate(isPureDraft(row) ? row.createTime : (row.publishTime ?? row.createTime))
-}
 </script>
 
 <template>
   <div class="dashboard">
-    <!-- Page title -->
-    <div class="page-header">
-      <div class="title-row">
-        <h2 class="page-title">概览</h2>
-        <div class="title-rule" />
-      </div>
-    </div>
+    <header class="workspace-page-heading dashboard-heading">
+      <h1>工作台</h1>
+      <time class="workspace-date">{{ today }}</time>
+    </header>
 
-    <!-- Stat cards -->
-    <div class="stat-grid">
-      <component
-        :is="linkTag"
-        v-for="item in stats"
-        :key="item.label"
-        :to="isAdmin ? item.to : undefined"
-        class="stat-card"
-        :class="{ 'stat-card--link': isAdmin }"
-      >
-        <div class="stat-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path :d="item.icon" />
-          </svg>
-        </div>
-        <div class="stat-info">
-          <span class="stat-label">{{ item.label }}</span>
-          <div class="stat-value">
-            <span v-if="item.pending" class="stat-pending">—</span>
-            <template v-else>
-              {{ item.value }}<span class="stat-unit">{{ item.unit }}</span>
-            </template>
+    <template v-if="isAdmin">
+      <div class="workspace-summary" :aria-busy="loading">
+        <RouterLink
+          v-for="stat in stats"
+          :key="stat.tab"
+          :to="{ path: '/admin/articles', query: { tab: stat.tab } }"
+          class="summary-item"
+        >
+          <span class="summary-value">{{ loading ? '—' : (stat.value ?? '—') }}</span>
+          <span class="summary-label">{{ stat.label }}</span>
+        </RouterLink>
+        <button
+          class="refresh-btn"
+          :disabled="loading"
+          aria-label="刷新工作台"
+          @click="loadDashboard"
+        >
+          <AdminIcon name="reset" :class="{ spinning: loading }" /><span>{{
+            loading ? '加载中' : '刷新'
+          }}</span>
+        </button>
+      </div>
+      <p v-if="hasError" class="workspace-error" role="alert">
+        部分数据未能加载。<button @click="loadDashboard">重新加载</button>
+      </p>
+
+      <div class="workspace-grid">
+        <section class="recent-section" aria-labelledby="recent-heading" :aria-busy="loading">
+          <div class="section-heading">
+            <h2 id="recent-heading">最近更新</h2>
+            <RouterLink to="/admin/articles">全部文章 <span aria-hidden="true">↗</span></RouterLink>
           </div>
-        </div>
-      </component>
-    </div>
-
-    <!-- Recent articles -->
-    <div class="section-card">
-      <div class="section-header">
-        <span class="section-label">最近文章</span>
-        <div class="section-rule" />
-        <RouterLink v-if="isAdmin" to="/admin/articles" class="section-more">全部</RouterLink>
-      </div>
-
-      <p v-if="loading" class="recent-pending">加载中…</p>
-
-      <p v-else-if="loadFailed" class="recent-failed">加载失败，请刷新重试</p>
-
-      <ul v-else-if="recent.length" class="recent-list">
-        <li v-for="row in recent" :key="row.id" class="recent-item">
-          <component
-            :is="linkTag"
-            :to="isAdmin ? `/admin/write/${row.id}` : undefined"
-            class="recent-title"
-            :class="{ 'recent-title--link': isAdmin }"
-          >
-            {{ row.title || '无标题' }}
-          </component>
-          <div class="recent-meta">
-            <span v-if="!isPureDraft(row)" class="status-badge status-badge--ok">已发布</span>
-            <span
-              v-if="isPureDraft(row) || hasDraftAbovePublish(row)"
-              class="status-badge status-badge--muted"
-              >草稿</span
+          <p v-if="loading" class="section-state">正在读取文章…</p>
+          <p v-else-if="recent === null" class="section-state">文章加载失败，请重新加载。</p>
+          <div v-else-if="!recent.length" class="first-article">
+            <AdminIcon name="article" />
+            <h3>从第一篇开始</h3>
+            <p>草稿可以随时保存，准备好了再发布。</p>
+            <RouterLink to="/admin/write" class="primary-btn"
+              >写文章 <span aria-hidden="true">↗</span></RouterLink
             >
-            <span class="recent-date">{{ displayDate(row) }}</span>
-            <span class="recent-views">{{
-              isPureDraft(row) ? '—' : `${row.readCount} 次阅读`
-            }}</span>
           </div>
-        </li>
-      </ul>
+          <ol v-else class="recent-list">
+            <li v-for="(article, index) in recent" :key="article.id" class="recent-item">
+              <span class="article-index" aria-hidden="true">{{
+                String(index + 1).padStart(2, '0')
+              }}</span>
+              <div class="recent-content">
+                <RouterLink :to="'/admin/write/' + article.id" class="recent-title">{{
+                  article.title || '无标题'
+                }}</RouterLink>
+                <div class="recent-meta">
+                  <span
+                    class="article-state"
+                    :class="{ 'article-state--live': article.publishedVersionId !== null }"
+                    >{{ articleStateLabel(article) }}</span
+                  >
+                  <span v-if="hasUnpublishedChanges(article)" class="unpublished-note"
+                    >有未发布修改</span
+                  >
+                  <span v-if="article.category">{{ article.category.name }}</span>
+                  <span>{{ formatDate(article.updateTime) }} 更新</span>
+                </div>
+              </div>
+              <RouterLink
+                :to="'/admin/write/' + article.id"
+                class="continue-link"
+                :aria-label="'编辑：' + article.title"
+                ><span>编辑</span><span aria-hidden="true">↗</span></RouterLink
+              >
+            </li>
+          </ol>
+        </section>
 
-      <AdminEmptyState
-        v-else
-        message="还没有文章"
-        icon-path="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"
-      />
+        <aside class="workspace-side">
+          <section class="draft-section" aria-labelledby="draft-heading">
+            <div class="section-heading">
+              <h2 id="draft-heading">继续草稿</h2>
+              <RouterLink to="/admin/articles?tab=draft" aria-label="查看全部未发布文章"
+                >↗</RouterLink
+              >
+            </div>
+            <p v-if="loading" class="side-state">正在读取草稿…</p>
+            <p v-else-if="drafts === null" class="side-state">草稿加载失败。</p>
+            <p v-else-if="!drafts.length" class="side-state">
+              没有未发布的文章。<RouterLink to="/admin/write">写一篇新的 ↗</RouterLink>
+            </p>
+            <ul v-else class="draft-list">
+              <li v-for="article in drafts" :key="article.id">
+                <RouterLink :to="'/admin/write/' + article.id">{{
+                  article.title || '无标题'
+                }}</RouterLink>
+                <span
+                  >{{ articleStateLabel(article) }} ·
+                  {{ formatDate(article.updateTime) }} 更新</span
+                >
+              </li>
+            </ul>
+          </section>
+
+          <RouterLink to="/admin/links?tab=pending" class="pending-links">
+            <span class="pending-label"><AdminIcon name="link" />友链待审核</span>
+            <span class="pending-value"
+              >{{ loading ? '—' : (links?.pending ?? '—') }} <span aria-hidden="true">↗</span></span
+            >
+          </RouterLink>
+
+          <section class="comments-section" aria-labelledby="comments-heading">
+            <div class="section-heading">
+              <h2 id="comments-heading">最新评论</h2>
+              <RouterLink to="/admin/comments" aria-label="查看全部评论">↗</RouterLink>
+            </div>
+            <p v-if="loading" class="side-state">正在读取评论…</p>
+            <p v-else-if="comments === null" class="side-state">评论加载失败。</p>
+            <p v-else-if="!comments.length" class="side-state">还没有评论。</p>
+            <ul v-else class="comment-list">
+              <li v-for="comment in comments" :key="comment.id">
+                <div class="comment-byline">
+                  <span>{{ comment.user?.username || '已注销用户' }}</span
+                  ><time>{{ formatDate(comment.createTime) }}</time>
+                </div>
+                <p>{{ comment.content }}</p>
+                <span class="comment-source"
+                  >{{ comment.status === 2 ? '已隐藏 · ' : ''
+                  }}{{ comment.articleTitle || '文章已删除' }}</span
+                >
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </template>
+
+    <div v-else class="personal-workspace">
+      <h2>{{ userInfo?.username || '我的账号' }}</h2>
+      <p>管理个人资料，或查看与你有关的回复。</p>
+      <RouterLink to="/admin/profile" class="primary-btn">个人资料</RouterLink>
+      <RouterLink to="/notifications" class="ghost-btn">查看通知</RouterLink>
     </div>
   </div>
 </template>
 
 <style scoped>
-.dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.dashboard-heading {
+  margin-bottom: 28px;
 }
-
-/* ── Header ── */
-
-.page-header {
-  display: flex;
-  align-items: center;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.page-title {
-  font-family: var(--font-serif, 'Lora', serif);
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--admin-text-primary);
-  white-space: nowrap;
-  margin: 0;
-}
-
-.title-rule {
-  flex: 1;
-  height: 1px;
-  background: var(--admin-sidebar-border);
-}
-
-/* ── Stat grid ── */
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px;
-  background: var(--admin-header-bg);
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: var(--admin-radius);
-  text-decoration: none;
-}
-
-.stat-card--link {
-  cursor: pointer;
-  transition:
-    border-color 0.18s ease,
-    background-color 0.18s ease;
-}
-
-.stat-card--link:hover {
-  border-color: var(--admin-accent-dark);
-  background: var(--admin-sidebar-hover);
-}
-
-.stat-icon-wrap {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--admin-radius);
-  background: var(--admin-accent-bg-soft);
-  color: var(--admin-accent-dark);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-icon-wrap svg {
-  width: 20px;
-  height: 20px;
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.stat-label {
+.workspace-date {
   font-size: 12px;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--admin-sidebar-text-muted);
+  color: var(--admin-text-muted);
 }
-
-.stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  font-family: var(--font-sans, 'Inter', sans-serif);
+.workspace-summary {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  padding-bottom: 28px;
+  margin-bottom: 36px;
+  border-bottom: 1px solid var(--admin-border);
+}
+.summary-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  text-decoration: none;
   color: var(--admin-text-primary);
+}
+.summary-value {
+  font-family: var(--font-editorial);
+  font-size: 32px;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
-
-.stat-pending {
-  color: var(--admin-sidebar-text-muted);
-  font-weight: 400;
-}
-
-.stat-unit {
+.summary-label {
   font-size: 12px;
-  font-weight: 400;
-  color: var(--admin-sidebar-text-muted);
-  margin-left: 3px;
+  color: var(--admin-text-muted);
 }
-
-/* ── Section card ── */
-
-.section-card {
-  background: var(--admin-header-bg);
-  border: 1px solid var(--admin-sidebar-border);
-  border-radius: var(--admin-radius);
-  padding: 18px 20px 24px;
+.summary-item:hover .summary-label {
+  color: var(--admin-accent);
 }
-
-.section-header {
+.refresh-btn {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--admin-text-muted);
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 8px;
 }
-
-.section-label {
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--admin-text-primary);
-  white-space: nowrap;
+.refresh-btn svg {
+  width: 14px;
+  height: 14px;
 }
-
-.section-rule {
-  flex: 1;
-  height: 1px;
-  background: var(--admin-sidebar-border);
+.refresh-btn:disabled {
+  cursor: wait;
 }
-
-.section-more {
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  font-size: 12.5px;
-  color: var(--admin-sidebar-text-muted);
-  text-decoration: none;
-  white-space: nowrap;
-  transition: color 0.18s ease;
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 44px;
 }
-
-.section-more:hover {
-  color: var(--admin-accent-dark);
-}
-
-/* ── Recent list ── */
-
-.recent-pending {
-  margin: 0;
-  padding: 8px 0;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  font-size: 13px;
-  color: var(--admin-sidebar-text-muted);
-}
-
-.recent-failed {
-  margin: 0;
-  padding: 8px 0;
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  font-size: 13px;
-  color: var(--admin-danger);
-}
-
-.recent-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.recent-item {
+.section-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--admin-sidebar-border);
+  gap: 12px;
+  margin-bottom: 20px;
 }
-
-.recent-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+.section-heading h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
 }
-
-.recent-item:first-child {
-  padding-top: 0;
-}
-
-.recent-title {
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  font-size: 13.5px;
-  color: var(--admin-text-primary);
+.section-heading a {
+  font-size: 11px;
+  color: var(--admin-text-muted);
   text-decoration: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+.section-heading a:hover {
+  color: var(--admin-accent);
+}
+.section-heading a span {
+  margin-left: 10px;
+}
+.recent-list,
+.draft-list,
+.comment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.recent-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 24px 0;
+  border-top: 1px solid var(--admin-border-soft);
+}
+.article-index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--admin-text-muted);
+  padding-top: 6px;
+}
+.recent-content {
   min-width: 0;
+  flex: 1;
 }
-
-.recent-title--link {
-  transition: color 0.18s ease;
+.recent-title {
+  display: block;
+  color: var(--admin-text-primary);
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.6;
+  text-decoration: none;
+  overflow-wrap: anywhere;
 }
-
-.recent-title--link:hover {
-  color: var(--admin-accent-dark);
+.recent-title:hover {
+  color: var(--admin-accent);
 }
-
 .recent-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 7px 14px;
+  margin-top: 10px;
+  color: var(--admin-text-muted);
+  font-size: 11px;
 }
-
-.recent-date,
-.recent-views {
-  font-family: var(--font-sans, 'Inter', sans-serif);
-  font-size: 12.5px;
-  color: var(--admin-sidebar-text-muted);
+.article-state::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  margin: 0 6px 1px 0;
+}
+.article-state--live::before {
+  background: var(--admin-status-ok);
+  border-color: var(--admin-status-ok);
+}
+.unpublished-note {
+  color: var(--admin-warning);
+}
+.continue-link {
+  display: flex;
+  gap: 8px;
+  padding: 5px 0 5px 8px;
+  font-size: 11px;
+  color: var(--admin-text-muted);
+  text-decoration: none;
   white-space: nowrap;
 }
-
-.recent-views {
-  min-width: 62px;
-  text-align: right;
+.continue-link:hover {
+  color: var(--admin-accent);
 }
-
-/* ── Responsive ── */
-
-@media (max-width: 900px) {
-  .stat-grid {
-    gap: 10px;
-  }
-  .stat-card {
-    padding: 14px;
-  }
-  .stat-value {
-    font-size: 18px;
+.workspace-side {
+  border-left: 1px solid var(--admin-border);
+  padding-left: 28px;
+}
+.draft-section {
+  padding-bottom: 24px;
+}
+.draft-list li + li {
+  margin-top: 20px;
+}
+.draft-list a {
+  display: block;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--admin-text-primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.draft-list a:hover {
+  color: var(--admin-accent);
+}
+.draft-list li > span {
+  display: block;
+  font-size: 10px;
+  color: var(--admin-text-muted);
+  margin-top: 5px;
+}
+.pending-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  margin: 4px 0 30px;
+  border: 1px solid var(--admin-accent-border);
+  border-radius: 6px;
+  background: var(--admin-accent-bg-subtle);
+  color: var(--admin-accent-dark);
+  text-decoration: none;
+}
+.pending-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.pending-label svg {
+  width: 15px;
+  height: 15px;
+}
+.pending-value {
+  font-family: var(--font-mono);
+  font-size: 19px;
+  white-space: nowrap;
+}
+.pending-value span {
+  font-size: 12px;
+  margin-left: 10px;
+}
+.comment-list li + li {
+  border-top: 1px solid var(--admin-border-soft);
+  margin-top: 20px;
+  padding-top: 20px;
+}
+.comment-byline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 10px;
+  color: var(--admin-text-muted);
+}
+.comment-byline > span {
+  overflow-wrap: anywhere;
+}
+.comment-byline time {
+  flex-shrink: 0;
+}
+.comment-list p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 8px 0 5px;
+  color: var(--admin-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.comment-source {
+  display: block;
+  font-size: 10px;
+  color: var(--admin-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.section-state,
+.side-state {
+  font-size: 12px;
+  color: var(--admin-text-muted);
+  padding: 20px 0;
+  margin: 0;
+}
+.side-state a {
+  display: block;
+  margin-top: 12px;
+  color: var(--admin-accent-dark);
+}
+.workspace-error {
+  margin: -12px 0 24px;
+  font-size: 12px;
+  color: var(--admin-danger);
+}
+.workspace-error button {
+  color: inherit;
+  font: inherit;
+  border: 0;
+  background: none;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px;
+}
+.first-article {
+  padding: 56px 20px;
+  border-top: 1px solid var(--admin-border-soft);
+}
+.first-article > svg {
+  width: 28px;
+  height: 28px;
+  color: var(--admin-text-muted);
+}
+.first-article h3,
+.personal-workspace h2 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  margin: 20px 0 12px;
+}
+.first-article p,
+.personal-workspace p {
+  font-size: 13px;
+  color: var(--admin-text-muted);
+  margin-bottom: 24px;
+}
+.first-article .primary-btn {
+  width: fit-content;
+  gap: 24px;
+  text-decoration: none;
+}
+.personal-workspace .primary-btn,
+.personal-workspace .ghost-btn {
+  display: inline-flex;
+  margin-right: 12px;
+  text-decoration: none;
+}
+.spinning {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
-
-@media (max-width: 640px) {
-  .stat-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 1100px) {
+  .workspace-grid {
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: 28px;
+  }
+  .workspace-side {
+    padding-left: 22px;
   }
   .recent-item {
+    gap: 12px;
+  }
+  .continue-link > span:first-child {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .workspace-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workspace-side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    border-left: 0;
+    padding: 28px 0 0;
+    border-top: 1px solid var(--admin-border);
+  }
+  .pending-links {
+    grid-column: 1;
+    margin: 0;
+    align-self: start;
+  }
+  .comments-section {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .draft-section {
+    padding: 0;
+  }
+}
+@media (max-width: 540px) {
+  .workspace-summary {
+    gap: 20px;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+  }
+  .summary-item {
     flex-direction: column;
-    align-items: flex-start;
     gap: 8px;
   }
-  .recent-title {
-    white-space: normal;
-    overflow: visible;
+  .summary-value {
+    font-size: 30px;
   }
-  .recent-views {
-    min-width: 0;
-    text-align: left;
+  .summary-label {
+    font-size: 11px;
+  }
+  .refresh-btn span {
+    display: none;
+  }
+  .workspace-date {
+    font-size: 10px;
+  }
+  .recent-item {
+    padding: 20px 0;
+    gap: 12px;
+  }
+  .recent-title {
+    font-size: 16px;
+  }
+  .recent-meta {
+    gap: 6px 10px;
+  }
+  .workspace-side {
+    display: block;
+  }
+  .pending-links {
+    margin: 24px 0 28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinning {
+    animation: none;
   }
 }
 </style>

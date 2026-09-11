@@ -1,0 +1,142 @@
+/* 后台与前台共用色彩基调，保持独立的信息密度；仅覆盖 admin token 和后台容器。 */
+:root,
+[data-theme='dark'] {
+  --admin-body-bg: var(--color-bg);
+  --admin-sidebar-bg: var(--color-bg-hover);
+  --admin-sidebar-border: var(--color-border);
+  --admin-sidebar-hover: var(--color-border-light);
+  --admin-sidebar-text: var(--color-text-secondary);
+  --admin-sidebar-text-muted: var(--color-text-muted);
+  --admin-header-bg: var(--color-bg);
+  --admin-header-border: var(--color-border-light);
+  --admin-sidebar-width: 216px;
+  --admin-sidebar-width-collapsed: 68px;
+  --admin-text-primary: var(--color-text-primary);
+  --admin-text-secondary: var(--color-text-secondary);
+  --admin-text-muted: var(--color-text-muted);
+  --admin-text-subtle: var(--color-text-secondary);
+  --admin-border: var(--color-border);
+  --admin-border-soft: var(--color-border-light);
+  --admin-border-strong: var(--color-border-strong);
+  --admin-surface: var(--color-bg-card);
+  --admin-surface-2: var(--color-bg);
+  --admin-surface-hover: var(--color-bg-hover);
+  --admin-surface-input: var(--color-bg-card);
+  --admin-surface-soft: var(--color-bg-hover);
+}
+
+.admin-layout {
+  --write-bg: var(--admin-surface-input);
+  --write-toolbar-bg: var(--admin-body-bg);
+  --write-text: var(--admin-text-primary);
+  --write-text-muted: var(--admin-text-muted);
+  --write-border: var(--admin-border-soft);
+  --write-placeholder: var(--admin-text-muted);
+  font-size: 14px;
+  color: var(--admin-text-primary);
+}
+.workspace-page-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.workspace-page-heading h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+.admin-layout .main-card {
+  border-radius: 8px;
+  box-shadow: none;
+  overflow: visible;
+}
+.admin-layout .card-header {
+  padding: 20px 24px;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.admin-layout .data-table th {
+  background: var(--admin-surface-2);
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.025em;
+}
+.admin-layout .data-table td {
+  padding-top: 19px;
+  padding-bottom: 19px;
+}
+.admin-layout .data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.admin-layout .primary-btn,
+.admin-layout .ghost-btn,
+.admin-layout .icon-btn,
+.admin-layout .search-wrap {
+  border-radius: 5px;
+}
+.admin-layout .search-input {
+  font-size: 12px;
+}
+.admin-layout .view-tab {
+  font-size: 13px;
+}
+.admin-layout .status-badge {
+  font-size: 11px;
+  line-height: 1.6;
+}
+.admin-layout :is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--admin-accent);
+  outline-offset: 3px;
+}
+.admin-layout .admin-error-state {
+  padding: 44px 20px;
+  text-align: center;
+  color: var(--admin-text-muted);
+}
+.admin-error-state p {
+  margin: 0 0 16px;
+}
+.admin-error-state button {
+  margin: auto;
+}
+@media (max-width: 768px) {
+  .admin-layout .header-actions {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+  }
+  .admin-layout .header-actions .search-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+  .admin-layout .header-actions .search-input {
+    width: 100%;
+    min-width: 0;
+  }
+  .admin-layout .header-actions .primary-btn,
+  .admin-layout .header-actions .icon-btn {
+    flex-shrink: 0;
+  }
+  .admin-layout .view-tabs {
+    width: 100%;
+    min-width: 0;
+  }
+  .workspace-page-heading {
+    margin-bottom: 20px;
+  }
+  .workspace-page-heading h1 {
+    font-size: 30px;
+  }
+  .admin-layout .card-header {
+    padding: 16px;
+    gap: 16px;
+  }
+  .admin-layout .data-card {
+    padding: 20px 16px;
+  }
+}

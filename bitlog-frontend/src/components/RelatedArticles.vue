@@ -10,7 +10,7 @@ defineProps<{ articles: ArticleLink[] }>()
 <template>
   <nav v-if="articles.length" class="related" aria-label="继续阅读">
     <div class="section-header">
-      <span class="section-label">继续阅读</span>
+      <h2 class="section-label">接着读</h2>
       <div class="section-rule"></div>
     </div>
 
@@ -41,7 +41,8 @@ defineProps<{ articles: ArticleLink[] }>()
 }
 
 .section-label {
-  font-size: 11px;
+  font-family: var(--font-display);
+  font-size: 22px;
   font-weight: 500;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -71,7 +72,7 @@ defineProps<{ articles: ArticleLink[] }>()
 
 .related-title {
   font-family: var(--font-serif);
-  font-size: 15.5px;
+  font-size: 19px;
   line-height: 1.5;
   color: var(--color-text-primary);
   width: fit-content;
@@ -91,7 +92,7 @@ defineProps<{ articles: ArticleLink[] }>()
 .related-date {
   margin-left: auto;
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-muted);
   letter-spacing: 0.03em;
   font-variant-numeric: tabular-nums;

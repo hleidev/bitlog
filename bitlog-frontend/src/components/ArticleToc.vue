@@ -1,24 +1,5 @@
 <script setup lang="ts">
-/**
- * ArticleToc — 正文右侧的刻度式目录（minimap TOC）
- *
- * 只收 h2：一级章节就是文章骨架，更深的层级留给正文自己表达。折叠态画一组
- * 等长刻度线作为结构缩略图；hover / 键盘聚焦时容器横向展开，标题文字淡入。
- *
- * 锚在窗口右缘（Notion / ChatGPT 一类浮动目录的通行做法，fixed + right），
- * 刻度始终贴边不动，展开时面板向左长进正文与窗口之间的留白。
- * 留白足够时不会压到正文，所以不需要背景板和边框，与全站无阴影的设计一致；
- * 留白不足以容纳展开态时整体隐藏，见文末 media query。
- *
- * 注意与文档站（Vercel / Stripe / MDN）那种 TOC 不是一个模式：那种是网格里
- * 常驻展开的 sticky 列，占布局空间；这里是浮动折叠的缩略图，不占位。
- *
- * 锚点不自建一套：Lute 已开 SetHeadingID（见 markdown-render-config.ts），
- * 渲染出来的标题自带 id，这里直接复用，只对缺失 / 重名的情况兜底补写。
- *
- * 内容是 Lute WASM 异步渲染的，挂载时 DOM 还是空的，所以不在 onMounted
- * 里扫描，改由父组件在 ArticleContent 的 rendered 事件里调 build()。
- */
+/** 正文 h2 目录：宽屏常驻侧栏，窄屏使用可展开的阅读目录。 */
 import { ref, onMounted, onBeforeUnmount, useTemplateRef } from 'vue'
 
 interface TocItem {
@@ -27,8 +8,10 @@ interface TocItem {
 }
 
 const navRef = useTemplateRef<HTMLElement>('navRef')
+const toggleRef = useTemplateRef<HTMLButtonElement>('toggleRef')
 const items = ref<TocItem[]>([])
 const activeId = ref('')
+const mobileOpen = ref(false)
 
 /** 与 items 一一对应的标题元素，只用于读取位置，不需要响应式 */
 let headingEls: HTMLElement[] = []
@@ -122,25 +105,35 @@ function syncRailScroll(index: number) {
   nav.scrollTop = Math.max(0, Math.min(target, nav.scrollHeight - nav.clientHeight))
 }
 
-let ticking = false
+let scrollFrame: number | null = null
 
 function onScroll() {
-  if (ticking) return
-  ticking = true
-  requestAnimationFrame(() => {
-    ticking = false
+  headerOffset = readHeaderOffset()
+  if (scrollFrame !== null) return
+  scrollFrame = requestAnimationFrame(() => {
+    scrollFrame = null
     updateActive()
   })
 }
 
+function closeMobileToc() {
+  if (!mobileOpen.value) return
+  mobileOpen.value = false
+  toggleRef.value?.focus({ preventScroll: true })
+}
+
 function onItemClick(e: MouseEvent, item: TocItem) {
   e.preventDefault()
+  mobileOpen.value = false
   const el = document.getElementById(item.id)
   if (!el) return
+  headerOffset = readHeaderOffset()
   // 不写 location.hash：replaceState 会和 vue-router 的历史状态打架，
   // 而复制锚点链接的需求由标题自带的 .vditor-anchor 承担。
   const top = el.getBoundingClientRect().top + window.scrollY - headerOffset
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1')
+  el.focus({ preventScroll: true })
   window.scrollTo({ top, behavior: reduced ? 'auto' : 'smooth' })
   activeId.value = item.id
 }
@@ -152,6 +145,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (scrollFrame !== null) cancelAnimationFrame(scrollFrame)
   window.removeEventListener('scroll', onScroll)
   window.removeEventListener('resize', onScroll)
 })
@@ -160,156 +154,149 @@ defineExpose({ build })
 </script>
 
 <template>
-  <!-- 只有一个标题的文章不值得占一条轨道 -->
-  <nav v-if="items.length > 1" ref="navRef" class="toc" aria-label="文章目录">
-    <ul class="toc__list">
-      <li v-for="item in items" :key="item.id">
-        <a
-          class="toc__link"
-          :class="{ 'toc__link--active': item.id === activeId }"
-          :href="`#${item.id}`"
-          @click="onItemClick($event, item)"
-        >
-          <span class="toc__text">{{ item.text }}</span>
-          <span class="toc__tick" aria-hidden="true" />
-        </a>
-      </li>
-    </ul>
-  </nav>
+  <aside
+    v-if="items.length > 1"
+    class="toc"
+    :class="{ 'toc--open': mobileOpen }"
+    @keydown.esc="closeMobileToc"
+  >
+    <button
+      ref="toggleRef"
+      class="toc__toggle"
+      :aria-expanded="mobileOpen"
+      aria-controls="article-toc-panel"
+      @click="mobileOpen = !mobileOpen"
+    >
+      <span>文章目录</span><span aria-hidden="true">{{ mobileOpen ? '−' : '+' }}</span>
+    </button>
+    <nav id="article-toc-panel" ref="navRef" class="toc__panel" aria-label="文章目录">
+      <p class="toc__heading">本篇目录 <span>CONTENTS</span></p>
+      <ul class="toc__list">
+        <li v-for="(item, index) in items" :key="item.id">
+          <a
+            class="toc__link"
+            :class="{ 'toc__link--active': item.id === activeId }"
+            :href="`#${item.id}`"
+            :aria-current="item.id === activeId ? 'location' : undefined"
+            @click="onItemClick($event, item)"
+          >
+            <span class="toc__index" aria-hidden="true">{{
+              String(index + 1).padStart(2, '0')
+            }}</span>
+            <span class="toc__text">{{ item.text }}</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </aside>
 </template>
 
 <style scoped>
 .toc {
-  /* 轨道尺寸集中在这几个值上，文末断点由它们推导 */
-  --toc-rail: 18px;
-  /* 贴窗口右缘的距离，与 Notion 的 right: 1rem 同量级 */
-  --toc-edge: 16px;
-  /* 展开态左缘与正文右缘之间至少留这么多，免得两栏糊在一起 */
-  --toc-gap: 32px;
-  /* 热区要比刻度宽得多：刻度只有十几像素，不放大很难 hover 中 */
-  --toc-hit: 14px;
-  /* 展开态的宽度上限 = 正文右缘到窗口右缘之间的全部留白。
-     不写死一个数：宽屏上中文标题基本不会被截断，窄屏自动收窄。 */
-  --toc-room: calc(50vw - var(--spacing-prose) / 2 - var(--toc-gap) - var(--toc-edge));
-
   position: fixed;
-  top: 50%;
-  /* 锚窗口右缘：刻度贴边不动，展开时面板向左长 */
-  right: var(--toc-edge);
-  transform: translateY(-50%);
-  z-index: 20;
-
-  /* 宽度由内容撑、由留白封顶：短标题的文章不会展开出一块空面板 */
-  width: max-content;
-  max-width: calc(var(--toc-rail) + var(--toc-hit) * 2);
-  max-height: 72vh;
-  padding: var(--toc-hit);
-  /* 折叠态靠横向裁切藏住文字；纵向留滚动，长文目录不至于被闷掉 */
-  overflow: hidden auto;
-  scrollbar-width: none;
-  transition: max-width var(--transition-base);
+  right: 24px;
+  top: 176px;
+  width: min(240px, calc(50vw - var(--spacing-prose) / 2 - 64px));
+  z-index: 30;
 }
-
-.toc::-webkit-scrollbar {
+.toc__toggle {
   display: none;
 }
-
-.toc:hover,
-.toc:focus-within {
-  max-width: var(--toc-room);
+.toc__panel {
+  max-height: calc(100dvh - 240px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-right: 8px;
 }
-
-.toc__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.toc__heading {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  padding-bottom: 20px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 6px;
 }
-
+.toc__heading > span {
+  font: 12px var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+.toc__list {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--color-border);
+}
 .toc__link {
   display: flex;
-  align-items: center;
-  /* 刻度是最后一个 flex item + 靠右对齐 → 它永远贴着轨道右缘，
-     展开时不会跟着面板一起位移。文字则向左溢出，被容器裁掉。 */
-  justify-content: flex-end;
+  align-items: baseline;
   gap: 10px;
-  text-decoration: none;
-  color: inherit;
-}
-
-.toc__link:focus-visible {
-  outline: 1px solid var(--color-accent);
-  outline-offset: 3px;
-}
-
-.toc__tick {
-  flex: none;
-  width: var(--toc-rail);
-  height: 2px;
-  background: var(--color-text-faint);
-  transition: background-color var(--transition-base);
-}
-
-.toc__link:hover .toc__tick {
-  background: var(--color-text-secondary);
-}
-
-.toc__link--active .toc__tick {
-  background: var(--color-accent);
-}
-
-.toc__text {
-  /* 不许压缩：压缩会让折叠态挤出一个只剩省略号的小尾巴，
-     必须让它整条溢出到左边由容器裁掉。 */
-  flex: none;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  line-height: 1.5;
-  letter-spacing: 0.01em;
+  padding: 9px 0 9px 14px;
+  margin-left: -1px;
+  border-left: 2px solid transparent;
   color: var(--color-text-muted);
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  /* 省略号要在文字自身上生效，容器裁切只会硬切在字中间 */
-  max-width: calc(var(--toc-room) - var(--toc-hit) * 2 - var(--toc-rail) - 10px);
-  opacity: 0;
-  transform: translateX(4px);
+  font-size: 13px;
+  line-height: 1.6;
   transition:
-    opacity var(--transition-base),
-    transform var(--transition-base),
-    color var(--transition-base);
+    color 0.2s,
+    border-color 0.2s;
 }
-
-.toc:hover .toc__text,
-.toc:focus-within .toc__text {
-  opacity: 1;
-  transform: none;
+.toc__index {
+  font: 11px var(--font-mono);
+  opacity: 0.7;
+  flex: none;
 }
-
-.toc__link:hover .toc__text {
+.toc__text {
+  overflow-wrap: anywhere;
+}
+.toc__link:hover {
   color: var(--color-text-primary);
 }
-
-.toc__link--active .toc__text {
+.toc__link--active {
   color: var(--color-accent);
+  border-left-color: var(--color-accent);
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .toc,
-  .toc__tick,
-  .toc__text {
-    transition: none;
-  }
-}
-
-/* 留白不够就整体隐藏：--toc-room 在视口 1260px 时约剩 182px，
-   再窄下去展开态就只能压到正文上了。 */
 @media (max-width: 1259px) {
   .toc {
+    top: auto;
+    bottom: 24px;
+    left: 24px;
+    right: auto;
+    width: auto;
+    max-width: calc(100vw - 88px);
+    display: flex;
+    flex-direction: column-reverse;
+    border: 1px solid var(--color-border-strong);
+    background: var(--color-bg-card);
+  }
+  .toc__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    color: var(--color-text-primary);
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  .toc__panel {
     display: none;
+  }
+  .toc--open {
+    width: 340px;
+  }
+  .toc--open .toc__panel {
+    display: block;
+    max-height: 55dvh;
+    padding: 20px 16px 8px;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .toc__heading {
+    display: none;
+  }
+  .toc__link {
+    font-size: 14px;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 }
 </style>

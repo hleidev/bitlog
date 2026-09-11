@@ -16,6 +16,15 @@ import RelatedArticles from '@/components/RelatedArticles.vue'
 
 const router = useRouter()
 const route = useRoute()
+const articleListUrl = ref('/articles')
+
+function returnToArticles(event: MouseEvent) {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  event.preventDefault()
+  const back = router.options.history.state.back
+  if (typeof back === 'string' && back.split(/[?#]/)[0] === '/articles') router.back()
+  else void router.push(articleListUrl.value)
+}
 
 const targetCommentId = computed(() => {
   const comment = route.query.comment
@@ -61,14 +70,14 @@ const jsonLd = computed(() => {
     publisher: {
       '@type': 'Organization',
       name: 'BitLog',
-      logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.jpeg` },
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.png` },
     },
     image: `${SITE_URL}/og-image.png`,
   }
 })
 
 useHead({
-  title: () => (article.value ? `${article.value.title} | BitLog` : 'BitLog'),
+  title: () => (article.value ? `${article.value.title} | BitLog` : '文章详情 | BitLog'),
   link: [{ rel: 'canonical', href: articleUrl }],
   script: () =>
     jsonLd.value ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(jsonLd.value) }] : [],
@@ -152,6 +161,8 @@ const prerenderedRelated = readSSGState<ArticleLink[]>(route, RELATED_KEY)
 if (prerenderedRelated?.length) related.value = prerenderedRelated
 
 onMounted(async () => {
+  const back = router.options.history.state.back
+  if (typeof back === 'string' && back.split(/[?#]/)[0] === '/articles') articleListUrl.value = back
   const id = Number(route.params.id)
 
   slowTimer = setTimeout(() => {
@@ -192,7 +203,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="article-page">
+  <main class="article-page">
     <!-- Reading progress bar -->
     <div class="progress-bar" :style="{ width: scrollProgress + '%' }" />
 
@@ -207,7 +218,7 @@ onUnmounted(() => {
         <div class="skeleton-line w-100" />
         <div class="skeleton-line w-70" />
         <Transition name="fade">
-          <p v-if="slow" class="slow-hint">加载较慢，仍在努力…</p>
+          <p v-if="slow" class="slow-hint">加载较慢，请稍候…</p>
         </Transition>
       </div>
     </div>
@@ -227,30 +238,42 @@ onUnmounted(() => {
       <ArticleToc ref="tocRef" />
 
       <article class="article-body">
-        <!-- Category -->
-        <RouterLink
-          v-if="article.category"
-          :to="{ path: '/articles', query: { categoryId: article.category.id } }"
-          class="article-category"
-          >{{ article.category.name }}</RouterLink
-        >
-
-        <!-- Title -->
-        <h1 class="article-title">{{ article.title }}</h1>
-
-        <div v-if="article.publishTime || canEdit" class="article-meta">
-          <span v-if="article.publishTime" class="article-meta-date">
-            {{ formatDate(article.publishTime) }}
-          </span>
-          <span v-if="article.publishTime && canEdit" class="article-meta-sep" aria-hidden="true"
-            >·</span
+        <header class="article-heading">
+          <a :href="articleListUrl" class="article-back" @click="returnToArticles"
+            >← 返回文章列表</a
           >
-          <!-- /admin/write/:id 加载 latestVersionId 对应的草稿，即最新版本而非当前阅读的已发布版本 -->
-          <RouterLink v-if="canEdit" :to="`/admin/write/${article.id}`" class="article-meta-edit">
-            编辑
-          </RouterLink>
-        </div>
+          <!-- Category -->
+          <RouterLink
+            v-if="article.category"
+            :to="{ path: '/articles', query: { categoryId: article.category.id } }"
+            class="article-category"
+            >{{ article.category.name }}</RouterLink
+          >
 
+          <!-- Title -->
+          <h1 class="article-title">{{ article.title }}</h1>
+
+          <div class="article-meta">
+            <span class="article-author"><span aria-hidden="true">H</span> Harry</span>
+            <span class="article-meta-sep" aria-hidden="true">/</span>
+            <time
+              v-if="article.publishTime"
+              :datetime="article.publishTime"
+              class="article-meta-date"
+            >
+              {{ formatDate(article.publishTime) }}
+            </time>
+            <span v-if="article.publishTime && canEdit" class="article-meta-sep" aria-hidden="true"
+              >·</span
+            >
+            <!-- /admin/write/:id 加载 latestVersionId 对应的草稿，即最新版本而非当前阅读的已发布版本 -->
+            <RouterLink v-if="canEdit" :to="`/admin/write/${article.id}`" class="article-meta-edit">
+              编辑
+            </RouterLink>
+          </div>
+
+          <p v-if="article.summary" class="article-summary">{{ article.summary }}</p>
+        </header>
         <div class="article-divider" />
 
         <ArticleContent :content="article.content" @rendered="onContentRendered" />
@@ -273,99 +296,70 @@ onUnmounted(() => {
         <!-- Comment section -->
         <div class="comment-section reveal">
           <div class="section-header">
-            <span class="section-label">评论</span>
+            <h2 class="section-label">聊聊这篇文章</h2>
             <div class="section-rule"></div>
           </div>
           <CommentSection :article-id="article.id" :target-comment-id="targetCommentId" />
         </div>
       </article>
     </div>
-  </div>
+  </main>
 </template>
 
 <style scoped>
+.article-page {
+  min-height: 80vh;
+}
 .progress-bar {
   position: fixed;
   top: 0;
   left: 0;
-  height: 2px;
+  height: 3px;
   background: var(--color-accent);
-  z-index: 1000;
+  z-index: 1100;
   transition: width 0.1s linear;
 }
-
 .page-state {
-  min-height: 60vh;
+  min-height: 65vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
   color: var(--color-text-muted);
 }
-
 .page-state--error svg {
   width: 40px;
   height: 40px;
-  color: var(--color-text-faint);
 }
-.page-state--error p {
-  font-size: 15px;
-}
-
 .page-state--error button {
-  font-size: 13px;
+  padding: 10px 20px;
   color: var(--color-accent);
-  background: none;
-  border: 1px solid var(--color-accent);
-  border-radius: 4px;
-  padding: 6px 18px;
-  cursor: pointer;
-  transition: all var(--transition-base);
-  font-family: var(--font-sans);
+  border: 1px solid var(--color-border);
+  font-size: 14px;
 }
-
-.page-state--error button:hover {
-  background: var(--color-bg-hover);
-}
-
 .skeleton-body {
+  width: 100%;
+  max-width: var(--spacing-prose);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding-top: calc(var(--spacing-header-height) + 64px);
-  max-width: var(--spacing-prose);
-  margin: 0 auto;
-  width: 100%;
-  padding-left: var(--spacing-page-padding);
-  padding-right: var(--spacing-page-padding);
+  gap: 20px;
+  padding-top: calc(var(--spacing-header-height) + 48px);
 }
-
 .skeleton-line {
-  height: 14px;
-  border-radius: var(--radius-tag);
-  background: linear-gradient(
-    90deg,
-    var(--color-bg-hover) 25%,
-    var(--color-border) 50%,
-    var(--color-bg-hover) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
+  height: 16px;
+  background: var(--color-bg-hover);
+  animation: pulse 1.2s ease-in-out infinite alternate;
 }
-
 .skeleton-line.w-20 {
   width: 20%;
-  height: 10px;
 }
 .skeleton-line.w-50 {
   width: 50%;
 }
-.skeleton-line.w-60 {
-  width: 60%;
-}
 .skeleton-line.w-70 {
   width: 70%;
+  height: 32px;
 }
 .skeleton-line.w-80 {
   width: 80%;
@@ -373,184 +367,208 @@ onUnmounted(() => {
 .skeleton-line.w-100 {
   width: 100%;
 }
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
+@keyframes pulse {
+  to {
+    opacity: 0.4;
   }
 }
-
 .article-layout {
-  padding-top: calc(var(--spacing-header-height) + 64px);
+  padding-top: calc(var(--spacing-header-height) + 48px);
   padding-bottom: 100px;
-  padding-left: var(--spacing-page-padding);
-  padding-right: var(--spacing-page-padding);
 }
-
 .article-body {
   max-width: var(--spacing-prose);
-  margin: 0 auto;
   width: 100%;
+  margin: 0 auto;
 }
-
-.article-category {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.article-heading {
+  padding-bottom: 32px;
+}
+.article-back {
+  display: block;
+  width: fit-content;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin-bottom: 40px;
+  padding: 6px 0;
+}
+.article-back:hover {
   color: var(--color-accent);
-  margin-bottom: 20px;
-  transition: color var(--transition-base);
 }
-
-.article-category:hover {
-  color: var(--color-accent-dark);
-}
-
-.article-title {
-  font-family: var(--font-serif);
-  font-size: clamp(28px, 4vw, 48px);
-  font-weight: 400;
-  line-height: 1.28;
-  color: var(--color-text-primary);
-  letter-spacing: 0.01em;
-  margin-bottom: 32px;
-}
-
-.article-divider {
-  height: 1px;
-  background: var(--color-border);
-  margin-bottom: 36px;
-}
-
-.article-meta {
-  display: flex;
-  align-items: baseline;
+.article-category {
+  display: inline-flex;
+  align-items: center;
   gap: 10px;
   font-size: 13px;
-  letter-spacing: 0.04em;
-  margin-top: -20px;
-  margin-bottom: 32px;
-  font-family: var(--font-sans);
+  color: var(--color-accent);
+  margin-bottom: 18px;
 }
-
-.article-meta-date {
-  /* 发布日期是正文信息：faint 在明/暗下只有 1.74 / 2.53，不达 AA。 */
+.article-category::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: currentColor;
+}
+.article-title {
+  font: 600 clamp(30px, 3.6vw, 46px)/1.5 var(--font-display);
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  margin-bottom: 24px;
+}
+.article-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
   color: var(--color-text-muted);
+  font-size: 13px;
 }
-
-.article-meta-edit {
-  color: var(--color-text-muted);
-  padding-bottom: 1px;
-  background-image: linear-gradient(var(--color-accent), var(--color-accent));
-  background-repeat: no-repeat;
-  background-size: 0% 1px;
-  background-position: left bottom;
-  transition:
-    color var(--transition-base),
-    background-size var(--transition-sweep);
+.article-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary);
 }
-
+.article-author > span {
+  display: grid;
+  place-items: center;
+  height: 28px;
+  width: 28px;
+  color: var(--color-accent);
+  border: 1px solid var(--color-border-strong);
+  font: italic 18px var(--font-editorial);
+}
 .article-meta-sep {
-  color: var(--color-text-faint);
+  color: var(--color-border-strong);
 }
-
 .article-meta-edit:hover {
   color: var(--color-accent);
-  background-size: 100% 1px;
 }
-
+.article-summary {
+  margin-top: 32px;
+  padding: 20px 24px;
+  background: var(--color-bg-hover);
+  border-left: 2px solid var(--color-accent);
+  font-size: 15px;
+  line-height: 1.95;
+  color: var(--color-text-secondary);
+}
+.article-divider {
+  height: 1px;
+  background: var(--color-border-strong);
+  margin-bottom: 40px;
+}
+.article-body :deep(.article-content) {
+  font-size: 17px;
+  line-height: 1.95;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+.article-body :deep(.article-content h2) {
+  font-family: var(--font-display);
+  font-size: 27px;
+  margin-top: 52px;
+}
+.article-body :deep(.article-content h3) {
+  font-size: 21px;
+  margin-top: 36px;
+}
+.article-body :deep(.article-content pre) {
+  overflow-wrap: normal;
+}
+.article-body :deep(.code-block-wrapper) {
+  border-radius: 0;
+}
 .article-footer {
-  margin-top: 48px;
+  border-top: 1px solid var(--color-border-strong);
+  margin-top: 56px;
   padding-top: 24px;
-  border-top: 1px solid var(--color-border);
 }
-
 .article-footer__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
-
 .footer-tag {
   font-size: 12px;
-  color: var(--color-text-muted);
-  background: var(--color-bg-hover);
-  padding: 4px 12px;
-  border-radius: var(--radius-tag);
+  color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
-  transition: all var(--transition-base);
+  padding: 6px 12px;
 }
-
+.footer-tag::before {
+  content: '#';
+  margin-right: 6px;
+  color: var(--color-text-muted);
+}
 .footer-tag:hover {
-  color: var(--color-accent);
   border-color: var(--color-accent);
+  color: var(--color-accent);
 }
-
 .comment-section {
-  margin-top: 56px;
+  margin-top: 64px;
 }
-
 .section-header {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   margin-bottom: 24px;
 }
-
 .section-label {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
+  font: 500 22px var(--font-display);
+  white-space: nowrap;
 }
-
 .section-rule {
   flex: 1;
   height: 1px;
   background: var(--color-border);
 }
-
-@media (max-width: 900px) {
-  .article-title {
-    font-size: 28px;
-  }
-}
-
-@media (max-width: 768px) {
-  .article-layout {
-    padding-top: calc(var(--spacing-header-height) + 40px);
-    padding-left: 20px;
-    padding-right: 20px;
-  }
-  /* 移动端:阅读进度条与 iOS 顶部状态栏重叠,改为底部 1px 条 */
-  .progress-bar {
-    top: auto;
-    bottom: 0;
-    height: 1px;
-  }
-}
-
 .slow-hint {
-  margin-top: 20px;
-  font-size: 13px;
-  color: var(--color-text-faint);
-  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
 }
-
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.25s ease;
+  transition: opacity 0.2s;
 }
-
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+@media (max-width: 768px) {
+  .article-layout {
+    padding-top: calc(var(--spacing-header-height) + 24px);
+    padding-bottom: 64px;
+  }
+  .article-back {
+    margin-bottom: 24px;
+  }
+  .article-title {
+    font-size: 30px;
+  }
+  .article-summary {
+    padding: 16px 18px;
+    font-size: 14px;
+    margin-top: 24px;
+  }
+  .article-heading {
+    padding-bottom: 24px;
+  }
+  .article-divider {
+    margin-bottom: 28px;
+  }
+  .article-body :deep(.article-content) {
+    font-size: 16px;
+    line-height: 1.9;
+  }
+  .article-body :deep(.article-content h2) {
+    font-size: 24px;
+  }
+  .article-body :deep(.article-content h3) {
+    font-size: 20px;
+  }
+  .section-label {
+    font-size: 20px;
+  }
 }
 </style>

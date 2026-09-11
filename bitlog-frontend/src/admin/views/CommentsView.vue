@@ -243,9 +243,9 @@ function handleReset() {
                 @change="toggleRow(row.id)"
               />
             </td>
-            <td class="col-main" :title="row.content">
-              <span v-if="row.rootId !== null" class="reply-flag">回复</span>
-              {{ row.content }}
+            <td class="col-main comment-content" :title="row.content">
+              <span v-if="row.rootId !== null && row.rootId !== 0" class="reply-flag">回复</span>
+              <span class="comment-excerpt">{{ row.content }}</span>
             </td>
             <td class="col-name">
               <span class="cell-muted">{{ row.user?.username ?? '—' }}</span>
@@ -256,6 +256,7 @@ function handleReset() {
                 :to="`/article/${row.articleId}`"
                 target="_blank"
                 class="article-link"
+                rel="noopener"
                 :title="row.articleTitle"
                 >{{ row.articleTitle }}</RouterLink
               >
@@ -338,6 +339,18 @@ function handleReset() {
 </template>
 
 <style scoped>
+.data-table td.comment-content {
+  white-space: normal;
+}
+.comment-excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.8;
+}
 /* 固定列合计 40+140+200+150+100+148=778，再给主列留 240px 下限；窄于此宽度改为横向滚动，
    而不是把主列压成 0（见 variables.css 中 .data-table 的说明） */
 .data-table {

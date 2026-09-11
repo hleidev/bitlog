@@ -18,7 +18,7 @@ const props = defineProps<{
   publishedVersionId: number | null
 }>()
 
-const emit = defineEmits<{ reload: [] }>()
+const emit = defineEmits<{ reload: []; close: [] }>()
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -91,11 +91,18 @@ async function handleDelete() {
 </script>
 
 <template>
-  <div class="meta-sidebar" :class="{ 'meta-sidebar--closed': !open }">
+  <div
+    id="article-version-history"
+    class="meta-sidebar"
+    :class="{ 'meta-sidebar--closed': !open }"
+    :inert="!open"
+    :aria-hidden="!open"
+  >
     <div class="sidebar-scroll">
       <div class="sidebar-section">
         <div class="version-header-row">
           <span class="section-label">历史版本</span>
+          <button class="version-close" aria-label="关闭历史版本" @click="emit('close')">×</button>
           <button
             class="version-manage-toggle"
             :class="{ 'version-manage-toggle--cancel': manageMode }"
@@ -183,6 +190,15 @@ async function handleDelete() {
     width 0.25s ease,
     opacity 0.2s ease;
   overflow: hidden;
+}
+.version-close {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--admin-text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 6px;
 }
 .meta-sidebar--closed {
   width: 0;
@@ -376,9 +392,9 @@ async function handleDelete() {
 @media (max-width: 768px) {
   .meta-sidebar {
     position: fixed;
-    top: var(--admin-header-height);
+    top: calc(var(--admin-header-height) + var(--write-toolbar-height));
     right: 0;
-    height: calc(100vh - var(--admin-header-height));
+    height: calc(100dvh - var(--admin-header-height) - var(--write-toolbar-height));
     z-index: 100;
     box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
   }
@@ -386,6 +402,11 @@ async function handleDelete() {
     width: 0;
     opacity: 0;
     box-shadow: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .meta-sidebar {
+    transition: none;
   }
 }
 </style>

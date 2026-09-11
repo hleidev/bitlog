@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useHead, useSeoMeta } from '@unhead/vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useModalStore } from '@/stores/useModalStore'
 import { useUserStore } from '@/stores/useUserStore'
@@ -16,6 +17,20 @@ import {
   type MyFriendLinkVO,
 } from '@/api/link'
 
+const pageTitle = '友链 | BitLog'
+const pageDescription = '一些博客，推荐给你。'
+
+useHead({
+  title: pageTitle,
+  link: [{ rel: 'canonical', href: 'https://bitlog.harrylei.top/friends' }],
+})
+useSeoMeta({
+  description: pageDescription,
+  ogTitle: pageTitle,
+  ogDescription: pageDescription,
+  ogUrl: 'https://bitlog.harrylei.top/friends',
+})
+
 const userStore = useUserStore()
 const modalStore = useModalStore()
 const confirm = useConfirm()
@@ -23,9 +38,16 @@ const confirm = useConfirm()
 const links = ref<FriendLinkVO[]>([])
 const myLink = ref<MyFriendLinkVO | null>(null)
 const loading = ref(true)
+const linksError = ref(false)
+const mineLoading = ref(true)
+const mineError = ref(false)
 const submitting = ref(false)
+const removing = ref(false)
 const formOpen = ref(false)
 const feedback = ref('')
+let pageActive = true
+let accountVersion = 0
+let mineRequestId = 0
 
 const form = reactive({
   name: '',
@@ -51,23 +73,69 @@ const panel = computed(() => {
 // ── 取数 ────────────────────────────────────────────────────────────────────
 
 async function loadLinks() {
-  links.value = await getFriendLinks()
+  const result = await getFriendLinks()
+  if (!pageActive) return
+  links.value = result
+  linksError.value = false
 }
 
-async function loadMine() {
-  myLink.value = userStore.isLoggedIn ? await getMyFriendLink() : null
-}
-
-onMounted(async () => {
+async function refreshLinks() {
+  loading.value = true
+  linksError.value = false
   try {
-    // 登录态要等静默续期完成再判断，否则刷新页面时永远走到未登录分支
-    await userStore.waitForSession()
-    await Promise.all([loadLinks(), loadMine()])
+    await loadLinks()
   } catch {
-    feedback.value = '加载失败，请刷新重试'
+    linksError.value = true
   } finally {
     loading.value = false
   }
+}
+
+async function refreshMine() {
+  if (!userStore.sessionInitialized || !userStore.isLoggedIn || !userStore.userInfo?.userId) return
+  const version = accountVersion
+  const requestId = ++mineRequestId
+  const isCurrent = () => pageActive && version === accountVersion && requestId === mineRequestId
+  mineLoading.value = true
+  mineError.value = false
+  try {
+    const result = await getMyFriendLink()
+    if (isCurrent()) myLink.value = result
+  } catch {
+    if (isCurrent()) mineError.value = true
+  } finally {
+    if (isCurrent()) mineLoading.value = false
+  }
+}
+
+// 静默恢复、弹窗登录和账号切换共用一条状态同步路径，不依赖整页刷新。
+watch(
+  [
+    () => userStore.sessionInitialized,
+    () => userStore.isLoggedIn,
+    () => userStore.userInfo?.userId,
+  ],
+  ([ready, loggedIn, userId]) => {
+    accountVersion++
+    mineRequestId++
+    myLink.value = null
+    formOpen.value = false
+    resetForm()
+    feedback.value = ''
+    mineError.value = false
+    submitting.value = false
+    removing.value = false
+    mineLoading.value = !ready || (loggedIn && !userId)
+    if (ready && loggedIn && userId) void refreshMine()
+  },
+  { immediate: true },
+)
+
+onMounted(() => void refreshLinks())
+onUnmounted(() => {
+  pageActive = false
+  accountVersion++
+  mineRequestId++
 })
 
 // ── 头像 ────────────────────────────────────────────────────────────────────
@@ -108,12 +176,16 @@ function openLogin() {
   modalStore.open('login')
 }
 
-function startApply() {
+function resetForm() {
   form.name = ''
   form.url = ''
   form.avatar = ''
   form.description = ''
   form.applyMessage = ''
+}
+
+function startApply() {
+  resetForm()
   feedback.value = ''
   formOpen.value = true
 }
@@ -138,6 +210,7 @@ function closeForm() {
 
 async function submit() {
   if (submitting.value) return
+  const version = accountVersion
   submitting.value = true
   feedback.value = ''
   try {
@@ -146,18 +219,22 @@ async function submit() {
     } else {
       await applyFriendLink({ ...form })
     }
+    if (!pageActive || version !== accountVersion) return
     formOpen.value = false
-    await Promise.all([loadMine(), loadLinks()])
+    await Promise.all([refreshMine(), refreshLinks()])
   } catch (err) {
-    feedback.value = err instanceof ApiError ? err.message : '提交失败，请稍后重试'
+    if (pageActive && version === accountVersion)
+      feedback.value = err instanceof ApiError ? err.message : '提交失败，请稍后重试'
   } finally {
-    submitting.value = false
+    if (version === accountVersion) submitting.value = false
   }
 }
 
 async function removeMine() {
-  if (!myLink.value) return
+  if (!myLink.value || removing.value) return
+  const version = accountVersion
   const pending = myLink.value.status === LINK_STATUS.PENDING
+  removing.value = true
   try {
     await confirm(
       pending ? '撤回这条友链申请？' : '删除后需要重新申请。',
@@ -165,39 +242,57 @@ async function removeMine() {
       { confirmText: pending ? '撤回' : '删除', danger: true },
     )
   } catch {
+    if (version === accountVersion) removing.value = false
     return
   }
+  if (!pageActive || version !== accountVersion) return
   feedback.value = ''
   try {
     await deleteMyFriendLink()
-    await Promise.all([loadMine(), loadLinks()])
+    if (!pageActive || version !== accountVersion) return
+    await Promise.all([refreshMine(), refreshLinks()])
   } catch (err) {
-    feedback.value = err instanceof ApiError ? err.message : '删除失败，请稍后重试'
+    if (pageActive && version === accountVersion)
+      feedback.value = err instanceof ApiError ? err.message : '删除失败，请稍后重试'
+  } finally {
+    if (version === accountVersion) removing.value = false
   }
 }
 </script>
 
 <template>
-  <div class="friends-page">
+  <main class="friends-page">
     <div class="friends-main">
-      <header class="page-head">
-        <h1 class="page-title">友链</h1>
-        <p class="page-desc">一些我常逛的博客。</p>
+      <header class="journal-page-head">
+        <div>
+          <span class="journal-kicker">THE BLOGROLL</span>
+          <h1>友链<span class="page-title-dot">.</span></h1>
+        </div>
+        <p>{{ pageDescription }}</p>
       </header>
 
       <p v-if="loading" class="empty">加载中…</p>
+
+      <div v-else-if="linksError" class="empty" role="alert">
+        <p>友链暂时没能加载出来。</p>
+        <button class="journal-link" type="button" @click="refreshLinks">重新加载</button>
+      </div>
 
       <p v-else-if="links.length === 0" class="empty">还没有友链。</p>
 
       <div v-else class="link-grid">
         <a
-          v-for="link in links"
+          v-for="(link, index) in links"
           :key="link.id"
           class="link-card"
           :href="safeUrl(link.url)"
           target="_blank"
           rel="noopener noreferrer"
         >
+          <span class="link-card__index" aria-hidden="true">{{
+            String(index + 1).padStart(2, '0')
+          }}</span>
+          <span class="link-card__arrow" aria-hidden="true">↗</span>
           <img
             v-if="avatarSrc(link)"
             class="avatar"
@@ -216,11 +311,20 @@ async function removeMine() {
       </div>
 
       <!-- ── 底部申请区 ── -->
-      <section v-if="!loading" class="apply">
-        <p v-if="feedback" class="feedback">{{ feedback }}</p>
+      <section class="apply">
+        <p v-if="feedback" class="feedback" role="alert">{{ feedback }}</p>
+        <p v-if="mineLoading" role="status">正在加载申请状态…</p>
+        <div v-else-if="mineError" role="alert">
+          <p>你的友链申请状态暂时无法读取。</p>
+          <button class="journal-link" type="button" @click="refreshMine">重新加载</button>
+        </div>
 
         <!-- 未登录、以及已登录但还没申请：都只给一行安静的入口 -->
-        <div v-if="panel === 'guest' || panel === 'entry'" class="apply-entry">
+        <div v-else-if="panel === 'guest' || panel === 'entry'" class="apply-entry">
+          <div>
+            <h2 class="apply-invitation">交换友链</h2>
+            <p class="apply-note">如果你也在写博客，欢迎交换链接。</p>
+          </div>
           <button
             class="more-link"
             type="button"
@@ -292,7 +396,14 @@ async function removeMine() {
               <button class="btn" type="submit" :disabled="submitting">
                 {{ submitting ? '提交中…' : myLink ? '保存' : '提交申请' }}
               </button>
-              <button class="btn btn--ghost" type="button" @click="closeForm">取消</button>
+              <button
+                class="btn btn--ghost"
+                type="button"
+                :disabled="submitting"
+                @click="closeForm"
+              >
+                取消
+              </button>
             </div>
           </form>
         </template>
@@ -342,49 +453,40 @@ async function removeMine() {
             </span>
 
             <div class="mine-actions">
-              <button class="link-inline" type="button" @click="startEdit">修改</button>
-              <button class="link-inline" type="button" @click="removeMine">
-                {{ myLink.status === LINK_STATUS.PENDING ? '撤回' : '删除' }}
+              <button class="link-inline" type="button" :disabled="removing" @click="startEdit">
+                修改
+              </button>
+              <button class="link-inline" type="button" :disabled="removing" @click="removeMine">
+                {{ removing ? '处理中…' : myLink.status === LINK_STATUS.PENDING ? '撤回' : '删除' }}
               </button>
             </div>
           </div>
         </template>
       </section>
     </div>
-  </div>
+  </main>
 </template>
 
 <style scoped>
+.friends-page {
+  padding-top: var(--spacing-header-height);
+  min-height: 80vh;
+}
 .friends-main {
   max-width: var(--spacing-container);
   margin: 0 auto;
-  padding: 72px var(--spacing-page-padding) 120px;
+  padding: 0 var(--spacing-page-padding) 100px;
 }
-
-/* ── 页头 ── */
-
-.page-head {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 48px;
-  text-align: center;
+.page-title-dot {
+  color: var(--color-accent);
 }
-
-.page-title {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: 32px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
+.apply-invitation {
+  font: 500 24px var(--font-display);
 }
-
-.page-desc {
-  margin: 0;
-  max-width: 54ch;
-  color: var(--color-text-secondary);
+.apply-note {
   font-size: 14px;
+  color: var(--color-text-muted);
+  margin-top: 10px;
 }
 
 .empty {
@@ -400,29 +502,46 @@ async function removeMine() {
 /* auto-fit + 上限宽度：友链只有几条时整组居中，不会被拉宽也不会靠左堆着 */
 .link-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 232px));
-  justify-content: center;
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  border-top: 1px solid var(--color-border-strong);
+  padding-top: 32px;
 }
-
 .link-card {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 24px;
+  align-content: start;
   align-items: center;
-  gap: 10px;
-  padding: 28px 20px;
+  gap: 20px 14px;
+  padding: 26px;
   border: 1px solid var(--color-border);
-  color: inherit;
-  text-decoration: none;
-  text-align: center;
+  background: var(--color-bg-card);
+  min-height: 224px;
   transition:
-    background var(--transition-base),
-    border-color var(--transition-base);
+    border-color 0.2s,
+    transform 0.2s;
 }
-
 .link-card:hover {
-  background: var(--color-bg-hover);
-  border-color: var(--color-border-strong);
+  border-color: var(--color-accent);
+  transform: translateY(-3px);
+}
+.link-card__index {
+  grid-column: 1 / 3;
+  font: 12px var(--font-mono);
+  color: var(--color-text-muted);
+}
+.link-card__arrow {
+  grid-column: 3;
+  font-size: 24px;
+  color: var(--color-text-muted);
+}
+.link-card:hover .link-card__arrow {
+  color: var(--color-accent);
+}
+.link-card .avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
 }
 
 .avatar {
@@ -446,7 +565,9 @@ async function removeMine() {
 
 /* 截断：站名可以长到 64 字，不夹住会把整行网格撑变形 */
 .link-name {
-  font-size: 15px;
+  grid-column: 2 / -1;
+  font-family: var(--font-display);
+  font-size: 21px;
   font-weight: 500;
   max-width: 100%;
   overflow: hidden;
@@ -465,7 +586,8 @@ async function removeMine() {
 
 /* 夹到两行，卡片高度才齐 */
 .link-desc {
-  font-size: 12.5px;
+  grid-column: 1 / -1;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--color-text-muted);
   display: -webkit-box;
@@ -486,7 +608,9 @@ async function removeMine() {
 /* 与首页底部「全部文章 →」同一套写法，见 HomeView.vue */
 .apply-entry {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
 }
 
 .more-link {
@@ -494,8 +618,9 @@ async function removeMine() {
   align-items: center;
   gap: 8px;
   font-family: inherit;
-  font-size: 12.5px;
-  letter-spacing: 0.07em;
+  font-size: 14px;
+  min-height: 44px;
+  letter-spacing: 0.03em;
   color: var(--color-text-muted);
   background: none;
   border: none;
@@ -549,7 +674,8 @@ async function removeMine() {
   padding: 9px 12px;
 }
 
-.btn:disabled {
+.btn:disabled,
+.link-inline:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -595,13 +721,13 @@ async function removeMine() {
 }
 
 .field-label {
-  font-size: 11.5px;
+  font-size: 13px;
   letter-spacing: 0.06em;
   color: var(--color-text-muted);
 }
 
 .opt {
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
 }
 
 .input,
@@ -630,7 +756,7 @@ async function removeMine() {
 
 .input::placeholder,
 .textarea::placeholder {
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
 }
 
 .form-actions {
@@ -726,7 +852,7 @@ async function removeMine() {
 
 .mine-time {
   font-size: 11.5px;
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
 }
 
 .mine-actions {
@@ -757,22 +883,36 @@ async function removeMine() {
 
 /* ── Mobile ── */
 
-@media (max-width: 768px) {
-  .friends-main {
-    padding: 48px 20px 80px;
-  }
-
+@media (max-width: 960px) {
   .link-grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
+}
+@media (max-width: 640px) {
+  .friends-main {
+    padding-bottom: 64px;
+  }
+  .link-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding-top: 24px;
+  }
   .link-card {
-    padding: 22px 14px;
+    min-height: 190px;
+    padding: 22px;
   }
-
+  .apply-entry {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .apply {
+    margin-top: 32px;
+  }
   .form {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .apply-invitation {
+    font-size: 22px;
   }
 }
 </style>

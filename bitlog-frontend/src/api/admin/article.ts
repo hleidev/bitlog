@@ -4,7 +4,7 @@ import { stripEmpty, type BasePageParams, type PageResult } from '@/api/types'
 export type ArticleStatus = 'DRAFT' | 'PUBLISHED'
 
 // 后端按枚举名绑定，不是 status 那样的数字码
-export type MyArticleSort = 'CREATE_TIME' | 'DISPLAY_TIME'
+export type MyArticleSort = 'CREATE_TIME' | 'UPDATE_TIME' | 'DISPLAY_TIME'
 
 const STATUS_FROM_API: Record<number, ArticleStatus> = { 0: 'DRAFT', 1: 'PUBLISHED' }
 const STATUS_TO_API: Record<ArticleStatus, number> = { DRAFT: 0, PUBLISHED: 1 }

@@ -16,10 +16,16 @@ type IconName =
   | 'category'
   | 'tag'
   | 'link'
+  | 'workspace'
+  | 'profile'
+  | 'external'
 
 const props = defineProps<{ name: IconName }>()
 
 const PATHS: Record<Exclude<IconName, 'more'>, string> = {
+  workspace: 'M3 3h18v18H3zM3 9h18M9 9v12',
+  profile: 'M9 3H4v18h16V3h-5M9 2h6v4H9zM8 17h8M9 12h6',
+  external: 'M14 3h7v7M21 3l-11 11M10 3H3v18h18v-7',
   search: 'M11 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16M21 21l-4.35-4.35',
   close: 'M18 6 6 18M6 6l12 12',
   reset: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5',

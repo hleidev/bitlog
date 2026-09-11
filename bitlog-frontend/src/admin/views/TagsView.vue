@@ -3,6 +3,7 @@ import { ref, computed, reactive, onMounted, nextTick, watch } from 'vue'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
 import { formatDateTime } from '@/utils/format'
+import BaseModal from '@/components/common/BaseModal.vue'
 import AdminIcon from '@/admin/components/AdminIcon.vue'
 import AdminListHeader from '@/admin/components/AdminListHeader.vue'
 import AdminSelectionBar from '@/admin/components/AdminSelectionBar.vue'
@@ -141,10 +142,18 @@ const dialogMode = ref<'create' | 'edit'>('create')
 const editingTag = ref<Tag | null>(null)
 const formName = ref('')
 const formLoading = ref(false)
+const formError = ref('')
+
+function closeDialog() {
+  if (!formLoading.value) dialogVisible.value = false
+}
 const dialogInputRef = ref<HTMLInputElement | null>(null)
 
 watch(dialogVisible, (val) => {
-  if (val) nextTick(() => dialogInputRef.value?.focus())
+  if (val) {
+    formError.value = ''
+    nextTick(() => dialogInputRef.value?.focus())
+  }
 })
 
 function openCreateDialog() {
@@ -162,9 +171,11 @@ function openEditDialog(tag: Tag) {
 }
 
 async function handleDialogSubmit() {
+  if (formLoading.value) return
+  formError.value = ''
   const name = formName.value.trim()
   if (!name) {
-    toast.warning('请输入标签名称')
+    formError.value = '请输入标签名称'
     return
   }
   formLoading.value = true
@@ -181,8 +192,7 @@ async function handleDialogSubmit() {
     fetchTags()
   } catch (err: unknown) {
     const code = (err as { code?: number })?.code
-    if (code === 43202) toast.warning('标签名已存在')
-    else toast.error('操作失败')
+    formError.value = code === 43202 ? '标签名已存在，请换一个名称。' : '保存失败，请重试。'
   } finally {
     formLoading.value = false
   }
@@ -294,33 +304,42 @@ async function handleDialogSubmit() {
   </div>
 
   <!-- Create / Edit dialog -->
-  <Transition name="dialog-fade">
-    <div v-if="dialogVisible" class="dialog-overlay" @click.self="dialogVisible = false">
-      <div class="dialog-box">
-        <h3 class="dialog-title">{{ dialogMode === 'create' ? '新建标签' : '编辑标签' }}</h3>
-        <input
-          ref="dialogInputRef"
-          v-model="formName"
-          class="dialog-input"
-          placeholder="请输入标签名称"
-          maxlength="30"
-          @keyup.enter="handleDialogSubmit"
-        />
-        <p class="input-hint">{{ formName.length }} / 30</p>
-        <div class="dialog-actions">
-          <button class="dialog-btn dialog-btn--cancel" @click="dialogVisible = false">取消</button>
-          <button
-            class="dialog-btn dialog-btn--ok"
-            :disabled="formLoading"
-            @click="handleDialogSubmit"
-          >
-            <span v-if="formLoading" class="btn-spinner" />
-            {{ dialogMode === 'create' ? '创建' : '保存' }}
-          </button>
-        </div>
+  <BaseModal
+    :visible="dialogVisible"
+    width="420px"
+    :aria-label="dialogMode === 'create' ? '新建标签' : '编辑标签'"
+    @close="closeDialog"
+  >
+    <div class="dialog-box admin-form-dialog">
+      <h3 class="dialog-title">{{ dialogMode === 'create' ? '新建标签' : '编辑标签' }}</h3>
+      <input
+        ref="dialogInputRef"
+        v-model="formName"
+        class="dialog-input"
+        aria-label="标签名称"
+        :aria-invalid="!!formError"
+        :disabled="formLoading"
+        placeholder="请输入标签名称"
+        maxlength="30"
+        @keyup.enter="handleDialogSubmit"
+      />
+      <p class="input-hint">{{ formName.length }} / 30</p>
+      <p v-if="formError" class="dialog-error" role="alert">{{ formError }}</p>
+      <div class="dialog-actions">
+        <button class="dialog-btn dialog-btn--cancel" :disabled="formLoading" @click="closeDialog">
+          取消
+        </button>
+        <button
+          class="dialog-btn dialog-btn--ok"
+          :disabled="formLoading || !formName.trim()"
+          @click="handleDialogSubmit"
+        >
+          <span v-if="formLoading" class="btn-spinner" />
+          {{ dialogMode === 'create' ? '创建' : '保存' }}
+        </button>
       </div>
     </div>
-  </Transition>
+  </BaseModal>
 </template>
 
 <style scoped>
@@ -341,14 +360,4 @@ async function handleDialogSubmit() {
 }
 
 /* 头部、批量条、列宽、空状态图标全部走 admin/styles/variables.css 与共享组件 */
-
-/* ── Dialog ── */
-.dialog-fade-enter-active,
-.dialog-fade-leave-active {
-  transition: opacity 0.15s;
-}
-.dialog-fade-enter-from,
-.dialog-fade-leave-to {
-  opacity: 0;
-}
 </style>

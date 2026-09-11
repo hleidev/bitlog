@@ -12,8 +12,7 @@ const { isLoggedIn } = storeToRefs(userStore)
 
 /**
  * 后台自己在 AdminLayout 里挂 AdminConfirmDialog，而两个对话框读的是同一个 pending，
- * 全局这份再挂一次就会叠出两层：遮罩双倍变暗，点击落在上层遮罩上会被判成取消，
- * 且 public 版不渲染第三出口（如「直接离开」），后台的三按钮确认框会少一个按钮。
+ * 同一时间只挂一份，避免重复打开原生 dialog，导致遮罩叠加和焦点恢复冲突。
  */
 const isAdminRoute = computed(() => route.path.startsWith('/admin'))
 

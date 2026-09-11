@@ -32,7 +32,7 @@ const { userInfo } = storeToRefs(useUserStore())
 /** 本页量词，批量条与操作提示共用 */
 const UNIT = '人'
 
-const { openMenuId, menuStyle, toggleMenu, closeMenu } = useRowMenu()
+const { openMenuId, menuRef, menuId, menuStyle, toggleMenu, closeMenu } = useRowMenu()
 
 // ── Tab ───────────────────────────────────────────────────────────────────────
 type TabKey = 'all' | 'enabled' | 'disabled' | 'deactivated'
@@ -100,6 +100,7 @@ const query = useListQuery({
 
 const { filters, loading, pageNum, pageSize, total, totalPages, pageNumbers } = query
 const users = query.items
+const menuRow = computed(() => users.value.find((row) => row.userId === openMenuId.value))
 const fetchUsers = query.load
 
 // 重置 = 清空全部筛选并回到「全部」，与其余列表页一致
@@ -157,7 +158,7 @@ function canChangeStatus(row: UserListItem) {
 // ── Single row operations ─────────────────────────────────────────────────────
 async function handleToggleStatus(row: UserListItem) {
   if (row.userId === userInfo.value?.userId || isDeactivated(row)) return
-  closeMenu()
+  closeMenu(true)
   const newStatus = row.status === 1 ? 0 : 1
   try {
     await updateUsersStatus([row.userId], newStatus as 0 | 1)
@@ -170,7 +171,7 @@ async function handleToggleStatus(row: UserListItem) {
 }
 
 async function handleResetPassword(row: UserListItem) {
-  closeMenu()
+  closeMenu(true)
   try {
     await confirm(`确认重置「${displayName(row)}」的密码？`, '重置密码', {
       confirmText: '重置密码',
@@ -196,7 +197,7 @@ const DEACTIVATE_WARNING =
   '注销后邮箱与用户名会被释放、个人资料清空，其发表的评论保留但署名转为「已注销用户」。此操作不可撤销。'
 
 async function handleDeactivate(row: UserListItem) {
-  closeMenu()
+  closeMenu(true)
   try {
     await confirm(`确认注销「${displayName(row)}」？${DEACTIVATE_WARNING}`, '注销账号', {
       confirmText: '注销',
@@ -285,7 +286,7 @@ const detailUser = ref<UserDetail | null>(null)
 const detailLoading = ref(false)
 
 async function openDetail(row: UserListItem) {
-  closeMenu()
+  closeMenu(true)
   detailVisible.value = true
   detailLoading.value = true
   detailUser.value = null
@@ -411,42 +412,17 @@ async function openDetail(row: UserListItem) {
                 <span class="cell-muted">{{ formatDateTime(row.createTime) }}</span>
               </td>
               <td class="col-actions">
-                <div v-click-outside="closeMenu" class="menu-wrap">
+                <div class="menu-wrap">
                   <button
                     class="more-btn"
+                    aria-haspopup="menu"
+                    :aria-expanded="openMenuId === row.userId"
+                    :aria-controls="openMenuId === row.userId ? menuId : undefined"
                     title="更多"
                     @click.stop="toggleMenu(row.userId, $event)"
                   >
                     <AdminIcon name="more" />
                   </button>
-                  <Teleport to="body">
-                    <div v-if="openMenuId === row.userId" class="dropdown-menu" :style="menuStyle">
-                      <button class="menu-item" @click="openDetail(row)">用户信息</button>
-                      <div class="menu-divider" />
-                      <button
-                        class="menu-item"
-                        :disabled="!canChangeStatus(row)"
-                        @click="handleToggleStatus(row)"
-                      >
-                        {{ row.status === 1 ? '禁用' : '启用' }}
-                      </button>
-                      <button
-                        class="menu-item"
-                        :disabled="isDeactivated(row)"
-                        @click="handleResetPassword(row)"
-                      >
-                        重置密码
-                      </button>
-                      <div class="menu-divider" />
-                      <button
-                        class="menu-item menu-item--danger"
-                        :disabled="isDeactivated(row)"
-                        @click="handleDeactivate(row)"
-                      >
-                        注销
-                      </button>
-                    </div>
-                  </Teleport>
                 </div>
               </td>
             </tr>
@@ -482,42 +458,17 @@ async function openDetail(row: UserListItem) {
                 <span class="cell-muted mc-time">注册于 {{ formatDateTime(row.createTime) }}</span>
               </div>
             </div>
-            <div v-click-outside="closeMenu" class="menu-wrap">
+            <div class="menu-wrap">
               <button
                 class="more-btn"
+                aria-haspopup="menu"
+                :aria-expanded="openMenuId === row.userId"
+                :aria-controls="openMenuId === row.userId ? menuId : undefined"
                 title="更多"
                 @click.stop="toggleMenu(row.userId, $event, 'left')"
               >
                 <AdminIcon name="more" />
               </button>
-              <Teleport to="body">
-                <div v-if="openMenuId === row.userId" class="dropdown-menu" :style="menuStyle">
-                  <button class="menu-item" @click="openDetail(row)">用户信息</button>
-                  <div class="menu-divider" />
-                  <button
-                    class="menu-item"
-                    :disabled="!canChangeStatus(row)"
-                    @click="handleToggleStatus(row)"
-                  >
-                    {{ row.status === 1 ? '禁用' : '启用' }}
-                  </button>
-                  <button
-                    class="menu-item"
-                    :disabled="isDeactivated(row)"
-                    @click="handleResetPassword(row)"
-                  >
-                    重置密码
-                  </button>
-                  <div class="menu-divider" />
-                  <button
-                    class="menu-item menu-item--danger"
-                    :disabled="isDeactivated(row)"
-                    @click="handleDeactivate(row)"
-                  >
-                    注销
-                  </button>
-                </div>
-              </Teleport>
             </div>
           </div>
         </div>
@@ -638,6 +589,51 @@ async function openDetail(row: UserListItem) {
           </div>
         </template>
       </div>
+    </div>
+  </Teleport>
+
+  <Teleport to="body">
+    <div
+      v-if="menuRow"
+      :id="menuId"
+      ref="menuRef"
+      role="menu"
+      aria-label="用户操作"
+      class="dropdown-menu"
+      :style="menuStyle"
+    >
+      <button role="menuitem" tabindex="-1" class="menu-item" @click="openDetail(menuRow)">
+        用户信息
+      </button>
+      <div class="menu-divider" role="separator" />
+      <button
+        role="menuitem"
+        tabindex="-1"
+        class="menu-item"
+        :disabled="!canChangeStatus(menuRow)"
+        @click="handleToggleStatus(menuRow)"
+      >
+        {{ menuRow.status === 1 ? '禁用' : '启用' }}
+      </button>
+      <button
+        role="menuitem"
+        tabindex="-1"
+        class="menu-item"
+        :disabled="isDeactivated(menuRow)"
+        @click="handleResetPassword(menuRow)"
+      >
+        重置密码
+      </button>
+      <div class="menu-divider" role="separator" />
+      <button
+        role="menuitem"
+        tabindex="-1"
+        class="menu-item menu-item--danger"
+        :disabled="isDeactivated(menuRow)"
+        @click="handleDeactivate(menuRow)"
+      >
+        注销账号
+      </button>
     </div>
   </Teleport>
 </template>

@@ -1,5 +1,6 @@
 @import '@bitlog/editor/variables.css';
 @import './reset.css';
+@import './design.css';
 
 /* Scrollbar */
 ::-webkit-scrollbar {
@@ -24,7 +25,7 @@
 .container {
   max-width: var(--spacing-container);
   margin: 0 auto;
-  padding: 0 var(--spacing-page-padding);
+  padding-inline: var(--spacing-page-padding);
 }
 
 /* Page enter animation */

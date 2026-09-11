@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import { storeToRefs } from 'pinia'
@@ -26,15 +26,28 @@ const {
 
 const pageTitle = computed(() => route.meta.title ?? '')
 const parentTitle = computed(() => route.meta.parent ?? '')
-const displayName = computed(() => userInfo.value?.username ?? 'Admin')
-const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
+const displayName = computed(() => userInfo.value?.username ?? '用户')
+const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase() || '?')
+const avatarFailed = ref(false)
+watch(
+  () => userInfo.value?.avatar,
+  () => {
+    avatarFailed.value = false
+  },
+)
 </script>
 
 <template>
   <div class="admin-header">
     <div class="header-left">
       <!-- Sidebar toggle -->
-      <button class="toggle-btn" aria-label="切换侧边栏" @click="emit('toggle')">
+      <button
+        class="toggle-btn"
+        :aria-label="collapsed ? '展开导航' : '收起导航'"
+        aria-controls="admin-navigation"
+        :aria-expanded="!collapsed"
+        @click="emit('toggle')"
+      >
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -48,7 +61,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
       </button>
 
       <!-- Breadcrumb -->
-      <nav v-if="pageTitle" class="breadcrumb">
+      <nav v-if="pageTitle" class="breadcrumb" aria-label="当前位置">
         <span v-if="parentTitle" class="breadcrumb-item breadcrumb-item--parent">{{
           parentTitle
         }}</span>
@@ -63,22 +76,40 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
         <button
           ref="menuTriggerRef"
           class="user-trigger"
+          :aria-label="`${displayName}，账号菜单${unreadCount ? `，${unreadCount} 条未读通知` : ''}`"
           aria-haspopup="menu"
           :aria-expanded="menuOpen"
+          :aria-controls="menuOpen ? 'admin-account-menu' : undefined"
           @click="toggleMenu"
         >
           <img
-            v-if="userInfo?.avatar"
+            v-if="userInfo?.avatar && !avatarFailed"
             :src="userInfo.avatar"
             class="trigger-avatar trigger-avatar--img"
             :alt="displayName"
+            @error="avatarFailed = true"
           />
           <span v-else class="trigger-avatar trigger-avatar--placeholder">{{ avatarLetter }}</span>
           <span v-if="unreadCount > 0" class="trigger-unread-dot" aria-hidden="true"></span>
+          <svg
+            class="trigger-chevron"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <path d="m4 6 4 4 4-4" />
+          </svg>
         </button>
 
         <Transition name="dropdown">
-          <UserDropdown v-if="menuOpen" class="admin-user-dropdown" @close="closeMenu" />
+          <UserDropdown
+            v-if="menuOpen"
+            id="admin-account-menu"
+            class="admin-user-dropdown"
+            @close="closeMenu"
+          />
         </Transition>
       </div>
     </div>
@@ -174,7 +205,9 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
   position: relative;
   display: flex;
   align-items: center;
-  padding: 4px;
+  min-height: 40px;
+  padding: 5px 6px;
+  gap: 5px;
   border-radius: 4px;
   cursor: pointer;
   background: transparent;
@@ -182,8 +215,25 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
   transition: background 0.15s ease;
 }
 
-.user-trigger:hover {
+.user-trigger:hover,
+.user-trigger[aria-expanded='true'] {
   background: var(--admin-sidebar-hover);
+}
+
+.user-trigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.trigger-chevron {
+  width: 12px;
+  height: 12px;
+  color: var(--color-text-muted);
+  transition: transform 0.15s ease;
+}
+
+.user-trigger[aria-expanded='true'] .trigger-chevron {
+  transform: rotate(180deg);
 }
 
 .trigger-avatar {
@@ -210,7 +260,7 @@ const avatarLetter = computed(() => displayName.value.charAt(0).toUpperCase())
 .trigger-unread-dot {
   position: absolute;
   top: 2px;
-  right: 2px;
+  right: 22px;
   width: 7px;
   height: 7px;
   border-radius: 50%;

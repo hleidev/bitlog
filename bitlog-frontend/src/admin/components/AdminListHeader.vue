@@ -40,6 +40,7 @@ const emit = defineEmits<{
         :key="tab.key"
         class="view-tab"
         :class="{ 'view-tab--active': activeTab === tab.key }"
+        :aria-pressed="activeTab === tab.key"
         @click="activeTab = tab.key"
       >
         {{ tab.label }}
@@ -54,13 +55,20 @@ const emit = defineEmits<{
           v-model="keyword"
           class="search-input"
           :placeholder="props.searchPlaceholder"
-          @keyup.enter="emit('search')"
+          :aria-label="props.searchPlaceholder"
+          @keydown.enter="!$event.isComposing && emit('search')"
         />
-        <button v-if="keyword" class="search-clear" title="清除" @click="keyword = ''">
+        <button
+          v-if="keyword"
+          class="search-clear"
+          title="清除搜索"
+          aria-label="清除搜索"
+          @click="keyword = ''"
+        >
           <AdminIcon name="close" />
         </button>
       </div>
-      <button class="icon-btn" title="重置筛选" @click="emit('reset')">
+      <button class="icon-btn" title="重置筛选" aria-label="重置筛选" @click="emit('reset')">
         <AdminIcon name="reset" />
       </button>
       <button v-if="props.actionLabel" class="primary-btn" @click="emit('action')">

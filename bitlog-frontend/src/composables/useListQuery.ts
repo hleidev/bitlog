@@ -155,6 +155,7 @@ export function useListQuery<F extends Filters, T>(
       }
       applyPrerendered(res)
     } catch (err) {
+      if (seq !== loadSeq) return
       if (onError) onError(err)
       else throw err
     } finally {
@@ -244,6 +245,7 @@ export function useListQuery<F extends Filters, T>(
 
   // 卸载后防抖回调仍会跑，syncUrl 页面会把 query 写到已经切走的新路由上
   onScopeDispose(() => {
+    loadSeq++
     if (timer) clearTimeout(timer)
   })
 

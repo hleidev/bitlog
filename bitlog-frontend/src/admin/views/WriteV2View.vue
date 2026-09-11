@@ -69,7 +69,7 @@ const LIFECYCLE_LABEL: Record<Lifecycle, string> = {
   draft: '草稿',
   unpublished: '已撤下',
   live: '已发布',
-  liveAhead: '已发布·有草稿',
+  liveAhead: '已发布 · 有未发布修改',
 }
 
 const PILL_CLASS: Record<Lifecycle, string> = {
@@ -501,8 +501,8 @@ async function handleDiscardDraftAbovePublish() {
 async function handleUnpublish() {
   closeMenu()
   try {
-    await confirm('取消发布后文章会从站点下线，内容和发布信息都保留。', '取消发布', {
-      confirmText: '取消发布',
+    await confirm('撤下后文章会从站点下线，内容和发布信息都保留。', '撤下文章', {
+      confirmText: '撤下',
       danger: true,
     })
   } catch {
@@ -512,7 +512,7 @@ async function handleUnpublish() {
   try {
     await updateArticlesStatus([articleId.value!], 'DRAFT')
     publishedVersionId.value = null
-    toast.success('已取消发布')
+    toast.success('文章已撤下')
   } catch (err) {
     handleError(err, '操作失败')
   } finally {
@@ -692,7 +692,11 @@ onBeforeRouteLeave(async () => {
       <!-- ── Toolbar ─────────────────────────────────────────────────────── -->
       <div class="write-toolbar">
         <div class="tb-left">
-          <button class="back-btn" @click="router.push('/admin/articles')">
+          <button
+            class="back-btn"
+            aria-label="返回文章列表"
+            @click="router.push('/admin/articles')"
+          >
             <svg
               viewBox="0 0 24 24"
               width="16"
@@ -753,7 +757,7 @@ onBeforeRouteLeave(async () => {
                   回到线上版本
                 </button>
                 <button v-if="isOnline" class="menu-item" :disabled="busy" @click="handleUnpublish">
-                  取消发布
+                  撤下文章
                 </button>
                 <div v-if="isOnline" class="menu-divider" />
                 <button class="menu-item menu-item--danger" :disabled="busy" @click="handleDelete">
@@ -765,7 +769,10 @@ onBeforeRouteLeave(async () => {
 
           <button
             class="sidebar-toggle"
-            :title="sidebarOpen ? '收起侧栏' : '展开侧栏'"
+            :title="sidebarOpen ? '收起历史版本' : '查看历史版本'"
+            :aria-label="sidebarOpen ? '收起历史版本' : '查看历史版本'"
+            :aria-expanded="sidebarOpen"
+            aria-controls="article-version-history"
             @click="sidebarOpen = !sidebarOpen"
           >
             <svg
@@ -814,6 +821,7 @@ onBeforeRouteLeave(async () => {
               v-model="title"
               class="title-input"
               placeholder="文章标题..."
+              aria-label="文章标题"
               maxlength="200"
               rows="1"
               @input="autoResizeTitle"
@@ -839,6 +847,7 @@ onBeforeRouteLeave(async () => {
           :versions="versions"
           :published-version-id="publishedVersionId"
           @reload="loadVersions"
+          @close="sidebarOpen = false"
         />
       </div>
     </template>
@@ -979,8 +988,8 @@ onBeforeRouteLeave(async () => {
 <style scoped>
 /* ── Layout ──────────────────────────────────────────────────────────────────── */
 .write-v2 {
-  margin: -24px;
-  height: calc(100vh - var(--admin-header-height));
+  --write-toolbar-height: 64px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--write-bg, var(--admin-surface-input));
@@ -1024,8 +1033,8 @@ onBeforeRouteLeave(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 56px;
-  padding: 0 16px 0 20px;
+  height: var(--write-toolbar-height);
+  padding: 0 24px;
   border-bottom: 1px solid var(--write-border, var(--admin-border-soft));
   flex-shrink: 0;
   gap: 12px;
@@ -1199,7 +1208,7 @@ onBeforeRouteLeave(async () => {
 }
 
 .editor-header {
-  padding: 28px 64px 16px;
+  padding: 48px 64px 24px;
 }
 
 .title-input {
@@ -1207,7 +1216,7 @@ onBeforeRouteLeave(async () => {
   width: 100%;
   max-width: var(--spacing-prose);
   margin: 0 auto;
-  font-size: 32px;
+  font-size: 38px;
   font-weight: 700;
   color: var(--write-text, var(--admin-text-primary));
   border: none;
@@ -1215,7 +1224,7 @@ onBeforeRouteLeave(async () => {
   background: transparent;
   line-height: 1.3;
   padding: 0;
-  font-family: inherit;
+  font-family: var(--font-display);
   word-wrap: break-word;
   overflow-wrap: break-word;
   resize: none;
@@ -1487,11 +1496,25 @@ onBeforeRouteLeave(async () => {
 /* ── Mobile ──────────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .write-v2 {
-    margin: -16px -12px;
+    --write-toolbar-height: 104px;
   }
   .write-toolbar {
-    padding: 0 12px;
+    padding: 10px 12px;
     gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .tb-left {
+    min-height: 30px;
+    gap: 8px;
+  }
+  .tb-right {
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .tb-left .link-btn {
+    margin-left: auto;
+    font-size: 11px;
   }
   .back-btn span,
   .tb-sep,
@@ -1512,6 +1535,16 @@ onBeforeRouteLeave(async () => {
   }
   .editor-container {
     padding: 0 20px 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-dot,
+  .ai-trigger-btn span {
+    animation: none !important;
+  }
+  .ai-slide-enter-active,
+  .ai-slide-leave-active {
+    transition: none;
   }
 }
 </style>

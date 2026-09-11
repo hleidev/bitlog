@@ -12,7 +12,8 @@ const onScroll = () => {
 }
 
 const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' })
 }
 
 onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
@@ -20,10 +21,11 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 </script>
 
 <template>
+  <a class="skip-link" href="#page-content">跳至内容</a>
   <AppHeader />
   <RouterView v-slot="{ Component, route }">
     <Transition name="page" mode="out-in" @before-enter="notifyViewEntering">
-      <component :is="Component" :key="route.path" />
+      <component :is="Component" id="page-content" :key="route.path" tabindex="-1" />
     </Transition>
   </RouterView>
   <AppFooter />
@@ -48,6 +50,21 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 </template>
 
 <style scoped>
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 16px;
+  z-index: 2100;
+  padding: 8px 16px;
+  color: var(--color-text-on-accent);
+  background: var(--color-accent);
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
 /* 只动 opacity：ArticleToc 与阅读进度条是 position: fixed 且在 RouterView 内，
    祖先一旦有 transform 就会改锚点，过渡期间跳位。 */
 .page-enter-active {

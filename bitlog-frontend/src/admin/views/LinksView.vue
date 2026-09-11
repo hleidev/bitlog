@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, reactive, ref } from 'vue'
 import { useListQuery } from '@/composables/useListQuery'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
 import { useRowMenu } from '@/admin/composables/useRowMenu'
 import { formatDateTime } from '@/utils/format'
 import AdminIcon from '@/admin/components/AdminIcon.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
 import AdminListHeader from '@/admin/components/AdminListHeader.vue'
 import AdminPagination from '@/admin/components/AdminPagination.vue'
 import { ApiError } from '@/utils/request'
@@ -23,7 +24,7 @@ import {
 const toast = useToast()
 const confirm = useConfirm()
 
-const { openMenuId, menuStyle, toggleMenu, closeMenu } = useRowMenu()
+const { openMenuId, menuRef, menuId, menuStyle, toggleMenu, closeMenu } = useRowMenu()
 
 type TabKey = 'all' | 'pending' | 'approved' | 'rejected'
 
@@ -36,27 +37,39 @@ const TAB_STATUS: Record<TabKey, LinkStatus | undefined> = {
 
 // 顺序：全部 → 主要工作对象（友链的日常就是审核）→ 其余
 const tabCounts = reactive({ all: 0, pending: 0, approved: 0, rejected: 0 })
+const countsReady = ref(false)
+const loadFailed = ref(false)
+let countRequestId = 0
+let pageRequestId = 0
 
 const tabs = computed(() => [
-  { key: 'all', label: '全部', count: tabCounts.all },
-  { key: 'pending', label: '待审核', count: tabCounts.pending },
-  { key: 'approved', label: '展示中', count: tabCounts.approved },
-  { key: 'rejected', label: '未通过', count: tabCounts.rejected },
+  { key: 'all', label: '全部', count: countsReady.value ? tabCounts.all : undefined },
+  { key: 'pending', label: '待审核', count: countsReady.value ? tabCounts.pending : undefined },
+  { key: 'approved', label: '展示中', count: countsReady.value ? tabCounts.approved : undefined },
+  { key: 'rejected', label: '未通过', count: countsReady.value ? tabCounts.rejected : undefined },
 ])
 
 async function fetchTabCounts() {
+  const id = ++countRequestId
+  countsReady.value = false
   try {
     const stats = await getAdminLinkStats({ keyword: filters.keyword })
+    if (id !== countRequestId) return
     tabCounts.all = stats.total
     tabCounts.pending = stats.pending
     tabCounts.approved = stats.approved
     tabCounts.rejected = stats.rejected
+    countsReady.value = true
   } catch {
     /* 统计失败不影响主流程 */
   }
 }
 
 onMounted(fetchTabCounts)
+onBeforeUnmount(() => {
+  countRequestId++
+  pageRequestId++
+})
 
 // AdminListHeader 的 model 是 string，这里做一层窄化桥接
 const activeTab = computed({
@@ -67,22 +80,34 @@ const activeTab = computed({
 })
 
 function handleReset() {
-  filters.keyword = ''
-  filters.tab = 'all'
+  query.reset()
 }
 
 const query = useListQuery({
   filters: { tab: 'all' as TabKey, keyword: '' },
   toParams: (f) => ({ status: TAB_STATUS[f.tab], keyword: f.keyword }),
-  fetch: (params) => getAdminLinkPage(params),
+  fetch: async (params) => {
+    const id = ++pageRequestId
+    const result = await getAdminLinkPage(params)
+    if (id === pageRequestId) loadFailed.value = false
+    return result
+  },
   debounce: ['keyword'],
   syncUrl: true,
   onFiltersApplied: fetchTabCounts,
+  sanitize: (filters) => {
+    if (!Object.hasOwn(TAB_STATUS, filters.tab)) filters.tab = 'all'
+  },
+  onError: () => {
+    loadFailed.value = true
+  },
 })
 
 const { filters, items: links, loading, pageNum, pageSize, total, totalPages, pageNumbers } = query
 
 const acting = ref(false)
+const actionError = ref('')
+const menuRow = computed(() => links.value.find((row) => row.id === openMenuId.value))
 
 // ── 拒绝弹窗 ────────────────────────────────────────────────────────────────
 
@@ -90,23 +115,25 @@ const rejecting = ref<FriendLinkAdmin | null>(null)
 const rejectReason = ref('')
 
 function openReject(row: FriendLinkAdmin) {
+  actionError.value = ''
   rejecting.value = row
   // 重新拒绝时带出原因，改错别字不必重打一遍
   rejectReason.value = row.rejectReason ?? ''
 }
 
 function closeReject() {
+  if (acting.value) return
   rejecting.value = null
   rejectReason.value = ''
 }
 
 async function confirmReject() {
   if (!rejecting.value) return
-  await runAction(
+  const ok = await runAction(
     () => auditAdminLink(rejecting.value!.id, LINK_STATUS.REJECTED, rejectReason.value),
     '已拒绝',
   )
-  closeReject()
+  if (ok) closeReject()
 }
 
 // ── 添加 / 编辑弹窗 ─────────────────────────────────────────────────────────
@@ -120,12 +147,15 @@ const form = reactive({ name: '', url: '', avatar: '', description: '' })
 const formValid = computed(() => form.name.trim() !== '' && form.url.trim() !== '')
 
 function openCreate() {
+  actionError.value = ''
   formTarget.value = null
   Object.assign(form, { name: '', url: '', avatar: '', description: '' })
   formVisible.value = true
 }
 
 function openEdit(row: FriendLinkAdmin) {
+  closeMenu(true)
+  actionError.value = ''
   formTarget.value = row
   Object.assign(form, {
     name: row.name,
@@ -137,6 +167,7 @@ function openEdit(row: FriendLinkAdmin) {
 }
 
 function closeForm() {
+  if (acting.value) return
   formVisible.value = false
   formTarget.value = null
 }
@@ -169,6 +200,7 @@ async function submitForm() {
 
 async function runAction(action: () => Promise<void>, okText: string): Promise<boolean> {
   if (acting.value) return false
+  actionError.value = ''
   acting.value = true
   try {
     await action()
@@ -177,7 +209,8 @@ async function runAction(action: () => Promise<void>, okText: string): Promise<b
     fetchTabCounts()
     return true
   } catch (err) {
-    toast.error(err instanceof ApiError ? err.message : '操作失败')
+    actionError.value = err instanceof ApiError ? err.message : '操作失败，请重试。'
+    if (!formVisible.value && !rejecting.value) toast.error(actionError.value)
     return false
   } finally {
     acting.value = false
@@ -189,6 +222,7 @@ function handleApprove(row: FriendLinkAdmin) {
 }
 
 async function handleDelete(row: FriendLinkAdmin) {
+  closeMenu(true)
   try {
     await confirm(`删除「${row.name}」？`, '删除友链', { confirmText: '删除', danger: true })
   } catch {
@@ -227,7 +261,11 @@ function hostOf(url: string) {
       @action="openCreate"
     />
 
-    <div class="table-wrap" :class="{ 'table-wrap--loading': loading }">
+    <div v-if="loadFailed && !loading" class="admin-error-state" role="alert">
+      <p>友链加载失败，请重试。</p>
+      <button class="ghost-btn" @click="query.load">重新加载</button>
+    </div>
+    <div v-else class="table-wrap" :class="{ 'table-wrap--loading': loading }" :aria-busy="loading">
       <div v-if="loading" class="table-loading">
         <svg class="spinner" viewBox="0 0 24 24" fill="none">
           <circle
@@ -246,17 +284,15 @@ function hostOf(url: string) {
         <thead>
           <tr>
             <th class="col-main">站点</th>
-            <th class="col-text">地址</th>
-            <th class="col-name">申请人</th>
+            <th class="col-time">申请信息</th>
             <th class="col-text">留言</th>
-            <th class="col-time">提交时间</th>
             <th class="col-status">状态</th>
             <th class="col-actions" />
           </tr>
         </thead>
         <tbody>
           <tr v-if="links.length === 0 && !loading">
-            <td colspan="7" class="empty-cell">
+            <td colspan="5" class="empty-cell">
               <div class="empty-state">
                 <AdminIcon name="link" class="empty-icon" />
                 <span>{{ filters.keyword ? '没有匹配的友链' : '暂无友链' }}</span>
@@ -272,31 +308,24 @@ function hostOf(url: string) {
                 </div>
                 <div class="site-names">
                   <span class="site-name">{{ row.name }}</span>
+                  <a
+                    :href="row.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="url-link"
+                    :title="row.url"
+                    >{{ hostOf(row.url) }} ↗</a
+                  >
                   <span v-if="row.description" class="cell-muted">{{ row.description }}</span>
                 </div>
               </div>
             </td>
-            <td class="col-text">
-              <a
-                :href="row.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="url-link"
-                :title="row.url"
-              >
-                {{ hostOf(row.url) }}
-              </a>
+            <td class="col-time applicant-cell">
+              <span>{{ row.applicant?.username ?? '手动添加' }}</span>
+              <time class="cell-muted">{{ formatDateTime(row.createTime) }}</time>
             </td>
-            <td class="col-name">
-              <span class="cell-muted">{{ row.applicant?.username ?? '—' }}</span>
-            </td>
-            <td class="col-text">
-              <span class="cell-muted" :title="row.applyMessage">{{
-                row.applyMessage || '—'
-              }}</span>
-            </td>
-            <td class="col-time">
-              <span class="cell-muted">{{ formatDateTime(row.createTime) }}</span>
+            <td class="col-text application-message">
+              <span :title="row.applyMessage">{{ row.applyMessage || '—' }}</span>
             </td>
             <td class="col-status">
               <span class="status-badge" :class="statusMeta[row.status].cls">
@@ -323,21 +352,17 @@ function hostOf(url: string) {
                 <button class="action-btn" :disabled="acting" @click="openReject(row)">
                   {{ row.status === LINK_STATUS.REJECTED ? '改理由' : '拒绝' }}
                 </button>
-                <div v-click-outside="closeMenu" class="menu-wrap">
-                  <button class="more-btn" title="更多" @click.stop="toggleMenu(row.id, $event)">
+                <div class="menu-wrap">
+                  <button
+                    class="more-btn"
+                    aria-haspopup="menu"
+                    :aria-expanded="openMenuId === row.id"
+                    :aria-controls="openMenuId === row.id ? menuId : undefined"
+                    title="更多"
+                    @click.stop="toggleMenu(row.id, $event)"
+                  >
                     <AdminIcon name="more" />
                   </button>
-                  <Teleport to="body">
-                    <div v-if="openMenuId === row.id" class="dropdown-menu" :style="menuStyle">
-                      <button class="menu-item" :disabled="acting" @click="openEdit(row)">
-                        编辑
-                      </button>
-                      <div class="menu-divider" />
-                      <button class="menu-item menu-item--danger" @click="handleDelete(row)">
-                        删除
-                      </button>
-                    </div>
-                  </Teleport>
                 </div>
               </div>
             </td>
@@ -357,40 +382,61 @@ function hostOf(url: string) {
     />
 
     <!-- 拒绝理由 -->
-    <div v-if="rejecting" class="dialog-overlay" @click.self="closeReject">
-      <div class="dialog-box">
+    <BaseModal :visible="!!rejecting" width="420px" aria-label="拒绝友链" @close="closeReject">
+      <div v-if="rejecting" class="dialog-box admin-form-dialog">
         <h3 class="dialog-title">拒绝「{{ rejecting.name }}」</h3>
         <input
           v-model="rejectReason"
           class="dialog-input"
+          aria-label="拒绝理由"
+          autofocus
+          :disabled="acting"
           placeholder="填写理由，申请人可以看到"
           maxlength="255"
           @keyup.enter="confirmReject"
         />
         <p class="input-hint">留空也可以，但对方就不知道该怎么改了。</p>
+        <p v-if="actionError" class="dialog-error" role="alert">{{ actionError }}</p>
         <div class="dialog-actions">
-          <button class="dialog-btn dialog-btn--cancel" @click="closeReject">取消</button>
+          <button class="dialog-btn dialog-btn--cancel" :disabled="acting" @click="closeReject">
+            取消
+          </button>
           <button class="dialog-btn dialog-btn--ok" :disabled="acting" @click="confirmReject">
-            确认拒绝
+            {{ acting ? '提交中…' : '确认拒绝' }}
           </button>
         </div>
       </div>
-    </div>
+    </BaseModal>
 
     <!-- 添加 / 编辑：站长手动添加的友链直接进入展示中，不再走审核 -->
-    <div v-if="formVisible" class="dialog-overlay" @click.self="closeForm">
-      <div class="dialog-box dialog-box--form">
+    <BaseModal
+      :visible="formVisible"
+      width="420px"
+      :aria-label="formTarget ? '编辑友链' : '新增友链'"
+      @close="closeForm"
+    >
+      <div class="dialog-box admin-form-dialog">
         <h3 class="dialog-title">{{ formTarget ? '编辑友链' : '新增友链' }}</h3>
 
         <div class="form-field">
-          <label class="form-label">站点名称</label>
-          <input v-model="form.name" class="dialog-input" placeholder="必填" maxlength="64" />
+          <label for="link-name" class="form-label">站点名称</label>
+          <input
+            id="link-name"
+            v-model="form.name"
+            class="dialog-input"
+            autofocus
+            :disabled="acting"
+            placeholder="必填"
+            maxlength="64"
+          />
         </div>
 
         <div class="form-field">
-          <label class="form-label">站点地址</label>
+          <label for="link-url" class="form-label">站点地址</label>
           <input
+            id="link-url"
             v-model="form.url"
+            :disabled="acting"
             class="dialog-input"
             placeholder="https://"
             maxlength="512"
@@ -399,9 +445,11 @@ function hostOf(url: string) {
         </div>
 
         <div class="form-field">
-          <label class="form-label">头像地址</label>
+          <label for="link-avatar" class="form-label">头像地址</label>
           <input
+            id="link-avatar"
             v-model="form.avatar"
+            :disabled="acting"
             class="dialog-input"
             placeholder="选填，留空取站名首字"
             maxlength="512"
@@ -410,9 +458,11 @@ function hostOf(url: string) {
         </div>
 
         <div class="form-field">
-          <label class="form-label">站点简介</label>
+          <label for="link-description" class="form-label">站点简介</label>
           <input
+            id="link-description"
             v-model="form.description"
+            :disabled="acting"
             class="dialog-input"
             placeholder="选填"
             maxlength="255"
@@ -420,27 +470,81 @@ function hostOf(url: string) {
         </div>
 
         <p v-if="formTarget" class="input-hint">只改内容，不影响当前状态。</p>
+        <p v-if="actionError" class="dialog-error" role="alert">{{ actionError }}</p>
 
         <div class="dialog-actions">
-          <button class="dialog-btn dialog-btn--cancel" @click="closeForm">取消</button>
+          <button class="dialog-btn dialog-btn--cancel" :disabled="acting" @click="closeForm">
+            取消
+          </button>
           <button
             class="dialog-btn dialog-btn--ok"
             :disabled="acting || !formValid"
             @click="submitForm"
           >
-            {{ formTarget ? '保存' : '添加' }}
+            {{ acting ? '保存中…' : formTarget ? '保存' : '添加' }}
           </button>
         </div>
       </div>
-    </div>
+    </BaseModal>
   </div>
+
+  <Teleport to="body">
+    <div
+      v-if="menuRow"
+      :id="menuId"
+      ref="menuRef"
+      role="menu"
+      aria-label="友链操作"
+      class="dropdown-menu"
+      :style="menuStyle"
+    >
+      <button
+        role="menuitem"
+        tabindex="-1"
+        class="menu-item"
+        :disabled="acting"
+        @click="openEdit(menuRow)"
+      >
+        编辑
+      </button>
+      <div class="menu-divider" role="separator" />
+      <button
+        role="menuitem"
+        tabindex="-1"
+        class="menu-item menu-item--danger"
+        @click="handleDelete(menuRow)"
+      >
+        删除
+      </button>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
-/* 固定列合计 200+140+200+150+100+148=938，再给主列留 240px 下限；窄于此宽度改为横向滚动，
-   而不是把主列压成 0（见 variables.css 中 .data-table 的说明） */
+/* 地址归入站点、申请人与时间归为一列，给审核留言留出阅读空间。 */
 .data-table {
-  min-width: 1180px;
+  min-width: 880px;
+}
+.applicant-cell > span,
+.applicant-cell > time {
+  display: block;
+}
+.applicant-cell > time {
+  margin-top: 6px;
+  font-size: 11px;
+}
+.data-table td.application-message {
+  white-space: normal;
+}
+.application-message > span {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--admin-text-secondary);
 }
 
 /* 列宽、状态徽章、下拉菜单均在 admin/styles/variables.css，这里只留本页独有的单元格 */
@@ -516,11 +620,6 @@ function hostOf(url: string) {
   white-space: nowrap;
 }
 
-/* 表单弹窗：共用 .dialog-box，只放宽并改成逐字段排列 */
-.dialog-box--form {
-  width: 420px;
-}
-
 .form-field {
   margin-bottom: 14px;
 }
@@ -532,13 +631,57 @@ function hostOf(url: string) {
   color: var(--admin-text-secondary);
 }
 
-/* 窄屏优先砍留言与时间，站点、状态、操作必须留下 */
-@media (max-width: 900px) {
-  .data-table th:nth-child(4),
-  .data-table td:nth-child(4),
-  .data-table th:nth-child(5),
-  .data-table td:nth-child(5) {
+/* 手机保留完整审核信息，按站点、申请、留言、操作纵向阅读。 */
+@media (max-width: 768px) {
+  .data-table {
+    min-width: 0;
+    display: block;
+  }
+  .data-table thead {
     display: none;
+  }
+  .data-table tbody {
+    display: block;
+  }
+  .data-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 20px 16px;
+    border-bottom: 1px solid var(--admin-border);
+    gap: 14px 8px;
+  }
+  .data-table td {
+    display: block;
+    width: auto;
+    border: 0;
+    padding: 0;
+  }
+  .data-table td.col-main,
+  .data-table td.applicant-cell,
+  .data-table td.application-message,
+  .data-table td.empty-cell {
+    grid-column: 1 / -1;
+  }
+  .data-table td.applicant-cell {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 12px;
+    font-size: 11px;
+  }
+  .applicant-cell > time {
+    margin: 0;
+  }
+  .application-message > span {
+    -webkit-line-clamp: unset;
+  }
+  .data-table td.col-status,
+  .data-table td.col-actions {
+    padding-top: 12px;
+    border-top: 1px solid var(--admin-border-soft);
+  }
+  .data-table td.col-actions {
+    min-width: 120px;
   }
 }
 </style>

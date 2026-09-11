@@ -1,22 +1,45 @@
 <script setup lang="ts">
-import { ref, onMounted, onServerPrefetch } from 'vue'
+import { computed, ref, onMounted, onServerPrefetch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { useHead, useSeoMeta } from '@unhead/vue'
 import HeroSection from '@/components/home/HeroSection.vue'
 import { getArticlePage, type ArticleItemVO } from '@/api/article'
 import { readSSGState, writeSSGState } from '@/utils/ssgState'
 import ArticleListSkeleton from '@/components/common/ArticleListSkeleton.vue'
+import { prefetchArticleDetail } from '@/api/articleCache'
+import { formatDate } from '@/utils/format'
 import ArticleRow from '@/components/common/ArticleRow.vue'
+
+const pageTitle = '首页 | BitLog'
+const pageDescription = '我是 Harry，一名后端工程师。爱折腾，也在奔波里记录生活的边角料。'
+
+useHead({
+  title: pageTitle,
+  link: [{ rel: 'canonical', href: 'https://bitlog.harrylei.top/' }],
+})
+useSeoMeta({
+  description: pageDescription,
+  ogTitle: pageTitle,
+  ogDescription: pageDescription,
+  ogUrl: 'https://bitlog.harrylei.top/',
+})
 
 const route = useRoute()
 
 const articles = ref<ArticleItemVO[]>([])
 const loading = ref(false)
+const error = ref(false)
+const latest = computed(() => articles.value[0])
 
 async function loadArticles() {
   loading.value = true
+  error.value = false
   try {
     const res = await getArticlePage({ pageNum: 1, pageSize: 7 })
     articles.value = res.content
+  } catch (err) {
+    error.value = true
+    if (import.meta.env.SSR) throw err
   } finally {
     loading.value = false
   }
@@ -51,113 +74,208 @@ onMounted(async () => {
   <main>
     <HeroSection />
 
-    <div id="content-area" class="home-main">
-      <div class="section-header reveal">
-        <span class="section-label">近期文章</span>
-        <div class="section-rule"></div>
-      </div>
+    <div id="content-area" class="home-main container">
+      <section id="latest" class="latest-section" aria-labelledby="latest-heading">
+        <div class="section-aside">
+          <span class="section-number" aria-hidden="true">01 /</span>
+          <h2 id="latest-heading">最新一篇</h2>
+          <span class="section-english">THE LATEST</span>
+        </div>
+        <ArticleListSkeleton v-if="loading && !articles.length" :rows="1" />
+        <div v-else-if="error && !articles.length" class="home-state" role="status">
+          <p>文章暂时没能加载出来。</p>
+          <button class="journal-link" @click="loadArticles">
+            重新加载 <span aria-hidden="true">↻</span>
+          </button>
+        </div>
+        <RouterLink
+          v-else-if="latest"
+          :to="`/article/${latest.id}`"
+          class="featured"
+          @mouseenter="prefetchArticleDetail(latest.id)"
+          @focus="prefetchArticleDetail(latest.id)"
+        >
+          <div class="featured__meta">
+            <span>{{ latest.category?.name || '随记' }}</span>
+            <time :datetime="latest.publishTime">{{ formatDate(latest.publishTime) }}</time>
+          </div>
+          <h3>{{ latest.title }}</h3>
+          <p v-if="latest.summary">{{ latest.summary }}</p>
+          <span class="featured__read">阅读全文 <span aria-hidden="true">↗</span></span>
+        </RouterLink>
+        <p v-else class="home-state">还没有发布文章。</p>
+      </section>
 
-      <ArticleListSkeleton v-if="loading && articles.length === 0" :rows="7" />
-
-      <div v-else class="article-list" :class="{ 'article-list--loading': loading }">
-        <ArticleRow
-          v-for="article in articles"
-          :key="article.id"
-          :article="article"
-          class="reveal"
-        />
-      </div>
-
-      <RouterLink to="/articles" class="more-link reveal">
-        全部文章 <span class="more-arrow">→</span>
-      </RouterLink>
+      <section v-if="articles.length > 1" class="recent-section" aria-labelledby="recent-heading">
+        <div class="section-aside">
+          <span class="section-number" aria-hidden="true">02 /</span>
+          <h2 id="recent-heading">往期记录</h2>
+          <span class="section-english">MORE NOTES</span>
+          <RouterLink to="/articles" class="journal-link section-more"
+            >全部文章 <span aria-hidden="true">↗</span></RouterLink
+          >
+        </div>
+        <div class="article-list">
+          <ArticleRow v-for="article in articles.slice(1)" :key="article.id" :article="article" />
+        </div>
+      </section>
     </div>
   </main>
 </template>
 
 <style scoped>
 .home-main {
-  max-width: var(--spacing-container);
-  margin: 0 auto;
-  padding: 72px var(--spacing-page-padding) 120px;
+  padding-bottom: 100px;
 }
-
-/* ── Section header ── */
-
-.section-header {
+.latest-section,
+.recent-section {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 48px;
+  border-top: 1px solid var(--color-text-primary);
+}
+.latest-section {
+  padding: 38px 0 48px;
+  scroll-margin-top: 96px;
+}
+.recent-section {
+  padding-top: 32px;
+  border-top-color: var(--color-border-strong);
+}
+.section-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.section-number {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-accent);
+}
+.section-aside h2 {
+  font-size: 22px;
+  font-weight: 500;
+  margin: 20px 0 5px;
+  letter-spacing: -0.03em;
+}
+.section-english {
+  color: var(--color-text-muted);
+  font: 12px var(--font-mono);
+  letter-spacing: 0.08em;
+}
+.section-more {
+  margin-top: 40px;
+  min-width: 130px;
+}
+.featured {
+  position: relative;
+  display: block;
+  padding-right: 44px;
+}
+.featured__meta {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.featured__meta > span {
+  background: var(--journal-soft);
+  color: var(--color-accent);
+  padding: 4px 10px;
+}
+.featured h3 {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.5;
+  margin: 18px 0 16px;
+  text-wrap: pretty;
+  transition: color 0.2s;
+}
+.featured p {
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.9;
+  max-width: 52em;
+}
+.featured__read {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 28px;
+  gap: 24px;
+  margin-top: 24px;
+  font-size: 14px;
 }
-
-.section-label {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-.section-rule {
-  flex: 1;
-  height: 1px;
-  background: var(--color-border);
-}
-
-/* ── Article list ── */
-
-.article-list {
-  border-top: 1px solid var(--color-border);
-  transition: opacity var(--transition-base);
-  counter-reset: article-counter;
-}
-
-.article-list--loading {
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-/* ── More link ── */
-
-.more-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 44px;
-  font-size: 12.5px;
-  letter-spacing: 0.07em;
+.featured__read > span {
   color: var(--color-accent);
-  background-image: linear-gradient(currentColor, currentColor);
-  background-repeat: no-repeat;
-  background-size: 0% 1px;
-  background-position: left bottom;
-  padding-bottom: 1px;
-  transition:
-    color var(--transition-base),
-    background-size 0.28s ease;
+  font-size: 24px;
+  transition: transform 0.2s;
 }
-
-.more-link:hover {
-  color: var(--color-accent-dark);
-  background-size: 100% 1px;
+.featured:hover h3 {
+  color: var(--color-accent);
 }
-
-.more-arrow {
-  display: inline-block;
-  transition: transform var(--transition-base);
+.featured:hover .featured__read > span {
+  transform: translate(3px, -3px);
 }
-
-.more-link:hover .more-arrow {
-  transform: translateX(4px);
+.article-list {
+  min-width: 0;
 }
-
-/* ── Mobile ── */
-
-@media (max-width: 768px) {
+.home-state {
+  color: var(--color-text-muted);
+  padding: 24px 0;
+}
+@media (max-width: 960px) {
+  .latest-section,
+  .recent-section {
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: 32px;
+  }
+  .featured {
+    padding-right: 0;
+  }
+}
+@media (max-width: 640px) {
   .home-main {
-    padding: 48px 20px 80px;
+    padding-bottom: 64px;
+  }
+  .latest-section,
+  .recent-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    padding-top: 24px;
+  }
+  .latest-section {
+    padding-bottom: 32px;
+  }
+  .section-aside {
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .section-aside h2 {
+    font-size: 18px;
+    margin: 0;
+  }
+  .section-english {
+    margin-left: auto;
+    font-size: 12px;
+  }
+  .section-more {
+    margin: 0 0 0 auto;
+    min-width: auto;
+    gap: 12px;
+    min-height: 32px;
+  }
+  .recent-section .section-english {
+    display: none;
+  }
+  .featured h3 {
+    font-size: 27px;
+  }
+  .featured p {
+    font-size: 14px;
   }
 }
 </style>

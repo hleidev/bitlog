@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useHead } from '@unhead/vue'
 import { useRoute } from 'vue-router'
 import { getArticleDraft } from '@/api/admin/article'
 import { readPreviewHandoff } from '@/admin/composables/usePreviewHandoff'
@@ -16,6 +17,13 @@ const route = useRoute()
 const article = ref<PreviewData | null>(null)
 const loading = ref(true)
 const error = ref(false)
+const editorPath = computed(() =>
+  route.params.id === 'new' ? '/admin/write' : `/admin/write/${route.params.id}`,
+)
+useHead({
+  title: computed(() => `${article.value?.title || '文章'} · 预览 | BitLog`),
+  meta: [{ name: 'robots', content: 'noindex, nofollow' }],
+})
 
 onMounted(async () => {
   const raw = String(route.params.id)
@@ -59,6 +67,10 @@ onMounted(async () => {
 
 <template>
   <div class="preview-page">
+    <header class="preview-notice">
+      <span>文章预览<span class="preview-note"> · 不会发布或保存修改</span></span
+      ><RouterLink :to="editorPath">返回编辑 ↗</RouterLink>
+    </header>
     <div v-if="loading" class="page-state">
       <div class="skeleton-body">
         <div class="skeleton-line w-20" />
@@ -102,6 +114,30 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.preview-notice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 12px 32px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.preview-notice a {
+  color: var(--color-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .preview-notice {
+    padding-inline: 20px;
+  }
+  .preview-note {
+    display: none;
+  }
+}
 .page-state {
   min-height: 60vh;
   display: flex;

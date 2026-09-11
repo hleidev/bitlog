@@ -22,7 +22,9 @@ function wait(ms: number): Promise<void> {
  * 通过并滚动，随后新视图挂上、高度骤降，滚动被 clamp 回顶部。所以必须先等新
  * 视图进入 DOM，再量高度。
  */
-export const scrollBehavior: RouterScrollBehavior = async (_to, _from, savedPosition) => {
+export const scrollBehavior: RouterScrollBehavior = async (to, from, savedPosition) => {
+  // 文章筛选写回地址时留在输入位置；主动翻页由页面自己滚动。
+  if (!savedPosition && to.path === '/articles' && from.path === to.path) return false
   if (!savedPosition) return { top: 0, left: 0 }
   if (typeof window === 'undefined') return savedPosition
 

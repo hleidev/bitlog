@@ -15,176 +15,108 @@ defineProps<{ article: ArticleItemVO }>()
     @focus="prefetchArticleDetail(article.id)"
   >
     <div class="article-meta">
-      <span class="article-date">{{ formatYearMonth(article.publishTime) }}</span>
+      <time :datetime="article.publishTime">{{ formatYearMonth(article.publishTime) }}</time>
+      <span v-if="article.category || article.tags.length" class="article-tag">{{
+        article.category?.name || article.tags[0]?.name
+      }}</span>
     </div>
     <div class="article-body">
-      <span class="article-title">{{ article.title }}</span>
-      <span v-if="article.summary" class="article-excerpt">{{ article.summary }}</span>
+      <h3 class="article-title">{{ article.title }}</h3>
+      <p v-if="article.summary" class="article-excerpt">{{ article.summary }}</p>
     </div>
-    <div class="article-right">
-      <span class="article-tag">{{ article.category?.name || article.tags[0]?.name || '' }}</span>
-    </div>
+    <span class="article-arrow" aria-hidden="true">↗</span>
   </RouterLink>
 </template>
 
 <style scoped>
 .article-row {
-  display: flex;
-  align-items: baseline;
-  gap: 40px;
-  padding: 28px 10px;
-  margin: 0 -10px;
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 28px;
+  gap: 24px;
+  padding: 28px 0;
   border-bottom: 1px solid var(--color-border);
-  cursor: pointer;
-  position: relative;
-  transition: background var(--transition-base);
+  align-items: start;
 }
-
+.article-row:first-child {
+  padding-top: 0;
+}
 .article-meta {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
-  width: 96px;
-  flex-shrink: 0;
-}
-
-.article-meta::before {
-  counter-increment: article-counter;
-  content: counter(article-counter, decimal-leading-zero);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--color-text-faint);
-  letter-spacing: 0.06em;
-  flex-shrink: 0;
-}
-
-.article-row:hover {
-  background: var(--color-bg-hover);
-}
-
-/* hover 的落点是最左侧这根短竖线，与 hero 的 accent-bar 同一形状语言。
-   正文列被它推开 5px，右侧分类不动，列对齐不塌。 */
-.article-row::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  /* 与上下 padding 对齐，让竖线随行高伸缩：行有无摘要相差 20 多像素，
-     写死高度会让同一条杠在不同行里比例完全不同。 */
-  top: 28px;
-  bottom: 28px;
-  width: 2.5px;
-  background: var(--color-accent);
-  border-radius: var(--radius-tag);
-  transform: scaleY(0);
-  transition: transform var(--transition-sweep);
-}
-
-.article-row:hover::after {
-  transform: scaleY(1);
-}
-
-.article-meta,
-.article-body {
-  transition: transform var(--transition-sweep);
-}
-
-.article-row:hover .article-meta,
-.article-row:hover .article-body {
-  transform: translateX(5px);
-}
-
-.article-date {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  letter-spacing: 0.03em;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  transition: color var(--transition-base);
-}
-
-/* 分类保持右对齐成列（编辑式列表的常规做法），但正文列上限从 680px 提到
-   840px：680px 在 1280px 容器下会在正文与分类之间留出 ~250px 的空洞，
-   让分类看起来像漂在页面边缘的孤儿。840px 把空隙收到 ~75px，
-   窄屏下正文自然收缩、分类紧贴其后。 */
-.article-body {
-  flex: 1;
-  min-width: 0;
-  max-width: 840px;
-  display: flex;
   flex-direction: column;
-  gap: 7px;
-  /* 标题 + 一行摘要的高度。没有摘要的文章不至于把整行压矮半截，列表节奏才稳。 */
-  min-height: 58px;
-}
-
-.article-title {
-  font-family: var(--font-serif);
-  font-size: 17.5px;
-  font-weight: 400;
-  color: var(--color-text-primary);
-  line-height: 1.55;
-  letter-spacing: 0.01em;
-  width: fit-content;
-  max-width: 100%;
-  background-image: linear-gradient(var(--color-accent), var(--color-accent));
-  background-repeat: no-repeat;
-  background-size: 0% 1px;
-  background-position: left bottom;
-  padding-bottom: 1px;
-  transition: background-size var(--transition-sweep);
-}
-
-.article-row:hover .article-title {
-  background-size: 100% 1px;
-}
-
-.article-excerpt {
-  font-size: 13px;
+  align-items: flex-start;
+  gap: 9px;
+  padding-top: 5px;
+  font-size: 12px;
   color: var(--color-text-muted);
-  line-height: 1.8;
-  letter-spacing: 0.01em;
+}
+.article-meta time {
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.article-tag {
+  border: 1px solid var(--color-border);
+  padding: 1px 7px;
+  font-size: 12px;
+}
+.article-body {
+  min-width: 0;
+}
+.article-title {
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 600;
+  line-height: 1.6;
+  letter-spacing: -0.015em;
+  text-wrap: pretty;
+  transition: color 0.2s;
+}
+.article-excerpt {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.9;
+  margin-top: 10px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
-.article-right {
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.article-tag {
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+.article-arrow {
+  margin-top: 3px;
+  font-size: 22px;
   color: var(--color-text-muted);
-  transition: color var(--transition-base);
+  transition:
+    transform 0.2s,
+    color 0.2s;
 }
-
-.article-row:hover .article-tag {
+.article-row:hover .article-title {
   color: var(--color-accent);
 }
-
-.article-row:hover .article-date {
-  color: var(--color-text-secondary);
+.article-row:hover .article-arrow {
+  color: var(--color-accent);
+  transform: translate(3px, -3px);
 }
-
-@media (max-width: 768px) {
+@media (max-width: 960px) {
   .article-row {
-    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) 24px;
+    gap: 12px;
   }
-
-  .article-right {
-    display: none;
+  .article-meta {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 0;
   }
 }
-
 @media (max-width: 640px) {
-  .article-meta {
-    display: none;
+  .article-row {
+    padding: 24px 0;
+  }
+  .article-title {
+    font-size: 21px;
+  }
+  .article-excerpt {
+    font-size: 14px;
   }
 }
 </style>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onServerPrefetch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, watch, onMounted, onUnmounted, onServerPrefetch, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useSeoMeta, useHead } from '@unhead/vue'
 import { getArticlePage, type ArticleItemVO } from '@/api/article'
 import type { PageResult } from '@/api/types'
@@ -10,6 +10,7 @@ import { getTags, type TagVO } from '@/api/tag'
 import { readSSGState, writeSSGState } from '@/utils/ssgState'
 import ArticleListSkeleton from '@/components/common/ArticleListSkeleton.vue'
 import ArticleRow from '@/components/common/ArticleRow.vue'
+import { readArticleListQuery, writeArticleListQuery } from '@/utils/articleListQuery'
 
 useHead({
   title: '文章 | BitLog',
@@ -23,6 +24,7 @@ useSeoMeta({
 })
 
 const route = useRoute()
+const router = useRouter()
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
@@ -37,6 +39,12 @@ const categoryTabs = computed(() => [
 // ── Filter state ──────────────────────────────────────────────────────────────
 
 const searchFocused = ref(false)
+const initializing = ref(false)
+const loadError = ref(false)
+let initialized = false
+let applyingRoute = false
+let disposed = false
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const query = useListQuery({
   filters: { keyword: '', categoryIdx: 0, tagIds: [] as number[] },
@@ -45,18 +53,35 @@ const query = useListQuery({
     categoryId: categoryTabs.value[f.categoryIdx]?.id ?? undefined,
     allTagIds: f.tagIds,
   }),
-  fetch: (params) => getArticlePage(params),
+  fetch: (params) => {
+    loadError.value = false
+    return getArticlePage(params)
+  },
+  onError: () => {
+    loadError.value = true
+  },
   pageSize: 12,
-  debounce: ['keyword'],
-  debounceMs: 350,
-  // SSG：预渲染结果注入首帧，挂载后再决定是否重拉
+  // URL 是查询的来源，组件负责导航和搜索防抖，不启动内部过滤监听。
   immediate: false,
 })
 
-const { filters, loading, pageNum, total, totalPages, hasPrevious, hasNext } = query
+const { filters, pageNum, total, totalPages, hasPrevious, hasNext } = query
+const loading = computed(() => initializing.value || query.loading.value)
 const articles = query.items
 const visiblePages = query.pageNumbers
-const fetchArticles = query.load
+async function fetchArticles() {
+  const requestedQuery = route.query
+  await query.load()
+  // 接口发现页码越界时，useListQuery 会回到最后一页，地址也一起校正。
+  if (
+    !disposed &&
+    route.query === requestedQuery &&
+    !loadError.value &&
+    pageNum.value !== readArticleListQuery(route.query).page
+  ) {
+    await updateUrl(pageNum.value)
+  }
+}
 
 const hasFilters = computed(
   () => filters.keyword || filters.categoryIdx !== 0 || filters.tagIds.length > 0,
@@ -66,30 +91,19 @@ function clearAll() {
   filters.keyword = ''
   filters.categoryIdx = 0
   filters.tagIds = []
-  nextTick(updateIndicator)
+  void updateUrl(1)
 }
 
 function toggleTag(tagId: number) {
   const idx = filters.tagIds.indexOf(tagId)
   if (idx === -1) filters.tagIds = [...filters.tagIds, tagId]
   else filters.tagIds = filters.tagIds.filter((id) => id !== tagId)
+  void updateUrl(1)
 }
 
-// ── Sliding category indicator ────────────────────────────────────────────────
-
-const tabEls = ref<HTMLButtonElement[]>([])
-const indicatorStyle = ref({ left: '4px', width: '60px', opacity: '0' })
-
-async function selectCategory(idx: number) {
+function selectCategory(idx: number) {
   filters.categoryIdx = idx
-  await nextTick()
-  updateIndicator()
-}
-
-function updateIndicator() {
-  const el = tabEls.value[filters.categoryIdx]
-  if (!el) return
-  indicatorStyle.value = { left: `${el.offsetLeft}px`, width: `${el.offsetWidth}px`, opacity: '1' }
+  void updateUrl(1)
 }
 
 // ── Article list ──────────────────────────────────────────────────────────────
@@ -109,28 +123,64 @@ watch(loading, (busy) => {
   }
 })
 
-// 入站链接契约：文章详情页用 /articles?categoryId=X、?tagId=Y、?keyword=Z 跳进来
-function applyRouteFilters(q: typeof route.query) {
-  filters.keyword = typeof q.keyword === 'string' ? q.keyword : ''
-  const idx = q.categoryId ? categoryTabs.value.findIndex((c) => c.id === Number(q.categoryId)) : -1
+async function applyRouteFilters() {
+  if (searchTimer) clearTimeout(searchTimer)
+  applyingRoute = true
+  const state = readArticleListQuery(route.query)
+  filters.keyword = state.keyword
+  const idx = categoryTabs.value.findIndex((c) => c.id === state.categoryId)
   filters.categoryIdx = idx !== -1 ? idx : 0
-  filters.tagIds = q.tagId ? [Number(q.tagId)] : []
+  filters.tagIds = state.tagIds
+  pageNum.value = state.page
+  await nextTick()
+  applyingRoute = false
 }
 
-// ── Sync filter state from URL on navigation without component remount ──────
+async function updateUrl(page: number) {
+  if (disposed || !initialized || route.path !== '/articles') return
+  if (searchTimer) clearTimeout(searchTimer)
+  const nextQuery = { ...route.query }
+  for (const key of ['keyword', 'categoryId', 'tagId', 'page']) delete nextQuery[key]
+  Object.assign(
+    nextQuery,
+    writeArticleListQuery({
+      keyword: filters.keyword,
+      categoryId: categoryTabs.value[filters.categoryIdx]?.id ?? undefined,
+      tagIds: filters.tagIds,
+      page,
+    }),
+  )
+  await router.replace({ query: nextQuery })
+}
+
 watch(
-  () => route.query,
-  (q) => {
-    applyRouteFilters(q)
+  () => filters.keyword,
+  () => {
+    if (!initialized || applyingRoute) return
+    if (searchTimer) clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      void updateUrl(1)
+    }, 350)
   },
 )
 
-function changePage(p: number) {
+watch(
+  () => route.query,
+  async () => {
+    if (!initialized || disposed || route.path !== '/articles') return
+    await applyRouteFilters()
+    if (!disposed) await fetchArticles()
+  },
+)
+
+async function changePage(p: number) {
   if (p === pageNum.value) return
   if (p < pageNum.value && !hasPrevious.value) return
   if (p > pageNum.value && !hasNext.value) return
-  query.goPage(p)
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  await updateUrl(p)
+  if (disposed) return
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' })
 }
 
 // ── 预渲染取数 ────────────────────────────────────────────────────────────────
@@ -166,41 +216,55 @@ if (prerendered) {
   query.applyPrerendered(prerendered.page)
 }
 
-// 换页与筛选后 :key 变化重建列表，让入场动画重播。scroll-driven 的 reveal
-// 在这里没用：行早已在视口内，滚动进度已是终态，换新数据不会重新触发。
-// watch 建在 applyPrerendered 之后，静态首屏因此不会多播一次。
-const listSeq = ref(0)
-watch(articles, () => listSeq.value++)
-
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-onMounted(async () => {
-  // 静态 HTML 按 /articles 无筛选预渲染；带 query 落地时内容对不上，仍需重新请求
-  const hasQueryFilters = Boolean(
-    route.query.categoryId || route.query.tagId || route.query.keyword,
-  )
+async function initialize() {
+  initializing.value = true
+  loadError.value = false
+  try {
+    // 静态 HTML 按 /articles 无筛选预渲染；带 query 落地时内容对不上，仍需重新请求
+    const hasQueryFilters = Boolean(
+      route.query.categoryId || route.query.tagId || route.query.keyword || route.query.page,
+    )
 
-  if (!prerendered) {
-    const [cats, tgs] = await Promise.all([getCategories(), getTags()])
-    categories.value = cats
-    tags.value = tgs
+    if (!prerendered) {
+      const [cats, tgs] = await Promise.all([getCategories(), getTags()])
+      categories.value = cats
+      tags.value = tgs
+    }
+
+    if (disposed) return
+    await applyRouteFilters()
+    if (disposed) return
+    initialized = true
+
+    // 注：静态 HTML 是无筛选的第一页，带 query 落地时会先闪一眼未筛选的列表。
+    // 曾试过先清空列表让骨架屏顶上，但 list → skeleton → empty 的快速切换会让
+    // 外层 <Transition mode="out-in"> 卡住，DOM 停在旧列表上，反而更糟。
+    if (!prerendered || hasQueryFilters) await fetchArticles()
+  } catch {
+    loadError.value = true
+  } finally {
+    initializing.value = false
   }
-
-  // 赋值触发的过滤监听排在 pre-flush 队列里，必须等它跑完再 start()，否则开关等于没关
-  applyRouteFilters(route.query)
-  await nextTick()
-  query.start()
-  updateIndicator()
-
-  // 注：静态 HTML 是无筛选的第一页，带 query 落地时会先闪一眼未筛选的列表。
-  // 曾试过先清空列表让骨架屏顶上，但 list → skeleton → empty 的快速切换会让
-  // 外层 <Transition mode="out-in"> 卡住，DOM 停在旧列表上，反而更糟。
-  if (!prerendered || hasQueryFilters) fetchArticles()
+}
+onMounted(initialize)
+onUnmounted(() => {
+  disposed = true
+  if (searchTimer) clearTimeout(searchTimer)
+  if (slowTimer) clearTimeout(slowTimer)
 })
 </script>
 
 <template>
-  <div class="articles-page">
+  <main class="articles-page">
+    <header class="journal-page-head container">
+      <div>
+        <span class="journal-kicker">THE NOTEBOOK</span>
+        <h1>文章<span class="page-title-dot">.</span></h1>
+      </div>
+      <p>折腾笔记，生活随记。</p>
+    </header>
     <!-- Sticky filter bar -->
     <div class="filter-bar">
       <div class="filter-bar__row container">
@@ -219,7 +283,10 @@ onMounted(async () => {
           <input
             v-model="filters.keyword"
             class="search-input"
-            placeholder="搜索文章..."
+            placeholder="搜索文章…"
+            aria-label="搜索文章"
+            type="search"
+            @keydown.enter="!$event.isComposing && updateUrl(1)"
             @focus="searchFocused = true"
             @blur="searchFocused = false"
           />
@@ -227,7 +294,7 @@ onMounted(async () => {
             <button
               v-if="filters.keyword"
               class="search-clear"
-              tabindex="-1"
+              aria-label="清除搜索"
               @click="filters.keyword = ''"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -240,16 +307,11 @@ onMounted(async () => {
 
         <!-- Category tabs with sliding indicator -->
         <div class="cat-tabs">
-          <div class="cat-tabs__indicator" :style="indicatorStyle"></div>
           <button
             v-for="(cat, i) in categoryTabs"
             :key="cat.name"
-            :ref="
-              (el) => {
-                if (el) tabEls[i] = el as HTMLButtonElement
-              }
-            "
             class="cat-tab"
+            :aria-pressed="i === filters.categoryIdx"
             :class="{ 'cat-tab--active': i === filters.categoryIdx }"
             @click="selectCategory(i)"
           >
@@ -265,6 +327,7 @@ onMounted(async () => {
             v-for="tag in tags"
             :key="tag.id"
             class="tag-chip"
+            :aria-pressed="filters.tagIds.includes(tag.id)"
             :class="{ 'tag-chip--active': filters.tagIds.includes(tag.id) }"
             @click="toggleTag(tag.id)"
           >
@@ -279,6 +342,7 @@ onMounted(async () => {
     <div class="container page-content">
       <!-- Result bar -->
       <div class="result-bar">
+        <h2 class="sr-only">文章列表</h2>
         <div class="result-info">
           <Transition name="num" mode="out-in">
             <span :key="total" class="result-num">{{ total }}</span>
@@ -289,20 +353,30 @@ onMounted(async () => {
           </Transition>
         </div>
         <Transition name="fade">
-          <button v-if="hasFilters" class="clear-btn" @click="clearAll">清除过滤</button>
+          <button v-if="hasFilters" class="clear-btn" @click="clearAll">清除筛选</button>
         </Transition>
       </div>
 
       <!-- Skeleton (首屏加载，尚无数据) / Empty / List -->
+      <div v-if="loadError" class="empty-state" role="alert">
+        <p>文章暂时没能加载出来，请重试。</p>
+        <button
+          class="journal-link"
+          :disabled="loading"
+          @click="initialized ? fetchArticles() : initialize()"
+        >
+          重新加载
+        </button>
+      </div>
       <Transition name="fade" mode="out-in">
         <div v-if="loading && articles.length === 0" key="skeleton">
           <ArticleListSkeleton :rows="6" />
           <Transition name="fade">
-            <p v-if="slow" class="slow-hint">加载较慢，仍在努力…</p>
+            <p v-if="slow" class="slow-hint">加载较慢，请稍候…</p>
           </Transition>
         </div>
 
-        <div v-else-if="articles.length === 0" key="empty" class="empty-state">
+        <div v-else-if="articles.length === 0 && !loadError" key="empty" class="empty-state">
           <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
             <rect x="8" y="12" width="48" height="40" rx="2" />
             <line x1="20" y1="24" x2="44" y2="24" />
@@ -311,21 +385,17 @@ onMounted(async () => {
           <p>暂无相关文章</p>
         </div>
 
-        <div v-else key="list" :class="{ 'list--loading': loading }">
+        <div v-else-if="articles.length" key="list" :class="{ 'list--loading': loading }">
           <!-- Article list -->
-          <div :key="listSeq" class="article-list stagger">
-            <ArticleRow
-              v-for="(article, i) in articles"
-              :key="article.id"
-              :article="article"
-              :style="{ '--i': i }"
-            />
+          <div class="article-list">
+            <ArticleRow v-for="article in articles" :key="article.id" :article="article" />
           </div>
 
           <!-- Pagination -->
           <div v-if="totalPages > 1" class="pagination">
             <button
               class="page-btn page-btn--arrow"
+              aria-label="上一页"
               :disabled="!hasPrevious"
               @click="changePage(pageNum - 1)"
             >
@@ -337,6 +407,7 @@ onMounted(async () => {
                 v-else
                 class="page-btn"
                 :class="{ 'page-btn--active': p === pageNum }"
+                :aria-current="p === pageNum ? 'page' : undefined"
                 @click="changePage(p as number)"
               >
                 {{ p }}
@@ -344,6 +415,7 @@ onMounted(async () => {
             </template>
             <button
               class="page-btn page-btn--arrow"
+              aria-label="下一页"
               :disabled="!hasNext"
               @click="changePage(pageNum + 1)"
             >
@@ -353,223 +425,153 @@ onMounted(async () => {
         </div>
       </Transition>
     </div>
-  </div>
+  </main>
 </template>
 
 <style scoped>
 .articles-page {
-  min-height: 100vh;
+  min-height: 80vh;
   padding-top: var(--spacing-header-height);
 }
-
-/* ── Filter bar ─────────────────────────────────────────────────────────── */
-
-.filter-bar {
-  position: sticky;
-  top: var(--spacing-header-height);
-  z-index: 100;
-  background: rgba(var(--color-bg-rgb), 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--color-border-light);
+.page-title-dot {
+  color: var(--color-accent);
 }
-
+.filter-bar {
+  border-top: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+  background: var(--color-bg);
+}
 .filter-bar__row {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding-top: 14px;
-  padding-bottom: 14px;
+  gap: 32px;
+  padding-top: 20px;
+  padding-bottom: 16px;
 }
-
-/* Search */
 .search-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  padding: 7px 12px;
-  width: 180px;
-  transition:
-    width 0.3s ease,
-    border-color var(--transition-base);
-  flex-shrink: 0;
+  gap: 10px;
+  border-bottom: 1px solid var(--color-border-strong);
+  width: 260px;
+  padding: 10px 0;
+  flex: none;
 }
-
 .search-wrap--focused {
-  width: 240px;
   border-color: var(--color-accent);
 }
-
-.search-wrap svg {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-  color: var(--color-text-faint);
-  transition: color var(--transition-base);
+.search-wrap > svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+  flex: none;
 }
-
-.search-wrap--focused svg {
-  color: var(--color-accent);
-}
-
 .search-input {
   flex: 1;
   min-width: 0;
-  background: transparent;
+  width: 100%;
   border: none;
-  outline: none;
-  font-size: 13px;
+  background: transparent;
+  font-size: 15px;
   color: var(--color-text-primary);
-  font-family: var(--font-sans);
 }
-
 .search-input::placeholder {
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
 }
-
 .search-clear {
-  display: flex;
-  align-items: center;
-  color: var(--color-text-faint);
-  transition: color var(--transition-base);
-  flex-shrink: 0;
-}
-
-.search-clear:hover {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
   color: var(--color-text-muted);
 }
-
 .search-clear svg {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
 }
-
-/* Category tabs */
 .cat-tabs {
-  position: relative;
-  margin-left: auto;
   display: flex;
   align-items: center;
-  background: var(--color-bg-hover);
-  border-radius: 4px;
-  padding: 4px;
-  gap: 2px;
+  flex-wrap: wrap;
+  margin-left: auto;
+  gap: 8px;
 }
-
-.cat-tabs__indicator {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-tag);
-  border: 1px solid var(--color-border-light);
-  transition:
-    left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.15s;
-  pointer-events: none;
-}
-
 .cat-tab {
-  position: relative;
-  z-index: 1;
-  padding: 6px 14px;
-  border-radius: var(--radius-tag);
-  font-size: 13px;
-  font-family: var(--font-sans);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  transition: color var(--transition-base);
-  cursor: pointer;
+  min-height: 40px;
+  padding: 8px 18px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  transition:
+    color 0.2s,
+    background 0.2s;
 }
-
-.cat-tab--active {
+.cat-tab:hover {
   color: var(--color-accent);
-  font-weight: 500;
 }
-
-/* Tag chips row */
+.cat-tab--active {
+  background: var(--color-text-primary);
+  color: var(--color-bg);
+}
+.cat-tab--active:hover {
+  color: var(--color-bg);
+}
 .filter-bar__tags {
-  padding-bottom: 12px;
+  padding-bottom: 20px;
 }
-
 .tag-scroll {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   overflow-x: auto;
-  scrollbar-width: none;
-  padding: 2px 0;
+  padding: 2px 0 4px;
 }
-
-.tag-scroll::-webkit-scrollbar {
-  display: none;
-}
-
 .tag-chip {
-  font-size: 12px;
-  padding: 4px 12px;
-  border-radius: var(--radius-tag);
-  border: 1px solid var(--color-border);
-  background: transparent;
+  padding: 5px 10px;
+  min-height: 32px;
   color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  font-size: 12px;
   white-space: nowrap;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: all var(--transition-base);
-  font-family: var(--font-sans);
+  transition:
+    border-color 0.2s,
+    color 0.2s;
 }
-
+.tag-chip::before {
+  content: '#';
+  opacity: 0.55;
+  margin-right: 4px;
+}
 .tag-chip:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
-
 .tag-chip--active {
-  background: var(--color-accent);
+  background: var(--journal-soft);
+  color: var(--color-accent);
   border-color: var(--color-accent);
-  color: var(--color-text-on-accent);
 }
-
-/* 选中态必须自带 hover：否则 .tag-chip:hover(0,2,0) 特异性高于
-   .tag-chip--active(0,1,0)，会把文字改回 accent 压在 accent 底上，字直接消失。 */
-.tag-chip--active:hover {
-  background: var(--color-accent-dark);
-  border-color: var(--color-accent-dark);
-  color: var(--color-text-on-accent);
-}
-
-/* Loading bar */
 .filter-loading {
   position: absolute;
-  bottom: 0;
+  bottom: -1px;
   left: 0;
   right: 0;
   height: 2px;
   overflow: hidden;
   opacity: 0;
-  transition: opacity 0.2s ease;
   pointer-events: none;
 }
-
 .filter-loading--active {
   opacity: 1;
 }
-
 .filter-loading::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%);
-  animation: filter-sweep 1.1s ease-in-out infinite;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  animation: sweep 1.2s infinite;
 }
-
-@keyframes filter-sweep {
+@keyframes sweep {
   from {
     transform: translateX(-100%);
   }
@@ -577,221 +579,140 @@ onMounted(async () => {
     transform: translateX(100%);
   }
 }
-
-/* ── Content ──────────────────────────────────────────────────────────────── */
-
 .page-content {
-  padding-top: 40px;
-  padding-bottom: 120px;
+  padding-top: 32px;
+  padding-bottom: 100px;
 }
-
 .result-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 28px;
+  gap: 16px;
+  margin-bottom: 32px;
 }
-
 .result-info {
   display: flex;
   align-items: baseline;
-  gap: 5px;
+  gap: 8px;
 }
-
 .result-num {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  line-height: 1;
+  font: italic 28px var(--font-editorial);
+  color: var(--color-accent);
 }
-
-.result-label {
-  font-size: 13px;
-  color: var(--color-text-faint);
-}
-
+.result-label,
 .result-hint {
   font-size: 12px;
-  color: var(--color-text-faint);
-  margin-left: 4px;
-}
-
-.clear-btn {
-  font-size: 12px;
-  letter-spacing: 0.03em;
   color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  padding: 5px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all var(--transition-base);
-  font-family: var(--font-sans);
-  background: transparent;
 }
-
-.clear-btn:hover {
-  border-color: var(--color-text-muted);
-  color: var(--color-text-primary);
+.clear-btn {
+  color: var(--color-accent);
+  font-size: 13px;
+  padding: 8px 0;
 }
-
-/* ── Article list ──────────────────────────────────────────────────────────── */
-
-.list--loading {
-  opacity: 0.4;
-  pointer-events: none;
-  transition: opacity var(--transition-base);
-}
-
 .article-list {
-  border-top: 1px solid var(--color-border);
-  counter-reset: article-counter;
+  max-width: 1000px;
+  margin-left: auto;
 }
-
-/* revealUp 定义在 global.css：本文件没有同名 keyframes，scoped 不会改写引用。 */
-@media (prefers-reduced-motion: no-preference) {
-  .stagger > * {
-    animation: revealUp var(--transition-reveal) both;
-    /* 延迟封顶在第 8 行：再往下本来就要滚动才看得到，继续累加只会让换页拖尾。 */
-    animation-delay: calc(38ms * min(var(--i, 0), 7));
-  }
+.list--loading {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.2s;
 }
-
-/* ── Empty state ──────────────────────────────────────────────────────────── */
-
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   padding: 80px 0;
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
 }
-
 .empty-state svg {
-  width: 48px;
-  height: 48px;
-  opacity: 0.3;
+  width: 56px;
+  height: 56px;
+  opacity: 0.6;
 }
-
-.empty-state p {
-  font-size: 14px;
-}
-
-/* ── Pagination ───────────────────────────────────────────────────────────── */
-
 .pagination {
   display: flex;
+  justify-content: flex-end;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 56px;
+  gap: 8px;
+  margin-top: 40px;
 }
-
 .page-btn {
-  min-width: 34px;
-  height: 34px;
-  padding: 0 10px;
-  border-radius: 4px;
-  font-size: 13px;
-  color: var(--color-text-secondary);
+  min-width: 40px;
+  height: 40px;
   border: 1px solid var(--color-border);
-  background: transparent;
-  cursor: pointer;
-  transition: all var(--transition-base);
-  font-family: var(--font-sans);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  padding: 0 8px;
+  transition:
+    color 0.2s,
+    border-color 0.2s;
 }
-
 .page-btn:hover:not(:disabled) {
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
-
 .page-btn--active {
   background: var(--color-accent);
+  color: var(--color-text-on-accent);
   border-color: var(--color-accent);
-  color: var(--color-text-on-accent);
 }
-
-/* 同 .tag-chip--active：hover 规则特异性更高，不单独覆盖会让页码字消失 */
 .page-btn--active:hover:not(:disabled) {
-  background: var(--color-accent-dark);
-  border-color: var(--color-accent-dark);
   color: var(--color-text-on-accent);
 }
-
-.page-btn--arrow {
-  font-size: 15px;
-}
-
 .page-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
-
 .page-ellipsis {
-  color: var(--color-text-faint);
   padding: 0 4px;
-  user-select: none;
+  color: var(--color-text-muted);
 }
-
-/* ── Transitions ──────────────────────────────────────────────────────────── */
-
+.slow-hint {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  margin-top: 20px;
+}
 .num-enter-active,
-.num-leave-active {
-  transition: opacity 0.15s ease;
-}
-
-.num-enter-from,
-.num-leave-to {
-  opacity: 0;
-}
-
+.num-leave-active,
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.15s;
 }
-
+.num-enter-from,
+.num-leave-to,
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
 }
-
-/* ── Mobile ───────────────────────────────────────────────────────────────── */
-
 @media (max-width: 768px) {
-  .articles-page {
-    padding-top: 56px;
-  }
-
   .filter-bar__row {
     flex-direction: column;
     align-items: stretch;
-    gap: 10px;
-    padding-top: 12px;
-    padding-bottom: 10px;
+    gap: 16px;
   }
-
-  .search-wrap,
-  .search-wrap--focused {
+  .search-wrap {
     width: 100%;
   }
-
   .cat-tabs {
-    /* 窄屏是 column + stretch，auto margin 会盖掉 stretch 让它缩成靠右一小条 */
-    margin-left: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
+    margin: 0;
+    gap: 4px;
   }
-
-  .cat-tabs::-webkit-scrollbar {
-    display: none;
+  .cat-tab {
+    padding: 7px 15px;
   }
-}
-
-.slow-hint {
-  margin-top: 20px;
-  font-size: 13px;
-  color: var(--color-text-faint);
-  text-align: center;
+  .page-content {
+    padding-top: 24px;
+    padding-bottom: 64px;
+  }
+  .pagination {
+    justify-content: center;
+    gap: 5px;
+  }
+  .page-btn {
+    min-width: 36px;
+    height: 40px;
+  }
 }
 </style>

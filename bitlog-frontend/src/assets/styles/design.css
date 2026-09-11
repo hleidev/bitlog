@@ -1,0 +1,134 @@
+/* BitLog — a personal journal. Shared visual language for the web application. */
+:root {
+  --accent-300-rgb: 163, 183, 255;
+  --accent-400-rgb: 139, 164, 255;
+  --accent-500-rgb: 40, 75, 219;
+  --accent-600-rgb: 27, 52, 166;
+  --color-bg: #fcfcfa;
+  --color-bg-rgb: 252, 252, 250;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #f0f1ed;
+  --color-text-primary: #20231f;
+  --color-text-secondary: #50564e;
+  --color-text-muted: #697066;
+  --color-text-faint: #a8afa3;
+  --color-border: #dddfd7;
+  --color-border-light: #e9ebe5;
+  --color-border-strong: #bfc4b8;
+  --spacing-container: 1280px;
+  --spacing-prose: 760px;
+  --spacing-header-height: 72px;
+  --spacing-page-padding: 48px;
+  --spacing-page-head-top: 64px;
+  --spacing-page-title-gap: 20px;
+  --font-display: 'Songti SC', 'Noto Serif SC', 'STSong', Georgia, serif;
+  --font-editorial: 'Lora', Georgia, 'Times New Roman', serif;
+  --journal-blue: #284bdb;
+  --journal-blue-ink: #ffffff;
+  --journal-soft: #eef1fc;
+}
+
+[data-theme='dark'] {
+  --color-bg: #161916;
+  --color-bg-rgb: 22, 25, 22;
+  --color-bg-card: #1d211d;
+  --color-bg-hover: #252b25;
+  --color-text-primary: #edf0e8;
+  --color-text-secondary: #bec5b8;
+  --color-text-muted: #9ba693;
+  --color-text-faint: #63705e;
+  --color-border: #343d32;
+  --color-border-light: #293127;
+  --color-border-strong: #4c5846;
+  --journal-soft: #212a43;
+}
+
+html {
+  scroll-padding-top: 96px;
+}
+
+body {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+::selection {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-accent) 20%, var(--color-bg));
+}
+
+.journal-kicker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.journal-kicker::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: var(--color-accent);
+  flex: none;
+}
+
+.journal-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 44px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--color-border-strong);
+  transition:
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.journal-link:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.journal-page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 32px;
+  padding-top: var(--spacing-page-head-top);
+  padding-bottom: 44px;
+}
+
+.journal-page-head h1 {
+  font-family: var(--font-display);
+  font-size: clamp(44px, 6vw, 76px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.045em;
+  margin-top: var(--spacing-page-title-gap);
+}
+
+.journal-page-head > p {
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  max-width: 28em;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --spacing-header-height: 64px;
+    --spacing-page-padding: 24px;
+    --spacing-page-head-top: 40px;
+  }
+
+  .journal-page-head {
+    padding-bottom: 32px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+  }
+}

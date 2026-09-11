@@ -1,33 +1,30 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { useId } from 'vue'
+import { useRoute } from 'vue-router'
+import { useDropdown } from '@/composables/useDropdown'
 import { useTheme, type ThemeMode } from '@/composables/useTheme'
 
 const { themeMode, isDark, setTheme } = useTheme()
-const open = ref(false)
-const wrapRef = ref<HTMLElement | null>(null)
-
-function handleClickOutside(e: MouseEvent) {
-  if (!wrapRef.value) return
-  if (!wrapRef.value.contains(e.target as Node)) open.value = false
-}
-
-onMounted(() => document.addEventListener('click', handleClickOutside))
-onUnmounted(() => document.removeEventListener('click', handleClickOutside))
+const menuId = useId()
+const { isOpen: open, containerRef: wrapRef, triggerRef, toggle, close } = useDropdown(useRoute())
 
 function pick(mode: ThemeMode) {
   setTheme(mode)
-  open.value = false
+  close(true)
 }
 </script>
 
 <template>
   <div ref="wrapRef" class="theme-toggle">
     <button
+      ref="triggerRef"
       class="theme-toggle__btn"
       :class="{ 'theme-toggle__btn--active': open }"
-      :aria-label="isDark ? '切换为浅色主题' : '切换为深色主题'"
+      aria-label="选择外观"
+      aria-haspopup="menu"
+      :aria-controls="open ? menuId : undefined"
       :aria-expanded="open"
-      @click="open = !open"
+      @click="toggle"
     >
       <svg
         v-if="themeMode === 'system'"
@@ -70,11 +67,13 @@ function pick(mode: ThemeMode) {
     </button>
 
     <Transition name="theme-menu">
-      <div v-if="open" class="theme-toggle__menu" role="menu">
+      <div v-if="open" :id="menuId" class="theme-toggle__menu" role="menu" aria-label="外观">
         <button
           class="theme-toggle__item"
           :class="{ 'is-active': themeMode === 'system' }"
-          role="menuitem"
+          role="menuitemradio"
+          :aria-checked="themeMode === 'system'"
+          tabindex="-1"
           @click="pick('system')"
         >
           <svg
@@ -94,7 +93,9 @@ function pick(mode: ThemeMode) {
         <button
           class="theme-toggle__item"
           :class="{ 'is-active': themeMode === 'light' }"
-          role="menuitem"
+          role="menuitemradio"
+          :aria-checked="themeMode === 'light'"
+          tabindex="-1"
           @click="pick('light')"
         >
           <svg
@@ -115,7 +116,9 @@ function pick(mode: ThemeMode) {
         <button
           class="theme-toggle__item"
           :class="{ 'is-active': themeMode === 'dark' }"
-          role="menuitem"
+          role="menuitemradio"
+          :aria-checked="themeMode === 'dark'"
+          tabindex="-1"
           @click="pick('dark')"
         >
           <svg
@@ -145,8 +148,8 @@ function pick(mode: ThemeMode) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -169,13 +172,16 @@ function pick(mode: ThemeMode) {
 
 .theme-toggle__menu {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
-  min-width: 140px;
+  min-width: 164px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
-  padding: 4px;
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow:
+    0 12px 36px rgb(0 0 0 / 10%),
+    0 2px 6px rgb(0 0 0 / 4%);
   z-index: 1100;
   display: flex;
   flex-direction: column;
@@ -186,7 +192,8 @@ function pick(mode: ThemeMode) {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 10px;
+  min-height: 40px;
+  padding: 10px;
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
   color: var(--color-text-primary);
@@ -212,6 +219,17 @@ function pick(mode: ThemeMode) {
   font-weight: 500;
 }
 
+.theme-toggle__item.is-active::after {
+  content: '✓';
+  margin-left: auto;
+  font-size: 12px;
+}
+.theme-toggle__btn:focus-visible,
+.theme-toggle__item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
 .theme-menu-enter-active,
 .theme-menu-leave-active {
   transition:
@@ -222,5 +240,12 @@ function pick(mode: ThemeMode) {
 .theme-menu-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-menu-enter-active,
+  .theme-menu-leave-active {
+    transition: none;
+  }
 }
 </style>

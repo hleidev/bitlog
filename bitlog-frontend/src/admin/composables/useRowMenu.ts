@@ -1,50 +1,104 @@
-import { onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, useId } from 'vue'
 
-/**
- * 表格行「更多」下拉的开合与定位。
- *
- * 菜单必须 Teleport 到 body 并用 fixed 定位：.table-wrap 的 overflow-x: auto 会让
- * overflow-y 被算成 auto，绝对定位的菜单一旦超出容器底边就会被裁掉（末行菜单
- * 因此被分页栏「吃掉」），这种裁剪不是层叠问题，调 z-index 无效。
- *
- * 原本只有 UsersView 有一份，文章页和友链页因为没有下拉，把 4 个按钮全平铺在
- * 操作列里，列宽被撑到 190px。
- */
+/** 表格与移动卡片共享一个浮层，避免 Teleport 后出现两份菜单。 */
 export function useRowMenu() {
   const openMenuId = ref<number | null>(null)
+  const menuRef = ref<HTMLElement | null>(null)
+  const menuId = useId()
   const menuStyle = ref<Record<string, string>>({})
+  let trigger: HTMLElement | null = null
 
-  // 菜单最多 6 项 + 2 条分隔线，取略保守的高度用于判断翻转
-  const MENU_MAX_HEIGHT = 220
+  function items() {
+    return Array.from(
+      menuRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? [],
+    )
+  }
 
-  function toggleMenu(id: number, ev?: MouseEvent, align: 'right' | 'left' = 'right') {
+  async function toggleMenu(id: number, event: MouseEvent, align: 'right' | 'left' = 'right') {
     if (openMenuId.value === id) {
-      openMenuId.value = null
+      closeMenu()
       return
     }
-    const btn = ev?.currentTarget as HTMLElement | undefined
-    if (btn) {
-      const r = btn.getBoundingClientRect()
-      const flipUp = window.innerHeight - r.bottom < MENU_MAX_HEIGHT
-      menuStyle.value = {
-        ...(align === 'right'
-          ? { right: `${window.innerWidth - r.right}px` }
-          : { left: `${r.left}px` }),
-        ...(flipUp
-          ? { bottom: `${window.innerHeight - r.top + 4}px` }
-          : { top: `${r.bottom + 4}px` }),
-      }
-    }
+    trigger = event.currentTarget as HTMLElement
+    const anchor = trigger.getBoundingClientRect()
+    // 定位前隐藏外观，不用 visibility 阻断随后紧接着的焦点转移。
+    menuStyle.value = { opacity: '0' }
     openMenuId.value = id
+    await nextTick()
+    if (openMenuId.value !== id || !menuRef.value) return
+    const bounds = menuRef.value.getBoundingClientRect()
+    const gutter = 8
+    const desiredLeft = align === 'right' ? anchor.right - bounds.width : anchor.left
+    const desiredTop =
+      anchor.bottom + bounds.height + gutter > window.innerHeight
+        ? anchor.top - bounds.height - 4
+        : anchor.bottom + 4
+    menuStyle.value = {
+      left: `${Math.max(gutter, Math.min(desiredLeft, window.innerWidth - bounds.width - gutter))}px`,
+      top: `${Math.max(gutter, Math.min(desiredTop, window.innerHeight - bounds.height - gutter))}px`,
+    }
+    await nextTick()
+    if (openMenuId.value === id) items()[0]?.focus({ preventScroll: true })
   }
 
-  function closeMenu() {
+  function closeMenu(restoreFocus = false) {
+    const wasOpen = openMenuId.value !== null
     openMenuId.value = null
+    if (restoreFocus && wasOpen && trigger?.isConnected) trigger.focus({ preventScroll: true })
   }
 
-  // fixed 定位不跟随滚动，滚动时直接关闭而非重算位置
-  onMounted(() => window.addEventListener('scroll', closeMenu, true))
-  onUnmounted(() => window.removeEventListener('scroll', closeMenu, true))
+  function onOutside(event: Event) {
+    const target = event.target as Node
+    if (trigger?.contains(target) || menuRef.value?.contains(target)) return
+    closeMenu()
+  }
 
-  return { openMenuId, menuStyle, toggleMenu, closeMenu }
+  function onKeydown(event: KeyboardEvent) {
+    if (openMenuId.value === null) return
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeMenu(true)
+      return
+    }
+    if (!menuRef.value?.contains(event.target as Node)) return
+    const entries = items()
+    if (!entries.length) return
+    const step = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0
+    if (!step && event.key !== 'Home' && event.key !== 'End') return
+    event.preventDefault()
+    const current = entries.indexOf(document.activeElement as HTMLElement)
+    const index =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? entries.length - 1
+          : (current + step + entries.length) % entries.length
+    entries[index]?.focus({ preventScroll: true })
+  }
+
+  function onScroll(event: Event) {
+    // 菜单自身在矮窗口中可以滚动；列表滚动则关闭，避免浮层脱离触发按钮。
+    if (!(event.target instanceof Node) || !menuRef.value?.contains(event.target)) closeMenu()
+  }
+
+  function onResize() {
+    closeMenu()
+  }
+
+  onMounted(() => {
+    document.addEventListener('pointerdown', onOutside)
+    document.addEventListener('focusin', onOutside)
+    document.addEventListener('keydown', onKeydown)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onResize)
+  })
+  onUnmounted(() => {
+    document.removeEventListener('pointerdown', onOutside)
+    document.removeEventListener('focusin', onOutside)
+    document.removeEventListener('keydown', onKeydown)
+    window.removeEventListener('scroll', onScroll, true)
+    window.removeEventListener('resize', onResize)
+  })
+
+  return { openMenuId, menuRef, menuId, menuStyle, toggleMenu, closeMenu }
 }

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useHead } from '@unhead/vue'
 import { useUserStore } from '@/stores/useUserStore'
 import { isInternalPath, OAUTH_REDIRECT_KEY } from '@/utils/oauth'
+
+useHead({ title: '登录 | BitLog', meta: [{ name: 'robots', content: 'noindex' }] })
 
 const route = useRoute()
 const router = useRouter()
@@ -40,6 +43,7 @@ onMounted(async () => {
 
 <template>
   <div class="callback">
+    <span class="callback__brand" aria-hidden="true">b.</span>
     <template v-if="errorMessage">
       <p class="callback__error">{{ errorMessage }}</p>
       <RouterLink to="/" class="callback__link">返回首页</RouterLink>
@@ -50,13 +54,19 @@ onMounted(async () => {
 
 <style scoped>
 .callback {
-  min-height: 60vh;
+  min-height: 75vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding: 24px;
+  padding: calc(var(--spacing-header-height) + 40px) 24px 64px;
+}
+
+.callback__brand {
+  color: var(--color-accent);
+  font: italic 88px/1 var(--font-editorial);
+  margin-bottom: 16px;
 }
 
 .callback__hint {

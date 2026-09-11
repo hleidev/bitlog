@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/admin/composables/useToast'
 import { useConfirm } from '@/admin/composables/useConfirm'
@@ -23,6 +23,11 @@ import {
 } from '@/api/admin/article'
 import { ApiError } from '@/utils/request'
 import ArticleMetaDialog from '@/admin/components/ArticleMetaDialog.vue'
+import {
+  articleStateLabel,
+  hasUnpublishedChanges,
+  articlePreviewPath,
+} from '@/admin/utils/articleState'
 
 const router = useRouter()
 const toast = useToast()
@@ -31,10 +36,14 @@ const confirm = useConfirm()
 /** 本页量词，批量条与操作提示共用 */
 const UNIT = '篇'
 
-const { openMenuId, menuStyle, toggleMenu, closeMenu } = useRowMenu()
+const { openMenuId, menuRef, menuId, menuStyle, toggleMenu, closeMenu } = useRowMenu()
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const counts = ref<ArticleCounts>({ total: 0, published: 0, draft: 0 })
+const countsReady = ref(false)
+const loadFailed = ref(false)
+let countRequestId = 0
+let pageRequestId = 0
 const selected = reactive(new Set<number>())
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -50,26 +59,43 @@ const TAB_STATUS: Record<TabKey, ArticleStatus | undefined> = {
 const query = useListQuery({
   filters: { tab: 'all' as TabKey, keyword: '' },
   toParams: (f) => ({ status: TAB_STATUS[f.tab], keyword: f.keyword }),
-  fetch: (params) => getMyArticles(params),
+  fetch: async (params) => {
+    const id = ++pageRequestId
+    const page = await getMyArticles(params)
+    if (id === pageRequestId) loadFailed.value = false
+    return page
+  },
+  sortField: 'UPDATE_TIME',
   debounce: ['keyword'],
   syncUrl: true,
-  onFiltersApplied: fetchTabCounts,
+  onFiltersApplied: () => {
+    clearSelection()
+    void fetchTabCounts()
+  },
   sanitize: (f) => {
     // hasOwn 而非 in：in 走原型链，?tab=constructor 会被放行
     if (!Object.hasOwn(TAB_STATUS, f.tab)) f.tab = 'all'
   },
-  onError: (err) => handleApiError(err, '加载文章失败'),
+  onError: (err) => {
+    loadFailed.value = true
+    handleApiError(err, '加载文章失败')
+  },
 })
 
 const { filters, loading, pageNum, pageSize, total, totalPages, pageNumbers } = query
 const articles = query.items
+const menuRow = computed(() => articles.value.find((row) => row.id === openMenuId.value))
 const fetchArticles = query.load
 
 // 顺序：全部 → 主要工作对象 → 其余。计数恒显示，含 0
 const tabs = computed(() => [
-  { key: 'all', label: '全部', count: counts.value.total },
-  { key: 'published', label: '已发布', count: counts.value.published },
-  { key: 'draft', label: '草稿', count: counts.value.draft },
+  { key: 'all', label: '全部', count: countsReady.value ? counts.value.total : undefined },
+  {
+    key: 'published',
+    label: '已发布',
+    count: countsReady.value ? counts.value.published : undefined,
+  },
+  { key: 'draft', label: '未发布', count: countsReady.value ? counts.value.draft : undefined },
 ])
 
 // AdminListHeader 的 model 是 string，这里做一层窄化桥接；切 tab 时清掉选中
@@ -83,14 +109,22 @@ const activeTab = computed({
 })
 
 async function fetchTabCounts() {
+  const id = ++countRequestId
+  countsReady.value = false
   try {
-    counts.value = await getMyArticleStats({ keyword: filters.keyword })
+    const result = await getMyArticleStats({ keyword: filters.keyword })
+    if (id !== countRequestId) return
+    counts.value = result
+    countsReady.value = true
   } catch {
     /* 统计失败不影响主流程 */
   }
 }
 
 onMounted(fetchTabCounts)
+onBeforeUnmount(() => {
+  countRequestId++
+})
 
 function handleSearch() {
   query.applyFilters()
@@ -120,9 +154,6 @@ const someChecked = computed(
 // 提供统一函数避免各处重复推导,并保证和未来 API 字段调整同步。
 function isPureDraft(row: ArticleVO): boolean {
   return row.publishedVersionId === null
-}
-function hasDraftAbovePublish(row: ArticleVO): boolean {
-  return row.publishedVersionId !== null && row.latestVersionId !== row.publishedVersionId
 }
 
 function toggleAll() {
@@ -157,29 +188,25 @@ function handleApiError(err: unknown, fallback = '操作失败') {
 }
 
 // ── Single row actions ────────────────────────────────────────────────────────
-async function handleEdit(row: ArticleVO) {
-  router.push(`/admin/write/${row.id}`)
-}
-
 function handlePreview(row: ArticleVO) {
-  // 预览策略:有未发布草稿 → 预览草稿页;否则 → 公开页
-  // 走版本号判断,避免遗漏 "已发布 + 有未发布草稿" 这种中间态
-  if (hasDraftAbovePublish(row)) window.open(`/admin/preview/${row.id}`, '_blank')
-  else window.open(`/article/${row.id}`, '_blank')
+  window.open(articlePreviewPath(row), '_blank', 'noopener')
 }
 
 async function handleTogglePublish(row: ArticleVO) {
+  closeMenu(true)
   const next: ArticleStatus = row.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
   if (next === 'DRAFT') {
     try {
-      await confirm(`确认取消发布「${row.title}」？`, '取消发布', { confirmText: '取消发布' })
+      await confirm(`确认撤下「${row.title}」？文章内容和发布信息会保留。`, '撤下文章', {
+        confirmText: '撤下',
+      })
     } catch {
       return
     }
   }
   try {
     await updateArticlesStatus([row.id], next)
-    toast.success(next === 'PUBLISHED' ? '文章已发布' : '已取消发布')
+    toast.success(next === 'PUBLISHED' ? '文章已发布' : '文章已撤下')
     fetchArticles()
     fetchTabCounts()
   } catch (err) {
@@ -188,6 +215,7 @@ async function handleTogglePublish(row: ArticleVO) {
 }
 
 async function handleDelete(row: ArticleVO) {
+  closeMenu(true)
   try {
     await confirm(`确认删除「${row.title}」？`, '删除文章', { confirmText: '删除', danger: true })
   } catch {
@@ -206,7 +234,7 @@ async function handleDelete(row: ArticleVO) {
 // ── Batch actions ─────────────────────────────────────────────────────────────
 async function handleBatchPublish(publish: boolean) {
   const next: ArticleStatus = publish ? 'PUBLISHED' : 'DRAFT'
-  const label = publish ? '发布' : '撤回'
+  const label = publish ? '发布' : '撤下'
   const ids = selectedIds.value
   try {
     await confirm(`确认${label}选中的 ${ids.length} 篇文章？`, `批量${label}`, {
@@ -383,14 +411,23 @@ function formatViews(n: number) {
 
       <AdminSelectionBar :count="selectedCount" :unit="UNIT" @clear="clearSelection">
         <button class="ghost-btn ghost-btn--sm" @click="handleBatchPublish(true)">批量发布</button>
-        <button class="ghost-btn ghost-btn--sm" @click="handleBatchPublish(false)">批量撤回</button>
+        <button class="ghost-btn ghost-btn--sm" @click="handleBatchPublish(false)">批量撤下</button>
         <button class="ghost-btn ghost-btn--sm ghost-btn--danger" @click="handleBatchDelete">
           批量删除
         </button>
       </AdminSelectionBar>
 
       <!-- ── Table ── -->
-      <div class="table-wrap" :class="{ 'table-wrap--loading': loading }">
+      <div v-if="loadFailed && !loading" class="admin-error-state" role="alert">
+        <p>文章加载失败，请重试。</p>
+        <button class="ghost-btn" @click="fetchArticles">重新加载</button>
+      </div>
+      <div
+        v-else
+        class="table-wrap"
+        :class="{ 'table-wrap--loading': loading }"
+        :aria-busy="loading"
+      >
         <div v-if="loading" class="table-loading">
           <svg class="spinner" viewBox="0 0 24 24" fill="none">
             <circle
@@ -412,14 +449,13 @@ function formatViews(n: number) {
                 <input
                   type="checkbox"
                   class="row-checkbox"
+                  aria-label="选择本页全部文章"
                   :checked="allChecked"
                   :indeterminate="someChecked"
                   @change="toggleAll"
                 />
               </th>
               <th class="col-main">文章</th>
-              <th class="col-narrow">分类</th>
-              <th class="col-text">标签</th>
               <th class="col-status col-status--wide">状态</th>
               <th class="col-num">阅读</th>
               <th class="col-time">更新时间</th>
@@ -428,10 +464,16 @@ function formatViews(n: number) {
           </thead>
           <tbody>
             <tr v-if="articles.length === 0 && !loading">
-              <td colspan="8" class="empty-cell">
+              <td colspan="6" class="empty-cell">
                 <div class="empty-state">
                   <AdminIcon name="article" class="empty-icon" />
-                  <span>暂无文章</span>
+                  <span>{{
+                    filters.keyword
+                      ? '没有匹配的文章'
+                      : filters.tab === 'draft'
+                        ? '没有未发布的文章'
+                        : '暂无文章'
+                  }}</span>
                 </div>
               </td>
             </tr>
@@ -444,36 +486,34 @@ function formatViews(n: number) {
                 <input
                   type="checkbox"
                   class="row-checkbox"
+                  :aria-label="`选择文章：${row.title}`"
                   :checked="selected.has(row.id)"
                   @change="toggleRow(row.id)"
                 />
               </td>
               <td class="col-main" :title="row.title">
-                <span
-                  class="article-title"
-                  :class="{ 'article-title--draft': isPureDraft(row) }"
-                  @click="handleEdit(row)"
-                >
+                <RouterLink class="article-title" :to="`/admin/write/${row.id}`">
                   {{ row.title }}
-                </span>
-              </td>
-              <td class="col-narrow">
-                <span v-if="row.category" class="category-tag">{{ row.category.name }}</span>
-                <span v-else class="cell-muted">—</span>
-              </td>
-              <td class="col-text">
-                <div v-if="row.tags.length > 0" class="tags-cell">
-                  <span v-for="tag in row.tags" :key="tag.id" class="tag-chip">{{ tag.name }}</span>
+                </RouterLink>
+                <div class="article-taxonomy">
+                  <span>{{ row.category?.name || '未分类' }}</span>
+                  <span v-for="tag in row.tags.slice(0, 2)" :key="tag.id">#{{ tag.name }}</span>
+                  <span
+                    v-if="row.tags.length > 2"
+                    :title="row.tags.map((tag) => tag.name).join('、')"
+                    >+{{ row.tags.length - 2 }}</span
+                  >
                 </div>
-                <span v-else class="cell-muted">—</span>
               </td>
               <td class="col-status col-status--wide">
                 <div class="status-cell">
-                  <span v-if="!isPureDraft(row)" class="status-badge status-badge--ok">已发布</span>
                   <span
-                    v-if="isPureDraft(row) || hasDraftAbovePublish(row)"
-                    class="status-badge status-badge--muted"
-                    >草稿</span
+                    class="status-badge"
+                    :class="isPureDraft(row) ? 'status-badge--muted' : 'status-badge--ok'"
+                    >{{ articleStateLabel(row) }}</span
+                  >
+                  <span v-if="hasUnpublishedChanges(row)" class="unpublished-note"
+                    >有未发布修改</span
                   >
                 </div>
               </td>
@@ -490,26 +530,18 @@ function formatViews(n: number) {
               <td class="col-actions">
                 <div class="row-actions">
                   <button class="action-btn" @click="handlePreview(row)">预览</button>
-                  <button class="action-btn" @click="openMetaModal(row)">属性</button>
-                  <div v-click-outside="closeMenu" class="menu-wrap">
-                    <button class="more-btn" title="更多" @click.stop="toggleMenu(row.id, $event)">
+                  <button class="action-btn" @click="openMetaModal(row)">信息</button>
+                  <div class="menu-wrap">
+                    <button
+                      class="more-btn"
+                      aria-haspopup="menu"
+                      :aria-expanded="openMenuId === row.id"
+                      :aria-controls="openMenuId === row.id ? menuId : undefined"
+                      title="更多"
+                      @click.stop="toggleMenu(row.id, $event)"
+                    >
                       <AdminIcon name="more" />
                     </button>
-                    <Teleport to="body">
-                      <div v-if="openMenuId === row.id" class="dropdown-menu" :style="menuStyle">
-                        <button
-                          v-if="!isPureDraft(row)"
-                          class="menu-item"
-                          @click="handleTogglePublish(row)"
-                        >
-                          撤回
-                        </button>
-                        <div v-if="!isPureDraft(row)" class="menu-divider" />
-                        <button class="menu-item menu-item--danger" @click="handleDelete(row)">
-                          删除
-                        </button>
-                      </div>
-                    </Teleport>
                   </div>
                 </div>
               </td>
@@ -518,6 +550,15 @@ function formatViews(n: number) {
         </table>
 
         <!-- Mobile cards (同源数据,CSS 在 <768px 隐藏表格显示卡片) -->
+        <div v-if="!articles.length && !loading" class="mobile-empty">
+          {{
+            filters.keyword
+              ? '没有匹配的文章'
+              : filters.tab === 'draft'
+                ? '没有未发布的文章'
+                : '暂无文章'
+          }}
+        </div>
         <ul class="data-cards">
           <li
             v-for="row in articles"
@@ -532,10 +573,13 @@ function formatViews(n: number) {
               <input
                 type="checkbox"
                 class="row-checkbox"
+                :aria-label="`选择文章：${row.title}`"
                 :checked="selected.has(row.id)"
                 @change="toggleRow(row.id)"
               />
-              <span class="data-card__title" @click="handleEdit(row)">{{ row.title }}</span>
+              <RouterLink class="data-card__title" :to="`/admin/write/${row.id}`">{{
+                row.title
+              }}</RouterLink>
             </div>
             <div class="data-card__meta">
               <span v-if="row.category" class="category-tag">{{ row.category.name }}</span>
@@ -543,20 +587,20 @@ function formatViews(n: number) {
                 <span v-for="tag in row.tags" :key="tag.id" class="tag-chip">{{ tag.name }}</span>
               </div>
               <div class="data-card__status">
-                <span v-if="!isPureDraft(row)" class="status-badge status-badge--ok">已发布</span>
                 <span
-                  v-if="isPureDraft(row) || hasDraftAbovePublish(row)"
-                  class="status-badge status-badge--muted"
-                  >草稿</span
+                  class="status-badge"
+                  :class="isPureDraft(row) ? 'status-badge--muted' : 'status-badge--ok'"
+                  >{{ articleStateLabel(row) }}</span
                 >
+                <span v-if="hasUnpublishedChanges(row)" class="unpublished-note">有未发布修改</span>
                 <span class="cell-muted">{{ formatDateTime(row.updateTime) }}</span>
               </div>
             </div>
             <div class="data-card__actions">
               <button class="action-btn" @click="handlePreview(row)">预览</button>
-              <button class="action-btn" @click="openMetaModal(row)">属性</button>
+              <button class="action-btn" @click="openMetaModal(row)">信息</button>
               <button v-if="!isPureDraft(row)" class="action-btn" @click="handleTogglePublish(row)">
-                撤回
+                撤下
               </button>
               <button class="action-btn action-btn--danger" @click="handleDelete(row)">删除</button>
             </div>
@@ -705,13 +749,75 @@ function formatViews(n: number) {
       </transition>
     </template>
   </ArticleMetaDialog>
+
+  <Teleport to="body">
+    <div
+      v-if="menuRow"
+      :id="menuId"
+      ref="menuRef"
+      role="menu"
+      aria-label="文章操作"
+      class="dropdown-menu"
+      :style="menuStyle"
+    >
+      <button
+        v-if="!isPureDraft(menuRow)"
+        role="menuitem"
+        tabindex="-1"
+        class="menu-item"
+        @click="handleTogglePublish(menuRow)"
+      >
+        撤下
+      </button>
+      <div v-if="!isPureDraft(menuRow)" class="menu-divider" role="separator" />
+      <button
+        role="menuitem"
+        tabindex="-1"
+        class="menu-item menu-item--danger"
+        @click="handleDelete(menuRow)"
+      >
+        删除
+      </button>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
-/* 固定列合计 40+100+200+140+80+150+148=858，再给主列留 240px 下限；窄于此宽度改为横向滚动，
-   而不是把主列压成 0（见 variables.css 中 .data-table 的说明） */
+/* 分类与标签归入标题列，为标题留出可阅读宽度；更窄时在表格内横向滚动。 */
 .data-table {
-  min-width: 1100px;
+  min-width: 860px;
+}
+.article-taxonomy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 8px;
+  color: var(--admin-text-muted);
+  font-size: 11px;
+}
+.status-cell {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.unpublished-note {
+  font-size: 10px;
+  color: var(--admin-warning);
+}
+.mobile-empty {
+  display: none;
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}
+.data-card__title {
+  text-decoration: none;
+}
+@media (max-width: 767px) {
+  .mobile-empty {
+    display: block;
+  }
 }
 
 .articles-page {
@@ -765,14 +871,16 @@ function formatViews(n: number) {
 /* ── Table cells ── */
 
 .article-title {
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--admin-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
   display: block;
-  max-width: 320px;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  text-decoration: none;
   cursor: pointer;
   transition: color 0.12s;
 }

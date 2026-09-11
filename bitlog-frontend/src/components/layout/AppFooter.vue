@@ -6,53 +6,82 @@ const copyrightYear = currentYear > START_YEAR ? `${START_YEAR}–${currentYear}
 
 <template>
   <footer class="footer">
-    <div class="footer__inner">
-      <span class="footer__rule" aria-hidden="true"></span>
-      <p class="footer__slogan">落笔有痕，代码留迹。</p>
-      <p class="footer__copy">© {{ copyrightYear }} BitLog · Harry</p>
+    <div class="footer__inner container">
+      <div class="footer__top">
+        <div>
+          <p class="journal-kicker">UNTIL THE NEXT NOTE</p>
+          <p class="footer__slogan">文字有尽，<span>折腾不止。</span></p>
+        </div>
+        <a
+          class="journal-link"
+          href="https://github.com/hleidev"
+          target="_blank"
+          rel="noopener noreferrer"
+          >在 GitHub 找到我 <span aria-hidden="true">↗</span></a
+        >
+      </div>
+      <div class="footer__bottom">
+        <a href="/" class="footer__wordmark" aria-label="BitLog 首页">BitLog<span>.</span></a>
+        <p>© {{ copyrightYear }} BitLog · Harry</p>
+      </div>
     </div>
   </footer>
 </template>
 
 <style scoped>
 .footer {
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border-strong);
 }
-
 .footer__inner {
-  max-width: var(--spacing-container);
-  margin: 0 auto;
-  padding: 48px var(--spacing-page-padding);
+  padding-top: 48px;
+  padding-bottom: 24px;
+}
+.footer__top {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 13px;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 32px;
+  padding-bottom: 48px;
 }
-
-.footer__rule {
-  width: 32px;
-  height: 1px;
-  background: var(--color-border);
-}
-
 .footer__slogan {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 13.5px;
-  color: var(--color-text-muted);
-  letter-spacing: 0.06em;
+  font: 500 clamp(26px, 3vw, 38px)/1.5 var(--font-display);
+  margin-top: 20px;
+  letter-spacing: -0.035em;
 }
-
-.footer__copy {
-  font-size: 11.5px;
-  /* 版权是正文信息而非装饰：faint(#c4c4c4) 在白底上仅 1.74，远不达 AA。 */
+.footer__slogan span {
   color: var(--color-text-muted);
-  letter-spacing: 0.06em;
 }
-
-@media (max-width: 768px) {
+.footer__bottom {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 22px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.footer__wordmark {
+  font: 600 26px var(--font-editorial);
+  color: var(--color-text-primary);
+  letter-spacing: -0.06em;
+  margin-right: auto;
+}
+.footer__wordmark span {
+  color: var(--color-accent);
+}
+@media (max-width: 640px) {
   .footer__inner {
-    padding: 40px 20px;
+    padding-top: 32px;
+  }
+  .footer__top {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 32px;
+  }
+  .footer__bottom {
+    gap: 16px;
+    flex-wrap: wrap;
   }
 }
 </style>
