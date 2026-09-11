@@ -30,7 +30,7 @@ public class MyArticlePageParam extends BasePage {
     @Schema(description = "文章状态：0-草稿，1-已发布")
     private ArticleStatusEnum status;
 
-    @Schema(description = "排序字段：CREATE_TIME-创建时间（默认），DISPLAY_TIME-列表展示时间")
+    @Schema(description = "排序字段：CREATE_TIME-创建时间（默认），UPDATE_TIME-更新时间，DISPLAY_TIME-列表展示时间")
     private MyArticleSortEnum sortField;
 
     @Schema(description = "排序方向：ASC / DESC，不传取排序字段的默认方向")

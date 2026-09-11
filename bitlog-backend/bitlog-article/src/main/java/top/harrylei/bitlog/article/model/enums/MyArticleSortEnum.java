@@ -18,6 +18,9 @@ public enum MyArticleSortEnum implements SortField {
     /** 创建时间 */
     CREATE_TIME("a.create_time", SortOrderEnum.DESC),
 
+    /** 最近更新：用于工作台继续编辑，仍以文章 ID 作为稳定分页的次排序键 */
+    UPDATE_TIME("a.update_time", SortOrderEnum.DESC),
+
     /**
      * 列表展示时间：未发布（含下架）按创建时间，已发布按发布时间
      * <p>
