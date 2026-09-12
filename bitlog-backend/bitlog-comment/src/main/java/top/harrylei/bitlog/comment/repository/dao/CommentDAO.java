@@ -6,17 +6,16 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import java.util.Collection;
+import java.util.List;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
-import top.harrylei.bitlog.comment.model.enums.CommentStatusEnum;
 import top.harrylei.bitlog.comment.model.dto.CommentStatsDTO;
+import top.harrylei.bitlog.comment.model.enums.CommentStatusEnum;
 import top.harrylei.bitlog.comment.model.query.CommentAdminPageParam;
 import top.harrylei.bitlog.comment.repository.entity.CommentDO;
 import top.harrylei.bitlog.comment.repository.mapper.CommentMapper;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
-
-import java.util.Collection;
-import java.util.List;
 
 /**
  * 评论数据访问对象
@@ -28,14 +27,24 @@ import java.util.List;
 public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
 
     /**
-     * 分页查询文章的根评论，不过滤删除与隐藏状态，可见性由服务层判定（需要保留墓碑）
+     * 按可展示楼层分页：根评论自身可见，或仍有可见回复（此时保留根评论墓碑）
      *
      * @param articleId 文章 ID
      * @param page 分页参数，排序由 BasePage 提供
      * @return 根评论分页结果
      */
     public IPage<CommentDO> pageRootComments(Long articleId, Page<CommentDO> page) {
-        return lambdaQuery().eq(CommentDO::getArticleId, articleId).isNull(CommentDO::getRootId).page(page);
+        return lambdaQuery()
+                .eq(CommentDO::getArticleId, articleId)
+                .isNull(CommentDO::getRootId)
+                .and(root -> root.nested(visible -> visible.eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                                .eq(CommentDO::getStatus, CommentStatusEnum.NORMAL))
+                        .or()
+                        .exists(
+                                "SELECT 1 FROM comment reply WHERE reply.root_id = comment.id "
+                                        + "AND reply.deleted = {0} AND reply.status = {1}",
+                                DeleteStatusEnum.NOT_DELETED.getCode(), CommentStatusEnum.NORMAL.getCode()))
+                .page(page);
     }
 
     /**
@@ -48,7 +57,10 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
         if (rootIds == null || rootIds.isEmpty()) {
             return List.of();
         }
-        return lambdaQuery().in(CommentDO::getRootId, rootIds).orderByAsc(CommentDO::getCreateTime).list();
+        return lambdaQuery()
+                .in(CommentDO::getRootId, rootIds)
+                .orderByAsc(CommentDO::getCreateTime)
+                .list();
     }
 
     /**
@@ -61,8 +73,10 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
         if (commentId == null) {
             return null;
         }
-        return lambdaQuery().eq(CommentDO::getId, commentId).eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .one();
+        return lambdaQuery()
+                .eq(CommentDO::getId, commentId)
+                .eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .one();
     }
 
     /**
@@ -75,8 +89,10 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
         if (commentIds == null || commentIds.isEmpty()) {
             return List.of();
         }
-        return lambdaQuery().in(CommentDO::getId, commentIds).eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .list();
+        return lambdaQuery()
+                .in(CommentDO::getId, commentIds)
+                .eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .list();
     }
 
     /**
@@ -87,8 +103,9 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
      * @return 评论分页结果
      */
     public IPage<CommentDO> pageForAdmin(CommentAdminPageParam param, Page<CommentDO> page) {
-        return adminBaseQuery(param).eq(param.getStatus() != null, CommentDO::getStatus, param.getStatus())
-            .page(page);
+        return adminBaseQuery(param)
+                .eq(param.getStatus() != null, CommentDO::getStatus, param.getStatus())
+                .page(page);
     }
 
     /**
@@ -103,15 +120,20 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
     public CommentStatsDTO countStats(CommentAdminPageParam param) {
         CommentStatsDTO stats = new CommentStatsDTO();
         stats.setTotal(adminBaseQuery(param).count());
-        stats.setVisible(adminBaseQuery(param).eq(CommentDO::getStatus, CommentStatusEnum.NORMAL).count());
-        stats.setHidden(adminBaseQuery(param).eq(CommentDO::getStatus, CommentStatusEnum.HIDDEN).count());
+        stats.setVisible(adminBaseQuery(param)
+                .eq(CommentDO::getStatus, CommentStatusEnum.NORMAL)
+                .count());
+        stats.setHidden(adminBaseQuery(param)
+                .eq(CommentDO::getStatus, CommentStatusEnum.HIDDEN)
+                .count());
         return stats;
     }
 
     /** 管理端列表与计数共用的基础过滤：排除已删除 + 关键词，不含状态 */
     private LambdaQueryChainWrapper<CommentDO> adminBaseQuery(CommentAdminPageParam param) {
-        return lambdaQuery().eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .like(StringUtils.hasText(param.getKeyword()), CommentDO::getContent, param.getKeyword());
+        return lambdaQuery()
+                .eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .like(StringUtils.hasText(param.getKeyword()), CommentDO::getContent, param.getKeyword());
     }
 
     /**
@@ -123,8 +145,12 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
      * @return true 状态已转移，false 未命中（已删除或已被他人改过）
      */
     public boolean updateStatus(Long commentId, CommentStatusEnum from, CommentStatusEnum to) {
-        return lambdaUpdate().eq(CommentDO::getId, commentId).eq(CommentDO::getStatus, from)
-            .eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED).set(CommentDO::getStatus, to).update();
+        return lambdaUpdate()
+                .eq(CommentDO::getId, commentId)
+                .eq(CommentDO::getStatus, from)
+                .eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .set(CommentDO::getStatus, to)
+                .update();
     }
 
     /**
@@ -138,9 +164,11 @@ public class CommentDAO extends ServiceImpl<CommentMapper, CommentDO> {
         if (commentIds == null || commentIds.isEmpty()) {
             return 0;
         }
-        LambdaUpdateWrapper<CommentDO> wrapper = Wrappers.<CommentDO>lambdaUpdate().in(CommentDO::getId, commentIds)
-            .eq(CommentDO::getStatus, status).eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
-            .set(CommentDO::getDeleted, DeleteStatusEnum.DELETED);
+        LambdaUpdateWrapper<CommentDO> wrapper = Wrappers.<CommentDO>lambdaUpdate()
+                .in(CommentDO::getId, commentIds)
+                .eq(CommentDO::getStatus, status)
+                .eq(CommentDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .set(CommentDO::getDeleted, DeleteStatusEnum.DELETED);
         return getBaseMapper().update(null, wrapper);
     }
 }

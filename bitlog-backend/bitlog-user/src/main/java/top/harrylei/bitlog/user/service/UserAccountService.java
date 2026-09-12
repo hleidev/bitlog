@@ -1,7 +1,7 @@
 package top.harrylei.bitlog.user.service;
 
-import top.harrylei.bitlog.user.model.enums.UserRoleEnum;
 import top.harrylei.bitlog.user.model.dto.UserAccountDTO;
+import top.harrylei.bitlog.user.model.enums.UserRoleEnum;
 
 /**
  * 账号主体服务
@@ -31,7 +31,7 @@ public interface UserAccountService {
     UserAccountDTO getByEmail(String email);
 
     /**
-     * 邮箱是否已被占用。不区分账号是否已注销：唯一索引不含 deleted，墓碑账号的邮箱仍占位
+     * 邮箱是否被未注销账号占用，与唯一索引的 deleted = 0 条件一致
      *
      * @param email 归一化后的邮箱
      * @return 已占用返回 true

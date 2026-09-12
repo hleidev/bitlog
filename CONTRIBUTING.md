@@ -64,7 +64,8 @@ mvn verify
 `spotless:check` 已绑定到 `verify`，Java 格式不合规会直接让构建失败，CI 同样会拦。
 
 集成测试使用 Testcontainers，需要 Docker。单元测试以 `*Test` 命名，集成测试以 `*IT` 命名，放在
-对应模块的 `src/test/java` 下。可以按测试类单独运行：
+对应模块的 `src/test/java` 下。`mvn test` 运行单元测试；`mvn verify` 还会通过 Failsafe 运行
+`bitlog-server` 的集成测试，与 CI 一致，因此需要先启动 Docker。可以按测试类单独运行：
 
 ```bash
 mvn test -pl bitlog-server -Dtest=ArticlePaginationIT

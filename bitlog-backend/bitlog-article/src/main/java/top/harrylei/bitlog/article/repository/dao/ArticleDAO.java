@@ -24,6 +24,15 @@ import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 @Repository
 public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
 
+    /** 在业务事务内锁住文章，串行化版本分配、草稿头变更与发布检查。 */
+    public ArticleDO getByIdForUpdate(Long articleId) {
+        return lambdaQuery()
+                .eq(ArticleDO::getId, articleId)
+                .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED)
+                .last("FOR UPDATE")
+                .one();
+    }
+
     public ArticleDO getByIdAndNotDeleted(Long articleId) {
         if (articleId == null) {
             return null;
@@ -170,6 +179,17 @@ public class ArticleDAO extends ServiceImpl<ArticleMapper, ArticleDO> {
                 .eq(ArticleDO::getCategoryId, categoryId)
                 .isNotNull(ArticleDO::getPublishedVersionId)
                 .eq(ArticleDO::getDeleted, DeleteStatusEnum.NOT_DELETED));
+    }
+
+    /** 删除分类前解除草稿和软删除文章的引用，不改动在线文章。 */
+    public void clearUnpublishedCategory(Long categoryId) {
+        lambdaUpdate()
+                .eq(ArticleDO::getCategoryId, categoryId)
+                .and(article -> article.isNull(ArticleDO::getPublishedVersionId)
+                        .or()
+                        .eq(ArticleDO::getDeleted, DeleteStatusEnum.DELETED))
+                .set(ArticleDO::getCategoryId, null)
+                .update();
     }
 
     /** 批量查询指定分类下的已发布文章（仅返回 categoryId，用于统计） */

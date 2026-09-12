@@ -87,6 +87,7 @@ export interface GetMyArticlesParams extends BasePageParams {
 }
 
 export interface PublishArticleParams {
+  expectedVersionId: number
   summary?: string | null
   categoryId?: number | null
   tagIds?: number[]
@@ -100,15 +101,23 @@ export interface UpdateArticleMetaParams {
 
 // ── Draft editing ─────────────────────────────────────────────────────────────
 
-export function createArticle(data: { title: string; content: string }): Promise<number> {
-  return request.post<never, number>('/v1/article', data)
+export interface ArticleSaveResult {
+  id: number
+  versionId: number
+}
+
+export function createArticle(data: {
+  title: string
+  content: string
+}): Promise<ArticleSaveResult> {
+  return request.post<never, ArticleSaveResult>('/v1/article', data)
 }
 
 export function updateArticleDraft(
   id: number,
-  data: { title: string; content: string },
-): Promise<void> {
-  return request.put<never, void>(`/v1/article/${id}`, data)
+  data: { title: string; content: string; expectedVersionId: number },
+): Promise<ArticleSaveResult> {
+  return request.put<never, ArticleSaveResult>(`/v1/article/${id}`, data)
 }
 
 export function getArticleDraft(id: number): Promise<ArticleDetailVO> {

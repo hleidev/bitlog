@@ -50,9 +50,6 @@ import top.harrylei.bitlog.user.port.UserPort;
 public class CommentServiceImpl implements CommentService {
 
     /**
-     * root_id / parent_id / reply_to_user_id 的空值约定
-     */
-    /**
      * 最小间隔窗口内只允许一条，故配额固定为 1
      */
     private static final int INTERVAL_QUOTA = 1;
@@ -85,14 +82,9 @@ public class CommentServiceImpl implements CommentService {
                         .filter(this::isVisible)
                         .collect(Collectors.groupingBy(CommentDO::getRootId));
 
-        // 不可见且无可见回复的根评论整条丢弃，其余保留：不可见的渲染为墓碑，托住整楼回复
-        List<CommentDO> rendered = roots.stream()
-                .filter(root -> isVisible(root)
-                        || !repliesByRoot.getOrDefault(root.getId(), List.of()).isEmpty())
-                .toList();
-
-        Map<Long, CommentUserVO> userMap = loadUsers(rendered, repliesByRoot);
-        List<CommentVO> content = rendered.stream()
+        // DAO 已按可展示楼层分页；不可见根评论保留墓碑，托住可见回复。
+        Map<Long, CommentUserVO> userMap = loadUsers(roots, repliesByRoot);
+        List<CommentVO> content = roots.stream()
                 .map(root -> buildRootVO(root, repliesByRoot.getOrDefault(root.getId(), List.of()), userMap))
                 .toList();
         return PageVO.of(rootPage, content);

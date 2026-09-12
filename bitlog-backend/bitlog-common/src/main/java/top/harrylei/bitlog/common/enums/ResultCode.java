@@ -42,6 +42,7 @@ public enum ResultCode implements IResultCode {
     ARTICLE_VERSION_NOT_EXISTS(43004, "文章版本不存在"),
     ARTICLE_CATEGORY_REQUIRED(43005, "发布前请先设置文章分类"),
     ARTICLE_NO_DRAFT_ABOVE_PUBLISH(43006, "没有未发布的草稿改动"),
+    ARTICLE_VERSION_CONFLICT(43007, "文章已在其他页面更新，请保留当前内容并重新加载后再操作"),
     CATEGORY_NOT_EXISTS(43101, "分类不存在"),
     CATEGORY_ALREADY_EXISTS(43102, "分类已存在"),
     CATEGORY_HAS_ARTICLES(43104, "该分类下存在文章，请先移除文章"),

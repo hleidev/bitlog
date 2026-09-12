@@ -1,5 +1,11 @@
 package top.harrylei.bitlog.file.service.impl;
 
+import java.io.IOException;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -11,21 +17,14 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.enums.ResultCode;
-import top.harrylei.bitlog.file.util.FileUrlHelper;
 import top.harrylei.bitlog.file.config.StorageProperties;
 import top.harrylei.bitlog.file.model.UploadScene;
 import top.harrylei.bitlog.file.model.UploadVO;
 import top.harrylei.bitlog.file.repository.dao.ImageRecordDAO;
 import top.harrylei.bitlog.file.repository.entity.ImageRecordDO;
 import top.harrylei.bitlog.file.service.FileService;
+import top.harrylei.bitlog.file.util.FileUrlHelper;
 import top.harrylei.bitlog.file.util.ImageProcessor;
-
-import java.io.IOException;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * 文件服务实现
@@ -98,12 +97,19 @@ public class FileServiceImpl implements FileService {
         }
 
         OffsetDateTime now = OffsetDateTime.now(ZoneId.systemDefault());
-        String key = String.format("%s/%d/%d/%02d/%s.%s", scene.getCode(), userId, now.getYear(), now.getMonthValue(),
-            UUID.randomUUID(), extension);
+        String key = String.format(
+                "%s/%d/%d/%02d/%s.%s",
+                scene.getCode(), userId, now.getYear(), now.getMonthValue(), UUID.randomUUID(), extension);
 
         try {
-            s3Client.putObject(PutObjectRequest.builder().bucket(props.getBucket()).key(key).contentType(contentType)
-                .contentLength((long)fileBytes.length).build(), RequestBody.fromBytes(fileBytes));
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(props.getBucket())
+                            .key(key)
+                            .contentType(contentType)
+                            .contentLength((long) fileBytes.length)
+                            .build(),
+                    RequestBody.fromBytes(fileBytes));
         } catch (Exception e) {
             log.error("文件上传失败 scene={} userId={} key={}", scene, userId, key, e);
             ResultCode.INTERNAL_ERROR.throwException("文件上传失败");
@@ -128,8 +134,8 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public void recordUpload(Long userId, String fileKey) {
-        imageRecordDAO
-            .save(new ImageRecordDO().setUserId(userId).setFileKey(fileKey).setDeleted(DeleteStatusEnum.NOT_DELETED));
+        imageRecordDAO.save(
+                new ImageRecordDO().setUserId(userId).setFileKey(fileKey).setDeleted(DeleteStatusEnum.NOT_DELETED));
     }
 
     @Override
@@ -145,14 +151,22 @@ public class FileServiceImpl implements FileService {
     @Async
     @Override
     public void delete(String key) {
+        deleteAndConfirm(key);
+    }
+
+    @Override
+    public boolean deleteAndConfirm(String key) {
         if (!StringUtils.hasText(key)) {
-            return;
+            return false;
         }
         try {
-            s3Client.deleteObject(builder -> builder.bucket(props.getBucket()).key(key).build());
+            s3Client.deleteObject(
+                    builder -> builder.bucket(props.getBucket()).key(key).build());
             log.info("文件删除成功 key={}", key);
+            return true;
         } catch (Exception e) {
             log.warn("文件删除失败 key={}", key, e);
+            return false;
         }
     }
 }

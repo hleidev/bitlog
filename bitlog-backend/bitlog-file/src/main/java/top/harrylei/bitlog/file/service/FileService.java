@@ -1,12 +1,11 @@
 package top.harrylei.bitlog.file.service;
 
-import org.springframework.web.multipart.MultipartFile;
-import top.harrylei.bitlog.file.model.UploadScene;
-import top.harrylei.bitlog.file.model.UploadVO;
-
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
+import top.harrylei.bitlog.file.model.UploadScene;
+import top.harrylei.bitlog.file.model.UploadVO;
 
 /**
  * 文件服务接口
@@ -44,6 +43,9 @@ public interface FileService {
      * @param key 文件存储路径（如 bitlog/avatar/1/2026/04/xxx.jpeg）
      */
     void delete(String key);
+
+    /** 同步删除文件并返回结果，供回收任务仅将删除成功的记录标记为已清理。 */
+    boolean deleteAndConfirm(String key);
 
     /**
      * 记录 article_content 场景的图片上传，用于 GC 跟踪

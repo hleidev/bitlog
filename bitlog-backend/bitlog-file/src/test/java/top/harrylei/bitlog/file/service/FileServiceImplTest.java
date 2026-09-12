@@ -1,28 +1,32 @@
 package top.harrylei.bitlog.file.service;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
-import top.harrylei.bitlog.file.util.FileUrlHelper;
-import top.harrylei.bitlog.file.config.StorageProperties;
-import top.harrylei.bitlog.file.repository.dao.ImageRecordDAO;
-import top.harrylei.bitlog.file.repository.entity.ImageRecordDO;
-import top.harrylei.bitlog.file.service.impl.FileServiceImpl;
-import software.amazon.awssdk.services.s3.S3Client;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import java.util.function.Consumer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
+import top.harrylei.bitlog.file.config.StorageProperties;
+import top.harrylei.bitlog.file.repository.dao.ImageRecordDAO;
+import top.harrylei.bitlog.file.repository.entity.ImageRecordDO;
+import top.harrylei.bitlog.file.service.impl.FileServiceImpl;
+import top.harrylei.bitlog.file.util.FileUrlHelper;
 
 /**
  * FileServiceImpl 单元测试
@@ -118,5 +122,30 @@ class FileServiceImplTest {
         ArgumentCaptor<Collection<String>> captor = ArgumentCaptor.forClass(Collection.class);
         verify(imageRecordDAO, times(1)).markDeleted(captor.capture());
         assertThat(captor.getValue()).isEmpty();
+    }
+
+    @Test
+    void deleteAndConfirm_storageFailure_returnsFalse() {
+        doThrow(new IllegalStateException("storage unavailable"))
+                .when(s3Client)
+                .deleteObject(ArgumentMatchers.<Consumer<DeleteObjectRequest.Builder>>any());
+
+        assertThat(fileService.deleteAndConfirm("article/1/image.png")).isFalse();
+    }
+
+    @Test
+    void deleteAndConfirm_storageSuccess_returnsTrue() {
+        when(props.getBucket()).thenReturn("test-bucket");
+        doAnswer(invocation -> {
+                    Consumer<DeleteObjectRequest.Builder> consumer = invocation.getArgument(0);
+                    var builder = DeleteObjectRequest.builder();
+                    consumer.accept(builder);
+                    assertThat(builder.build().key()).isEqualTo("article/1/image.png");
+                    return null;
+                })
+                .when(s3Client)
+                .deleteObject(ArgumentMatchers.<Consumer<DeleteObjectRequest.Builder>>any());
+
+        assertThat(fileService.deleteAndConfirm("article/1/image.png")).isTrue();
     }
 }

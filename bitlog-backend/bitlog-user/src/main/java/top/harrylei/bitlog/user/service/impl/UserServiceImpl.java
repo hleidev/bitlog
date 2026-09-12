@@ -1,6 +1,8 @@
 package top.harrylei.bitlog.user.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -9,34 +11,31 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
-import top.harrylei.bitlog.user.model.enums.UserRoleEnum;
-import top.harrylei.bitlog.user.model.enums.UserStatusEnum;
+import top.harrylei.bitlog.common.context.ReqInfoContext;
+import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
+import top.harrylei.bitlog.common.enums.ResultCode;
+import top.harrylei.bitlog.common.model.PageVO;
+import top.harrylei.bitlog.file.model.UploadScene;
+import top.harrylei.bitlog.file.service.FileService;
+import top.harrylei.bitlog.file.util.FileUrlHelper;
+import top.harrylei.bitlog.user.converter.UserConverter;
+import top.harrylei.bitlog.user.event.UserDeactivatedEvent;
+import top.harrylei.bitlog.user.event.UserDisabledEvent;
 import top.harrylei.bitlog.user.model.UserRules;
 import top.harrylei.bitlog.user.model.dto.UserDetailDTO;
 import top.harrylei.bitlog.user.model.dto.UserStatsDTO;
+import top.harrylei.bitlog.user.model.enums.UserRoleEnum;
+import top.harrylei.bitlog.user.model.enums.UserStatusEnum;
 import top.harrylei.bitlog.user.model.query.UserPageParam;
 import top.harrylei.bitlog.user.model.req.UserUpdateParam;
 import top.harrylei.bitlog.user.model.vo.UserDetailVO;
 import top.harrylei.bitlog.user.model.vo.UserListVO;
 import top.harrylei.bitlog.user.model.vo.UserStatsVO;
-import top.harrylei.bitlog.common.context.ReqInfoContext;
-import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
-import top.harrylei.bitlog.common.enums.ResultCode;
-import top.harrylei.bitlog.common.model.PageVO;
-import top.harrylei.bitlog.file.util.FileUrlHelper;
-import top.harrylei.bitlog.file.model.UploadScene;
-import top.harrylei.bitlog.file.service.FileService;
-import top.harrylei.bitlog.user.converter.UserConverter;
-import top.harrylei.bitlog.user.event.UserDeactivatedEvent;
-import top.harrylei.bitlog.user.event.UserDisabledEvent;
 import top.harrylei.bitlog.user.repository.dao.UserDAO;
 import top.harrylei.bitlog.user.repository.dao.UserInfoDAO;
 import top.harrylei.bitlog.user.repository.entity.UserDO;
 import top.harrylei.bitlog.user.repository.entity.UserInfoDO;
 import top.harrylei.bitlog.user.service.UserService;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * 用户业务服务实现
@@ -117,13 +116,14 @@ public class UserServiceImpl implements UserService {
             ResultCode.INVALID_PARAMETER.throwException("无效的头像地址");
         }
         String oldAvatarUrl = userInfo.getAvatar();
+        String oldKey = fileUrlHelper.extractKey(oldAvatarUrl);
+        if (key.equals(oldKey)) {
+            return;
+        }
         userInfoDAO.updateAvatar(userId, key);
         log.info("更新用户头像 userId={}", userId);
-        if (StringUtils.hasText(oldAvatarUrl)) {
-            String oldKey = fileUrlHelper.extractKey(oldAvatarUrl);
-            if (StringUtils.hasText(oldKey) && !oldKey.contains("://")) {
-                fileService.delete(oldKey);
-            }
+        if (StringUtils.hasText(oldKey) && !oldKey.contains("://")) {
+            fileService.delete(oldKey);
         }
     }
 
@@ -206,7 +206,7 @@ public class UserServiceImpl implements UserService {
     private String generateTombstoneName() {
         for (int i = 0; i < TOMBSTONE_NAME_RETRY; i++) {
             String candidate = UserRules.DEACTIVATED_PREFIX
-                + UUID.randomUUID().toString().replace("-", "").substring(0, TOMBSTONE_SUFFIX_LENGTH);
+                    + UUID.randomUUID().toString().replace("-", "").substring(0, TOMBSTONE_SUFFIX_LENGTH);
             if (!userDAO.isUsernameTaken(candidate)) {
                 return candidate;
             }
@@ -232,11 +232,13 @@ public class UserServiceImpl implements UserService {
     public PageVO<UserListVO> pageQuery(UserPageParam query) {
         IPage<UserDetailDTO> resultPage = userDAO.pageUsers(query, query.toPage());
 
-        List<UserListVO> voList = resultPage.getRecords().stream().map(dto -> {
-            UserListVO vo = userConverter.toListVO(dto);
-            vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
-            return vo;
-        }).toList();
+        List<UserListVO> voList = resultPage.getRecords().stream()
+                .map(dto -> {
+                    UserListVO vo = userConverter.toListVO(dto);
+                    vo.setAvatar(fileUrlHelper.buildUrl(vo.getAvatar()));
+                    return vo;
+                })
+                .toList();
 
         return PageVO.of(resultPage, voList);
     }

@@ -1,15 +1,14 @@
 package top.harrylei.bitlog.article.task;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import top.harrylei.bitlog.article.service.ArticleImageReferenceService;
 import top.harrylei.bitlog.file.service.FileService;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Set;
 
 /**
  * 文章内容图片孤儿清理定时任务
@@ -35,14 +34,19 @@ public class ImageCleanupTask {
 
         Set<String> referencedKeys = articleImageReferenceService.collectReferencedKeys();
 
-        List<String> orphanKeys = trackedKeys.stream().filter(key -> !referencedKeys.contains(key)).toList();
+        List<String> orphanKeys = trackedKeys.stream()
+                .filter(key -> !referencedKeys.contains(key))
+                .toList();
 
         if (orphanKeys.isEmpty()) {
             return;
         }
 
-        orphanKeys.forEach(fileService::delete);
-        fileService.markDeleted(orphanKeys);
-        log.info("清理孤儿内容图片 {} 张", orphanKeys.size());
+        List<String> deletedKeys =
+                orphanKeys.stream().filter(fileService::deleteAndConfirm).toList();
+        if (!deletedKeys.isEmpty()) {
+            fileService.markDeleted(deletedKeys);
+        }
+        log.info("清理孤儿内容图片成功 {} 张，失败 {} 张", deletedKeys.size(), orphanKeys.size() - deletedKeys.size());
     }
 }

@@ -3,6 +3,7 @@ package top.harrylei.bitlog.article.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,19 +20,19 @@ import top.harrylei.bitlog.article.model.req.ArticleBatchStatusUpdateParam;
 import top.harrylei.bitlog.article.model.req.ArticleMetaUpdateParam;
 import top.harrylei.bitlog.article.model.req.ArticlePublishParam;
 import top.harrylei.bitlog.article.model.req.ArticleSaveParam;
+import top.harrylei.bitlog.article.model.req.ArticleUpdateParam;
 import top.harrylei.bitlog.article.model.req.ArticleVersionBatchDeleteParam;
 import top.harrylei.bitlog.article.model.vo.ArticleCountVO;
 import top.harrylei.bitlog.article.model.vo.ArticleDetailVO;
+import top.harrylei.bitlog.article.model.vo.ArticleSaveVO;
+import top.harrylei.bitlog.article.model.vo.ArticleVO;
 import top.harrylei.bitlog.article.model.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.article.model.vo.ArticleVersionVO;
-import top.harrylei.bitlog.article.model.vo.ArticleVO;
 import top.harrylei.bitlog.article.service.ArticleService;
 import top.harrylei.bitlog.common.context.ReqInfoContext;
 import top.harrylei.bitlog.common.model.PageVO;
 import top.harrylei.bitlog.common.model.Result;
 import top.harrylei.bitlog.common.security.RequiresAdmin;
-
-import java.util.List;
 
 /**
  * 管理员文章接口，与 {@link ArticleController} 共用前缀
@@ -50,18 +51,19 @@ public class AdminArticleController {
 
     @Operation(summary = "新建文章草稿")
     @PostMapping
-    public Result<Long> save(@Valid @RequestBody ArticleSaveParam req) {
-        return Result.success(articleService.saveArticle(ReqInfoContext.getContext().getUserId(), req));
+    public Result<ArticleSaveVO> save(@Valid @RequestBody ArticleSaveParam req) {
+        return Result.success(
+                articleService.saveArticle(ReqInfoContext.getContext().getUserId(), req));
     }
 
     @Operation(summary = "更新文章草稿（生成新版本）")
     @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody ArticleSaveParam req) {
-        articleService.updateArticle(ReqInfoContext.getContext().getUserId(), id, req);
-        return Result.success();
+    public Result<ArticleSaveVO> update(@PathVariable Long id, @Valid @RequestBody ArticleUpdateParam req) {
+        return Result.success(
+                articleService.updateArticle(ReqInfoContext.getContext().getUserId(), id, req));
     }
 
-    @Operation(summary = "发布文章（设置封面、摘要、分类、标签并发布）")
+    @Operation(summary = "发布文章（核对版本并设置摘要、分类、标签）")
     @PostMapping("/{id}/publish")
     public Result<Void> publish(@PathVariable Long id, @Valid @RequestBody ArticlePublishParam req) {
         articleService.publishArticle(ReqInfoContext.getContext().getUserId(), id, req);
@@ -99,25 +101,28 @@ public class AdminArticleController {
     @Operation(summary = "获取文章草稿（作者编辑视角）")
     @GetMapping("/{id}/draft")
     public Result<ArticleDetailVO> draft(@PathVariable Long id) {
-        return Result.success(articleService.getDraftDetail(ReqInfoContext.getContext().getUserId(), id));
+        return Result.success(
+                articleService.getDraftDetail(ReqInfoContext.getContext().getUserId(), id));
     }
 
     @Operation(summary = "获取文章版本历史")
     @GetMapping("/{id}/versions")
     public Result<List<ArticleVersionVO>> versions(@PathVariable Long id) {
-        return Result.success(articleService.listVersions(ReqInfoContext.getContext().getUserId(), id));
+        return Result.success(
+                articleService.listVersions(ReqInfoContext.getContext().getUserId(), id));
     }
 
     @Operation(summary = "获取指定版本详情（含正文，用于版本对比）")
     @GetMapping("/{id}/versions/{versionId}")
     public Result<ArticleVersionDetailVO> versionDetail(@PathVariable Long id, @PathVariable Long versionId) {
-        return Result.success(articleService.getVersionDetail(ReqInfoContext.getContext().getUserId(), id, versionId));
+        return Result.success(
+                articleService.getVersionDetail(ReqInfoContext.getContext().getUserId(), id, versionId));
     }
 
     @Operation(summary = "批量删除文章版本（传单个 ID 即为单个操作）")
     @DeleteMapping("/{id}/versions/batch")
-    public Result<Void> batchDeleteVersions(@PathVariable Long id,
-        @Valid @RequestBody ArticleVersionBatchDeleteParam req) {
+    public Result<Void> batchDeleteVersions(
+            @PathVariable Long id, @Valid @RequestBody ArticleVersionBatchDeleteParam req) {
         articleService.deleteVersions(ReqInfoContext.getContext().getUserId(), id, req.getVersionIds());
         return Result.success();
     }
@@ -132,12 +137,14 @@ public class AdminArticleController {
     @Operation(summary = "分页查询我的文章列表（含草稿）")
     @GetMapping("/my")
     public Result<PageVO<ArticleVO>> myArticles(@Valid MyArticlePageParam query) {
-        return Result.success(articleService.pageMyArticles(ReqInfoContext.getContext().getUserId(), query));
+        return Result.success(
+                articleService.pageMyArticles(ReqInfoContext.getContext().getUserId(), query));
     }
 
     @Operation(summary = "统计我的文章各状态数量（关键词参与过滤，与列表口径一致）")
     @GetMapping("/my/stats")
     public Result<ArticleCountVO> myArticleStats(@Valid MyArticlePageParam query) {
-        return Result.success(articleService.countMyArticles(ReqInfoContext.getContext().getUserId(), query));
+        return Result.success(
+                articleService.countMyArticles(ReqInfoContext.getContext().getUserId(), query));
     }
 }

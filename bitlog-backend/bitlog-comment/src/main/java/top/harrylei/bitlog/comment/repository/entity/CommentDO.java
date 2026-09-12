@@ -1,14 +1,13 @@
 package top.harrylei.bitlog.comment.repository.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.io.Serial;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import top.harrylei.bitlog.comment.model.enums.CommentStatusEnum;
 import top.harrylei.bitlog.common.enums.DeleteStatusEnum;
 import top.harrylei.bitlog.common.model.BaseDO;
-
-import java.io.Serial;
 
 /**
  * 评论实体
@@ -36,17 +35,17 @@ public class CommentDO extends BaseDO {
     private Long userId;
 
     /**
-     * 根评论 ID，0 表示自身即根评论
+     * 根评论 ID，null 表示自身即根评论
      */
     private Long rootId;
 
     /**
-     * 父评论 ID，0 表示一级评论
+     * 父评论 ID，null 表示一级评论
      */
     private Long parentId;
 
     /**
-     * 被回复者用户 ID，0 表示直接回复根评论
+     * 被回复者用户 ID，null 表示未指定被回复者（根评论或直接回复根评论）
      */
     private Long replyToUserId;
 

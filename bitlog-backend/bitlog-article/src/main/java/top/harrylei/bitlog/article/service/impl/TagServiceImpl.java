@@ -1,5 +1,6 @@
 package top.harrylei.bitlog.article.service.impl;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,8 +13,6 @@ import top.harrylei.bitlog.article.repository.dao.TagDAO;
 import top.harrylei.bitlog.article.repository.entity.TagDO;
 import top.harrylei.bitlog.article.service.TagService;
 import top.harrylei.bitlog.common.enums.ResultCode;
-
-import java.util.List;
 
 /**
  * 标签业务服务实现
@@ -78,8 +77,8 @@ public class TagServiceImpl implements TagService {
     @Transactional
     @Override
     public void batchDelete(List<Long> ids) {
-        tagDAO.removeByIds(ids);
         articleTagDAO.removeByTagIds(ids);
+        tagDAO.removeByIds(ids);
         log.info("批量删除标签 ids={}", ids);
     }
 

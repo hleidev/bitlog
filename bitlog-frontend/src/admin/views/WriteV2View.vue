@@ -230,8 +230,7 @@ async function loadVersions() {
   try {
     const data = await getArticleVersions(articleId.value)
     versions.value = data
-    const latest = data.find((v) => v.latest)
-    if (latest) latestVersionId.value = latest.id
+    // 历史列表可能包含其他页面刚保存的内容，不能据此改变当前编辑内容的基准版本。
   } catch {
     // 侧栏非关键
   }
@@ -319,11 +318,21 @@ async function saveDraft(): Promise<boolean> {
     const t = title.value
     const md = currentMarkdown()
     if (articleId.value === null) {
-      const newId = await createArticle({ title: t, content: md })
+      const saved = await createArticle({ title: t, content: md })
       localDraft.clear() // 先清 "new" 键，articleId 换了之后就找不到它了
-      articleId.value = newId
+      articleId.value = saved.id
+      latestVersionId.value = saved.versionId
     } else {
-      await updateArticleDraft(articleId.value, { title: t, content: md })
+      if (latestVersionId.value === null) {
+        toast.error('未取得编辑版本，请保留当前内容并重新加载')
+        return false
+      }
+      const saved = await updateArticleDraft(articleId.value, {
+        title: t,
+        content: md,
+        expectedVersionId: latestVersionId.value,
+      })
+      latestVersionId.value = saved.versionId
     }
     markSaved(t, md)
     await loadVersions()
@@ -442,7 +451,11 @@ async function handlePublishConfirm(data: {
       // 内容一个字没变，能变的只有元数据
       await updateArticleMeta(id, payload)
     } else {
-      await publishArticle(id, payload)
+      if (latestVersionId.value === null) {
+        toast.error('未取得发布版本，请保留当前内容并重新加载')
+        return
+      }
+      await publishArticle(id, { ...payload, expectedVersionId: latestVersionId.value })
       publishedVersionId.value = latestVersionId.value
       if (publishTime.value === null) publishTime.value = new Date().toISOString()
     }

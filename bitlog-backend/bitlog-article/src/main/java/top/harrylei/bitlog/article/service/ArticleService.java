@@ -1,21 +1,22 @@
 package top.harrylei.bitlog.article.service;
 
+import java.util.List;
 import top.harrylei.bitlog.article.model.enums.ArticleStatusEnum;
 import top.harrylei.bitlog.article.model.query.ArticlePageParam;
 import top.harrylei.bitlog.article.model.query.MyArticlePageParam;
 import top.harrylei.bitlog.article.model.req.ArticleMetaUpdateParam;
 import top.harrylei.bitlog.article.model.req.ArticlePublishParam;
 import top.harrylei.bitlog.article.model.req.ArticleSaveParam;
+import top.harrylei.bitlog.article.model.req.ArticleUpdateParam;
 import top.harrylei.bitlog.article.model.vo.ArticleCountVO;
 import top.harrylei.bitlog.article.model.vo.ArticleDetailVO;
 import top.harrylei.bitlog.article.model.vo.ArticlePublicDetailVO;
 import top.harrylei.bitlog.article.model.vo.ArticlePublicVO;
+import top.harrylei.bitlog.article.model.vo.ArticleSaveVO;
+import top.harrylei.bitlog.article.model.vo.ArticleVO;
 import top.harrylei.bitlog.article.model.vo.ArticleVersionDetailVO;
 import top.harrylei.bitlog.article.model.vo.ArticleVersionVO;
-import top.harrylei.bitlog.article.model.vo.ArticleVO;
 import top.harrylei.bitlog.common.model.PageVO;
-
-import java.util.List;
 
 /**
  * 文章业务服务接口
@@ -30,9 +31,9 @@ public interface ArticleService {
      *
      * @param userId 作者用户 ID
      * @param req 保存请求
-     * @return 文章 ID
+     * @return 文章及本次保存的版本 ID
      */
-    Long saveArticle(Long userId, ArticleSaveParam req);
+    ArticleSaveVO saveArticle(Long userId, ArticleSaveParam req);
 
     /**
      * 更新文章草稿（生成新版本，仅处理标题和正文）
@@ -40,11 +41,12 @@ public interface ArticleService {
      * @param userId 操作用户 ID
      * @param articleId 文章 ID
      * @param req 更新请求
+     * @return 文章及本次保存的版本 ID
      */
-    void updateArticle(Long userId, Long articleId, ArticleSaveParam req);
+    ArticleSaveVO updateArticle(Long userId, Long articleId, ArticleUpdateParam req);
 
     /**
-     * 发布文章（更新封面、摘要、分类、标签，并将最新版本设为已发布版本）
+     * 发布文章（核对确认的版本后更新摘要、分类、标签及发布指针）
      *
      * @param userId 操作用户 ID
      * @param articleId 文章 ID
@@ -72,7 +74,7 @@ public interface ArticleService {
     /**
      * 切换文章状态（草稿 ↔ 已发布）
      * <p>
-     * 切换为已发布时使用现有元数据重新上线，不重新填写封面等信息； 切换为草稿时回退计数。两端均幂等。
+     * 切换为已发布时使用现有元数据重新上线，不重新填写元数据；切换为草稿时清空发布指针。两端均幂等。
      *
      * @param userId 操作用户 ID
      * @param articleId 文章 ID
