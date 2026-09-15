@@ -11,7 +11,7 @@ import { formatDate } from '@/utils/format'
 import ArticleRow from '@/components/common/ArticleRow.vue'
 
 const pageTitle = '首页 | BitLog'
-const pageDescription = '我是 Harry，一名后端工程师。爱折腾，也在奔波里记录生活的边角料。'
+const pageDescription = '我是 Harry，一名后端工程师。这里有代码，也有生活。'
 
 useHead({
   title: pageTitle,
@@ -110,7 +110,7 @@ onMounted(async () => {
         <div class="section-aside">
           <span class="section-number" aria-hidden="true">02 /</span>
           <h2 id="recent-heading">往期记录</h2>
-          <span class="section-english">MORE NOTES</span>
+          <span class="section-english">EARLIER</span>
           <RouterLink to="/articles" class="journal-link section-more"
             >全部文章 <span aria-hidden="true">↗</span></RouterLink
           >

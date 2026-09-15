@@ -265,7 +265,7 @@ async function remove(commentId: number) {
     </div>
 
     <p v-else-if="failed" class="state-text">评论加载失败，请刷新页面重试。</p>
-    <p v-else-if="!list.length" class="state-text">还没有评论，来说点什么。</p>
+    <p v-else-if="!list.length" class="state-text">还没有评论。</p>
 
     <!-- 列表 -->
     <ul v-else class="comment-list">

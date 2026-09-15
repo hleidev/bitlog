@@ -18,7 +18,7 @@ import {
 } from '@/api/link'
 
 const pageTitle = '友链 | BitLog'
-const pageDescription = '一些博客，推荐给你。'
+const pageDescription = '朋友们的站点。'
 
 useHead({
   title: pageTitle,

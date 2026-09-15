@@ -260,10 +260,10 @@ onUnmounted(() => {
   <main class="articles-page">
     <header class="journal-page-head container">
       <div>
-        <span class="journal-kicker">THE NOTEBOOK</span>
+        <span class="journal-kicker">ALL ENTRIES</span>
         <h1>文章<span class="page-title-dot">.</span></h1>
       </div>
-      <p>折腾笔记，生活随记。</p>
+      <p>技术笔记，生活随记。</p>
     </header>
     <!-- Sticky filter bar -->
     <div class="filter-bar">

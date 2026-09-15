@@ -5,13 +5,15 @@ import { RouterLink } from 'vue-router'
 <template>
   <section class="hero container" aria-labelledby="hero-title">
     <div class="hero__copy">
-      <p class="journal-kicker">HARRY'S PERSONAL JOURNAL</p>
+      <p class="journal-kicker">HARRY'S BUILD LOG</p>
       <h1 id="hero-title">
-        边折腾<span class="hero__comma">，</span><br />边<span class="hero__emphasis">记录。</span>
+        灵感是起点<span class="hero__comma">，</span><br />折腾是<span class="hero__emphasis"
+          >过程。</span
+        >
       </h1>
       <div class="hero__intro">
         <span class="hero__intro-rule" aria-hidden="true"></span>
-        <p>我是 Harry，一名后端工程师。<br />爱折腾，也在奔波里记录生活的边角料。</p>
+        <p>我是 Harry，一名后端工程师。<br />这里有代码，也有生活。</p>
       </div>
       <a href="#latest" class="journal-link hero__read"
         >从最近一篇读起 <span aria-hidden="true">↓</span></a
