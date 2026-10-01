@@ -2,6 +2,10 @@ package top.harrylei.bitlog.article.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -21,11 +25,6 @@ import top.harrylei.bitlog.article.repository.entity.ArticleVersionDO;
 import top.harrylei.bitlog.article.repository.entity.CategoryDO;
 import top.harrylei.bitlog.article.service.ArticleAiService;
 import top.harrylei.bitlog.common.enums.ResultCode;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 文章 AI 辅助服务实现
@@ -83,16 +82,27 @@ public class ArticleAiServiceImpl implements ArticleAiService {
         checkOwner(article, userId);
 
         ArticleVersionDO version = getLatestVersion(article);
+        return generate(articleId, version.getTitle(), version.getContent());
+    }
 
+    @Override
+    public AiArticleMetadataVO generateMetadata(String title, String content) {
+        return generate(null, title, content);
+    }
+
+    /**
+     * articleId 只用于日志，编辑器内容为 null
+     */
+    private AiArticleMetadataVO generate(Long articleId, String title, String content) {
         List<CategoryDO> categories = categoryDAO.listAll(null);
         List<TagVO> tags = tagDAO.listAll(null);
 
         String categoryOptions =
-            categories.stream().map(c -> c.getId() + ":" + c.getName()).collect(Collectors.joining("\n"));
-        String tagOptions = tags.stream().map(t -> t.getId() + ":" + t.getName()).collect(Collectors.joining("\n"));
+                categories.stream().map(c -> c.getId() + ":" + c.getName()).collect(Collectors.joining("\n"));
+        String tagOptions =
+                tags.stream().map(t -> t.getId() + ":" + t.getName()).collect(Collectors.joining("\n"));
 
-        String userMessage = METADATA_USER_PROMPT_TEMPLATE.formatted(categoryOptions, tagOptions, version.getTitle(),
-            version.getContent());
+        String userMessage = METADATA_USER_PROMPT_TEMPLATE.formatted(categoryOptions, tagOptions, title, content);
 
         String raw = aiModelRouter.chat(AiFeature.ARTICLE_SUGGESTIONS, METADATA_SYSTEM_PROMPT, userMessage);
         log.debug("AI 元数据原始响应 articleId={} raw={}", articleId, raw);
@@ -100,8 +110,8 @@ public class ArticleAiServiceImpl implements ArticleAiService {
         return parseMetadata(articleId, raw, categories, tags);
     }
 
-    private AiArticleMetadataVO parseMetadata(Long articleId, String raw, List<CategoryDO> categories,
-        List<TagVO> tags) {
+    private AiArticleMetadataVO parseMetadata(
+            Long articleId, String raw, List<CategoryDO> categories, List<TagVO> tags) {
         AiRawMetadata parsed;
         try {
             parsed = objectMapper.readValue(raw, AiRawMetadata.class);
@@ -131,14 +141,23 @@ public class ArticleAiServiceImpl implements ArticleAiService {
             }
         }
 
-        List<String> suggestedTags =
-            parsed.suggestedTags != null ? parsed.suggestedTags.stream().limit(SUGGESTED_TAGS_MAX).toList() : List.of();
+        List<String> suggestedTags = parsed.suggestedTags != null
+                ? parsed.suggestedTags.stream().limit(SUGGESTED_TAGS_MAX).toList()
+                : List.of();
 
-        log.info("AI 元数据解析完成 articleId={} 摘要长度={} 分类={} 已有标签={} 新标签={}", articleId, summary.length(),
-            category != null ? category.getName() : "null", matchedTags.size(), suggestedTags.size());
+        log.info(
+                "AI 元数据解析完成 articleId={} 摘要长度={} 分类={} 已有标签={} 新标签={}",
+                articleId,
+                summary.length(),
+                category != null ? category.getName() : "null",
+                matchedTags.size(),
+                suggestedTags.size());
 
-        return new AiArticleMetadataVO().setSummary(summary).setCategory(category).setTags(matchedTags)
-            .setSuggestedTags(suggestedTags);
+        return new AiArticleMetadataVO()
+                .setSummary(summary)
+                .setCategory(category)
+                .setTags(matchedTags)
+                .setSuggestedTags(suggestedTags);
     }
 
     private ArticleDO getArticleById(Long articleId) {

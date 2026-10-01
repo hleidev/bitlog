@@ -1,9 +1,11 @@
 package top.harrylei.bitlog.common.advice;
 
 import jakarta.validation.ConstraintViolationException;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -11,13 +13,11 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import top.harrylei.bitlog.common.enums.ResultCode;
 import top.harrylei.bitlog.common.exception.BusinessException;
 import top.harrylei.bitlog.common.model.Result;
-
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * 全局异常处理器
@@ -42,11 +42,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleValidationException(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream().map(FieldError::getDefaultMessage)
-            .filter(Objects::nonNull).collect(Collectors.joining("; "));
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining("; "));
         log.warn("参数校验失败: {}", message);
-        return message.isBlank() ? Result.fail(ResultCode.INVALID_PARAMETER)
-            : Result.fail(ResultCode.INVALID_PARAMETER.getCode(), message);
+        return message.isBlank()
+                ? Result.fail(ResultCode.INVALID_PARAMETER)
+                : Result.fail(ResultCode.INVALID_PARAMETER.getCode(), message);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
@@ -56,11 +59,18 @@ public class GlobalExceptionHandler {
         return Result.fail(ResultCode.INVALID_PARAMETER.getCode(), "缺少参数: " + e.getParameterName());
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public Result<Void> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        log.warn("参数类型错误: name={} value={}", e.getName(), e.getValue());
+        return Result.fail(ResultCode.INVALID_PARAMETER.getCode(), "参数格式错误: " + e.getName());
+    }
+
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleConstraintViolation(ConstraintViolationException e) {
         String message =
-            e.getConstraintViolations().stream().map(v -> v.getMessage()).collect(Collectors.joining("; "));
+                e.getConstraintViolations().stream().map(v -> v.getMessage()).collect(Collectors.joining("; "));
         log.warn("参数校验失败: {}", message);
         return Result.fail(ResultCode.INVALID_PARAMETER.getCode(), message);
     }

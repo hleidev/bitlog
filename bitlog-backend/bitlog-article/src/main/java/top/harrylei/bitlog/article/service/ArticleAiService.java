@@ -18,4 +18,13 @@ public interface ArticleAiService {
      * @return AI 推荐的文章元数据
      */
     AiArticleMetadataVO generateMetadata(Long userId, Long articleId);
+
+    /**
+     * 根据传入的标题和正文生成元数据推荐，不读库，供编辑器里尚未保存的内容使用
+     *
+     * @param title 文章标题
+     * @param content 文章正文
+     * @return AI 推荐的文章元数据
+     */
+    AiArticleMetadataVO generateMetadata(String title, String content);
 }
