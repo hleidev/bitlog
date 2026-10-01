@@ -16,7 +16,7 @@ import {
   updateArticlesStatus,
   deleteArticles,
   getArticleVersions,
-  generateAiMetadata,
+  generateAiMetadataFromContent,
   type ArticleDetailVO,
   type ArticleVersionVO,
 } from '@/api/admin/article'
@@ -564,7 +564,11 @@ async function runAiRecommend() {
   aiCatResult.value = null
   aiTagsResult.value = null
   try {
-    const data = await generateAiMetadata(articleId.value!)
+    // 传编辑器当前内容：新文章没有 id，已保存的文章也可能有未保存的改动
+    const data = await generateAiMetadataFromContent({
+      title: title.value,
+      content: currentMarkdown(),
+    })
     aiSummaryResult.value = data.summary
     aiCatResult.value = data.category ?? false
     aiTagsResult.value = { existing: data.tags, suggested: data.suggestedTags }

@@ -195,8 +195,22 @@ export interface AiMetadataVO {
   suggestedTags: string[]
 }
 
+// 模型生成常超过全局 10s；后端读超时 30s，I/O 断开会重试一次
+const AI_TIMEOUT = 90000
+
 export function generateAiMetadata(id: number): Promise<AiMetadataVO> {
-  return request.post<never, AiMetadataVO>(`/v1/article/${id}/ai/metadata`)
+  return request.post<never, AiMetadataVO>(`/v1/article/${id}/ai/metadata`, undefined, {
+    timeout: AI_TIMEOUT,
+  })
+}
+
+export function generateAiMetadataFromContent(data: {
+  title: string
+  content: string
+}): Promise<AiMetadataVO> {
+  return request.post<never, AiMetadataVO>('/v1/article/ai/metadata', data, {
+    timeout: AI_TIMEOUT,
+  })
 }
 
 export function deleteArticleVersions(articleId: number, versionIds: number[]): Promise<void> {
