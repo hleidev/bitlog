@@ -180,8 +180,8 @@ onMounted(async () => {
   try {
     article.value = await fetchArticleDetail(id)
   } catch {
-    // 缓存或预渲染已有内容时保留展示，只有什么都没有才报错
-    if (!article.value) error.value = true
+    // 缓存有正文时保留展示；预渲染数据不含正文，只有它时也要报错
+    if (!article.value?.content) error.value = true
   } finally {
     loading.value = false
     if (slowTimer) {
