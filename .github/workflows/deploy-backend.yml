@@ -59,24 +59,43 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           envs: GITHUB_SHA
+          # 拉镜像 + 部署与回滚各最多等 5 分钟，默认的 10m 不够
+          command_timeout: 15m
           script: |
             cd /opt/bitlog
             PREV_VERSION=$(cat .version 2>/dev/null || echo "latest")
 
+            # 这台机器上启动要 120~130 秒，等 5 分钟留足余量
+            wait_healthy() {
+              for i in $(seq 1 60); do
+                if curl -sf http://127.0.0.1:8080/actuator/health > /dev/null 2>&1; then
+                  return 0
+                fi
+                echo "Waiting... ($i/60)"
+                sleep 5
+              done
+              return 1
+            }
+
             APP_VERSION=$GITHUB_SHA docker compose pull app
             APP_VERSION=$GITHUB_SHA docker compose up -d app
 
-            for i in $(seq 1 30); do
-              if curl -sf http://127.0.0.1:8080/actuator/health > /dev/null 2>&1; then
-                echo "App is healthy"
-                echo "$GITHUB_SHA" > .version
-                docker image prune -f
-                exit 0
-              fi
-              echo "Waiting... ($i/30)"
-              sleep 3
-            done
+            if wait_healthy; then
+              echo "App is healthy"
+              echo "$GITHUB_SHA" > .version
+              docker image prune -f
+              exit 0
+            fi
 
-            echo "Health check failed, rolling back to $PREV_VERSION..."
+            # 回滚会重建容器，失败版本的日志必须在这之前留下
+            echo "Health check failed, last logs of $GITHUB_SHA:"
+            APP_VERSION=$GITHUB_SHA docker compose logs --tail=200 app
+
+            echo "Rolling back to $PREV_VERSION..."
             APP_VERSION=$PREV_VERSION docker compose up -d app
+            if wait_healthy; then
+              echo "Rolled back to $PREV_VERSION"
+            else
+              echo "Rollback to $PREV_VERSION is NOT healthy, manual intervention needed"
+            fi
             exit 1
